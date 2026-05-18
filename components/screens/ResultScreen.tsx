@@ -364,6 +364,10 @@ export default function ResultScreen() {
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const cancelRef = useRef(false);
 
+  // ref로 최신 productImages 항상 참조 (stale closure 방지)
+  const productImagesRef = useRef(productImages);
+  useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
+
   const displaySections = sections.length > 0 ? sections : DEFAULT_SECTIONS;
   const isSlide = out === 'slide';
   const isHtml  = out === 'html';
@@ -372,15 +376,16 @@ export default function ResultScreen() {
   const generateImage = useCallback(async (sec: Section) => {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false } }));
     try {
+      const images = productImagesRef.current;
       const res  = await fetch('/api/generate-image', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           prompt: `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`,
           sectionNum: sec.num,
-          productImages: productImages.length > 0 ? productImages : undefined,
+          productImages: images.length > 0 ? images : undefined,
         }),
-        signal:  AbortSignal.timeout(130_000), // 서버 120초 + 여유 10초
+        signal:  AbortSignal.timeout(130_000),
       });
       const data = await res.json();
       if (data.imageBase64) {
@@ -391,7 +396,7 @@ export default function ResultScreen() {
     } catch {
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
     }
-  }, []);
+  }, []); // productImagesRef를 통해 항상 최신값 참조
 
   // ResultScreen 진입 시 순차 자동 생성
   useEffect(() => {
@@ -418,7 +423,7 @@ export default function ResultScreen() {
   const isGenerating  = Object.values(sectionImages).some(s => s.loading);
 
   // 섹션 단건 재생성
-  const regenFn = async (sec: Section): Promise<Section | null> => {
+  const regenFn = useCallback(async (sec: Section): Promise<Section | null> => {
     try {
       const res = await fetch('/api/regen-section', {
         method:  'POST',
@@ -432,7 +437,7 @@ export default function ResultScreen() {
       console.error('[regenFn] error:', err);
       return null;
     }
-  };
+  }, [cat, ch, type, out, productName, productExtra]);
   const label   = isSlide ? '이미지 슬라이드형' : isHtml ? 'HTML 섹션형' : '블로그형 (글+그림)';
   const meta    = [cat, ch, type, label, `${secCnt}섹션`].filter(Boolean).join(' · ');
 

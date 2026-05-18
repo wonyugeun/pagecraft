@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp, ReferenceAnalysis } from '@/store/AppContext';
 
 type Tab = 'url' | 'text' | 'skip';
@@ -82,12 +82,21 @@ export default function ReferenceScreen() {
   const [loading, setLoading] = useState(false);
   const [result,  setResult]  = useState<ReferenceAnalysis | null>(null);
   const [error,   setError]   = useState('');
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); };
 
   const switchTab = (t: Tab) => { setTab(t); reset(); };
 
   const callApi = async (body: Record<string, string>) => {
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    let timedOut = false;
+    const tid = setTimeout(() => { timedOut = true; ctrl.abort(); }, 40_000);
+
     setLoading(true);
     setError('');
     setResult(null);
@@ -96,17 +105,23 @@ export default function ReferenceScreen() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
-        signal:  AbortSignal.timeout(40_000),
+        signal:  ctrl.signal,
       });
+      clearTimeout(tid);
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error ?? '분석 실패'); return; }
       setResult(data.analysis);
       setReferenceAnalysis(data.analysis);
     } catch (err) {
+      clearTimeout(tid);
+      if ((err as Error).name === 'AbortError') {
+        if (timedOut) setError('40초 초과 — 다시 시도해주세요.');
+        return; // 언마운트로 인한 abort는 상태 업데이트 스킵
+      }
       const msg = err instanceof Error ? err.message : String(err);
-      setError(msg.includes('timeout') ? '40초 초과 — 다시 시도해주세요.' : msg);
+      setError(msg);
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted || timedOut) setLoading(false);
     }
   };
 

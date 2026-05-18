@@ -61,8 +61,9 @@ export default function ImageScreen() {
   const [selectedCuts, setSelectedCuts] = useState<string[]>(
     cuts.filter(c => c.checked).map(c => c.id)
   );
-  const [makeResult, setMakeResult] = useState(false);
-  const [making, setMaking]         = useState(false);
+  const [makeResult,    setMakeResult]    = useState(false);
+  const [making,        setMaking]        = useState(false);
+  const [makeGenImages, setMakeGenImages] = useState<Record<string, string>>({});
   const [dragging, setDragging]     = useState(false);
   const [draggingMake, setDraggingMake] = useState(false);
 
@@ -102,10 +103,57 @@ export default function ImageScreen() {
     go('s5-5');
   };
 
-  const startMakeGen = () => {
+  const CUT_PROMPTS: Record<string, (i: number) => string> = {
+    nukki:     (i) => `Product shot on pure white background, clean professional e-commerce product photography, centered, no shadows, bright even lighting, high detail, shot ${i + 1}`,
+    concept:   (i) => `Product with artistic mood background, brand aesthetic photography, elegant composition, soft bokeh, professional studio, concept shot ${i + 1}`,
+    thumb:     (i) => `E-commerce store thumbnail, product hero shot, eye-catching clean composition, optimized for online store, thumbnail ${i + 1}`,
+    detail:    (i) => `Product macro close-up, showing texture and material fine details, professional close-up photography, detail shot ${i + 1}`,
+    lifestyle: (i) => `Product in natural lifestyle scene, real-world usage context, warm natural lighting, authentic atmosphere, lifestyle shot ${i + 1}`,
+  };
+
+  const startMakeGen = async () => {
     if (!makeImgs.length) { alert('먼저 원본 사진을 업로드해주세요'); return; }
     setMaking(true);
-    setTimeout(() => { setMaking(false); setMakeResult(true); }, 2200);
+    setMakeGenImages({});
+
+    const limited = makeImgs.slice(0, 3);
+    let base64s: string[] = [];
+    try {
+      base64s = await Promise.all(limited.map(s => toBase64(s.url)));
+    } catch (err) {
+      console.error('[startMakeGen] base64 error:', err);
+    }
+
+    const activeCuts = cuts.filter(c => selectedCuts.includes(c.id) && !c.disabled);
+    for (const cut of activeCuts) {
+      const count = Math.min(cut.count, 2);
+      for (let i = 0; i < count; i++) {
+        const key = `${cut.id}-${i}`;
+        const promptFn = CUT_PROMPTS[cut.id];
+        if (!promptFn) continue;
+        try {
+          const res = await fetch('/api/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: promptFn(i),
+              sectionNum: key,
+              productImages: base64s.length > 0 ? base64s : undefined,
+            }),
+            signal: AbortSignal.timeout(130_000),
+          });
+          const data = await res.json();
+          if (data.imageBase64) {
+            setMakeGenImages(p => ({ ...p, [key]: `data:${data.mimeType};base64,${data.imageBase64}` }));
+          }
+        } catch (err) {
+          console.error('[startMakeGen] cut error:', cut.id, err);
+        }
+      }
+    }
+
+    setMaking(false);
+    setMakeResult(true);
   };
 
   const toggleCut = (id: string) =>
@@ -195,7 +243,7 @@ export default function ImageScreen() {
                   <div className="img-th" key={i}>
                     <img src={img.url} alt={img.label} />
                     <div className="img-lbl">{img.label}</div>
-                    <button className="img-th-rm" onClick={() => setImgs(p => p.filter((_, j) => j !== i))}>✕</button>
+                    <button className="img-th-rm" onClick={() => { URL.revokeObjectURL(img.url); setImgs(p => p.filter((_, j) => j !== i)); }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -235,7 +283,7 @@ export default function ImageScreen() {
                   <div className="img-th" key={i}>
                     <img src={img.url} alt={img.label} />
                     <div className="img-lbl">{img.label}</div>
-                    <button className="img-th-rm" onClick={() => setMakeImgs(p => p.filter((_, j) => j !== i))}>✕</button>
+                    <button className="img-th-rm" onClick={() => { URL.revokeObjectURL(img.url); setMakeImgs(p => p.filter((_, j) => j !== i)); }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -299,15 +347,25 @@ export default function ImageScreen() {
                 {cuts
                   .filter(c => selectedCuts.includes(c.id) && !c.disabled)
                   .flatMap(c =>
-                    Array.from({ length: Math.min(c.count, 2) }, (_, i) => (
-                      <div className="res-img-card" key={`${c.id}-${i}`}>
-                        <div className="ric-mock">{c.ico}</div>
-                        <div className="ric-info">
-                          <div className="ric-name">{c.name} {i + 1}</div>
-                          <button className="ric-dl">⬇ 다운로드</button>
+                    Array.from({ length: Math.min(c.count, 2) }, (_, i) => {
+                      const key = `${c.id}-${i}`;
+                      const imgUrl = makeGenImages[key];
+                      return (
+                        <div className="res-img-card" key={key}>
+                          {imgUrl
+                            ? <img src={imgUrl} alt={`${c.name} ${i + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain', background: '#f8fafc' }} />
+                            : <div className="ric-mock">{c.ico}</div>
+                          }
+                          <div className="ric-info">
+                            <div className="ric-name">{c.name} {i + 1}</div>
+                            {imgUrl
+                              ? <a href={imgUrl} download={`${c.id}_${i + 1}.png`} className="ric-dl" style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>⬇ 다운로드</a>
+                              : <div style={{ fontSize: 10, color: 'var(--tx3)' }}>생성 실패</div>
+                            }
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )
                 }
               </div>

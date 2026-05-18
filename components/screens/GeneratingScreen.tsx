@@ -79,9 +79,10 @@ export default function GeneratingScreen() {
 
     timerRef.current = timers;
 
-    // cleanup: 타이머만 정리, abort는 수동 취소 시에만
     return () => {
       timers.forEach(clearTimeout);
+      cancelledRef.current = true;
+      abortRef.current?.abort();
     };
   }, []);
 
