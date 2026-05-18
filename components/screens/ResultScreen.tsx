@@ -79,6 +79,16 @@ const EMPTY_IMG: ImgState = { loading: false, url: null, error: false };
 
 /* ─── 라이트박스 ─── */
 function Lightbox({ url, alt, onClose }: { url: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
@@ -92,6 +102,7 @@ function Lightbox({ url, alt, onClose }: { url: string; alt: string; onClose: ()
       />
       <button
         onClick={onClose}
+        aria-label="닫기"
         style={{ position: 'absolute', top: 16, right: 20, fontSize: 30, color: '#fff', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, fontFamily: 'var(--f)' }}
       >✕</button>
     </div>
@@ -165,11 +176,12 @@ function ImgSlot({
 }
 
 /* ─── 블로그형 섹션 (실제 상세페이지 스타일) ─── */
-function BlogSection({ sec, onRegen, imgState, onGenerateImage }: {
+function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast }: {
   sec: Section;
   onRegen: (s: Section) => Promise<Section | null>;
   imgState: ImgState;
   onGenerateImage: () => void;
+  isLast: boolean;
 }) {
   const [editOpen,     setEditOpen]     = useState(false);
   const [headline,     setHeadline]     = useState(sec.headline);
@@ -189,15 +201,15 @@ function BlogSection({ sec, onRegen, imgState, onGenerateImage }: {
   };
 
   return (
-    <div style={{ padding: '40px 0 32px' }}>
+    <div style={{ paddingTop: 28, paddingBottom: 20, borderBottom: isLast ? 'none' : '1px solid #f0f0f0' }}>
 
-      {/* 섹션 번호 — 왼쪽 상단, 아주 작게 */}
-      <div style={{ fontSize: 10, fontWeight: 600, color: '#bbb', letterSpacing: '0.12em', marginBottom: 16 }}>
+      {/* 섹션 번호 */}
+      <div style={{ fontSize: 9, fontWeight: 600, color: '#d0d0d0', letterSpacing: '0.14em', marginBottom: 10 }}>
         {sec.num}
       </div>
 
       {/* ① 헤드라인 */}
-      <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#111', lineHeight: 1.5, letterSpacing: '-0.3px', marginBottom: 28, whiteSpace: 'pre-line' }}>
+      <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#111', lineHeight: 1.5, letterSpacing: '-0.3px', marginBottom: 20, whiteSpace: 'pre-line' }}>
         {headline}
       </div>
 
@@ -208,31 +220,31 @@ function BlogSection({ sec, onRegen, imgState, onGenerateImage }: {
         onGenerate={onGenerateImage}
         slotStyle={{
           margin: '0 -24px', width: 'calc(100% + 48px)',
-          height: 300, background: '#f1f5f9',
+          height: 280, background: '#f1f5f9',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 8, marginBottom: 28,
+          gap: 8, marginBottom: 20,
         }}
       />
 
       {/* ③ 본문 */}
-      <div style={{ textAlign: 'center', fontSize: 14, color: '#555', lineHeight: 2, marginBottom: 18 }}>
+      <div style={{ textAlign: 'center', fontSize: 14, color: '#555', lineHeight: 2, marginBottom: 14 }}>
         {saved}
       </div>
 
-      {/* 버튼 */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+      {/* 버튼 — 우측 정렬, 컴팩트 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
         <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>
-          {editOpen ? '✏️ 닫기' : '✏️ 수정하기'}
+          {editOpen ? '닫기' : '✏️ 수정'}
         </button>
         <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
           {regenLoading
-            ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 5, verticalAlign: 'middle' }} />생성 중...</>
-            : '✦ AI 재생성'}
+            ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</>
+            : '✦ 재생성'}
         </button>
       </div>
 
       {editOpen && (
-        <div className="edit-panel open" style={{ marginTop: 14 }}>
+        <div className="edit-panel open" style={{ marginTop: 10 }}>
           <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
           <div className="edit-actions">
             <button className="edit-save" onClick={() => { setSaved(editVal); setEditOpen(false); }}>저장</button>
@@ -477,6 +489,7 @@ export default function ResultScreen() {
               key={i} sec={sec} onRegen={regenFn}
               imgState={sectionImages[sec.num] ?? EMPTY_IMG}
               onGenerateImage={() => generateImage(sec)}
+              isLast={i === displaySections.length - 1}
             />
           ))}
         </div>

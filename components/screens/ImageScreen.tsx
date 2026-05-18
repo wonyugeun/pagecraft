@@ -212,7 +212,16 @@ export default function ImageScreen() {
           <div
             key={mode}
             className={`imc${imgMode === mode ? ' on' : ''}`}
-            onClick={() => setImgMode(mode)}
+            onClick={() => {
+              if (imgMode === mode) return;
+              imgs.forEach(img => URL.revokeObjectURL(img.url));
+              makeImgs.forEach(img => URL.revokeObjectURL(img.url));
+              setImgs([]);
+              setMakeImgs([]);
+              setMakeResult(false);
+              setMakeGenImages({});
+              setImgMode(mode);
+            }}
           >
             <div className="imc-ck">✓</div>
             <div className="imc-ico">{ico}</div>

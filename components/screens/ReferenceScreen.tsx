@@ -125,7 +125,16 @@ export default function ReferenceScreen() {
     }
   };
 
-  const analyzeUrl  = () => { if (url.trim()) callApi({ url: url.trim() }); };
+  const analyzeUrl = () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+    try { new URL(normalized); } catch {
+      setError('올바른 URL 형식이 아니에요. https://로 시작하는 주소를 확인해주세요.');
+      return;
+    }
+    callApi({ url: trimmed });
+  };
   const analyzeText = () => { if (text.trim()) callApi({ text: text.trim() }); };
 
   const tabStyle = (t: Tab): React.CSSProperties => ({
