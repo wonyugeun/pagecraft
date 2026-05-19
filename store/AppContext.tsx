@@ -177,11 +177,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // 브라우저 뒤로가기/앞으로가기 처리
   useEffect(() => {
-    window.history.replaceState({ screen: 's0' }, '');
+    // 이미 유효한 screen 상태가 있으면 덮어쓰지 않음
+    // (리마운트 시 현재 화면이 's0'으로 리셋되는 버그 방지)
+    if (!window.history.state?.screen) {
+      window.history.replaceState({ screen: 's0' }, '');
+    }
+
+    let nullSkips = 0;
     const onPop = (e: PopStateEvent) => {
       const id = e.state?.screen as ScreenId | undefined;
-      if (id) setScreen(id);
+      if (id) {
+        nullSkips = 0;
+        setScreen(id);
+      } else if (nullSkips < 3) {
+        // Next.js 내부 엔트리 등 screen state 없는 팬텀 엔트리 — 건너뜀
+        nullSkips++;
+        window.history.go(-1);
+      } else {
+        nullSkips = 0;
+        setScreen('s0');
+      }
     };
+
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
