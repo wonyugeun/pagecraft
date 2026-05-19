@@ -371,3 +371,99 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.6}
 .ric-dl:hover{background:var(--ac)}
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════
+   모바일 반응형 (375px ~ 640px)
+═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* ── TopBar ── */
+  .tb { padding: 0 16px; gap: 6px; }
+  .ai-help-btn .ai-txt { display: none; }   /* "AI 도우미" 텍스트 숨김, dot만 표시 */
+  .user-badge .user-name { display: none; } /* 이름 텍스트 숨김, 아바타만 표시 */
+
+  /* ── ProgressBar ── */
+  /* [Critical Fix] 10단계 레이블이 375px에서 ~599px 필요 → overflow. 레이블 숨기고 숫자만 표시 */
+  .prog { padding: 8px 12px; }
+  .ps-l { display: none; }
+  .ps { gap: 2px; flex: 0 0 auto; }
+  .ps-n { width: 20px; height: 20px; font-size: 8px; }
+  .pl { flex: 1; margin: 0 2px; min-width: 2px; }
+
+  /* ── 메인 레이아웃 ── */
+  .main { padding-top: 90px; }
+  .inner { padding: 28px 16px 80px; }
+  .result-shell { padding: 24px 16px 80px; }
+
+  /* ── 제목 ── */
+  .stitle { font-size: 20px; }
+  .ssub { font-size: 13px; margin-bottom: 24px; }
+
+  /* ── [Critical Fix] 카테고리 그리드 4열 → 3열 ── */
+  .cat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cc { padding: 12px 6px; gap: 5px; }
+  .cc-ico { width: 30px; height: 30px; font-size: 14px; }
+  .cc-name { font-size: 11px; }
+  .cc-sub { display: none; }
+
+  /* ── 채널 그리드 ── */
+  .ch-grid { grid-template-columns: 1fr; }
+
+  /* ── 타입 리스트 ── */
+  .tc { padding: 16px; gap: 12px; }
+  .tc-ico { width: 36px; height: 36px; font-size: 16px; }
+
+  /* ── 출력형태 그리드 ── */
+  .output-grid { grid-template-columns: 1fr; gap: 10px; }
+  .oc-preview { height: 120px; }
+
+  /* ── 이미지 업로드 썸네일 4열 → 3열 ── */
+  .img-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+  /* ── 이미지 모드 선택 ── */
+  .img-mode-grid { grid-template-columns: 1fr; gap: 10px; }
+  .imc { padding: 16px; text-align: left; display: flex; align-items: center; gap: 14px; }
+  .imc-ico { font-size: 24px; margin-bottom: 0; flex-shrink: 0; }
+  .imc-title { margin-bottom: 3px; }
+  .imc-ck { top: 10px; right: 10px; }
+
+  /* ── 슬라이드 그리드 3열 → 2열 ── */
+  .slide-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+  /* ── CTA 버튼 행 ── */
+  .cta-row { flex-wrap: wrap; gap: 10px; }
+  .btn-back { order: 2; }
+  .btn-next { order: 1; flex: 1; justify-content: center; min-width: 0; }
+
+  /* ── 결과 화면 상단 ── */
+  .result-top { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .result-top-btns { width: 100%; justify-content: flex-start; }
+  .result-title { font-size: 18px; }
+  .btn-outline { flex: 1; text-align: center; }
+
+  /* ── 다운로드 배너 ── */
+  .dl-banner { flex-direction: column; gap: 16px; padding: 18px 16px; }
+  .dl-btns { width: 100%; flex-direction: column; gap: 8px; }
+  .dl-main-btn { width: 100%; text-align: center; }
+  .dl-charge-btn { width: 100%; text-align: center; }
+
+  /* ── 생성 중 화면 ── */
+  .gen-shell { padding: 40px 16px; }
+  .gen-title { font-size: 20px; }
+
+  /* ── 챗 패널 ── */
+  .chat-panel { width: 100%; right: -100%; }
+  .chat-panel.open { right: 0; }
+  .main.chat-open { margin-right: 0; }
+
+  /* ── 로그인 카드 ── */
+  .login-card { padding: 28px 20px; }
+
+  /* ── 대시보드 ── */
+  .dash-sub-grid { grid-template-columns: 1fr; }
+  .dmc-inner { gap: 12px; }
+
+  /* ── 모달 ── */
+  .modal-ov { padding: 16px; align-items: flex-end; }
+  .modal-card { padding: 24px 20px; border-radius: 16px 16px 0 0; max-width: 100%; }
+}

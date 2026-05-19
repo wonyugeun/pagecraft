@@ -221,12 +221,10 @@ export default function SectionStructureScreen() {
 
       <div className="cta-row">
         <button className="btn-back" onClick={() => go('s5-5')}>← 이전</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ fontSize: 12, color: 'var(--tx3)' }}>{secs.length}개 섹션</div>
-          <button className="btn-next" disabled={secs.length < 2} onClick={handleConfirm}>
-            이 구조로 생성하기 →
-          </button>
-        </div>
+        <button className="btn-next" disabled={secs.length < 2} onClick={handleConfirm}>
+          <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.7, marginRight: 4 }}>{secs.length}개</span>
+          이 구조로 →
+        </button>
       </div>
     </div>
   );

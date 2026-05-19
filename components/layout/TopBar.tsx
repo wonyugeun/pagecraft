@@ -14,12 +14,12 @@ export default function TopBar() {
       <div className="tb-right">
         <button className="ai-help-btn" onClick={toggleChat}>
           <span className="dot" />
-          AI 도우미
+          <span className="ai-txt">AI 도우미</span>
         </button>
         {loggedIn && (
           <div className="user-badge">
             <div className="user-av">유</div>
-            유근님
+            <span className="user-name">유근님</span>
           </div>
         )}
       </div>
