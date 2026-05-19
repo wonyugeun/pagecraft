@@ -50,7 +50,7 @@ function UploadZone({
 }
 
 export default function ImageScreen() {
-  const { ch, type, imgMode, setImgMode, setProductImages, go } = useApp();
+  const { cat, ch, type, imgMode, setImgMode, setProductImages, go } = useApp();
   const safeCh   = ch   || '스마트스토어';
   const safeType = type || '기본형';
   const guide = (IMG_CL[safeCh] ?? IMG_CL['스마트스토어'])[safeType] ?? IMG_CL['스마트스토어']['기본형'];
@@ -64,6 +64,8 @@ export default function ImageScreen() {
   const [makeResult,    setMakeResult]    = useState(false);
   const [making,        setMaking]        = useState(false);
   const [makeGenImages, setMakeGenImages] = useState<Record<string, string>>({});
+  const [generatingKey, setGeneratingKey] = useState<string>('');
+  const [failedKeys,    setFailedKeys]    = useState<Set<string>>(new Set());
   const [dragging, setDragging]     = useState(false);
   const [draggingMake, setDraggingMake] = useState(false);
 
@@ -103,25 +105,88 @@ export default function ImageScreen() {
     go('s7');
   };
 
-  const CUT_PROMPTS: Record<string, (i: number) => string> = {
-    nukki:     (i) => `Product shot on pure white background, clean professional e-commerce product photography, centered, no shadows, bright even lighting, high detail, shot ${i + 1}`,
-    concept:   (i) => `Product with artistic mood background, brand aesthetic photography, elegant composition, soft bokeh, professional studio, concept shot ${i + 1}`,
-    thumb:     (i) => `E-commerce store thumbnail, product hero shot, eye-catching clean composition, optimized for online store, thumbnail ${i + 1}`,
-    detail:    (i) => `Product macro close-up, showing texture and material fine details, professional close-up photography, detail shot ${i + 1}`,
-    lifestyle: (i) => `Product in natural lifestyle scene, real-world usage context, warm natural lighting, authentic atmosphere, lifestyle shot ${i + 1}`,
+  /* ── 카테고리별 제품·소품 키워드 ── */
+  const CAT_CTX: Record<string, { product: string; props: string; scene: string }> = {
+    화장품:   { product: 'Korean skincare/beauty product',       props: 'fresh botanicals, flower petals, glass droplets, marble surface, white cotton',           scene: 'vanity table or bathroom shelf' },
+    식품:     { product: 'Korean food or beverage product',      props: 'fresh natural ingredients, wooden cutting board, ceramic bowl, linen cloth',              scene: 'kitchen counter or dining table' },
+    패션:     { product: 'fashion clothing or accessory item',   props: 'minimalist accessories, neutral fabric swatches, clean hanger or flat-lay surface',       scene: 'wardrobe or lifestyle dressing area' },
+    생활:     { product: 'home living or interior decor product',props: 'indoor plants, soft linen, natural wood surface, neutral home decor',                    scene: 'living room or home interior' },
+    가전:     { product: 'consumer electronics or home appliance',props: 'clean minimal white or dark surface, subtle abstract tech texture',                      scene: 'modern home or office desk' },
+    반려동물: { product: 'pet care product',                     props: 'soft pet accessories, natural wooden toy, green leaves',                                  scene: 'bright cozy home corner' },
+    스포츠:   { product: 'sports or outdoor gear product',       props: 'athletic equipment, gym floor texture, outdoor natural background',                       scene: 'gym or outdoor sports setting' },
+    유아:     { product: 'baby or toddler product',              props: 'pastel soft toys, gentle knit fabric, nursery wood elements',                             scene: 'nursery or playroom' },
+    건강:     { product: 'health supplement or wellness product', props: 'natural herbs, clean glass jar, white medical-grade surface, green leaves',               scene: 'health-conscious lifestyle setting' },
+    자동차:   { product: 'automotive accessory or car care product', props: 'carbon fiber texture, metallic accents, car interior background',                     scene: 'modern garage or car interior' },
+    기타:     { product: 'retail consumer product',              props: 'complementary lifestyle props appropriate to the item',                                   scene: 'clean lifestyle setting' },
+  };
+
+  const buildPrompt = (cutId: string, idx: number, category: string, channel: string): string => {
+    const ctx = CAT_CTX[category] ?? CAT_CTX['기타'];
+    switch (cutId) {
+      case 'nukki':
+        return (
+          `Isolated product photography. The ${ctx.product} is placed on a perfectly pure white (#FFFFFF) background. ` +
+          `Centered composition, all product edges cleanly visible against white. ` +
+          `${idx === 0 ? 'Even fill lighting from all sides, no shadows.' : 'Soft directional light creating very subtle depth, minimal shadow.'} ` +
+          `Professional e-commerce white-background standard shot optimized for Korean online shopping (Coupang, SmartStore). ` +
+          `Photorealistic, sharp detail, high resolution.`
+        );
+      case 'concept':
+        return (
+          `Korean brand lifestyle concept photography. ` +
+          `The ${ctx.product} is artfully styled in a curated scene with ${ctx.props}. ` +
+          `${idx === 0
+            ? 'Bright airy atmosphere with soft natural light, clean whites and pastels, fresh and premium mood.'
+            : 'Moody dramatic lighting with rich warm tones, luxurious and aspirational atmosphere.'} ` +
+          `Soft bokeh background depth, magazine-quality brand aesthetic. Professional studio photography.`
+        );
+      case 'thumb':
+        return (
+          `Korean e-commerce hero thumbnail image for ${channel ?? '스마트스토어'}. ` +
+          `The ${ctx.product} is the bold primary subject. ` +
+          `${idx === 0
+            ? 'Clean white or soft gradient background, product centered with strong presence.'
+            : 'Vivid color-blocked background (brand color), product offset to one side with clear space for text.'} ` +
+          `High visual impact at small thumbnail sizes, sharp clarity, vibrant commercial look. ` +
+          `Leave clean space on one edge for promotional text overlay. Photorealistic.`
+        );
+      case 'detail':
+        return (
+          `Professional macro detail photography of the ${ctx.product}. ` +
+          `${idx === 0
+            ? 'Extreme close-up revealing surface texture, material finish, and craftsmanship — tactile quality visible.'
+            : 'Close-up of key functional features, label, branding, or ingredient detail — informative and trust-building.'} ` +
+          `Shallow depth of field with razor-sharp focal plane. Studio macro lighting that emphasizes premium quality. ` +
+          `Photorealistic, ultra-high detail.`
+        );
+      case 'lifestyle':
+        return (
+          `Authentic lifestyle photography. The ${ctx.product} shown in its natural ${ctx.scene}. ` +
+          `${idx === 0
+            ? 'Bright daytime natural light, airy and fresh morning atmosphere.'
+            : 'Warm soft indoor evening light, cozy and inviting atmosphere.'} ` +
+          `Product shown in context of genuine use, candid and relatable. ` +
+          `Warm color grading, commercial lifestyle photography quality.`
+        );
+      default:
+        return `Professional commercial product photography of ${ctx.product}, clean studio setup, shot ${idx + 1}.`;
+    }
   };
 
   const startMakeGen = async () => {
     if (!makeImgs.length) { alert('먼저 원본 사진을 업로드해주세요'); return; }
     setMaking(true);
+    setMakeResult(true); // 즉시 결과 그리드 표시
     setMakeGenImages({});
+    setFailedKeys(new Set());
+    setGeneratingKey('');
 
-    const limited = makeImgs.slice(0, 3);
+    // 업로드 이미지 → base64 변환 (Gemini 멀티모달 입력)
     let base64s: string[] = [];
     try {
-      base64s = await Promise.all(limited.map(s => toBase64(s.url)));
+      base64s = await Promise.all(makeImgs.slice(0, 3).map(s => toBase64(s.url)));
     } catch (err) {
-      console.error('[startMakeGen] base64 error:', err);
+      console.error('[startMakeGen] base64 변환 오류:', err);
     }
 
     const activeCuts = cuts.filter(c => selectedCuts.includes(c.id) && !c.disabled);
@@ -129,14 +194,13 @@ export default function ImageScreen() {
       const count = Math.min(cut.count, 2);
       for (let i = 0; i < count; i++) {
         const key = `${cut.id}-${i}`;
-        const promptFn = CUT_PROMPTS[cut.id];
-        if (!promptFn) continue;
+        setGeneratingKey(key);
         try {
           const res = await fetch('/api/generate-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              prompt: promptFn(i),
+              prompt: buildPrompt(cut.id, i, cat ?? '기타', ch ?? '스마트스토어'),
               sectionNum: key,
               productImages: base64s.length > 0 ? base64s : undefined,
             }),
@@ -145,15 +209,19 @@ export default function ImageScreen() {
           const data = await res.json();
           if (data.imageBase64) {
             setMakeGenImages(p => ({ ...p, [key]: `data:${data.mimeType};base64,${data.imageBase64}` }));
+          } else {
+            console.warn('[startMakeGen] 이미지 없음:', key, data.error);
+            setFailedKeys(p => new Set([...p, key]));
           }
         } catch (err) {
-          console.error('[startMakeGen] cut error:', cut.id, err);
+          console.error('[startMakeGen] 컷 오류:', cut.id, err);
+          setFailedKeys(p => new Set([...p, key]));
         }
       }
     }
 
+    setGeneratingKey('');
     setMaking(false);
-    setMakeResult(true);
   };
 
   const toggleCut = (id: string) =>
@@ -332,62 +400,102 @@ export default function ImageScreen() {
           <div id="make-cta" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, gap: 12 }}>
             <button className="btn-back" onClick={() => go('s5b')}>← 이전</button>
             <button className="btn-next" onClick={startMakeGen} disabled={making}>
-              {making ? 'AI 생성 중...' : '✦ AI로 컷 생성하기'}
+              ✦ AI로 컷 생성하기
             </button>
           </div>
         </div>
       )}
 
-      {/* B-3. AI 생성 결과 */}
-      {imgMode === 'make' && makeResult && (
-        <div id="make-result" style={{ marginTop: 20 }}>
-          <div style={{ background: 'var(--white)', border: '1.5px solid rgba(22,163,74,.3)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>✅ 생성 완료 — 확인 후 진행해주세요</div>
-              <button
-                onClick={() => setMakeResult(false)}
-                style={{ fontSize: 11, color: 'var(--tx2)', background: 'transparent', border: '1.5px solid var(--bd)', borderRadius: 'var(--rs)', padding: '5px 10px', cursor: 'pointer', fontFamily: 'var(--f)' }}
-              >
-                다시 생성
-              </button>
-            </div>
-            <div style={{ padding: 16 }}>
-              <div id="result-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
-                {cuts
-                  .filter(c => selectedCuts.includes(c.id) && !c.disabled)
-                  .flatMap(c =>
+      {/* B-3. AI 생성 결과 (생성 중 실시간 + 완료 후) */}
+      {imgMode === 'make' && makeResult && (() => {
+        const activeCuts = cuts.filter(c => selectedCuts.includes(c.id) && !c.disabled);
+        const totalCells = activeCuts.reduce((s, c) => s + Math.min(c.count, 2), 0);
+        const doneCells  = Object.keys(makeGenImages).length + failedKeys.size;
+        return (
+          <div id="make-result" style={{ marginTop: 20 }}>
+            <div style={{ background: 'var(--white)', border: `1.5px solid ${making ? 'rgba(124,58,237,.25)' : 'rgba(22,163,74,.3)'}`, borderRadius: 'var(--r)', overflow: 'hidden' }}>
+
+              {/* 헤더 */}
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                {making ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+                    <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                    AI 이미지 생성 중… ({doneCells}/{totalCells})
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    ✅ 생성 완료 — 다운받고 상세페이지를 만드세요
+                  </div>
+                )}
+                <button
+                  onClick={() => { setMakeResult(false); setMakeGenImages({}); setFailedKeys(new Set()); setGeneratingKey(''); }}
+                  disabled={making}
+                  style={{ fontSize: 11, color: 'var(--tx2)', background: 'transparent', border: '1.5px solid var(--bd)', borderRadius: 'var(--rs)', padding: '5px 10px', cursor: making ? 'default' : 'pointer', opacity: making ? 0.4 : 1, fontFamily: 'var(--f)', flexShrink: 0 }}
+                >
+                  다시 설정
+                </button>
+              </div>
+
+              {/* 결과 그리드 */}
+              <div style={{ padding: 16 }}>
+                <div id="result-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 16 }}>
+                  {activeCuts.flatMap(c =>
                     Array.from({ length: Math.min(c.count, 2) }, (_, i) => {
-                      const key = `${c.id}-${i}`;
-                      const imgUrl = makeGenImages[key];
+                      const key     = `${c.id}-${i}`;
+                      const imgUrl  = makeGenImages[key];
+                      const isGen   = generatingKey === key;
+                      const isFail  = failedKeys.has(key);
+                      const isPend  = !imgUrl && !isGen && !isFail;
                       return (
                         <div className="res-img-card" key={key}>
-                          {imgUrl
-                            ? <img src={imgUrl} alt={`${c.name} ${i + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain', background: '#f8fafc' }} />
-                            : <div className="ric-mock">{c.ico}</div>
-                          }
+                          {imgUrl ? (
+                            <img src={imgUrl} alt={`${c.name} ${i + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain', background: '#f8fafc' }} />
+                          ) : isGen ? (
+                            <div className="ric-mock" style={{ flexDirection: 'column', gap: 6 }}>
+                              <span style={{ display: 'inline-block', width: 20, height: 20, border: '2.5px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                              <span style={{ fontSize: 9, color: '#7c3aed', fontWeight: 600 }}>생성 중</span>
+                            </div>
+                          ) : isFail ? (
+                            <div className="ric-mock" style={{ flexDirection: 'column', gap: 4 }}>
+                              <span style={{ fontSize: 18 }}>⚠️</span>
+                              <span style={{ fontSize: 9, color: '#dc2626' }}>생성 실패</span>
+                            </div>
+                          ) : (
+                            <div className="ric-mock" style={{ opacity: 0.35 }}>{c.ico}</div>
+                          )}
                           <div className="ric-info">
                             <div className="ric-name">{c.name} {i + 1}</div>
-                            {imgUrl
-                              ? <a href={imgUrl} download={`${c.id}_${i + 1}.png`} className="ric-dl" style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>⬇ 다운로드</a>
-                              : <div style={{ fontSize: 10, color: 'var(--tx3)' }}>생성 실패</div>
-                            }
+                            {imgUrl ? (
+                              <a href={imgUrl} download={`${c.id}_${i + 1}.png`} className="ric-dl" style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>⬇ 다운로드</a>
+                            ) : isGen ? (
+                              <div style={{ fontSize: 9, color: '#7c3aed' }}>처리 중…</div>
+                            ) : isFail ? (
+                              <div style={{ fontSize: 9, color: '#dc2626' }}>오류</div>
+                            ) : isPend ? (
+                              <div style={{ fontSize: 9, color: 'var(--tx3)' }}>대기 중</div>
+                            ) : null}
                           </div>
                         </div>
                       );
                     })
-                  )
-                }
-              </div>
-              <div style={{ background: 'var(--sf)', borderRadius: 'var(--rs)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 13, color: 'var(--tx2)' }}>마음에 드는 이미지를 다운받고, 이 이미지로 상세페이지를 만드세요</div>
-                <button className="btn-next" style={{ padding: '10px 20px', fontSize: 13 }} onClick={() => goGenerate(makeImgs)}>
-                  이 이미지로 상세페이지 만들기 →
-                </button>
+                  )}
+                </div>
+
+                {!making && (
+                  <div style={{ background: 'var(--sf)', borderRadius: 'var(--rs)', padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 13, color: 'var(--tx2)' }}>
+                      마음에 드는 이미지를 다운받고, 이 이미지로 상세페이지를 만드세요
+                    </div>
+                    <button className="btn-next" style={{ padding: '10px 20px', fontSize: 13 }} onClick={() => goGenerate(makeImgs)}>
+                      이 이미지로 상세페이지 만들기 →
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
