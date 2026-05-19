@@ -1,9 +1,15 @@
 'use client';
 
+import { useSession, signOut } from 'next-auth/react';
 import { useApp } from '@/store/AppContext';
 
 export default function TopBar() {
-  const { loggedIn, chatOpen, toggleChat } = useApp();
+  const { chatOpen, toggleChat } = useApp();
+  const { data: session } = useSession();
+
+  const name     = session?.user?.name ?? '';
+  const initial  = name.slice(0, 1) || '?';
+  const label    = name ? (name.length > 4 ? name.slice(0, 4) + '님' : name + '님') : '';
 
   return (
     <div className="tb">
@@ -16,10 +22,15 @@ export default function TopBar() {
           <span className="dot" />
           <span className="ai-txt">AI 도우미</span>
         </button>
-        {loggedIn && (
-          <div className="user-badge">
-            <div className="user-av">유</div>
-            <span className="user-name">유근님</span>
+        {session && (
+          <div
+            className="user-badge"
+            title="클릭하여 로그아웃"
+            onClick={() => signOut({ callbackUrl: '/' })}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="user-av">{initial}</div>
+            <span className="user-name">{label}</span>
           </div>
         )}
       </div>

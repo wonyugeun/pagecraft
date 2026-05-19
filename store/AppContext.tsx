@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
@@ -161,8 +162,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [imgMode, setImgModeState] = useState<string | null>(null);
   const [secCnt, setSecCntState] = useState(10);
   const [chatOpen, setChatOpen] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
+
+  /* ── NextAuth 세션 기반 로그인 상태 ── */
+  const { status } = useSession();
+  const loggedIn = status === 'authenticated';
   const [productName, setProductNameState] = useState('');
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
@@ -203,10 +207,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const doLogin = () => {
-    setLoggedIn(true);
-    go('s-dash');
-  };
+  /* 세션 인증 완료 시 자동으로 대시보드로 이동 */
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setScreen(prev => {
+        if (prev === 's0') {
+          window.history.replaceState({ screen: 's-dash' }, '');
+          window.scrollTo(0, 0);
+          return 's-dash';
+        }
+        return prev;
+      });
+    }
+  }, [status]);
+
+  /* 하위 호환성 유지 — LoginScreen에서 직접 signIn() 호출로 대체됨 */
+  const doLogin = () => go('s-dash');
 
   const startDetail = () => {
     go('s1');
