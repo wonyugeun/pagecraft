@@ -17,7 +17,7 @@ const STEP_PCTS = [12, 28, 50, 70, 87, 100];
 const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
 
 export default function GeneratingScreen() {
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, go, setSections } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, go, setSections } = useApp();
   const [stepIdx,   setStepIdx]   = useState(-1);
   const [pct,       setPct]       = useState(0);
   const [apiError,  setApiError]  = useState('');
@@ -45,7 +45,7 @@ export default function GeneratingScreen() {
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis }),
+      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure }),
       signal: abortRef.current.signal,
     })
       .then(async r => {

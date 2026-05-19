@@ -532,7 +532,7 @@ const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
 };
 
 export default function ProductScreen() {
-  const { cat, ch, type, go, setProductName, setSecCnt, secCnt, setProductExtra } = useApp();
+  const { cat, ch, type, go, setProductName, setProductExtra } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
@@ -639,30 +639,6 @@ export default function ProductScreen() {
             style={{ minHeight: 76 }}
           />
           <div className="fhint">입력한 내용이 AI 생성 지침에 직접 반영됩니다</div>
-        </div>
-        <div className="fg">
-          <div className="fl">섹션 수 <span className="fopt">기본 10개</span></div>
-          <div className="sc-row">
-            <button className="sc-btn" onClick={() => setSecCnt(Math.max(6, secCnt - 1))}>−</button>
-            <input
-              type="number"
-              min={6}
-              max={50}
-              value={secCnt}
-              onChange={e => {
-                const v = parseInt(e.target.value, 10);
-                if (!isNaN(v)) setSecCnt(Math.min(50, Math.max(6, v)));
-              }}
-              onBlur={e => {
-                const v = parseInt(e.target.value, 10);
-                if (isNaN(v) || v < 6) setSecCnt(6);
-                else if (v > 50) setSecCnt(50);
-              }}
-              style={{ width: 56, textAlign: 'center', padding: '6px 4px', border: '1px solid var(--bd)', borderRadius: 6, fontFamily: 'var(--f)', fontSize: 14, fontWeight: 600, color: 'var(--tx1)', background: 'var(--white)' }}
-            />
-            <button className="sc-btn" onClick={() => setSecCnt(Math.min(50, secCnt + 1))}>+</button>
-            <span className="sc-lbl">개 (6~50)</span>
-          </div>
         </div>
       </div>
 

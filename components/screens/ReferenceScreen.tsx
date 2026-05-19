@@ -226,7 +226,7 @@ export default function ReferenceScreen() {
             카테고리·채널·상품 정보를 기반으로<br />
             전문 카피라이터 AI가 최적의 구조로 설계해드려요.
           </div>
-          <button className="btn-next" onClick={() => go('s6')} style={{ margin: '0 auto' }}>
+          <button className="btn-next" onClick={() => go('s5b')} style={{ margin: '0 auto' }}>
             바로 생성하기 →
           </button>
         </div>
@@ -240,12 +240,12 @@ export default function ReferenceScreen() {
             {!result && (
               <button
                 style={{ fontSize: 12, color: 'var(--tx3)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', textDecoration: 'underline', padding: '4px 0' }}
-                onClick={() => go('s6')}
+                onClick={() => go('s5b')}
               >
                 건너뛰고 바로 생성 →
               </button>
             )}
-            <button className="btn-next" onClick={() => go('s6')}>
+            <button className="btn-next" onClick={() => go('s5b')}>
               {result ? '이 스타일로 생성하기 →' : '다음 →'}
             </button>
           </div>

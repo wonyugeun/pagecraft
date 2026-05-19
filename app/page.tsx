@@ -14,6 +14,7 @@ import ImageScreen from '@/components/screens/ImageScreen';
 import GeneratingScreen from '@/components/screens/GeneratingScreen';
 import ResultScreen from '@/components/screens/ResultScreen';
 import ReferenceScreen from '@/components/screens/ReferenceScreen';
+import SectionStructureScreen from '@/components/screens/SectionStructureScreen';
 import { STEP_MAP } from '@/store/AppContext';
 
 function QuickScreen() {
@@ -158,6 +159,7 @@ function App() {
     's4': <ProductScreen />,
     's5': <ImageScreen />,
     's5-5': <ReferenceScreen />,
+    's5b': <SectionStructureScreen />,
     's6': <GeneratingScreen />,
     's7': <ResultScreen />,
   };

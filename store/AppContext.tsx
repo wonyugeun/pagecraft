@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, ReactNod
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
-  | 's1' | 's2' | 's3' | 's3b' | 's4' | 's5' | 's5-5' | 's6' | 's7';
+  | 's1' | 's2' | 's3' | 's3b' | 's4' | 's5' | 's5-5' | 's5b' | 's6' | 's7' | 's8' | 's9';
 
 export interface Section {
   num: string;
@@ -39,6 +39,7 @@ interface AppState {
   productExtra: string;
   productImages: string[]; // base64 data URLs (업로드된 제품 이미지)
   referenceAnalysis: ReferenceAnalysis | null;
+  sectionStructure: string[];
 }
 
 interface AppContextType extends AppState {
@@ -58,6 +59,7 @@ interface AppContextType extends AppState {
   setProductExtra: (v: string) => void;
   setProductImages: (images: string[]) => void;
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
+  setSectionStructure: (v: string[]) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -147,7 +149,7 @@ export const CHAT_A: Record<string, string> = {
 };
 
 export const STEP_MAP: Record<string, number> = {
-  s1: 1, s2: 2, s3: 3, s3b: 4, s4: 5, s5: 6, 's5-5': 7, s6: 8, s7: 9,
+  s1: 1, s2: 2, s3: 3, s3b: 4, s4: 5, s5: 6, 's5-5': 7, 's5b': 8, s6: 9, s7: 10,
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -165,6 +167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
+  const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
 
   const go = (id: ScreenId) => {
     window.history.pushState({ screen: id }, '');
@@ -204,7 +207,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis,
+      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, sectionStructure,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -221,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductName: setProductNameState,
       setProductImages: setProductImagesState,
       setReferenceAnalysis: setReferenceAnalysisState,
+      setSectionStructure: setSectionStructureState,
     }}>
       {children}
     </AppContext.Provider>

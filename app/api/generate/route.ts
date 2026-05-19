@@ -306,19 +306,24 @@ function getDefaultSecCnt(ch: string, secCnt: number): number {
    API 핸들러
 ───────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis } =
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure } =
     await req.json() as {
       cat: string; ch: string; type: string; out: string;
       secCnt: number; productName: string; productExtra: string;
       referenceAnalysis?: ReferenceAnalysis;
+      sectionStructure?: string[];
     };
 
   const outputType = out === 'blog' ? '블로그형 (글+그림)' : out === 'slide' ? '이미지 슬라이드형' : 'HTML 섹션형';
-  const count      = getDefaultSecCnt(ch, secCnt);
+  const count      = sectionStructure?.length || getDefaultSecCnt(ch, secCnt);
   const { system, sectionGuide } = getCategoryConfig(cat, ch);
 
   const productDetailBlock = productExtra
     ? `\n[상품 상세 정보 — 아래 내용을 카피에 반드시 반영하세요]\n${productExtra}\n`
+    : '';
+
+  const sectionBlock = sectionStructure?.length
+    ? `\n[섹션 구조 — 반드시 아래 순서와 이름으로 ${sectionStructure.length}개 섹션을 생성하세요]\n${sectionStructure.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
     : '';
 
   const referenceBlock = referenceAnalysis
@@ -344,7 +349,7 @@ export async function POST(req: NextRequest) {
 
 [섹션 기획 가이드]
 ${sectionGuide}
-${productDetailBlock}${referenceBlock}
+${productDetailBlock}${sectionBlock}${referenceBlock}
 [출력 형식] — 다른 텍스트 없이 아래 JSON 배열만 반환하세요:
 [
   {
