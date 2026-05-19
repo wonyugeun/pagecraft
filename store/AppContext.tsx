@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
@@ -167,9 +167,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
 
   const go = (id: ScreenId) => {
+    window.history.pushState({ screen: id }, '');
     setScreen(id);
     window.scrollTo(0, 0);
   };
+
+  // 브라우저 뒤로가기/앞으로가기 처리
+  useEffect(() => {
+    window.history.replaceState({ screen: 's0' }, '');
+    const onPop = (e: PopStateEvent) => {
+      const id = e.state?.screen as ScreenId | undefined;
+      if (id) setScreen(id);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   const doLogin = () => {
     setLoggedIn(true);

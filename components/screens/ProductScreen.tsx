@@ -540,10 +540,11 @@ export default function ProductScreen() {
   const diffPlaceholder  = DIFF_PLACEHOLDERS[cat ?? '']         ?? '예: 경쟁 제품 대비 차별점을 입력해주세요';
 
   // 폼 전체 상태
-  const [brand,    setBrand]    = useState('');
-  const [diff,     setDiff]     = useState('');
+  const [brand,     setBrand]     = useState('');
+  const [diff,      setDiff]      = useState('');
+  const [extraNote, setExtraNote] = useState('');
   const [priceChip, setPriceChip] = useState<string[]>([]);
-  const [answers,  setAnswers]  = useState<Record<string, string | string[]>>({});
+  const [answers,   setAnswers]   = useState<Record<string, string | string[]>>({});
   const setAnswer = (id: string, val: string | string[]) =>
     setAnswers(p => ({ ...p, [id]: val }));
 
@@ -559,6 +560,7 @@ export default function ProductScreen() {
       if (str) lines.push(`[${q.label}]: ${str}`);
     });
     if (!isGaejeon && diff.trim())        lines.push(`경쟁 차별점: ${diff.trim()}`);
+    if (extraNote.trim())                 lines.push(`기타 요청사항: ${extraNote.trim()}`);
     setProductExtra(lines.join('\n'));
     go('s5');
   };
@@ -628,12 +630,38 @@ export default function ProductScreen() {
           </div>
         )}
         <div className="fg">
+          <div className="fl">기타 요청사항 <span className="fopt">선택</span></div>
+          <textarea
+            className="finp"
+            placeholder={'AI에게 추가로 전달할 내용을 자유롭게 입력하세요.\n예: 톤은 친근하게, 영어 단어 최소화, 가격보다 성분 강조...'}
+            value={extraNote}
+            onChange={e => setExtraNote(e.target.value)}
+            style={{ minHeight: 76 }}
+          />
+          <div className="fhint">입력한 내용이 AI 생성 지침에 직접 반영됩니다</div>
+        </div>
+        <div className="fg">
           <div className="fl">섹션 수 <span className="fopt">기본 10개</span></div>
           <div className="sc-row">
             <button className="sc-btn" onClick={() => setSecCnt(Math.max(6, secCnt - 1))}>−</button>
-            <span className="sc-val">{secCnt}</span>
+            <input
+              type="number"
+              min={6}
+              max={50}
+              value={secCnt}
+              onChange={e => {
+                const v = parseInt(e.target.value, 10);
+                if (!isNaN(v)) setSecCnt(Math.min(50, Math.max(6, v)));
+              }}
+              onBlur={e => {
+                const v = parseInt(e.target.value, 10);
+                if (isNaN(v) || v < 6) setSecCnt(6);
+                else if (v > 50) setSecCnt(50);
+              }}
+              style={{ width: 56, textAlign: 'center', padding: '6px 4px', border: '1px solid var(--bd)', borderRadius: 6, fontFamily: 'var(--f)', fontSize: 14, fontWeight: 600, color: 'var(--tx1)', background: 'var(--white)' }}
+            />
             <button className="sc-btn" onClick={() => setSecCnt(Math.min(50, secCnt + 1))}>+</button>
-            <span className="sc-lbl">개 (최소 6 · 최대 50)</span>
+            <span className="sc-lbl">개 (6~50)</span>
           </div>
         </div>
       </div>
