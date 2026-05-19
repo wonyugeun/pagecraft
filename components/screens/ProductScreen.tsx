@@ -562,7 +562,7 @@ export default function ProductScreen() {
     if (!isGaejeon && diff.trim())        lines.push(`경쟁 차별점: ${diff.trim()}`);
     if (extraNote.trim())                 lines.push(`기타 요청사항: ${extraNote.trim()}`);
     setProductExtra(lines.join('\n'));
-    go('s5');
+    go('s5-5');
   };
 
   const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';
@@ -644,7 +644,7 @@ export default function ProductScreen() {
 
       <div className="cta-row">
         <button className="btn-back" onClick={() => go(prevScreen as any)}>← 이전</button>
-        <button className="btn-next" onClick={handleNext}>이미지 준비 →</button>
+        <button className="btn-next" onClick={handleNext}>레퍼런스 →</button>
       </div>
     </div>
   );

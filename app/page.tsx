@@ -135,7 +135,7 @@ function OutputScreen() {
           <div className="sel-hint" style={{ visibility: out ? 'visible' : 'hidden' }}>
             선택: <span className="hint-tag">{out === 'blog' ? '블로그형 (글+그림)' : '이미지 슬라이드형'}</span>
           </div>
-          <button className="btn-next" disabled={!out} onClick={() => go('s4')}>상품 정보 입력 →</button>
+          <button className="btn-next" disabled={!out} onClick={() => go('s5')}>상품 정보 입력 →</button>
         </div>
       </div>
     </div>
@@ -156,12 +156,12 @@ function App() {
     's2': <ChannelScreen />,
     's3': <TypeScreen />,
     's3b': <OutputScreen />,
-    's4': <ProductScreen />,
-    's5': <ImageScreen />,
+    's5': <ProductScreen />,
     's5-5': <ReferenceScreen />,
     's5b': <SectionStructureScreen />,
-    's6': <GeneratingScreen />,
-    's7': <ResultScreen />,
+    's6': <ImageScreen />,
+    's7': <GeneratingScreen />,
+    's8': <ResultScreen />,
   };
 
   return (

@@ -149,7 +149,7 @@ export const CHAT_A: Record<string, string> = {
 };
 
 export const STEP_MAP: Record<string, number> = {
-  s1: 1, s2: 2, s3: 3, s3b: 4, s4: 5, s5: 6, 's5-5': 7, 's5b': 8, s6: 9, s7: 10,
+  s1: 1, s2: 2, s3: 3, s3b: 4, s5: 5, 's5-5': 6, 's5b': 7, s6: 8, s7: 9, s8: 10,
 };
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -201,7 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } else {
       const auto = CH_OUT_AUTO[ch || ''];
       if (auto) setOutState(auto.out);
-      go('s4');
+      go('s5');
     }
   };
 

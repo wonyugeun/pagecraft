@@ -8,12 +8,12 @@ const STEPS = [
   { id: 'ps2',  label: '채널' },
   { id: 'ps3',  label: '타입' },
   { id: 'ps3b', label: '출력형태' },
-  { id: 'ps4',  label: '상품정보' },
-  { id: 'ps5',  label: '이미지' },
+  { id: 'ps5',  label: '상품정보' },
   { id: 'ps55', label: '레퍼런스' },
   { id: 'ps5b', label: '섹션구조' },
-  { id: 'ps6',  label: '생성' },
-  { id: 'ps7',  label: '결과물' },
+  { id: 'ps6',  label: '이미지' },
+  { id: 'ps7',  label: '생성' },
+  { id: 'ps8',  label: '결과물' },
 ];
 
 function stepStatus(idx: number, current: number) {

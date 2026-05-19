@@ -100,7 +100,7 @@ export default function ImageScreen() {
     const limited = sources.slice(0, 3);
     const base64s = await Promise.all(limited.map(s => toBase64(s.url)));
     setProductImages(base64s);
-    go('s5-5');
+    go('s7');
   };
 
   const CUT_PROMPTS: Record<string, (i: number) => string> = {
@@ -195,7 +195,7 @@ export default function ImageScreen() {
       {/* ② 준비 상태 선택 — 미선택 시 이전 버튼 */}
       {!imgMode && (
         <div className="cta-row" style={{ marginBottom: 8 }}>
-          <button className="btn-back" onClick={() => go('s4')}>← 이전</button>
+          <button className="btn-back" onClick={() => go('s5b')}>← 이전</button>
         </div>
       )}
 
@@ -259,7 +259,7 @@ export default function ImageScreen() {
             )}
           </div>
           <div className="cta-row">
-            <button className="btn-back" onClick={() => go('s4')}>← 이전</button>
+            <button className="btn-back" onClick={() => go('s5b')}>← 이전</button>
             <button
               className="btn-next"
               style={{ display: imgs.length > 0 ? 'flex' : 'none' }}
@@ -330,7 +330,7 @@ export default function ImageScreen() {
           </div>
 
           <div id="make-cta" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, gap: 12 }}>
-            <button className="btn-back" onClick={() => go('s4')}>← 이전</button>
+            <button className="btn-back" onClick={() => go('s5b')}>← 이전</button>
             <button className="btn-next" onClick={startMakeGen} disabled={making}>
               {making ? 'AI 생성 중...' : '✦ AI로 컷 생성하기'}
             </button>

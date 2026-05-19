@@ -66,7 +66,7 @@ export default function GeneratingScreen() {
         const elapsed = Date.now() - start;
         const wait    = Math.max(0, MIN_ANIM_MS - elapsed);
         const done    = setTimeout(() => {
-          if (!cancelledRef.current) go('s7');
+          if (!cancelledRef.current) go('s8');
         }, wait);
         timers.push(done);
       })
@@ -91,7 +91,7 @@ export default function GeneratingScreen() {
     cancelledRef.current = true;
     timerRef.current.forEach(clearTimeout);
     abortRef.current?.abort();
-    go('s5');
+    go('s6');
   };
 
   const retry = () => {

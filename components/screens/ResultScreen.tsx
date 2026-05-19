@@ -463,8 +463,8 @@ export default function ResultScreen() {
           <div className="result-meta">{meta}</div>
         </div>
         <div className="result-top-btns">
-          <button className="btn-outline" onClick={() => go('s4')}>← 정보 수정</button>
-          <button className="btn-outline" onClick={() => go('s5')}>← 이미지 수정</button>
+          <button className="btn-outline" onClick={() => go('s5')}>← 정보 수정</button>
+          <button className="btn-outline" onClick={() => go('s6')}>← 이미지 수정</button>
         </div>
       </div>
 
