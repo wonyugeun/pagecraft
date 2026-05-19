@@ -11,6 +11,7 @@ const STEPS = [
   { id: 'ps4',  label: '상품정보' },
   { id: 'ps5',  label: '이미지' },
   { id: 'ps55', label: '레퍼런스' },
+  { id: 'ps5b', label: '섹션구조' },
   { id: 'ps6',  label: '생성' },
   { id: 'ps7',  label: '결과물' },
 ];
