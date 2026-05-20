@@ -410,6 +410,41 @@ function SlideCard({ sec, onRegen, imgState, onGenerateImage, index }: {
   );
 }
 
+/* ─── 이미지 전용 섹션 (슬라이드/HTML형) ─── */
+function ImageSection({ sec, imgState, onGenerateImage, index, accent }: {
+  sec: Section;
+  imgState: ImgState;
+  onGenerateImage: () => void;
+  index: number;
+  accent: 'purple' | 'blue';
+}) {
+  const accentColor = accent === 'purple' ? '#7c3aed' : '#2563eb';
+  const accentBg    = accent === 'purple' ? '#ede9fe' : '#eff6ff';
+  const slotBg      = accent === 'purple'
+    ? (index % 2 === 0 ? '#f5f3ff' : '#faf5ff')
+    : '#f0f6ff';
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+      <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: accentColor, background: accentBg, padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
+        <span style={{ fontSize: 12, color: '#888' }}>{sec.name}</span>
+      </div>
+      <div style={{ margin: '10px 0 12px' }}>
+        <ImgSlot
+          sec={sec}
+          imgState={imgState}
+          onGenerate={onGenerateImage}
+          slotStyle={{ height: 240, background: slotBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          labelColor={accentColor}
+          descColor={accent === 'purple' ? '#a78bfa' : '#93c5fd'}
+          genBg={accentBg}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ─── 섹션별 텍스트 모달 ─── */
 function TextModal({ sections, onClose }: { sections: Section[]; onClose: () => void }) {
   const copyOne = async (sec: Section) => {
@@ -592,7 +627,7 @@ export default function ResultScreen() {
         </div>
       )}
 
-      {/* HTML 섹션형 — 자사몰/와디즈 */}
+      {/* HTML 섹션형 — 자사몰/와디즈 — 이미지만 */}
       {isHtml && (
         <div style={{ marginTop: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -601,20 +636,21 @@ export default function ResultScreen() {
             </span>
             <span style={{ fontSize: 11, color: '#a8a59d' }}>각 섹션을 HTML로 내보낼 수 있어요</span>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-            {displaySections.map((sec, i) => (
-              <BlogSection
-                key={i} sec={sec} onRegen={regenFn}
-                imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                onGenerateImage={() => generateImage(sec)}
-                isLast={i === displaySections.length - 1}
-              />
-            ))}
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 12 }}>
+            💡 텍스트 카피는 아래 &apos;섹션별 텍스트 보기&apos;에서 확인하세요
           </div>
+          {displaySections.map((sec, i) => (
+            <ImageSection
+              key={i} sec={sec}
+              imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+              onGenerateImage={() => generateImage(sec)}
+              index={i} accent="blue"
+            />
+          ))}
         </div>
       )}
 
-      {/* 슬라이드형 — 쿠팡 */}
+      {/* 슬라이드형 — 쿠팡 — 이미지만 */}
       {isSlide && (
         <div style={{ marginTop: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -623,12 +659,15 @@ export default function ResultScreen() {
             </span>
             <span style={{ fontSize: 11, color: '#a8a59d' }}>각 카드가 슬라이드 1장 기준이에요</span>
           </div>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 12 }}>
+            💡 텍스트 카피는 아래 &apos;섹션별 텍스트 보기&apos;에서 확인하세요
+          </div>
           {displaySections.map((sec, i) => (
-            <SlideCard
-              key={i} sec={sec} onRegen={regenFn}
+            <ImageSection
+              key={i} sec={sec}
               imgState={sectionImages[sec.num] ?? EMPTY_IMG}
               onGenerateImage={() => generateImage(sec)}
-              index={i}
+              index={i} accent="purple"
             />
           ))}
         </div>
