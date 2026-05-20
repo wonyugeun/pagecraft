@@ -8,8 +8,8 @@ export default function LoginScreen() {
 
   const handleSignIn = async (provider: 'kakao' | 'google') => {
     setLoading(provider);
-    await signIn(provider);
-    // signIn redirects — no need to reset loading
+    // callbackUrl을 '/'로 고정 — 현재 URL의 error/callbackUrl 파라미터가 중첩 인코딩되는 버그 방지
+    await signIn(provider, { callbackUrl: '/' });
   };
 
   return (
