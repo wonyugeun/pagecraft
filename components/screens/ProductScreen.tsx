@@ -532,7 +532,7 @@ const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
 };
 
 export default function ProductScreen() {
-  const { cat, ch, type, go, setProductName, setProductExtra } = useApp();
+  const { cat, ch, type, go, productName, setProductName, setProductExtra } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
@@ -550,6 +550,10 @@ export default function ProductScreen() {
 
   // 다음 클릭 → 전체 입력값을 직렬화해 AppContext에 저장
   const handleNext = () => {
+    if (!productName.trim()) {
+      alert('상품명을 입력해주세요.');
+      return;
+    }
     const lines: string[] = [];
     if (brand.trim())                     lines.push(`브랜드명: ${brand.trim()}`);
     if (isGaejeon && priceChip.length)    lines.push(`가격대: ${priceChip[0]}`);

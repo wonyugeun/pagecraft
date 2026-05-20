@@ -225,6 +225,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const doLogin = () => go('s-dash');
 
   const startDetail = () => {
+    setCatState(null);
+    setChState(null);
+    setTypeState(null);
+    setOutState(null);
+    setImgModeState(null);
+    setSecCntState(10);
+    setProductNameState('');
+    setProductExtraState('');
+    setProductImagesState([]);
+    setReferenceAnalysisState(null);
+    setSectionStructureState([]);
+    setSections([]);
     go('s1');
   };
 

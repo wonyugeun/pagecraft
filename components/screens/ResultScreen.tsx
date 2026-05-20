@@ -24,18 +24,30 @@ const DEFAULT_SECTIONS: Section[] = [
   },
 ];
 
-/* ─── HTML 다운로드 ─── */
-function downloadHtml(sections: Section[], meta: string, productName: string) {
-  const sectionsHtml = sections.map(sec => `
-  <section class="sec">
-    <h2>${sec.headline.replace(/\n/g, '<br>')}</h2>
-    <div class="img-slot">
+/* ─── HTML 다운로드 (이미지 base64 inline embed) ─── */
+function downloadHtml(
+  sections: Section[],
+  meta: string,
+  productName: string,
+  imgMap: Record<string, ImgState>,
+) {
+  const sectionsHtml = sections.map(sec => {
+    const imgUrl = imgMap[sec.num]?.url;
+    const imgBlock = imgUrl
+      ? `<img src="${imgUrl}" alt="${sec.imageLabel}" style="width:100%;display:block;margin-bottom:32px;" />`
+      : `<div class="img-slot">
       <div class="img-icon">📸</div>
       <div class="img-label">${sec.imageLabel}</div>
       <div class="img-desc">${sec.imageDesc}</div>
-    </div>
+    </div>`;
+
+    return `
+  <section class="sec">
+    <h2>${sec.headline.replace(/\n/g, '<br>')}</h2>
+    ${imgBlock}
     <p>${sec.body}</p>
-  </section>`).join('\n');
+  </section>`;
+  }).join('\n');
 
   const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -66,7 +78,7 @@ ${sectionsHtml}
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href     = url;
-  a.download = 'pagecraft_detail.html';
+  a.download = `${productName || 'pagecraft'}_detail.html`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -175,7 +187,7 @@ function ImgSlot({
   );
 }
 
-/* ─── 블로그형 섹션 (실제 상세페이지 스타일) ─── */
+/* ─── 블로그형 섹션 (연속 상세페이지 스타일) ─── */
 function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast }: {
   sec: Section;
   onRegen: (s: Section) => Promise<Section | null>;
@@ -201,67 +213,75 @@ function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast }: {
   };
 
   return (
-    <div style={{ paddingTop: 28, paddingBottom: 20, borderBottom: isLast ? 'none' : '1px solid #f0f0f0' }}>
-
-      {/* 섹션 번호 */}
-      <div style={{ fontSize: 9, fontWeight: 600, color: '#d0d0d0', letterSpacing: '0.14em', marginBottom: 10 }}>
-        {sec.num}
-      </div>
-
-      {/* ① 헤드라인 */}
-      <div style={{ textAlign: 'center', fontSize: 22, fontWeight: 800, color: '#111', lineHeight: 1.5, letterSpacing: '-0.3px', marginBottom: 20, whiteSpace: 'pre-line' }}>
-        {headline}
-      </div>
-
-      {/* ② 이미지 슬롯 */}
-      <ImgSlot
-        sec={sec}
-        imgState={imgState}
-        onGenerate={onGenerateImage}
-        slotStyle={{
-          margin: '0 -24px', width: 'calc(100% + 48px)',
-          height: 280, background: '#f1f5f9',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 8, marginBottom: 20,
-        }}
-      />
-
-      {/* ③ 본문 */}
-      <div style={{ textAlign: 'center', fontSize: 14, color: '#555', lineHeight: 2, marginBottom: 14 }}>
-        {saved}
-      </div>
-
-      {/* 버튼 — 우측 정렬, 컴팩트 */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-        <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>
-          {editOpen ? '닫기' : '✏️ 수정'}
-        </button>
-        <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
-          {regenLoading
-            ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</>
-            : '✦ 재생성'}
-        </button>
-      </div>
-
-      {editOpen && (
-        <div className="edit-panel open" style={{ marginTop: 10 }}>
-          <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
-          <div className="edit-actions">
-            <button className="edit-save" onClick={() => { setSaved(editVal); setEditOpen(false); }}>저장</button>
-            <button className="edit-cancel" onClick={() => { setEditVal(saved); setEditOpen(false); }}>취소</button>
-          </div>
+    <>
+      <div style={{ background: '#fff' }}>
+        {/* 섹션 번호 */}
+        <div style={{ paddingTop: 48, textAlign: 'center', fontSize: 9, fontWeight: 700, color: '#ddd', letterSpacing: '0.2em' }}>
+          {sec.num}
         </div>
-      )}
-    </div>
+
+        {/* ① 헤드라인 */}
+        <div style={{ padding: '14px 36px 0', textAlign: 'center', fontSize: 23, fontWeight: 800, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
+          {headline}
+        </div>
+
+        {/* ② 이미지 슬롯 — 수평 패딩 없이 진짜 풀블리드 */}
+        <div style={{ marginTop: 28 }}>
+          <ImgSlot
+            sec={sec}
+            imgState={imgState}
+            onGenerate={onGenerateImage}
+            slotStyle={{
+              width: '100%',
+              height: 300,
+              background: '#f4f6f8',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 8,
+            }}
+          />
+        </div>
+
+        {/* ③ 본문 */}
+        <div style={{ padding: '26px 36px 0', textAlign: 'center', fontSize: 14.5, color: '#555', lineHeight: 2.1, maxWidth: 580, margin: '0 auto' }}>
+          {saved}
+        </div>
+
+        {/* 컨트롤 */}
+        <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>
+            {editOpen ? '닫기' : '✏️ 수정'}
+          </button>
+          <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
+            {regenLoading
+              ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</>
+              : '✦ 재생성'}
+          </button>
+        </div>
+
+        {editOpen && (
+          <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
+            <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
+            <div className="edit-actions">
+              <button className="edit-save" onClick={() => { setSaved(editVal); setEditOpen(false); }}>저장</button>
+              <button className="edit-cancel" onClick={() => { setEditVal(saved); setEditOpen(false); }}>취소</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 섹션 구분 — 마지막 제외, 가느다란 선 하나 */}
+      {!isLast && <div style={{ height: 1, background: '#efefef' }} />}
+    </>
   );
 }
 
 /* ─── 슬라이드형 카드 ─── */
-function SlideCard({ sec, onRegen, imgState, onGenerateImage }: {
+function SlideCard({ sec, onRegen, imgState, onGenerateImage, index }: {
   sec: Section;
   onRegen: (s: Section) => Promise<Section | null>;
   imgState: ImgState;
   onGenerateImage: () => void;
+  index: number;
 }) {
   const [editOpen,     setEditOpen]     = useState(false);
   const [headline,     setHeadline]     = useState(sec.headline);
@@ -281,29 +301,30 @@ function SlideCard({ sec, onRegen, imgState, onGenerateImage }: {
   };
 
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--bd)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 20 }}>
-      <div style={{ background: 'var(--sf)', borderBottom: '1px solid var(--bd)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--pu)', background: 'var(--pl)', padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx1)' }}>{sec.name}</span>
+    <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+      {/* 슬라이드 번호 배지 */}
+      <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
+        <span style={{ fontSize: 12, color: '#888' }}>{sec.name}</span>
       </div>
       <ImgSlot
         sec={sec}
         imgState={imgState}
         onGenerate={onGenerateImage}
-        slotStyle={{ height: 220, background: '#f5f3ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderBottom: '1px solid var(--bd)' }}
+        slotStyle={{ height: 240, background: index % 2 === 0 ? '#f5f3ff' : '#faf5ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '10px 0 0' }}
         labelColor="#7c3aed"
         descColor="#a78bfa"
         genBg="#ede9fe"
       />
-      <div style={{ padding: '18px 20px 16px' }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--tx1)', lineHeight: 1.5, marginBottom: 10, whiteSpace: 'pre-line' }}>{headline}</div>
-        <div style={{ fontSize: 13, color: 'var(--tx2)', lineHeight: 1.8, marginBottom: 14 }}>{saved}</div>
+      <div style={{ padding: '16px 20px 14px' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.5, marginBottom: 8, whiteSpace: 'pre-line' }}>{headline}</div>
+        <div style={{ fontSize: 13, color: '#666', lineHeight: 1.85, marginBottom: 12 }}>{saved}</div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '✏️ 닫기' : '✏️ 수정하기'}</button>
+          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
           <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
             {regenLoading
               ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 5, verticalAlign: 'middle' }} />생성 중...</>
-              : '✦ AI 재생성'}
+              : '✦ 재생성'}
           </button>
         </div>
         {editOpen && (
@@ -481,9 +502,15 @@ export default function ResultScreen() {
         </div>
       )}
 
-      {/* 블로그형 — 상세페이지 스타일 */}
+      {/* 블로그형 — 하나의 연결된 상세페이지 */}
       {!isSlide && (
-        <div style={{ background: '#fff', padding: '0 24px', marginTop: 12 }}>
+        <div style={{
+          marginTop: 16,
+          background: '#fff',
+          border: '1px solid #e8e8e8',
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}>
           {displaySections.map((sec, i) => (
             <BlogSection
               key={i} sec={sec} onRegen={regenFn}
@@ -503,6 +530,7 @@ export default function ResultScreen() {
               key={i} sec={sec} onRegen={regenFn}
               imgState={sectionImages[sec.num] ?? EMPTY_IMG}
               onGenerateImage={() => generateImage(sec)}
+              index={i}
             />
           ))}
         </div>
@@ -520,7 +548,7 @@ export default function ResultScreen() {
           <button
             className="dl-main-btn"
             style={{ fontSize: 13 }}
-            onClick={() => downloadHtml(displaySections, meta, productName)}
+            onClick={() => downloadHtml(displaySections, meta, productName, sectionImages)}
           >
             💾 HTML 다운로드
           </button>

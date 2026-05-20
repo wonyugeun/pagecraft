@@ -77,7 +77,7 @@ export default function SectionStructureScreen() {
     if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
     return (
       CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
-      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA', 'CTA']
+      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA']
     );
   };
 

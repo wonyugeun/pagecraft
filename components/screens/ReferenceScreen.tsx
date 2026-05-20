@@ -226,9 +226,10 @@ export default function ReferenceScreen() {
             카테고리·채널·상품 정보를 기반으로<br />
             전문 카피라이터 AI가 최적의 구조로 설계해드려요.
           </div>
-          <button className="btn-next" onClick={() => go('s5b')} style={{ margin: '0 auto' }}>
-            바로 생성하기 →
-          </button>
+          <div className="cta-row" style={{ justifyContent: 'center', gap: 12 }}>
+            <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
+            <button className="btn-next" onClick={() => go('s5b')}>바로 생성하기 →</button>
+          </div>
         </div>
       )}
 

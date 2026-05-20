@@ -42,6 +42,8 @@ export default function GeneratingScreen() {
     });
 
     // ── API 호출 ──
+    // AbortController와 120초 타임아웃을 합성
+    const timeoutId = setTimeout(() => abortRef.current?.abort(), 120_000);
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +51,7 @@ export default function GeneratingScreen() {
       signal: abortRef.current.signal,
     })
       .then(async r => {
+        clearTimeout(timeoutId);
         const data = await r.json() as { sections?: Section[]; error?: string };
         if (cancelledRef.current) return;
 
@@ -71,7 +74,13 @@ export default function GeneratingScreen() {
         timers.push(done);
       })
       .catch(err => {
-        if (err.name === 'AbortError' || cancelledRef.current) return;
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError' || cancelledRef.current) {
+          if (!cancelledRef.current) {
+            setApiError('요청 시간이 초과되었어요. 다시 시도해주세요.');
+          }
+          return;
+        }
         console.error('[GeneratingScreen] API 오류:', err);
         timers.forEach(clearTimeout);
         setApiError('네트워크 오류가 발생했어요. 인터넷 연결을 확인 후 다시 시도해주세요.');
@@ -80,6 +89,7 @@ export default function GeneratingScreen() {
     timerRef.current = timers;
 
     return () => {
+      clearTimeout(timeoutId);
       timers.forEach(clearTimeout);
       cancelledRef.current = true;
       abortRef.current?.abort();
