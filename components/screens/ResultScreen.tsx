@@ -91,26 +91,27 @@ function downloadHtml(
   meta: string,
   productName: string,
   imgMap: Record<string, ImgState>,
-) {
-  const sectionsHtml = sections.map(sec => {
-    const imgUrl = imgMap[sec.num]?.url;
-    const imgBlock = imgUrl
-      ? `<img src="${imgUrl}" alt="${sec.imageLabel}" style="width:100%;display:block;margin-bottom:32px;" />`
-      : `<div class="img-slot">
-      <div class="img-icon">📸</div>
-      <div class="img-label">${sec.imageLabel}</div>
-      <div class="img-desc">${sec.imageDesc}</div>
-    </div>`;
+): boolean {
+  try {
+    const sectionsHtml = sections.map(sec => {
+      const imgUrl = imgMap[sec.num]?.url;
+      const imgBlock = imgUrl
+        ? `<img src="${imgUrl}" alt="${sec.imageLabel}" style="width:100%;display:block;margin-bottom:32px;" />`
+        : `<div class="img-slot">
+        <div class="img-icon">📸</div>
+        <div class="img-label">${sec.imageLabel}</div>
+        <div class="img-desc">${sec.imageDesc}</div>
+      </div>`;
 
-    return `
-  <section class="sec">
-    <h2>${sec.headline.replace(/\n/g, '<br>')}</h2>
-    ${imgBlock}
-    <p>${sec.body}</p>
-  </section>`;
-  }).join('\n');
+      return `
+    <section class="sec">
+      <h2>${sec.headline.replace(/\n/g, '<br>')}</h2>
+      ${imgBlock}
+      <p>${sec.body}</p>
+    </section>`;
+    }).join('\n');
 
-  const html = `<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -135,15 +136,22 @@ ${sectionsHtml}
 </body>
 </html>`;
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `${productName || 'pagecraft'}_detail.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    // 파일명 특수문자 제거
+    a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    // URL.revokeObjectURL을 즉시 호출하면 다운로드가 취소될 수 있으므로 지연
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return true;
+  } catch (err) {
+    console.error('[downloadHtml]', err);
+    return false;
+  }
 }
 
 /* ─── 이미지 상태 타입 ─── */
@@ -457,6 +465,7 @@ export default function ResultScreen() {
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
+  const [htmlLoading,    setHtmlLoading]    = useState(false);
   const cancelRef = useRef(false);
 
   // ref로 최신 productImages 항상 참조 (stale closure 방지)
@@ -464,8 +473,13 @@ export default function ResultScreen() {
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
 
   const displaySections = sections.length > 0 ? sections : DEFAULT_SECTIONS;
-  const isSlide = out === 'slide';
-  const isHtml  = out === 'html';
+
+  // ch 기반 fallback: out이 null인 경우에도 채널에 맞는 형태 사용
+  const effectiveOut = out
+    || (ch === '쿠팡' ? 'slide' : ch === '자사몰' || ch === '와디즈' ? 'html' : 'blog');
+  const isSlide = effectiveOut === 'slide';
+  const isHtml  = effectiveOut === 'html';
+  const isBlog  = !isSlide && !isHtml;
 
   // 이미지 단건 생성
   const generateImage = useCallback(async (sec: Section) => {
@@ -534,7 +548,7 @@ export default function ResultScreen() {
     }
   }, [cat, ch, type, out, productName, productExtra]);
   const label   = isSlide ? '이미지 슬라이드형' : isHtml ? 'HTML 섹션형' : '블로그형 (글+그림)';
-  const meta    = [cat, ch, type, label, `${secCnt}섹션`].filter(Boolean).join(' · ');
+  const meta    = [cat, ch, type, label, `${displaySections.length}섹션`].filter(Boolean).join(' · ');
 
   return (
     <div className="result-shell">
@@ -565,14 +579,8 @@ export default function ResultScreen() {
       )}
 
       {/* 블로그형 — 하나의 연결된 상세페이지 */}
-      {!isSlide && (
-        <div style={{
-          marginTop: 16,
-          background: '#fff',
-          border: '1px solid #e8e8e8',
-          borderRadius: 8,
-          overflow: 'hidden',
-        }}>
+      {isBlog && (
+        <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'hidden' }}>
           {displaySections.map((sec, i) => (
             <BlogSection
               key={i} sec={sec} onRegen={regenFn}
@@ -584,9 +592,37 @@ export default function ResultScreen() {
         </div>
       )}
 
-      {/* 슬라이드형 */}
+      {/* HTML 섹션형 — 자사몰/와디즈 */}
+      {isHtml && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, background: '#eff6ff', color: '#2563eb', padding: '3px 9px', borderRadius: 20 }}>
+              🌐 HTML 섹션형 — {ch} 최적화
+            </span>
+            <span style={{ fontSize: 11, color: '#a8a59d' }}>각 섹션을 HTML로 내보낼 수 있어요</span>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+            {displaySections.map((sec, i) => (
+              <BlogSection
+                key={i} sec={sec} onRegen={regenFn}
+                imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                onGenerateImage={() => generateImage(sec)}
+                isLast={i === displaySections.length - 1}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 슬라이드형 — 쿠팡 */}
       {isSlide && (
         <div style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, background: '#e8f3ff', color: '#2563eb', padding: '3px 9px', borderRadius: 20 }}>
+              🖼️ 이미지 슬라이드형 — {ch} 최적화
+            </span>
+            <span style={{ fontSize: 11, color: '#a8a59d' }}>각 카드가 슬라이드 1장 기준이에요</span>
+          </div>
           {displaySections.map((sec, i) => (
             <SlideCard
               key={i} sec={sec} onRegen={regenFn}
@@ -609,10 +645,22 @@ export default function ResultScreen() {
           {/* HTML 다운로드 */}
           <button
             className="dl-main-btn"
-            style={{ fontSize: 13 }}
-            onClick={() => downloadHtml(displaySections, meta, productName, sectionImages)}
+            style={{ fontSize: 13, opacity: htmlLoading ? 0.7 : 1, cursor: htmlLoading ? 'default' : 'pointer' }}
+            disabled={htmlLoading}
+            onClick={async () => {
+              setHtmlLoading(true);
+              await new Promise(r => setTimeout(r, 50)); // 렌더 flush 대기
+              const ok = downloadHtml(displaySections, meta, productName, sectionImages);
+              if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+              setTimeout(() => setHtmlLoading(false), 2000);
+            }}
           >
-            💾 HTML 다운로드
+            {htmlLoading ? (
+              <>
+                <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a0b9d9', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />
+                저장 중...
+              </>
+            ) : '💾 HTML 다운로드'}
           </button>
           {/* 섹션별 텍스트 보기 */}
           <button

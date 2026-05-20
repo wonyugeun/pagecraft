@@ -104,6 +104,11 @@ const CQ: Record<string, Question[]> = {
       id: 'f7', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
+    {
+      id: 'f8', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 냉동 배송, 소분 판매, 유통기한 제조일로부터 12개월, 개봉 후 냉장 보관...',
+      hint: '보관·섭취 방법, 특이사항 등 AI에게 전달할 추가 정보를 자유롭게 입력하세요',
+    },
   ],
 
   패션: [
@@ -134,6 +139,11 @@ const CQ: Record<string, Question[]> = {
       id: 'fa6', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
+    {
+      id: 'fa7', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 사이즈 측정 오차 ±2cm, 색상은 모니터에 따라 실물과 다를 수 있음, 드라이클리닝 권장...',
+      hint: '사이즈·세탁·컬러 안내 등 AI에게 전달할 추가 정보를 입력하세요',
+    },
   ],
 
   생활: [
@@ -162,6 +172,11 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'lv6', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
+    },
+    {
+      id: 'lv7', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 사이즈별 중량 상이, 배송 시 박스 포장, 반품 시 조립 상태여야 함, 실내 전용...',
+      hint: '조립·배송·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
     },
   ],
 
@@ -254,6 +269,11 @@ const CQ: Record<string, Question[]> = {
       id: 'pt6', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
+    {
+      id: 'pt7', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 급여 방법, 1일 권장량, 보관 방법, 특정 질환견 금기 여부...',
+      hint: '급여·보관·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
+    },
   ],
 
   스포츠: [
@@ -278,6 +298,11 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'sp5', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
+    },
+    {
+      id: 'sp6', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 사이즈 선택 방법, 세탁 주의사항, 착용 시 주의점, 방수 등급 상세...',
+      hint: '사이즈·관리법 등 AI에게 전달할 추가 정보를 입력하세요',
     },
   ],
 
@@ -304,6 +329,11 @@ const CQ: Record<string, Question[]> = {
       id: 'ba5', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
+    {
+      id: 'ba6', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 사용 방법, 세탁 방법, 보관 방법, 함께 쓰면 좋은 제품, 주의사항...',
+      hint: '사용·관리·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
+    },
   ],
 
   건강: [
@@ -329,6 +359,11 @@ const CQ: Record<string, Question[]> = {
       id: 'ht5', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
+    {
+      id: 'ht6', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 1일 1회 1정 식후 복용, 냉암소 보관, 임산부 복용 전 의사 상담 권장, 주요 원료 함량...',
+      hint: '복용법·금기사항·원료 상세 등 AI에게 전달할 추가 정보를 입력하세요',
+    },
   ],
 
   자동차: [
@@ -353,6 +388,11 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'cr5', label: '가격대', req: false, mode: 'single',
       opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
+    },
+    {
+      id: 'cr6', label: '추가 상품 정보', req: false, mode: 'textarea',
+      placeholder: '예: 설치 소요 시간 30분, 호환 불가 차종(국산 전기차 일부), 방수 등급 IP67...',
+      hint: '설치·호환·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
     },
   ],
 
