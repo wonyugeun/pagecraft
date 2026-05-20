@@ -24,6 +24,67 @@ const DEFAULT_SECTIONS: Section[] = [
   },
 ];
 
+/* ─── 통이미지 다운로드 (Canvas 합성) ─── */
+async function downloadMergedImage(
+  sections: Section[],
+  imgMap: Record<string, ImgState>,
+  productName: string,
+): Promise<void> {
+  const urls = sections.map(s => imgMap[s.num]?.url).filter((u): u is string => !!u);
+
+  if (urls.length === 0) {
+    alert('다운로드할 이미지가 없습니다. 섹션 이미지를 먼저 생성해주세요.');
+    return;
+  }
+
+  // 이미지 로드 (data URL → HTMLImageElement)
+  const imgs = await Promise.all(
+    urls.map(url =>
+      new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload  = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+      })
+    )
+  );
+
+  const OUTPUT_W = 1080;     // 이커머스 표준 너비
+  const GAP      = 0;        // 섹션 간 간격 (px)
+
+  const heights = imgs.map(img => Math.round(img.naturalHeight * (OUTPUT_W / img.naturalWidth)));
+  const totalH  = heights.reduce((s, h) => s + h, 0) + GAP * (imgs.length - 1);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = OUTPUT_W;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d')!;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, OUTPUT_W, totalH);
+
+  let y = 0;
+  for (let i = 0; i < imgs.length; i++) {
+    ctx.drawImage(imgs[i], 0, y, OUTPUT_W, heights[i]);
+    y += heights[i] + (i < imgs.length - 1 ? GAP : 0);
+  }
+
+  await new Promise<void>(resolve => {
+    canvas.toBlob(blob => {
+      if (!blob) { resolve(); return; }
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = `${productName || 'pagecraft'}_detail.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      resolve();
+    }, 'image/png');
+  });
+}
+
 /* ─── HTML 다운로드 (이미지 base64 inline embed) ─── */
 function downloadHtml(
   sections: Section[],
@@ -395,6 +456,7 @@ export default function ResultScreen() {
   const { cat, ch, type, out, secCnt, sections, productName, productExtra, productImages, go } = useApp();
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
+  const [mergeLoading,   setMergeLoading]   = useState(false);
   const cancelRef = useRef(false);
 
   // ref로 최신 productImages 항상 참조 (stale closure 방지)
@@ -560,17 +622,33 @@ export default function ResultScreen() {
           >
             📄 섹션별 텍스트 보기
           </button>
-          {/* 통이미지 다운로드 (비활성) */}
+          {/* 통이미지 다운로드 */}
           <button
-            disabled
-            title="이미지 생성 연동 후 활성화"
+            className="dl-main-btn"
             style={{
-              fontSize: 13, padding: '10px 18px', borderRadius: 'var(--rs)',
-              background: '#f1f5f9', color: '#94a3b8', border: '1.5px solid #e2e8f0',
-              cursor: 'not-allowed', fontFamily: 'var(--f)', fontWeight: 500,
+              fontSize: 13,
+              background: 'var(--white)',
+              color: '#111',
+              border: '1.5px solid #d1d5db',
+              opacity: mergeLoading ? 0.7 : 1,
+              cursor: mergeLoading ? 'default' : 'pointer',
+            }}
+            disabled={mergeLoading}
+            onClick={async () => {
+              setMergeLoading(true);
+              try {
+                await downloadMergedImage(displaySections, sectionImages, productName);
+              } finally {
+                setMergeLoading(false);
+              }
             }}
           >
-            🖼️ 통이미지 다운로드
+            {mergeLoading ? (
+              <>
+                <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #ccc', borderTopColor: '#555', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />
+                합성 중...
+              </>
+            ) : '🖼️ 통이미지 다운로드'}
           </button>
         </div>
       </div>

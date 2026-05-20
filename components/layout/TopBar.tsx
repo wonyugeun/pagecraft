@@ -5,7 +5,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useApp } from '@/store/AppContext';
 
 export default function TopBar() {
-  const { chatOpen, toggleChat, go } = useApp();
+  const { chatOpen, toggleChat, go, credits, setCreditModalOpen } = useApp();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -37,6 +37,16 @@ export default function TopBar() {
         </button>
 
         {session && (
+          <button
+            className={`credit-pill${credits < 20 ? ' low' : ''}`}
+            onClick={() => setCreditModalOpen(true)}
+            title={`크레딧 잔액: ${credits}크레딧`}
+          >
+            ⚡ {credits}
+          </button>
+        )}
+
+        {session && (
           <div className="user-wrap" ref={ref}>
             <div
               className="user-badge"
@@ -56,6 +66,18 @@ export default function TopBar() {
                     {email && <div className="ud-email">{email}</div>}
                   </div>
                 </div>
+                <div className="ud-divider" />
+                <div className="ud-credit-row">
+                  <span className="ud-credit-lbl">크레딧 잔액</span>
+                  <span className="ud-credit-val">⚡ {credits}</span>
+                </div>
+                <button
+                  className="ud-item"
+                  style={{ paddingTop: 4, paddingBottom: 10, fontSize: 12, color: '#7c3aed' }}
+                  onClick={() => { setOpen(false); setCreditModalOpen(true); }}
+                >
+                  충전하기 →
+                </button>
                 <div className="ud-divider" />
                 <button className="ud-item" onClick={() => { setOpen(false); go('s-dash'); }}>
                   내 상세페이지

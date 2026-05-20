@@ -41,6 +41,8 @@ interface AppState {
   productImages: string[]; // base64 data URLs (업로드된 제품 이미지)
   referenceAnalysis: ReferenceAnalysis | null;
   sectionStructure: string[];
+  credits: number;
+  creditModalOpen: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -61,6 +63,8 @@ interface AppContextType extends AppState {
   setProductImages: (images: string[]) => void;
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
+  deductCredits: (amount?: number) => void;
+  setCreditModalOpen: (v: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -165,13 +169,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sections, setSections] = useState<Section[]>([]);
 
   /* ── NextAuth 세션 기반 로그인 상태 ── */
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const loggedIn = status === 'authenticated';
+  const [credits, setCreditsState] = useState<number>(30);
+  const [creditModalOpen, setCreditModalOpenState] = useState(false);
   const [productName, setProductNameState] = useState('');
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
+
+  /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const email = session?.user?.email ?? 'guest';
+      const key = `pc_cr_${email}`;
+      const stored = localStorage.getItem(key);
+      if (stored === null) {
+        localStorage.setItem(key, '30');
+        setCreditsState(30);
+      } else {
+        setCreditsState(parseInt(stored, 10) || 0);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.email]);
+
+  const deductCredits = (amount = 10) => {
+    const email = session?.user?.email ?? 'guest';
+    const key = `pc_cr_${email}`;
+    setCreditsState(prev => {
+      const next = Math.max(0, prev - amount);
+      localStorage.setItem(key, String(next));
+      return next;
+    });
+  };
 
   const go = (id: ScreenId) => {
     window.history.pushState({ screen: id }, '');
@@ -253,6 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, sectionStructure,
+      credits, creditModalOpen,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -270,6 +303,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductImages: setProductImagesState,
       setReferenceAnalysis: setReferenceAnalysisState,
       setSectionStructure: setSectionStructureState,
+      deductCredits,
+      setCreditModalOpen: setCreditModalOpenState,
     }}>
       {children}
     </AppContext.Provider>

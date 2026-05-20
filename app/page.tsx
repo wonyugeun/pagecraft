@@ -15,6 +15,7 @@ import GeneratingScreen from '@/components/screens/GeneratingScreen';
 import ResultScreen from '@/components/screens/ResultScreen';
 import ReferenceScreen from '@/components/screens/ReferenceScreen';
 import SectionStructureScreen from '@/components/screens/SectionStructureScreen';
+import CreditModal from '@/components/modals/CreditModal';
 import { STEP_MAP } from '@/store/AppContext';
 
 function QuickScreen() {
@@ -174,6 +175,7 @@ function App() {
         </div>
       </div>
       <ChatPanel />
+      <CreditModal />
     </>
   );
 }
