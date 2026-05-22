@@ -509,9 +509,11 @@ export default function ResultScreen() {
 
   const displaySections = sections.length > 0 ? sections : DEFAULT_SECTIONS;
 
-  // ch 기반 fallback: out이 null인 경우에도 채널에 맞는 형태 사용
-  const effectiveOut = out
-    || (ch === '쿠팡' ? 'slide' : ch === '자사몰' || ch === '와디즈' ? 'html' : 'blog');
+  // 비스마트스토어 채널은 채널이 항상 우선 (out 잔류값 무시)
+  const effectiveOut =
+    ch === '쿠팡'                       ? 'slide' :
+    (ch === '자사몰' || ch === '와디즈') ? 'html'  :
+    (out ?? 'blog');
   const isSlide = effectiveOut === 'slide';
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
