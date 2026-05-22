@@ -16,51 +16,9 @@ import ResultScreen from '@/components/screens/ResultScreen';
 import ReferenceScreen from '@/components/screens/ReferenceScreen';
 import SectionStructureScreen from '@/components/screens/SectionStructureScreen';
 import CreditModal from '@/components/modals/CreditModal';
+import QuickScreen from '@/components/screens/QuickScreen';
+import ThumbScreen from '@/components/screens/ThumbScreen';
 import { STEP_MAP } from '@/store/AppContext';
-
-function QuickScreen() {
-  const { go } = useApp();
-  return (
-    <div className="inner">
-      <div className="stitle">빠른 제작</div>
-      <div className="ssub">채널 선택 없이 바로 시작하는 두 가지 방식이에요</div>
-      <div className="type-list">
-        <div className="tc" onClick={() => alert('위탁판매형 플로우로 이동')}>
-          <div className="tc-ico" style={{ background: '#fffbeb' }}>⚡</div>
-          <div style={{ flex: 1 }}>
-            <div className="tc-name">위탁판매형 <span className="tc-badge" style={{ background: '#fffbeb', color: 'var(--am)' }}>빠른 제작</span></div>
-            <div className="tc-desc">중국 소싱 페이지나 타 쇼핑몰 URL을 넣으면 한국어 번역 + 핵심만 1~3장으로 압축합니다</div>
-            <div className="tc-feats"><span className="feat">URL 자동번역</span><span className="feat">1~3섹션</span><span className="feat">빠른 업로드용</span></div>
-          </div>
-        </div>
-        <div className="tc" onClick={() => alert('낱장형 플로우로 이동')}>
-          <div className="tc-ico" style={{ background: 'var(--gl)' }}>🔖</div>
-          <div style={{ flex: 1 }}>
-            <div className="tc-name">낱장형 <span className="tc-badge" style={{ background: 'var(--gl)', color: 'var(--gn)' }}>필요한 것만</span></div>
-            <div className="tc-desc">전체 상세페이지가 아닌, 내가 필요한 섹션 1~5장만 골라서 뽑습니다.</div>
-            <div className="tc-feats"><span className="feat">섹션 직접 선택</span><span className="feat">1~5장</span><span className="feat">기존 페이지 보완</span></div>
-          </div>
-        </div>
-      </div>
-      <div className="cta-row">
-        <button className="btn-back" onClick={() => go('s-dash')}>← 대시보드</button>
-      </div>
-    </div>
-  );
-}
-
-function ThumbScreen() {
-  const { go } = useApp();
-  return (
-    <div className="inner">
-      <div className="stitle">썸네일 만들기</div>
-      <div className="ssub">채널을 선택하면 최적 사이즈로 자동 생성됩니다 (추후 업데이트)</div>
-      <div className="cta-row">
-        <button className="btn-back" onClick={() => go('s-dash')}>← 대시보드</button>
-      </div>
-    </div>
-  );
-}
 
 function BlogMockup() {
   return (
