@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 
 /* ─────────────────────────────────────────────
@@ -563,17 +563,106 @@ const CQ: Record<string, Question[]> = {
 function ChipGroup({ opts, multi, value, onChange }: {
   opts: string[]; multi: boolean; value: string[]; onChange: (v: string[]) => void;
 }) {
+  const [inputOpen, setInputOpen] = useState(false);
+  const [inputVal,  setInputVal]  = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 사용자가 직접 입력한 값 (opts에 없는 항목)
+  const customValues = value.filter(v => !opts.includes(v));
+
   const toggle = (o: string) => {
-    if (multi) onChange(value.includes(o) ? value.filter(x => x !== o) : [...value, o]);
-    else onChange(value[0] === o ? [] : [o]);
+    if (multi) {
+      onChange(value.includes(o) ? value.filter(x => x !== o) : [...value, o]);
+    } else {
+      // single 모드: 프리셋 선택 시 커스텀 값도 함께 제거
+      onChange(value.length === 1 && value[0] === o ? [] : [o]);
+    }
   };
+
+  const removeCustom = (cv: string) => onChange(value.filter(x => x !== cv));
+
+  const submit = () => {
+    const t = inputVal.trim();
+    setInputOpen(false);
+    setInputVal('');
+    if (!t) return;
+    if (multi) {
+      if (!value.includes(t)) onChange([...value, t]);
+    } else {
+      onChange([t]); // single: 기존 선택 전부 교체
+    }
+  };
+
+  // single 모드에서 이미 커스텀 값이 있으면 추가 버튼 숨김
+  const canAddCustom = multi || customValues.length === 0;
+
   return (
     <div className="chips">
+      {/* 프리셋 칩 */}
       {opts.map(o => (
         <div key={o} className={`chip${value.includes(o) ? ' on' : ''}`} onClick={() => toggle(o)}>
           {o}
         </div>
       ))}
+
+      {/* 커스텀 칩 (보라색 계열) */}
+      {customValues.map(cv => (
+        <div
+          key={cv}
+          className="chip on"
+          style={{ borderColor: '#7c3aed', color: '#7c3aed', background: '#ede9fe', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+        >
+          {cv}
+          <span
+            role="button"
+            aria-label={`${cv} 제거`}
+            onClick={e => { e.stopPropagation(); removeCustom(cv); }}
+            style={{ cursor: 'pointer', fontWeight: 700, fontSize: 13, lineHeight: 1, marginLeft: 1 }}
+          >×</span>
+        </div>
+      ))}
+
+      {/* + 기타 버튼 */}
+      {!inputOpen && canAddCustom && (
+        <div
+          className="chip"
+          style={{ borderStyle: 'dashed', borderColor: '#a78bfa', color: '#7c3aed' }}
+          onClick={() => { setInputOpen(true); setTimeout(() => inputRef.current?.focus(), 30); }}
+        >
+          + 기타
+        </div>
+      )}
+
+      {/* 직접 입력 인풋 */}
+      {inputOpen && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'nowrap' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputVal}
+            placeholder="직접 입력 후 Enter"
+            onChange={e => setInputVal(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); submit(); }
+              if (e.key === 'Escape') { setInputOpen(false); setInputVal(''); }
+            }}
+            style={{
+              fontSize: 12, padding: '4px 10px',
+              border: '1.5px solid #a78bfa', borderRadius: 20,
+              outline: 'none', fontFamily: 'var(--f)',
+              color: '#5b21b6', width: 148,
+            }}
+          />
+          <span
+            onClick={submit}
+            style={{ fontSize: 11, padding: '4px 9px', background: '#ede9fe', color: '#7c3aed', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}
+          >확인</span>
+          <span
+            onClick={() => { setInputOpen(false); setInputVal(''); }}
+            style={{ fontSize: 11, color: '#94a3b8', cursor: 'pointer', userSelect: 'none' }}
+          >취소</span>
+        </div>
+      )}
     </div>
   );
 }
