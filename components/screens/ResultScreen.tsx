@@ -496,12 +496,13 @@ function TextModal({ sections, onClose }: { sections: Section[]; onClose: () => 
 
 /* ─── 메인 ─── */
 export default function ResultScreen() {
-  const { cat, ch, type, out, secCnt, sections, productName, productExtra, productImages, go } = useApp();
+  const { cat, ch, type, out, secCnt, sections, productName, productExtra, productImages, go, restoredImages, updateLatestHistoryImages } = useApp();
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   const cancelRef = useRef(false);
+  const savedImagesRef = useRef(false);
 
   // ref로 최신 productImages 항상 참조 (stale closure 방지)
   const productImagesRef = useRef(productImages);
@@ -544,18 +545,31 @@ export default function ResultScreen() {
     }
   }, []); // productImagesRef를 통해 항상 최신값 참조
 
-  // ResultScreen 진입 시 순차 자동 생성
+  // ResultScreen 진입 시 순차 자동 생성 (복원된 이미지가 있는 섹션은 건너뜀)
   useEffect(() => {
     if (!displaySections.length) return;
     cancelRef.current = false;
-    setSectionImages({});
+    savedImagesRef.current = false;
+
+    // 복원된 이미지로 초기 상태 설정
+    if (Object.keys(restoredImages).length > 0) {
+      const initial: Record<string, ImgState> = {};
+      for (const [key, url] of Object.entries(restoredImages)) {
+        initial[key] = { loading: false, url, error: false };
+      }
+      setSectionImages(initial);
+    } else {
+      setSectionImages({});
+    }
 
     (async () => {
       for (let i = 0; i < displaySections.length; i++) {
         if (cancelRef.current) break;
+        const sec = displaySections[i];
+        if (restoredImages[sec.num]) continue; // 이미 복원된 이미지는 건너뜀
         if (i > 0) await new Promise(r => setTimeout(r, 3_000)); // 레이트리밋 방지
         if (cancelRef.current) break;
-        await generateImage(displaySections[i]);
+        await generateImage(sec);
       }
     })();
 
@@ -563,6 +577,26 @@ export default function ResultScreen() {
   // displaySections.length 변화 시(섹션 세트 교체)에만 재실행
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displaySections.length]);
+
+  // 모든 이미지 생성 완료 시 history 업데이트
+  useEffect(() => {
+    if (!displaySections.length || savedImagesRef.current) return;
+    const allDone = displaySections.every(sec => {
+      const img = sectionImages[sec.num];
+      return img && !img.loading;
+    });
+    if (!allDone) return;
+    const urls: Record<string, string> = {};
+    for (const sec of displaySections) {
+      const url = sectionImages[sec.num]?.url;
+      if (url) urls[sec.num] = url;
+    }
+    if (Object.keys(urls).length > 0) {
+      savedImagesRef.current = true;
+      updateLatestHistoryImages(urls);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionImages]);
 
   // 진행 상황 계산
   const doneCount     = Object.values(sectionImages).filter(s => !s.loading).length;

@@ -25,6 +25,19 @@ export interface ReferenceAnalysis {
   summary: string;          // 한 줄 요약
 }
 
+export interface HistoryItem {
+  id: string;
+  productName: string;
+  cat: string;
+  ch: string;
+  type: string;
+  out: string;
+  secCnt: number;
+  createdAt: string;
+  sections: Section[];
+  sectionImages?: Record<string, string>; // sec.num → data URL
+}
+
 interface AppState {
   screen: ScreenId;
   cat: string | null;
@@ -43,6 +56,7 @@ interface AppState {
   sectionStructure: string[];
   credits: number;
   creditModalOpen: boolean;
+  restoredImages: Record<string, string>;
 }
 
 interface AppContextType extends AppState {
@@ -65,6 +79,9 @@ interface AppContextType extends AppState {
   setSectionStructure: (v: string[]) => void;
   deductCredits: (amount?: number) => void;
   setCreditModalOpen: (v: boolean) => void;
+  saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
+  loadFromHistory: (item: HistoryItem) => void;
+  updateLatestHistoryImages: (images: Record<string, string>) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -167,6 +184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [secCnt, setSecCntState] = useState(10);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
+  const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
 
   /* ── NextAuth 세션 기반 로그인 상태 ── */
   const { data: session, status } = useSession();
@@ -203,6 +221,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(key, String(next));
       return next;
     });
+  };
+
+  const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => {
+    const email = session?.user?.email ?? 'guest';
+    const key = `pc_history_${email}`;
+    const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
+    const newItem: HistoryItem = {
+      ...data,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newItem, ...existing].slice(0, 20);
+    localStorage.setItem(key, JSON.stringify(updated));
+  };
+
+  const updateLatestHistoryImages = (images: Record<string, string>) => {
+    const email = session?.user?.email ?? 'guest';
+    const key = `pc_history_${email}`;
+    try {
+      const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
+      if (existing.length > 0) {
+        existing[0] = { ...existing[0], sectionImages: images };
+        localStorage.setItem(key, JSON.stringify(existing));
+      }
+    } catch {
+      // 이미지 용량 초과 시 텍스트 데이터는 그대로 유지
+    }
+  };
+
+  const loadFromHistory = (item: HistoryItem) => {
+    setCatState(item.cat);
+    setChState(item.ch);
+    setTypeState(item.type);
+    setOutState(item.out);
+    setSecCntState(item.secCnt);
+    setProductNameState(item.productName);
+    setProductExtraState('');
+    setProductImagesState([]);
+    setReferenceAnalysisState(null);
+    setSectionStructureState([]);
+    setSections(item.sections);
+    setRestoredImages(item.sectionImages ?? {});
+    go('s8');
   };
 
   const go = (id: ScreenId) => {
@@ -269,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReferenceAnalysisState(null);
     setSectionStructureState([]);
     setSections([]);
+    setRestoredImages({});
     go('s1');
   };
 
@@ -285,7 +347,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, sectionStructure,
-      credits, creditModalOpen,
+      credits, creditModalOpen, restoredImages,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -305,6 +367,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSectionStructure: setSectionStructureState,
       deductCredits,
       setCreditModalOpen: setCreditModalOpenState,
+      saveHistory,
+      loadFromHistory,
+      updateLatestHistoryImages,
     }}>
       {children}
     </AppContext.Provider>

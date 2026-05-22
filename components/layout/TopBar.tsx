@@ -26,7 +26,7 @@ export default function TopBar() {
 
   return (
     <div className="tb">
-      <div className="tb-logo">
+      <div className="tb-logo" onClick={() => session && go('s-dash')} style={{ cursor: session ? 'pointer' : 'default' }}>
         <div className="tb-dot" />
         PageCraft
       </div>

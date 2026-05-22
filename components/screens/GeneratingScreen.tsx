@@ -19,7 +19,7 @@ const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
 const GENERATION_COST = 10;
 
 export default function GeneratingScreen() {
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [apiError,         setApiError]         = useState('');
@@ -29,8 +29,10 @@ export default function GeneratingScreen() {
   const abortRef    = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
 
+  const isDev = process.env.NODE_ENV === 'development';
+
   useEffect(() => {
-    if (credits < GENERATION_COST) {
+    if (!isDev && credits < GENERATION_COST) {
       setCreditInsufficient(true);
       return;
     }
@@ -72,14 +74,22 @@ export default function GeneratingScreen() {
 
         if (data.sections?.length) {
           setSections(data.sections);
-          console.log(`[GeneratingScreen] setSections: ${data.sections.length}개 저장`);
+          saveHistory({
+            productName,
+            cat: cat ?? '',
+            ch: ch ?? '',
+            type: type ?? '',
+            out: out ?? '',
+            secCnt,
+            sections: data.sections,
+          });
         }
 
         const elapsed = Date.now() - start;
         const wait    = Math.max(0, MIN_ANIM_MS - elapsed);
         const done    = setTimeout(() => {
           if (!cancelledRef.current) {
-            deductCredits(GENERATION_COST);
+            if (!isDev) deductCredits(GENERATION_COST);
             go('s8');
           }
         }, wait);
