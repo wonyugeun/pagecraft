@@ -135,7 +135,10 @@ export default function ReferenceScreen() {
     }
     callApi({ url: trimmed });
   };
-  const analyzeText = () => { if (text.trim()) callApi({ text: text.trim() }); };
+  const analyzeText = () => {
+    if (!text.trim()) { setError('텍스트를 입력해주세요.'); return; }
+    callApi({ text: text.trim() });
+  };
 
   const tabStyle = (t: Tab): React.CSSProperties => ({
     flex: 1, padding: '10px 0', fontSize: 13, fontWeight: tab === t ? 700 : 400,
@@ -228,7 +231,7 @@ export default function ReferenceScreen() {
           </div>
           <div className="cta-row" style={{ justifyContent: 'center', gap: 12 }}>
             <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
-            <button className="btn-next" onClick={() => go('s5b')}>바로 생성하기 →</button>
+            <button className="btn-next" onClick={() => { setReferenceAnalysis(null); go('s5b'); }}>바로 생성하기 →</button>
           </div>
         </div>
       )}
@@ -241,7 +244,7 @@ export default function ReferenceScreen() {
             {!result && (
               <button
                 style={{ fontSize: 12, color: 'var(--tx3)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', textDecoration: 'underline', padding: '4px 0' }}
-                onClick={() => go('s5b')}
+                onClick={() => { setReferenceAnalysis(null); go('s5b'); }}
               >
                 건너뛰고 바로 생성 →
               </button>

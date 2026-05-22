@@ -59,21 +59,6 @@ export default function DashboardScreen() {
         </div>
       </div>
 
-      <div className="dash-sub-grid">
-        <div className="dash-sub-card" onClick={() => go('s-quick')}>
-          <div className="dsc-badge" style={{ background: 'var(--aml)', color: 'var(--am)' }}>⚡ 빠른 제작</div>
-          <div className="dsc-ico">🔖</div>
-          <div className="dsc-title">빠른 제작</div>
-          <div className="dsc-desc">위탁판매형 · 낱장형<br />채널 선택 없이 바로 시작</div>
-        </div>
-        <div className="dash-sub-card" onClick={() => go('s-thumb')}>
-          <div className="dsc-badge" style={{ background: 'rgba(124,58,237,.08)', color: 'var(--pu)' }}>🖼️ 썸네일</div>
-          <div className="dsc-ico">🖼️</div>
-          <div className="dsc-title">썸네일 만들기</div>
-          <div className="dsc-desc">채널 최적화 썸네일<br />1~3장 빠르게 생성</div>
-        </div>
-      </div>
-
       <div className="dash-hist-title">최근 작업</div>
       {history.length === 0 ? (
         <div className="dash-empty">📂 아직 작업 이력이 없어요. 위에서 시작해보세요!</div>

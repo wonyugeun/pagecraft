@@ -77,8 +77,12 @@ export default function ImageScreen() {
     const labels  = which === 'ready' ? READY_LABELS : MAKE_LABELS;
     const current = which === 'ready' ? imgs : makeImgs;
     const setter  = which === 'ready' ? setImgs : setMakeImgs;
+    const remaining = 8 - current.length;
+    if (files.length > remaining) {
+      alert(`최대 8장까지 업로드할 수 있어요. ${remaining > 0 ? `${remaining}장만 추가됩니다.` : '이미 8장이 업로드되었습니다.'}`);
+    }
     const newItems: ImgFile[] = [];
-    Array.from(files).slice(0, 8 - current.length).forEach(f => {
+    Array.from(files).slice(0, remaining).forEach(f => {
       newItems.push({
         url: URL.createObjectURL(f),
         label: labels[current.length + newItems.length] ?? '추가',

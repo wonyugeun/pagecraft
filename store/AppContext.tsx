@@ -226,14 +226,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => {
     const email = session?.user?.email ?? 'guest';
     const key = `pc_history_${email}`;
-    const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
-    const newItem: HistoryItem = {
-      ...data,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [newItem, ...existing].slice(0, 20);
-    localStorage.setItem(key, JSON.stringify(updated));
+    try {
+      const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
+      const newItem: HistoryItem = {
+        ...data,
+        id: Date.now().toString(),
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [newItem, ...existing].slice(0, 20);
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch {
+      // 저장 실패 시 무시 (용량 초과 등)
+    }
   };
 
   const updateLatestHistoryImages = (images: Record<string, string>) => {

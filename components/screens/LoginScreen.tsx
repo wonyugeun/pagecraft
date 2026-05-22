@@ -55,9 +55,6 @@ export default function LoginScreen() {
           Google로 시작하기
         </button>
 
-        <div className="div-or">또는 이메일</div>
-        <input className="l-inp" type="email" placeholder="이메일 주소" />
-        <button className="l-cta" disabled={loading !== null}>시작하기 →</button>
         <div className="l-terms">
           시작하면 <a href="#">이용약관</a> 및 <a href="#">개인정보처리방침</a>에 동의합니다
         </div>

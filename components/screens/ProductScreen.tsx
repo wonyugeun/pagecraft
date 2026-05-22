@@ -853,6 +853,7 @@ export default function ProductScreen() {
             className="finp"
             type="text"
             placeholder={namePlaceholder}
+            value={productName}
             onChange={e => setProductName(e.target.value)}
           />
         </div>
