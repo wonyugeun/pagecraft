@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 
 interface ImgFile { url: string; }
@@ -41,26 +41,61 @@ const SECTION_FIELDS: Record<string, FieldDef[]> = {
     { id: 'questions', label: '자주 묻는 질문 3가지', type: 'textarea', rows: 5, placeholder: '예: Q. 민감성 피부에도 괜찮나요?\nQ. 임산부도 사용 가능한가요?\nQ. 향이 강한가요?' },
   ],
   cta: [
-    { id: 'benefit',   label: '혜택/할인',   type: 'input', placeholder: '예: 런칭 기념 30% 할인, 3만원 이상 무료배송' },
-    { id: 'shipping',  label: '배송 정보',   type: 'input', placeholder: '예: 오늘 오후 2시 전 주문 시 내일 도착' },
-    { id: 'guarantee', label: '보장 정책',   type: 'input', placeholder: '예: 30일 무조건 환불 보장' },
+    { id: 'benefit',   label: '혜택/할인', type: 'input', placeholder: '예: 런칭 기념 30% 할인, 3만원 이상 무료배송' },
+    { id: 'shipping',  label: '배송 정보', type: 'input', placeholder: '예: 오늘 오후 2시 전 주문 시 내일 도착' },
+    { id: 'guarantee', label: '보장 정책', type: 'input', placeholder: '예: 30일 무조건 환불 보장' },
   ],
   ingredient: [
     { id: 'ingredients', label: '핵심 성분/원료', type: 'textarea', rows: 3, placeholder: '예: 병풀추출물 52%, 히알루론산 3종, 나이아신아마이드' },
     { id: 'cert',        label: '인증/특허',      type: 'input',    placeholder: '예: EWG 그린등급, 비건 인증, 피부과 테스트 완료, 특허 성분 복합체' },
   ],
+  brand: [
+    { id: 'origin', label: '브랜드 탄생 배경', type: 'textarea', rows: 3, placeholder: '예: 창업자 본인이 아토피로 고생하다 성분 연구 끝에 만든 브랜드' },
+    { id: 'value',  label: '핵심 가치',        type: 'input',    placeholder: '예: 자연 유래 성분 고집, 동물 실험 반대, 환경 친화 포장' },
+  ],
+  delivery: [
+    { id: 'method',  label: '배송 방식', type: 'input', placeholder: '예: 로켓배송, 새벽배송, 직배송 · 냉장 배송' },
+    { id: 'pack',    label: '포장 특징', type: 'input', placeholder: '예: 보냉 파우치, 친환경 완충재, 선물 박스 옵션' },
+    { id: 'safety',  label: '안전성',   type: 'input', placeholder: '예: 낱개 봉인 실링, 파손 보상, 식약처 기준 준수' },
+  ],
+  as: [
+    { id: 'warranty', label: '보증 기간',  type: 'input', placeholder: '예: 구매일로부터 1년 무상 A/S' },
+    { id: 'refund',   label: '환불 정책', type: 'input', placeholder: '예: 수령 후 7일 이내 단순 변심 환불 가능' },
+    { id: 'support',  label: '고객 응대', type: 'input', placeholder: '예: 카카오 채널 평일 09~18시, 평균 응답 1시간' },
+  ],
+  certification: [
+    { id: 'certs',   label: '보유 인증',  type: 'textarea', rows: 3, placeholder: '예: 식약처 기능성 화장품, KC 안전인증, ISO 9001, COSMOS ORGANIC' },
+    { id: 'patent',  label: '특허 번호', type: 'input',    placeholder: '예: 특허 제10-2345678호 (복합 진정 성분 배합 공법)' },
+    { id: 'test',    label: '시험 결과', type: 'input',    placeholder: '예: 피부 자극 테스트 완료, 알레르기 유발 성분 0%' },
+  ],
+  process: [
+    { id: 'method',  label: '제조 방식', type: 'textarea', rows: 3, placeholder: '예: 저온 압착 추출, GMP 인증 시설, 국내 제조' },
+    { id: 'raw',     label: '원료 수급', type: 'input',    placeholder: '예: 제주 직계약 농장, 유기농 인증 원료만 사용' },
+    { id: 'quality', label: '품질 관리', type: 'input',    placeholder: '예: 출고 전 전수 검사, 유통기한 18개월' },
+  ],
+  gift: [
+    { id: 'option',   label: '선물 옵션',    type: 'textarea', rows: 3, placeholder: '예: 리본 포장 추가, 쇼핑백 동봉, 세트 구성 가능' },
+    { id: 'message',  label: '메시지 카드', type: 'input',    placeholder: '예: 손편지 카드 무료 동봉, 원하는 문구 인쇄 가능' },
+    { id: 'design',   label: '포장 디자인', type: 'input',    placeholder: '예: 시즌별 기념 박스, 브랜드 시그니처 패키지' },
+  ],
 };
 
 const QUICK_SECTIONS = [
-  { id: 'hero',       name: '히어로',   desc: '메인 후킹',      ico: '🎯', num: 'SECTION 01' },
-  { id: 'empathy',    name: '공감',     desc: '고민 공감',      ico: '😔', num: 'SECTION 02' },
-  { id: 'usp',        name: 'USP',      desc: '핵심 기능',      ico: '⭐', num: 'SECTION 03' },
-  { id: 'howto',      name: '사용법',   desc: '사용 방법',      ico: '📋', num: 'SECTION 04' },
-  { id: 'compare',    name: '비교표',   desc: '경쟁 우위',      ico: '📊', num: 'SECTION 05' },
-  { id: 'review',     name: '후기',     desc: '후기 강조',      ico: '💬', num: 'SECTION 06' },
-  { id: 'faq',        name: 'FAQ',      desc: '자주 묻는 질문', ico: '❓', num: 'SECTION 07' },
-  { id: 'cta',        name: 'CTA',      desc: '구매 유도',      ico: '🛒', num: 'SECTION 08' },
-  { id: 'ingredient', name: '성분신뢰', desc: '성분 근거',      ico: '🔬', num: 'SECTION 09' },
+  { id: 'hero',          name: '히어로',      desc: '메인 후킹',      ico: '🎯', num: 'SECTION 01' },
+  { id: 'empathy',       name: '공감',        desc: '고민 공감',      ico: '😔', num: 'SECTION 02' },
+  { id: 'usp',           name: 'USP',         desc: '핵심 기능',      ico: '⭐', num: 'SECTION 03' },
+  { id: 'howto',         name: '사용법',      desc: '사용 방법',      ico: '📋', num: 'SECTION 04' },
+  { id: 'compare',       name: '비교표',      desc: '경쟁 우위',      ico: '📊', num: 'SECTION 05' },
+  { id: 'review',        name: '후기',        desc: '후기 강조',      ico: '💬', num: 'SECTION 06' },
+  { id: 'faq',           name: 'FAQ',         desc: '자주 묻는 질문', ico: '❓', num: 'SECTION 07' },
+  { id: 'cta',           name: 'CTA',         desc: '구매 유도',      ico: '🛒', num: 'SECTION 08' },
+  { id: 'ingredient',    name: '성분신뢰',    desc: '성분 근거',      ico: '🔬', num: 'SECTION 09' },
+  { id: 'brand',         name: '브랜드 스토리', desc: '브랜드 철학',  ico: '🏷️', num: 'SECTION 10' },
+  { id: 'delivery',      name: '배송/포장',   desc: '배송·패키지',   ico: '📦', num: 'SECTION 11' },
+  { id: 'as',            name: 'A/S·환불',   desc: '사후 보장',      ico: '🔧', num: 'SECTION 12' },
+  { id: 'certification', name: '인증/특허',   desc: '공식 인증',      ico: '🏅', num: 'SECTION 13' },
+  { id: 'process',       name: '제조 공정',   desc: '생산 품질',      ico: '🏭', num: 'SECTION 14' },
+  { id: 'gift',          name: '선물 포장',   desc: '기프팅 옵션',   ico: '🎁', num: 'SECTION 15' },
 ];
 
 const CAT_CHIPS = [
@@ -72,6 +107,38 @@ const CAT_CHIPS = [
 const CH_CHIPS = ['스마트스토어', '쿠팡', '와디즈', '자사몰'];
 
 type GenStatus = 'idle' | 'text' | 'image' | 'done' | 'text_err' | 'img_err';
+
+/* ─── 라이트박스 ─── */
+function QuickLightbox({ url, alt, onClose }: { url: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => { document.body.style.overflow = ''; window.removeEventListener('keydown', handler); };
+  }, [onClose]);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt={alt}
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '100%', maxHeight: '88vh', borderRadius: 8, boxShadow: '0 8px 48px rgba(0,0,0,.6)', display: 'block' }}
+      />
+      <button
+        onClick={onClose}
+        aria-label="닫기"
+        style={{ position: 'absolute', top: 16, right: 20, fontSize: 28, color: '#fff', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, fontFamily: 'var(--f)' }}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 export default function QuickScreen() {
   const { go } = useApp();
@@ -94,10 +161,14 @@ export default function QuickScreen() {
   const [sectionResult, setSectionResult] = useState<Section | null>(null);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
+
+  // 스마트스토어만 블로그형(글+그림), 나머지는 슬라이드형
+  const outType = (!ch || ch === '스마트스토어') ? 'blog' : 'slide';
 
   const setField = (id: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [id]: value }));
@@ -134,6 +205,7 @@ export default function QuickScreen() {
     setGenStatus('text');
     setSectionResult(null);
     setImgUrl(null);
+    setLightboxOpen(false);
 
     let section: Section | null = null;
 
@@ -145,7 +217,7 @@ export default function QuickScreen() {
           cat: cat || '기타',
           ch: ch || '스마트스토어',
           type: '기본형',
-          out: 'blog',
+          out: outType,
           productName,
           productExtra: buildProductExtra(),
           sectionNum: selectedSection.num,
@@ -223,6 +295,7 @@ export default function QuickScreen() {
     setGenStatus('idle');
     setSectionResult(null);
     setImgUrl(null);
+    setLightboxOpen(false);
     setStep(2);
   };
 
@@ -294,6 +367,9 @@ export default function QuickScreen() {
                 </button>
               ))}
             </div>
+            {ch && ch !== '스마트스토어' && (
+              <div className="fhint">💡 {ch}는 이미지 슬라이드형으로 생성됩니다 (스마트스토어만 블로그형)</div>
+            )}
           </div>
 
           <div className="fg">
@@ -428,7 +504,7 @@ export default function QuickScreen() {
           {/* Result area */}
           {genStatus === 'idle' && (
             <div style={{ marginTop: 24, padding: '20px 16px', background: 'var(--sf)', borderRadius: 'var(--r)', textAlign: 'center', color: 'var(--tx3)', fontSize: 13 }}>
-              아래 버튼을 눌러 생성을 시작하세요
+              위 버튼을 눌러 생성을 시작하세요
             </div>
           )}
 
@@ -491,7 +567,8 @@ export default function QuickScreen() {
                         <img
                           src={imgUrl}
                           alt={`${selectedSection.name} 이미지`}
-                          style={{ width: '100%', borderRadius: 'var(--rs)', display: 'block', marginBottom: 12 }}
+                          onClick={() => setLightboxOpen(true)}
+                          style={{ width: '100%', borderRadius: 'var(--rs)', display: 'block', marginBottom: 12, cursor: 'zoom-in' }}
                         />
                         <button
                           onClick={handleDownload}
@@ -536,6 +613,15 @@ export default function QuickScreen() {
             </div>
           )}
         </div>
+      )}
+
+      {/* 라이트박스 */}
+      {lightboxOpen && imgUrl && selectedSection && (
+        <QuickLightbox
+          url={imgUrl}
+          alt={`${selectedSection.name} 이미지`}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
     </div>
   );
