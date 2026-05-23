@@ -8,6 +8,14 @@ interface ImgFile { url: string; label: string; }
 const READY_LABELS = ['정면','45도','디테일','포장','성분','컷1','컷2','컷3'];
 const MAKE_LABELS  = ['정면','측면','디테일','포장','컷1','컷2','컷3','컷4'];
 
+/* ─── 컷 타입별 비주얼 ─── */
+const CUT_VISUAL: Record<string, { bg: string; ico: string; preview: string }> = {
+  nukki:     { bg: 'linear-gradient(135deg,#f8fafc,#e2e8f0)', ico: '⬜', preview: '흰 배경에 제품만' },
+  concept:   { bg: 'linear-gradient(135deg,#e0f2fe,#fce7f3)', ico: '🌸', preview: '감성 배경 연출' },
+  detail:    { bg: 'linear-gradient(135deg,#f0fdf4,#dcfce7)', ico: '🔍', preview: '텍스처 클로즈업' },
+  lifestyle: { bg: 'linear-gradient(135deg,#fef9c3,#fed7aa)', ico: '☀️', preview: '라이프스타일 사용' },
+};
+
 function UploadZone({
   title, sub, dragging, onDragOver, onDragLeave, onDrop, onFiles, inputRef,
 }: {
@@ -20,13 +28,7 @@ function UploadZone({
   inputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
-    <div
-      className={`up-zone${dragging ? ' drag' : ''}`}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      onClick={() => inputRef.current?.click()}
-    >
+    <div className={`up-zone${dragging ? ' drag' : ''}`} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={() => inputRef.current?.click()}>
       <input ref={inputRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={e => onFiles(e.target.files)} />
       <div style={{ fontSize: 28, marginBottom: 10 }}>📷</div>
       <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{title}</div>
@@ -36,11 +38,10 @@ function UploadZone({
   );
 }
 
-/* ─── 생성 이미지 라이트박스 ─── */
+/* ─── 라이트박스 ─── */
 function GenLightbox({ url, alt, onClose, onPrev, onNext, index, total }: {
   url: string; alt: string; onClose: () => void;
-  onPrev?: () => void; onNext?: () => void;
-  index: number; total: number;
+  onPrev?: () => void; onNext?: () => void; index: number; total: number;
 }) {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -55,14 +56,10 @@ function GenLightbox({ url, alt, onClose, onPrev, onNext, index, total }: {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.88)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      {onPrev && (
-        <button onClick={e => { e.stopPropagation(); onPrev(); }} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f)' }}>‹</button>
-      )}
+      {onPrev && <button onClick={e => { e.stopPropagation(); onPrev(); }} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f)' }}>‹</button>}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={alt} onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '86vh', borderRadius: 8, boxShadow: '0 8px 48px rgba(0,0,0,.6)', display: 'block' }} />
-      {onNext && (
-        <button onClick={e => { e.stopPropagation(); onNext(); }} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f)' }}>›</button>
-      )}
+      {onNext && <button onClick={e => { e.stopPropagation(); onNext(); }} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f)' }}>›</button>}
       <button onClick={onClose} aria-label="닫기" style={{ position: 'absolute', top: 16, right: 20, fontSize: 28, color: '#fff', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, fontFamily: 'var(--f)' }}>✕</button>
       {total > 1 && (
         <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: '#fff', fontSize: 12, background: 'rgba(0,0,0,.45)', padding: '4px 12px', borderRadius: 20, whiteSpace: 'nowrap' }}>
@@ -73,37 +70,210 @@ function GenLightbox({ url, alt, onClose, onPrev, onNext, index, total }: {
   );
 }
 
+/* ─── 컷 선택 카드 ─── */
+function CutSelectCard({ c, selected, onToggle }: { c: CutItem; selected: boolean; onToggle: () => void }) {
+  const vis = CUT_VISUAL[c.id] ?? { bg: 'var(--sf)', ico: c.ico, preview: c.desc };
+  return (
+    <div
+      onClick={() => !c.disabled && onToggle()}
+      style={{
+        position: 'relative', borderRadius: 'var(--r)', overflow: 'hidden',
+        border: `2px solid ${selected ? 'var(--ac)' : 'var(--bd)'}`,
+        background: selected ? 'var(--al)' : 'var(--white)',
+        cursor: c.disabled ? 'default' : 'pointer',
+        opacity: c.disabled ? 0.4 : 1,
+        transition: 'border-color .15s, background .15s',
+        display: 'flex', flexDirection: 'column',
+      }}
+    >
+      {/* 선택 배지 */}
+      {selected && (
+        <div style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderRadius: '50%', background: 'var(--ac)', color: '#fff', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, zIndex: 1 }}>✓</div>
+      )}
+      {/* 비주얼 미리보기 */}
+      <div style={{ height: 72, background: vis.bg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <span style={{ fontSize: 26 }}>{vis.ico}</span>
+        <span style={{ fontSize: 9, color: 'var(--tx3)', fontWeight: 500 }}>{vis.preview}</span>
+      </div>
+      {/* 정보 */}
+      <div style={{ padding: '8px 10px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: selected ? 'var(--ac)' : 'var(--tx)' }}>{c.ico} {c.name}</span>
+          <span className={`cut-tag ${c.tagClass}`}>{c.tag}</span>
+          {!c.disabled && <span style={{ fontSize: 10, color: 'var(--tx3)', marginLeft: 'auto' }}>{c.count}장</span>}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--tx2)', lineHeight: 1.5 }}>{c.desc}</div>
+        {c.why && <div style={{ fontSize: 10, color: 'var(--tx3)', marginTop: 5, lineHeight: 1.4 }}>💡 {c.why}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ─── 결과 이미지 카드 ─── */
+function GenImageCard({
+  c, i, imgUrl, isGen, isFail, isSel, isRegenActive,
+  editPrompt, onToggleSelect, onRegen, onLightbox, onEditChange,
+}: {
+  c: CutItem; i: number;
+  imgUrl?: string; isGen: boolean; isFail: boolean; isSel: boolean; isRegenActive: boolean;
+  editPrompt: string;
+  onToggleSelect: () => void;
+  onRegen: (ep?: string) => void;
+  onLightbox: () => void;
+  onEditChange: (v: string) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const hasImg = !!imgUrl;
+
+  return (
+    <div style={{
+      background: 'var(--white)',
+      border: `2px solid ${isSel ? 'var(--ac)' : 'var(--bd)'}`,
+      borderRadius: 'var(--r)', overflow: 'hidden',
+      transition: 'border-color .15s, box-shadow .15s',
+      boxShadow: hovered ? '0 4px 16px rgba(0,0,0,.1)' : 'none',
+      position: 'relative',
+    }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* 선택 배지 */}
+      {isSel && (
+        <div style={{ position: 'absolute', top: 8, left: 8, background: 'var(--ac)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, zIndex: 3 }}>✓ 선택됨</div>
+      )}
+
+      {/* 이미지 영역 */}
+      <div style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden' }}>
+        {hasImg ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgUrl}
+              alt={`${c.name} ${i + 1}`}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f8fafc', display: 'block', cursor: 'zoom-in', transition: 'transform .2s', transform: hovered ? 'scale(1.03)' : 'scale(1)' }}
+              onClick={onLightbox}
+            />
+            {/* 호버 오버레이 */}
+            {hovered && (
+              <div onClick={onLightbox} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', transition: 'opacity .15s' }}>
+                <div style={{ background: 'rgba(255,255,255,.92)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: 'var(--tx)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  🔍 확대
+                </div>
+              </div>
+            )}
+          </>
+        ) : isGen ? (
+          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--al),rgba(37,99,235,.03))', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span style={{ display: 'inline-block', width: 24, height: 24, border: '2.5px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+            <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600 }}>생성 중...</span>
+          </div>
+        ) : isFail ? (
+          <div style={{ width: '100%', height: '100%', background: '#fff1f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <span style={{ fontSize: 28 }}>⚠️</span>
+            <span style={{ fontSize: 11, color: '#dc2626' }}>생성 실패</span>
+          </div>
+        ) : (
+          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,var(--al),rgba(37,99,235,.03))', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.25, fontSize: 32 }}>{c.ico}</div>
+        )}
+      </div>
+
+      {/* 카드 하단 */}
+      <div style={{ padding: '10px 10px 12px' }}>
+        {/* 컷 라벨 */}
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx)', marginBottom: 8 }}>{c.ico} {c.name} {i + 1}</div>
+
+        {/* 버튼 영역 */}
+        {hasImg ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {/* Primary: 이 이미지 사용 */}
+            <button
+              onClick={onToggleSelect}
+              style={{
+                width: '100%', padding: '7px 0', fontSize: 11, fontWeight: 700,
+                background: isSel ? 'var(--ac)' : 'var(--white)',
+                color: isSel ? '#fff' : 'var(--ac)',
+                border: `1.5px solid var(--ac)`, borderRadius: 'var(--rs)',
+                cursor: 'pointer', fontFamily: 'var(--f)', transition: 'all .15s',
+              }}
+            >
+              {isSel ? '✓ 선택됨' : '이 이미지 사용'}
+            </button>
+            {/* Secondary: 재생성 + 다운로드 */}
+            <div style={{ display: 'flex', gap: 5 }}>
+              <button
+                onClick={() => onRegen(editPrompt || undefined)}
+                disabled={isRegenActive}
+                style={{ flex: 1, padding: '5px 0', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', cursor: isRegenActive ? 'default' : 'pointer', color: 'var(--tx2)', fontFamily: 'var(--f)', opacity: isRegenActive ? 0.4 : 1 }}
+              >
+                ↻ 다시 그리기
+              </button>
+              <a
+                href={imgUrl}
+                download={`${c.id}_${i + 1}.png`}
+                style={{ padding: '5px 10px', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', color: 'var(--tx2)', textDecoration: 'none', display: 'flex', alignItems: 'center' }}
+              >
+                ⬇
+              </a>
+            </div>
+            {/* 수정 프롬프트 입력 */}
+            <input
+              type="text"
+              placeholder='수정 요청 (선택) — 예: "배경을 더 밝게"'
+              value={editPrompt}
+              onChange={e => onEditChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !isRegenActive) { e.preventDefault(); onRegen(editPrompt || undefined); } }}
+              style={{
+                width: '100%', padding: '5px 8px', fontSize: 10, border: '1px solid var(--bd)',
+                borderRadius: 'var(--rs)', fontFamily: 'var(--f)', color: 'var(--tx)',
+                background: 'var(--sf)', outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        ) : (isFail || (!hasImg && !isGen)) ? (
+          <button
+            onClick={() => onRegen()}
+            disabled={isRegenActive}
+            style={{ width: '100%', padding: '6px 0', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', cursor: isRegenActive ? 'default' : 'pointer', color: 'var(--tx3)', fontFamily: 'var(--f)', opacity: isRegenActive ? 0.4 : 1 }}
+          >
+            ↻ 재생성
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function ImageScreen() {
   const { cat, ch, type, imgMode, setImgMode, setProductImages, go } = useApp();
   const safeCh   = ch   || '스마트스토어';
   const safeType = type || '기본형';
   const guide = (IMG_CL[safeCh] ?? IMG_CL['스마트스토어'])[safeType] ?? IMG_CL['스마트스토어']['기본형'];
-  // 썸네일은 ResultScreen 썸네일 탭에서 생성 — ImageScreen에서는 제외
   const cuts: CutItem[] = (TYPE_CUTS[safeType] ?? TYPE_CUTS['기본형']).filter(c => c.id !== 'thumb');
 
-  const [imgs,        setImgs]        = useState<ImgFile[]>([]);
-  const [makeImgs,    setMakeImgs]    = useState<ImgFile[]>([]);
-  const [selectedCuts, setSelectedCuts] = useState<string[]>(cuts.filter(c => c.checked).map(c => c.id));
-  const [makeResult,   setMakeResult]   = useState(false);
-  const [making,       setMaking]       = useState(false);
-  const [makeGenImages, setMakeGenImages] = useState<Record<string, string>>({});
-  const [generatingKey, setGeneratingKey] = useState<string>('');
-  const [failedKeys,    setFailedKeys]    = useState<Set<string>>(new Set());
-  const [dragging,      setDragging]      = useState(false);
-  const [draggingMake,  setDraggingMake]  = useState(false);
+  const [imgs,             setImgs]             = useState<ImgFile[]>([]);
+  const [makeImgs,         setMakeImgs]         = useState<ImgFile[]>([]);
+  const [selectedCuts,     setSelectedCuts]     = useState<string[]>(cuts.filter(c => c.checked).map(c => c.id));
+  const [makeResult,       setMakeResult]       = useState(false);
+  const [making,           setMaking]           = useState(false);
+  const [makeGenImages,    setMakeGenImages]    = useState<Record<string, string>>({});
+  const [generatingKey,    setGeneratingKey]    = useState<string>('');
+  const [failedKeys,       setFailedKeys]       = useState<Set<string>>(new Set());
+  const [dragging,         setDragging]         = useState(false);
+  const [draggingMake,     setDraggingMake]     = useState(false);
   const [selectedImageKeys, setSelectedImageKeys] = useState<Set<string>>(new Set());
-  const [confirmOpen,   setConfirmOpen]   = useState(false);
-  const [lightboxKey,   setLightboxKey]   = useState<string | null>(null);
+  const [confirmOpen,      setConfirmOpen]      = useState(false);
+  const [lightboxKey,      setLightboxKey]      = useState<string | null>(null);
+  const [editPrompts,      setEditPrompts]      = useState<Record<string, string>>({});
 
   const readyInputRef = useRef<HTMLInputElement>(null);
   const makeInputRef  = useRef<HTMLInputElement>(null);
-  const base64sRef    = useRef<string[]>([]); // 재생성 시 재사용
+  const base64sRef    = useRef<string[]>([]);
 
   const addFiles = (files: FileList | null, which: 'ready' | 'make') => {
     if (!files) return;
-    const labels  = which === 'ready' ? READY_LABELS : MAKE_LABELS;
-    const current = which === 'ready' ? imgs : makeImgs;
-    const setter  = which === 'ready' ? setImgs : setMakeImgs;
+    const labels   = which === 'ready' ? READY_LABELS : MAKE_LABELS;
+    const current  = which === 'ready' ? imgs : makeImgs;
+    const setter   = which === 'ready' ? setImgs : setMakeImgs;
     const remaining = 8 - current.length;
     if (files.length > remaining) {
       alert(`최대 8장까지 업로드할 수 있어요. ${remaining > 0 ? `${remaining}장만 추가됩니다.` : '이미 8장이 업로드되었습니다.'}`);
@@ -130,25 +300,23 @@ export default function ImageScreen() {
   };
 
   const useSelectedImages = () => {
-    // 생성된 이미지는 이미 data URL — 바로 사용
     const urls = Array.from(selectedImageKeys).map(k => makeGenImages[k]).filter(Boolean);
     setProductImages(urls);
     go('s7');
   };
 
-  /* ── 카테고리별 제품·소품 키워드 ── */
   const CAT_CTX: Record<string, { product: string }> = {
-    화장품: { product: 'Korean skincare/beauty product' },
-    식품:   { product: 'Korean food or beverage product' },
-    패션:   { product: 'fashion clothing or accessory item' },
-    생활:   { product: 'home living or interior decor product' },
-    가전:   { product: 'consumer electronics or home appliance' },
+    화장품:   { product: 'Korean skincare/beauty product' },
+    식품:     { product: 'Korean food or beverage product' },
+    패션:     { product: 'fashion clothing or accessory item' },
+    생활:     { product: 'home living or interior decor product' },
+    가전:     { product: 'consumer electronics or home appliance' },
     반려동물: { product: 'pet care product' },
-    스포츠: { product: 'sports or outdoor gear product' },
-    유아:   { product: 'baby or toddler product' },
-    건강:   { product: 'health supplement or wellness product' },
-    자동차: { product: 'automotive accessory or car care product' },
-    기타:   { product: 'retail consumer product' },
+    스포츠:   { product: 'sports or outdoor gear product' },
+    유아:     { product: 'baby or toddler product' },
+    건강:     { product: 'health supplement or wellness product' },
+    자동차:   { product: 'automotive accessory or car care product' },
+    기타:     { product: 'retail consumer product' },
   };
 
   const buildPrompt = (cutId: string, idx: number, category: string, channel: string): string => {
@@ -175,6 +343,7 @@ export default function ImageScreen() {
     setFailedKeys(new Set());
     setGeneratingKey('');
     setSelectedImageKeys(new Set());
+    setEditPrompts({});
 
     let base64s: string[] = [];
     try {
@@ -192,7 +361,11 @@ export default function ImageScreen() {
         try {
           const res = await fetch('/api/generate-image', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: buildPrompt(cut.id, i, cat ?? '기타', ch ?? '스마트스토어'), sectionNum: key, productImages: base64s.length > 0 ? base64s : undefined }),
+            body: JSON.stringify({
+              prompt: buildPrompt(cut.id, i, cat ?? '기타', ch ?? '스마트스토어'),
+              sectionNum: key,
+              productImages: base64s.length > 0 ? base64s : undefined,
+            }),
             signal: AbortSignal.timeout(130_000),
           });
           const data = await res.json();
@@ -205,31 +378,47 @@ export default function ImageScreen() {
     setMaking(false);
   };
 
-  const regenImage = async (cutId: string, idx: number) => {
+  const regenImage = async (cutId: string, idx: number, editPrompt?: string) => {
     const key = `${cutId}-${idx}`;
+    const currentImg = makeGenImages[key];
     setGeneratingKey(key);
     setFailedKeys(p => { const n = new Set(p); n.delete(key); return n; });
+
     try {
+      const basePrompt = buildPrompt(cutId, idx, cat ?? '기타', ch ?? '스마트스토어');
+      const finalPrompt = editPrompt ? `${basePrompt} 수정 요청: ${editPrompt}` : basePrompt;
+
+      // 수정 요청 있으면 현재 생성 이미지를 첫 번째 레퍼런스로 전달
+      const refImages: string[] = editPrompt && currentImg
+        ? [currentImg, ...base64sRef.current].slice(0, 3)
+        : base64sRef.current;
+
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: buildPrompt(cutId, idx, cat ?? '기타', ch ?? '스마트스토어'), sectionNum: key, productImages: base64sRef.current.length > 0 ? base64sRef.current : undefined }),
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          sectionNum: key,
+          productImages: refImages.length > 0 ? refImages : undefined,
+        }),
         signal: AbortSignal.timeout(130_000),
       });
       const data = await res.json();
-      if (data.imageBase64) setMakeGenImages(p => ({ ...p, [key]: `data:${data.mimeType};base64,${data.imageBase64}` }));
-      else setFailedKeys(p => new Set([...p, key]));
+      if (data.imageBase64) {
+        setMakeGenImages(p => ({ ...p, [key]: `data:${data.mimeType};base64,${data.imageBase64}` }));
+        // 수정 후 편집 프롬프트 초기화
+        if (editPrompt) setEditPrompts(p => ({ ...p, [key]: '' }));
+      } else {
+        setFailedKeys(p => new Set([...p, key]));
+      }
     } catch { setFailedKeys(p => new Set([...p, key])); }
     finally { setGeneratingKey(''); }
   };
 
   const toggleCut = (id: string) => setSelectedCuts(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const toggleSelectImage = (key: string) => setSelectedImageKeys(p => {
-    const n = new Set(p);
-    if (n.has(key)) n.delete(key); else n.add(key);
-    return n;
+    const n = new Set(p); n.has(key) ? n.delete(key) : n.add(key); return n;
   });
 
-  // 라이트박스 내비게이션용 생성 완료 이미지 목록
   const activeCutsForResult = cuts.filter(c => selectedCuts.includes(c.id) && !c.disabled);
   const lightboxItems = activeCutsForResult
     .flatMap(c => Array.from({ length: Math.min(c.count, 2) }, (_, i) => `${c.id}-${i}`))
@@ -311,6 +500,7 @@ export default function ImageScreen() {
               <div className="img-grid">
                 {imgs.map((img, i) => (
                   <div className="img-th" key={i}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={img.label} />
                     <div className="img-lbl">{img.label}</div>
                     <button className="img-th-rm" onClick={() => { URL.revokeObjectURL(img.url); setImgs(p => p.filter((_, j) => j !== i)); }}>✕</button>
@@ -343,6 +533,7 @@ export default function ImageScreen() {
               <div className="img-grid">
                 {makeImgs.map((img, i) => (
                   <div className="img-th" key={i}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.url} alt={img.label} />
                     <div className="img-lbl">{img.label}</div>
                     <button className="img-th-rm" onClick={() => { URL.revokeObjectURL(img.url); setMakeImgs(p => p.filter((_, j) => j !== i)); }}>✕</button>
@@ -351,23 +542,23 @@ export default function ImageScreen() {
               </div>
             )}
           </div>
+
+          {/* 컷 선택 — 2열 카드 그리드 */}
           <div className="fb">
             <div className="fdiv"><div className="fdiv-line" /><span className="fdiv-lbl">생성할 컷 선택</span><div className="fdiv-line" /></div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
               {cuts.map(c => (
-                <div key={c.id} className={`cut-card${selectedCuts.includes(c.id) ? ' on' : ''}`}
-                  onClick={() => !c.disabled && toggleCut(c.id)} style={c.disabled ? { opacity: 0.4, cursor: 'default' } : {}}>
-                  <div className="cut-chk">{selectedCuts.includes(c.id) ? '✓' : ''}</div>
-                  <div className="cut-body">
-                    <div className="cut-name">{c.ico} {c.name}<span className={`cut-tag ${c.tagClass}`}>{c.tag}</span>{!c.disabled && <span style={{ fontSize: 10, color: 'var(--tx3)' }}>{c.count}장</span>}</div>
-                    <div className="cut-desc">{c.desc}</div>
-                    {c.why && <div className="cut-why">💡 {c.why}</div>}
-                  </div>
-                </div>
+                <CutSelectCard
+                  key={c.id}
+                  c={c}
+                  selected={selectedCuts.includes(c.id)}
+                  onToggle={() => toggleCut(c.id)}
+                />
               ))}
             </div>
             <div className="fhint" style={{ marginTop: 12 }}>💡 썸네일은 결과 화면 → 썸네일 탭에서 생성할 수 있어요. 모델컷·GIF 모션컷은 추후 업데이트 예정이에요</div>
           </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, gap: 12 }}>
             <button className="btn-back" onClick={() => go('s5b')}>← 이전</button>
             <button className="btn-next" onClick={startMakeGen} disabled={making}>✦ AI로 컷 생성하기</button>
@@ -391,10 +582,10 @@ export default function ImageScreen() {
                     AI 이미지 생성 중… ({doneCells}/{totalCells})
                   </div>
                 ) : (
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>✅ 생성 완료 — 사용할 이미지를 선택해주세요</div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>✅ 생성 완료 — 사용할 이미지를 선택하거나 수정해주세요</div>
                 )}
                 <button
-                  onClick={() => { setMakeResult(false); setMakeGenImages({}); setFailedKeys(new Set()); setGeneratingKey(''); setSelectedImageKeys(new Set()); }}
+                  onClick={() => { setMakeResult(false); setMakeGenImages({}); setFailedKeys(new Set()); setGeneratingKey(''); setSelectedImageKeys(new Set()); setEditPrompts({}); }}
                   disabled={making}
                   style={{ fontSize: 11, color: 'var(--tx2)', background: 'transparent', border: '1.5px solid var(--bd)', borderRadius: 'var(--rs)', padding: '5px 10px', cursor: making ? 'default' : 'pointer', opacity: making ? 0.4 : 1, fontFamily: 'var(--f)', flexShrink: 0 }}
                 >다시 설정</button>
@@ -406,51 +597,21 @@ export default function ImageScreen() {
                   {activeCuts.flatMap(c =>
                     Array.from({ length: Math.min(c.count, 2) }, (_, i) => {
                       const key = `${c.id}-${i}`;
-                      const imgUrl = makeGenImages[key];
-                      const isGen  = generatingKey === key;
-                      const isFail = failedKeys.has(key);
-                      const isSel  = selectedImageKeys.has(key);
                       return (
-                        <div key={key} style={{ background: 'var(--white)', border: `2px solid ${isSel ? 'var(--ac)' : 'var(--bd)'}`, borderRadius: 'var(--r)', overflow: 'hidden', transition: 'border-color .15s', position: 'relative' }}>
-                          {isSel && (
-                            <div style={{ position: 'absolute', top: 8, left: 8, background: 'var(--ac)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, zIndex: 2 }}>✓ 선택됨</div>
-                          )}
-                          {imgUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={imgUrl} alt={`${c.name} ${i + 1}`}
-                              style={{ width: '100%', aspectRatio: '1/1', objectFit: 'contain', background: '#f8fafc', display: 'block', cursor: 'zoom-in' }}
-                              onClick={() => setLightboxKey(key)}
-                            />
-                          ) : isGen ? (
-                            <div style={{ aspectRatio: '1/1', background: 'linear-gradient(135deg,var(--al),rgba(37,99,235,.03))', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                              <span style={{ display: 'inline-block', width: 22, height: 22, border: '2.5px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                              <span style={{ fontSize: 10, color: '#7c3aed', fontWeight: 600 }}>생성 중...</span>
-                            </div>
-                          ) : isFail ? (
-                            <div style={{ aspectRatio: '1/1', background: '#fff1f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 24 }}>⚠️</span>
-                              <span style={{ fontSize: 10, color: '#dc2626' }}>생성 실패</span>
-                            </div>
-                          ) : (
-                            <div style={{ aspectRatio: '1/1', background: 'linear-gradient(135deg,var(--al),rgba(37,99,235,.03))', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: 28 }}>{c.ico}</div>
-                          )}
-                          <div style={{ padding: '8px 10px' }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 6, color: 'var(--tx)' }}>{c.ico} {c.name} {i + 1}</div>
-                            <div style={{ display: 'flex', gap: 5 }}>
-                              {imgUrl ? (
-                                <>
-                                  <button onClick={() => toggleSelectImage(key)} style={{ flex: 1, padding: '5px 0', fontSize: 10, fontWeight: 700, background: isSel ? 'var(--ac)' : 'transparent', color: isSel ? '#fff' : 'var(--ac)', border: '1.5px solid var(--ac)', borderRadius: 'var(--rs)', cursor: 'pointer', fontFamily: 'var(--f)', transition: 'all .15s' }}>
-                                    {isSel ? '✓ 선택됨' : '이 이미지 사용'}
-                                  </button>
-                                  <button onClick={() => regenImage(c.id, i)} disabled={!!generatingKey} style={{ padding: '5px 8px', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', cursor: generatingKey ? 'default' : 'pointer', color: 'var(--tx3)', fontFamily: 'var(--f)', whiteSpace: 'nowrap' }}>↻</button>
-                                  <a href={imgUrl} download={`${c.id}_${i + 1}.png`} style={{ padding: '5px 8px', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', color: 'var(--tx3)', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>⬇</a>
-                                </>
-                              ) : (isFail || (!imgUrl && !isGen)) ? (
-                                <button onClick={() => regenImage(c.id, i)} disabled={!!generatingKey} style={{ flex: 1, padding: '5px 0', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', cursor: generatingKey ? 'default' : 'pointer', color: 'var(--tx3)', fontFamily: 'var(--f)' }}>↻ 재생성</button>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
+                        <GenImageCard
+                          key={key}
+                          c={c} i={i}
+                          imgUrl={makeGenImages[key]}
+                          isGen={generatingKey === key}
+                          isFail={failedKeys.has(key)}
+                          isSel={selectedImageKeys.has(key)}
+                          isRegenActive={!!generatingKey}
+                          editPrompt={editPrompts[key] ?? ''}
+                          onToggleSelect={() => toggleSelectImage(key)}
+                          onRegen={ep => regenImage(c.id, i, ep)}
+                          onLightbox={() => setLightboxKey(key)}
+                          onEditChange={v => setEditPrompts(p => ({ ...p, [key]: v }))}
+                        />
                       );
                     })
                   )}
@@ -464,8 +625,11 @@ export default function ImageScreen() {
                         ? <><b style={{ color: 'var(--ac)' }}>✓ {selectedImageKeys.size}장 선택됨</b> — 선택 이미지로 상세페이지를 만들어요</>
                         : '이미지를 선택하거나, 원본 사진으로 바로 진행할 수 있어요'}
                     </div>
-                    <button className="btn-next" style={{ padding: '10px 20px', fontSize: 13, whiteSpace: 'nowrap' }}
-                      onClick={() => selectedImageKeys.size > 0 ? setConfirmOpen(true) : goGenerate(makeImgs)}>
+                    <button
+                      className="btn-next"
+                      style={{ padding: '10px 20px', fontSize: 13, whiteSpace: 'nowrap' }}
+                      onClick={() => selectedImageKeys.size > 0 ? setConfirmOpen(true) : goGenerate(makeImgs)}
+                    >
                       {selectedImageKeys.size > 0 ? `선택한 ${selectedImageKeys.size}장으로 →` : '원본으로 상세페이지 만들기 →'}
                     </button>
                   </div>
@@ -476,7 +640,7 @@ export default function ImageScreen() {
         );
       })()}
 
-      {/* 생성 이미지 라이트박스 */}
+      {/* 라이트박스 */}
       {lightboxKey && makeGenImages[lightboxKey] && (
         <GenLightbox
           url={makeGenImages[lightboxKey]} alt={lightboxKey}
