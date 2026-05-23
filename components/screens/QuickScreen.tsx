@@ -5,16 +5,62 @@ import { useApp, Section } from '@/store/AppContext';
 
 interface ImgFile { url: string; }
 
+interface FieldDef {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: 'input' | 'textarea';
+  rows?: number;
+}
+
+const SECTION_FIELDS: Record<string, FieldDef[]> = {
+  hero: [
+    { id: 'hook',   label: '핵심 후킹 포인트', type: 'input',    placeholder: '예: 병풀 52% 고농도, 피부과 테스트 완료 — 이 제품만의 가장 강한 차별점' },
+    { id: 'target', label: '타겟 고객',         type: 'input',    placeholder: '예: 환절기 트러블 걱정되는 20~30대 민감성 피부' },
+  ],
+  empathy: [
+    { id: 'pain', label: '타겟이 겪는 고민', type: 'textarea', rows: 3, placeholder: '예: 바르면 따갑고 당겨요, 환절기마다 트러블 반복, 진정 제품은 효과가 없었어요' },
+  ],
+  usp: [
+    { id: 'diff',    label: '경쟁사 대비 차별점 3가지', type: 'textarea', rows: 4, placeholder: '예: 1. 병풀 52% 고농도\n2. EWG 그린등급 98%\n3. 피부과 테스트 완료' },
+    { id: 'feature', label: '핵심 기능',                type: 'input',    placeholder: '예: 수분 72시간 지속, 즉각 진정, 장벽 강화' },
+  ],
+  howto: [
+    { id: 'steps',  label: '사용 단계', type: 'textarea', rows: 4, placeholder: '예: 1. 세안 후 스킨으로 기초 정돈\n2. 에센스 3~4방울 덜어 흡수\n3. 크림으로 마무리' },
+    { id: 'timing', label: '사용 시점', type: 'input',    placeholder: '예: 아침·저녁 세안 후, 피부 예민할 때' },
+  ],
+  compare: [
+    { id: 'rival',     label: '비교 대상 (브랜드/제품)', type: 'input',    placeholder: '예: A브랜드 진정토너, B브랜드 수분크림' },
+    { id: 'advantage', label: '우리 우위 포인트',        type: 'textarea', rows: 3, placeholder: '예: 용량 2배, 성분 순도 3배 높음, 인증 보유' },
+  ],
+  review: [
+    { id: 'keywords', label: '실제 후기 키워드', type: 'textarea', rows: 3, placeholder: '예: 촉촉함, 자극없음, 흡수빠름, 향기좋음, 다음날 피부결' },
+    { id: 'rating',   label: '평균 별점',        type: 'input',    placeholder: '예: 4.8점 (리뷰 1,200개)' },
+  ],
+  faq: [
+    { id: 'questions', label: '자주 묻는 질문 3가지', type: 'textarea', rows: 5, placeholder: '예: Q. 민감성 피부에도 괜찮나요?\nQ. 임산부도 사용 가능한가요?\nQ. 향이 강한가요?' },
+  ],
+  cta: [
+    { id: 'benefit',   label: '혜택/할인',   type: 'input', placeholder: '예: 런칭 기념 30% 할인, 3만원 이상 무료배송' },
+    { id: 'shipping',  label: '배송 정보',   type: 'input', placeholder: '예: 오늘 오후 2시 전 주문 시 내일 도착' },
+    { id: 'guarantee', label: '보장 정책',   type: 'input', placeholder: '예: 30일 무조건 환불 보장' },
+  ],
+  ingredient: [
+    { id: 'ingredients', label: '핵심 성분/원료', type: 'textarea', rows: 3, placeholder: '예: 병풀추출물 52%, 히알루론산 3종, 나이아신아마이드' },
+    { id: 'cert',        label: '인증/특허',      type: 'input',    placeholder: '예: EWG 그린등급, 비건 인증, 피부과 테스트 완료, 특허 성분 복합체' },
+  ],
+};
+
 const QUICK_SECTIONS = [
-  { id: 'hero',       name: '히어로',   desc: '메인 후킹',      ico: '🎯', num: 'SECTION 01', hint: '핵심 차별점 1~2가지\n예: 병풀 52% 고농도, 피부과 테스트 완료' },
-  { id: 'empathy',    name: '공감',     desc: '고민 공감',      ico: '😔', num: 'SECTION 02', hint: '타겟이 겪는 고민\n예: 바르면 따갑고 당겨요, 환절기 트러블 반복' },
-  { id: 'usp',        name: 'USP',      desc: '핵심 기능',      ico: '⭐', num: 'SECTION 03', hint: '핵심 강점 2~3가지\n예: 수분 72시간, EWG 그린등급, 비건 인증' },
-  { id: 'howto',      name: '사용법',   desc: '사용 방법',      ico: '📋', num: 'SECTION 04', hint: '사용 순서 2~4단계\n예: 스킨 → 에센스 → 크림 순으로 사용' },
-  { id: 'compare',    name: '비교표',   desc: '경쟁 우위',      ico: '📊', num: 'SECTION 05', hint: '비교 포인트 2~3가지\n예: 성분 순도, 용량 대비 가격, 인증 여부' },
-  { id: 'review',     name: '후기',     desc: '후기 강조',      ico: '💬', num: 'SECTION 06', hint: '후기 키워드 3~5가지\n예: 촉촉함, 자극없음, 흡수빠름, 향기좋음' },
-  { id: 'faq',        name: 'FAQ',      desc: '자주 묻는 질문', ico: '❓', num: 'SECTION 07', hint: '자주 받는 질문 1~2가지\n예: 민감성 피부에도 괜찮나요?' },
-  { id: 'cta',        name: 'CTA',      desc: '구매 유도',      ico: '🛒', num: 'SECTION 08', hint: '특별 혜택이나 긴급성\n예: 런칭 30% 할인, 무료배송' },
-  { id: 'ingredient', name: '성분신뢰', desc: '성분 근거',      ico: '🔬', num: 'SECTION 09', hint: '핵심 성분 이름 1~3가지\n예: 병풀추출물, 히알루론산, 나이아신아마이드' },
+  { id: 'hero',       name: '히어로',   desc: '메인 후킹',      ico: '🎯', num: 'SECTION 01' },
+  { id: 'empathy',    name: '공감',     desc: '고민 공감',      ico: '😔', num: 'SECTION 02' },
+  { id: 'usp',        name: 'USP',      desc: '핵심 기능',      ico: '⭐', num: 'SECTION 03' },
+  { id: 'howto',      name: '사용법',   desc: '사용 방법',      ico: '📋', num: 'SECTION 04' },
+  { id: 'compare',    name: '비교표',   desc: '경쟁 우위',      ico: '📊', num: 'SECTION 05' },
+  { id: 'review',     name: '후기',     desc: '후기 강조',      ico: '💬', num: 'SECTION 06' },
+  { id: 'faq',        name: 'FAQ',      desc: '자주 묻는 질문', ico: '❓', num: 'SECTION 07' },
+  { id: 'cta',        name: 'CTA',      desc: '구매 유도',      ico: '🛒', num: 'SECTION 08' },
+  { id: 'ingredient', name: '성분신뢰', desc: '성분 근거',      ico: '🔬', num: 'SECTION 09' },
 ];
 
 const CAT_CHIPS = [
@@ -30,10 +76,9 @@ type GenStatus = 'idle' | 'text' | 'image' | 'done' | 'text_err' | 'img_err';
 export default function QuickScreen() {
   const { go } = useApp();
 
-  // Step state
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Step 1 state
+  // Step 1
   const [productName, setProductName] = useState('');
   const [cat, setCat] = useState('');
   const [ch, setCh] = useState('');
@@ -41,10 +86,10 @@ export default function QuickScreen() {
   const [dragging, setDragging] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
 
-  // Step 2 state
-  const [extraInfo, setExtraInfo] = useState('');
+  // Step 2 — 섹션별 필드값
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
-  // Generation state
+  // Generation
   const [genStatus, setGenStatus] = useState<GenStatus>('idle');
   const [sectionResult, setSectionResult] = useState<Section | null>(null);
   const [imgUrl, setImgUrl] = useState<string | null>(null);
@@ -53,6 +98,18 @@ export default function QuickScreen() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
+
+  const setField = (id: string, value: string) =>
+    setFieldValues(prev => ({ ...prev, [id]: value }));
+
+  const buildProductExtra = (): string => {
+    if (!selectedSection) return '';
+    const fields = SECTION_FIELDS[selectedSection.id] ?? [];
+    return fields
+      .filter(f => fieldValues[f.id]?.trim())
+      .map(f => `${f.label}: ${fieldValues[f.id].trim()}`)
+      .join('\n');
+  };
 
   const addFiles = (files: FileList | null) => {
     if (!files) return;
@@ -80,7 +137,6 @@ export default function QuickScreen() {
 
     let section: Section | null = null;
 
-    // Step 1: Generate text
     try {
       const res = await fetch('/api/regen-section', {
         method: 'POST',
@@ -91,7 +147,7 @@ export default function QuickScreen() {
           type: '기본형',
           out: 'blog',
           productName,
-          productExtra: extraInfo,
+          productExtra: buildProductExtra(),
           sectionNum: selectedSection.num,
           sectionName: selectedSection.name,
         }),
@@ -112,7 +168,6 @@ export default function QuickScreen() {
       return;
     }
 
-    // Step 2: Generate image
     try {
       let base64s: string[] = [];
       if (images.length > 0) {
@@ -163,13 +218,20 @@ export default function QuickScreen() {
     document.body.removeChild(a);
   };
 
+  const goToStep2 = () => {
+    setFieldValues({});
+    setGenStatus('idle');
+    setSectionResult(null);
+    setImgUrl(null);
+    setStep(2);
+  };
+
   const handleBack = () => {
     if (step === 2) {
       setStep(1);
       setGenStatus('idle');
       setSectionResult(null);
       setImgUrl(null);
-      setExtraInfo('');
     } else {
       go('s-dash');
     }
@@ -193,7 +255,6 @@ export default function QuickScreen() {
       {/* ── STEP 1 ── */}
       {step === 1 && (
         <div>
-          {/* 상품명 */}
           <div className="fg">
             <div className="fl">상품명 <span className="fopt">(선택)</span></div>
             <input
@@ -205,7 +266,6 @@ export default function QuickScreen() {
             />
           </div>
 
-          {/* 카테고리 */}
           <div className="fg">
             <div className="fl">카테고리 <span className="fopt">(선택)</span></div>
             <div className="chips">
@@ -221,7 +281,6 @@ export default function QuickScreen() {
             </div>
           </div>
 
-          {/* 채널 */}
           <div className="fg">
             <div className="fl">채널 <span className="fopt">(선택)</span></div>
             <div className="chips">
@@ -237,7 +296,6 @@ export default function QuickScreen() {
             </div>
           </div>
 
-          {/* 이미지 업로드 */}
           <div className="fg">
             <div className="fl">상품 이미지 업로드 <span className="fopt">(선택)</span></div>
             <div
@@ -285,7 +343,6 @@ export default function QuickScreen() {
             )}
           </div>
 
-          {/* 섹션 그리드 */}
           <div className="fg">
             <div className="fl" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>어떤 섹션이 필요하세요?</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -305,13 +362,12 @@ export default function QuickScreen() {
             </div>
           </div>
 
-          {/* Navigation */}
           <div className="cta-row">
             <button className="btn-back" onClick={() => go('s-dash')}>← 뒤로</button>
             <button
               className="btn-next"
               disabled={!selectedSectionId}
-              onClick={() => { if (selectedSectionId) setStep(2); }}
+              onClick={() => { if (selectedSectionId) goToStep2(); }}
             >
               다음 →
             </button>
@@ -330,24 +386,34 @@ export default function QuickScreen() {
             {productName && <span className="chip on">{productName}</span>}
           </div>
 
-          {/* Extra info */}
-          <div className="fg">
-            <div className="fl">
-              {selectedSection.name} 관련 정보
-              {' '}<span className="fopt">(선택)</span>
+          {/* 섹션별 동적 필드 */}
+          {(SECTION_FIELDS[selectedSection.id] ?? []).map(field => (
+            <div className="fg" key={field.id}>
+              <div className="fl">
+                {field.label} <span className="fopt">(선택)</span>
+              </div>
+              {field.type === 'textarea' ? (
+                <textarea
+                  className="finp"
+                  rows={field.rows ?? 3}
+                  placeholder={field.placeholder}
+                  value={fieldValues[field.id] ?? ''}
+                  onChange={e => setField(field.id, e.target.value)}
+                  style={{ resize: 'vertical' }}
+                />
+              ) : (
+                <input
+                  className="finp"
+                  type="text"
+                  placeholder={field.placeholder}
+                  value={fieldValues[field.id] ?? ''}
+                  onChange={e => setField(field.id, e.target.value)}
+                />
+              )}
             </div>
-            <textarea
-              className="finp"
-              rows={4}
-              placeholder={selectedSection.hint}
-              value={extraInfo}
-              onChange={e => setExtraInfo(e.target.value)}
-              style={{ resize: 'vertical' }}
-            />
-            <div className="fhint">입력할수록 카피 퀄리티가 올라가요. 비워두셔도 됩니다.</div>
-          </div>
+          ))}
+          <div className="fhint" style={{ marginBottom: 20 }}>입력할수록 카피 퀄리티가 올라가요. 비워두셔도 됩니다.</div>
 
-          {/* Generate button */}
           <div className="cta-row">
             <button className="btn-back" onClick={handleBack}>← 이전</button>
             <button
@@ -369,7 +435,6 @@ export default function QuickScreen() {
           {genStatus !== 'idle' && (
             <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Text card */}
               {genStatus !== 'text_err' && (
                 <div style={{ background: 'var(--white)', border: '1.5px solid var(--bd)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bd)', fontWeight: 700, fontSize: 13 }}>
@@ -408,7 +473,6 @@ export default function QuickScreen() {
                 </div>
               )}
 
-              {/* Image card */}
               {(genStatus === 'image' || genStatus === 'done' || genStatus === 'img_err') && (
                 <div style={{ background: 'var(--white)', border: '1.5px solid var(--bd)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--bd)', fontWeight: 700, fontSize: 13 }}>
@@ -446,7 +510,6 @@ export default function QuickScreen() {
                 </div>
               )}
 
-              {/* Done actions */}
               {genStatus === 'done' && (
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button
@@ -461,7 +524,7 @@ export default function QuickScreen() {
                       setGenStatus('idle');
                       setSectionResult(null);
                       setImgUrl(null);
-                      setExtraInfo('');
+                      setFieldValues({});
                       setSelectedSectionId(null);
                     }}
                     style={{ padding: '9px 18px', fontSize: 13, fontWeight: 600, background: 'transparent', color: 'var(--tx2)', border: '1.5px solid var(--bd)', borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: 'var(--f)' }}
