@@ -71,9 +71,11 @@ const BTN_SHARED: React.CSSProperties = {
 const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'default' };
 
 export default function SectionStructureScreen() {
-  const { cat, type, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { cat, type, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, sectionStructure } = useApp();
 
   const getInitial = (): string[] => {
+    // Restore previously confirmed structure (user navigated back from GeneratingScreen)
+    if (sectionStructure.length) return [...sectionStructure];
     if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
     if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
     return (

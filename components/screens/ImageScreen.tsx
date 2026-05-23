@@ -266,6 +266,7 @@ export default function ImageScreen() {
   const [selectedCuts,     setSelectedCuts]     = useState<string[]>(cuts.filter(c => c.checked).map(c => c.id));
   const [makeResult,       setMakeResult]       = useState(false);
   const [making,           setMaking]           = useState(false);
+  const [uploadError,      setUploadError]      = useState('');
   const [makeGenImages,    setMakeGenImages]    = useState<Record<string, string>>({});
   const [generatingKey,    setGeneratingKey]    = useState<string>('');
   const [failedKeys,       setFailedKeys]       = useState<Set<string>>(new Set());
@@ -279,6 +280,32 @@ export default function ImageScreen() {
   const readyInputRef = useRef<HTMLInputElement>(null);
   const makeInputRef  = useRef<HTMLInputElement>(null);
   const base64sRef    = useRef<string[]>([]);
+  const imgsRef       = useRef<ImgFile[]>([]);
+  const makeImgsRef   = useRef<ImgFile[]>([]);
+
+  // Keep refs current for cleanup
+  useEffect(() => { imgsRef.current = imgs; }, [imgs]);
+  useEffect(() => { makeImgsRef.current = makeImgs; }, [makeImgs]);
+
+  // Revoke object URLs on unmount
+  useEffect(() => {
+    return () => {
+      imgsRef.current.forEach(img => URL.revokeObjectURL(img.url));
+      makeImgsRef.current.forEach(img => URL.revokeObjectURL(img.url));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Eagerly sync ready-mode images to context so they survive screen switches
+  useEffect(() => {
+    if (imgs.length === 0) return;
+    let cancelled = false;
+    Promise.all(imgs.slice(0, 3).map(s => toBase64(s.url)))
+      .then(base64s => { if (!cancelled) setProductImages(base64s); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imgs]);
 
   const addFiles = (files: FileList | null, which: 'ready' | 'make') => {
     if (!files) return;
@@ -286,8 +313,14 @@ export default function ImageScreen() {
     const current  = which === 'ready' ? imgs : makeImgs;
     const setter   = which === 'ready' ? setImgs : setMakeImgs;
     const remaining = 8 - current.length;
+    if (remaining <= 0) {
+      setUploadError('이미 8장이 업로드되었습니다.');
+      return;
+    }
     if (files.length > remaining) {
-      alert(`최대 8장까지 업로드할 수 있어요. ${remaining > 0 ? `${remaining}장만 추가됩니다.` : '이미 8장이 업로드되었습니다.'}`);
+      setUploadError(`최대 8장까지 업로드할 수 있어요. ${remaining}장만 추가됩니다.`);
+    } else {
+      setUploadError('');
     }
     const newItems: ImgFile[] = [];
     Array.from(files).slice(0, remaining).forEach(f => {
@@ -347,7 +380,7 @@ export default function ImageScreen() {
   };
 
   const startMakeGen = async () => {
-    if (!makeImgs.length) { alert('먼저 원본 사진을 업로드해주세요'); return; }
+    if (!makeImgs.length) { setUploadError('먼저 원본 사진을 업로드해주세요'); return; }
     setMaking(true);
     setMakeResult(true);
     setMakeGenImages({});
@@ -500,6 +533,11 @@ export default function ImageScreen() {
       {/* A. 이미지 준비된 경우 */}
       {imgMode === 'ready' && (
         <div>
+          {uploadError && (
+            <div style={{ background: '#fff1f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#dc2626', marginBottom: 12 }}>
+              ⚠️ {uploadError}
+            </div>
+          )}
           <div className="fg">
             <div className="fl">이미지 업로드 <span className="freq">*</span></div>
             <UploadZone title="이미지 드래그 또는 클릭해서 업로드" sub="PNG · JPG · WEBP · 최대 8장" dragging={dragging}
@@ -530,6 +568,11 @@ export default function ImageScreen() {
       {/* B. 원본사진 AI 컷 생성 — 업로드 + 컷 선택 */}
       {imgMode === 'make' && !makeResult && (
         <div>
+          {uploadError && (
+            <div style={{ background: '#fff1f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#dc2626', marginBottom: 12 }}>
+              ⚠️ {uploadError}
+            </div>
+          )}
           <div className="fg">
             <div className="fl">원본 상품 사진 업로드 <span className="freq">*</span></div>
             <UploadZone

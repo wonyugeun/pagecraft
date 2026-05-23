@@ -259,9 +259,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       const updated = [newItem, ...existing].slice(0, 20);
-      localStorage.setItem(key, JSON.stringify(updated));
+      const persist = (items: HistoryItem[]) => localStorage.setItem(key, JSON.stringify(items));
+      try {
+        persist(updated);
+      } catch (e) {
+        if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+          // Remove oldest entries one at a time until it fits
+          for (let trim = updated.length - 1; trim > 0; trim--) {
+            try { persist(updated.slice(0, trim)); break; } catch { /* keep trimming */ }
+          }
+        }
+      }
     } catch {
-      // 저장 실패 시 무시 (용량 초과 등)
+      // JSON 파싱 실패 등 — 무시
     }
   };
 
@@ -289,6 +299,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductExtraState('');
     setProductImagesState([]);
     setReferenceAnalysisState(null);
+    setCaptureAnalysisState(null);
     setSectionStructureState([]);
     setSections(item.sections);
     setRestoredImages(item.sectionImages ?? {});

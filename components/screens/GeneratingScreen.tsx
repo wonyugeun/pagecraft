@@ -31,8 +31,12 @@ export default function GeneratingScreen() {
 
   const isDev = process.env.NODE_ENV === 'development';
 
+  // Use a ref so the effect always reads the latest credits without re-triggering on credit changes
+  const creditsRef = useRef(credits);
+  useEffect(() => { creditsRef.current = credits; }, [credits]);
+
   useEffect(() => {
-    if (!isDev && credits < GENERATION_COST) {
+    if (!isDev && creditsRef.current < GENERATION_COST) {
       setCreditInsufficient(true);
       return;
     }

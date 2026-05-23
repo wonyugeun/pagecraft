@@ -163,6 +163,9 @@ export default function QuickScreen() {
   const [copied, setCopied] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
+  // Auto-close lightbox when result is cleared
+  useEffect(() => { if (!sectionResult) setLightboxOpen(false); }, [sectionResult]);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
@@ -494,12 +497,18 @@ export default function QuickScreen() {
             <button className="btn-back" onClick={handleBack}>← 이전</button>
             <button
               className="btn-next"
-              disabled={genStatus === 'text' || genStatus === 'image'}
+              disabled={genStatus === 'text' || genStatus === 'image' || !ch}
               onClick={handleGenerate}
+              title={!ch ? '채널을 선택해주세요' : undefined}
             >
               ✦ {selectedSection.name} 생성하기
             </button>
           </div>
+          {!ch && genStatus === 'idle' && (
+            <div style={{ fontSize: 12, color: '#b45309', textAlign: 'right', marginTop: -12, marginBottom: 8 }}>
+              💡 1단계로 돌아가 채널을 선택해주세요
+            </div>
+          )}
 
           {/* Result area */}
           {genStatus === 'idle' && (

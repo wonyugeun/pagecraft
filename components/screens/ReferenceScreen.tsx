@@ -156,7 +156,7 @@ function CaptureResultView({
   onUse,
 }: {
   result: CaptureAnalysis;
-  stitchedImage: string;
+  stitchedImage: string | null;
   onReset: () => void;
   onUse: () => void;
 }) {
@@ -173,7 +173,7 @@ function CaptureResultView({
           </div>
         </div>
         <button onClick={onReset} style={{ fontSize: 11, color: 'var(--tx3)', background: 'transparent', border: '1px solid var(--bd)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--f)', flexShrink: 0 }}>
-          다시 업로드
+          {stitchedImage ? '다시 업로드' : '다시 분석'}
         </button>
       </div>
 
@@ -183,7 +183,7 @@ function CaptureResultView({
           const color = TYPE_COLOR[sec.타입] ?? { bg: '#f3f4f6', color: '#374151' };
           return (
             <div key={sec.순서} style={{ background: '#fff', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <SectionCrop src={stitchedImage} yStart={sec.y시작} yEnd={sec.y끝} />
+              {stitchedImage && <SectionCrop src={stitchedImage} yStart={sec.y시작} yEnd={sec.y끝} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)' }}>{sec.순서}.</span>
@@ -315,11 +315,12 @@ async function stitchImages(dataUrls: string[]): Promise<string> {
 
 /* ─── 캡처 탭 ─── */
 function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedImage: string) => void }) {
-  const { setCaptureAnalysis, go, setReferenceAnalysis } = useApp();
+  const { setCaptureAnalysis, go, setReferenceAnalysis, captureAnalysis: ctxCaptureAnalysis } = useApp();
   const [files, setFiles] = useState<FileEntry[]>([]);
-  const [stage, setStage] = useState<CaptureStage>('idle');
+  // Restore from context if user is re-entering after a prior analysis
+  const [stage, setStage] = useState<CaptureStage>(ctxCaptureAnalysis ? 'done' : 'idle');
   const [stitchedImage, setStitchedImage] = useState<string | null>(null);
-  const [captureResult, setCaptureResult] = useState<CaptureAnalysis | null>(null);
+  const [captureResult, setCaptureResult] = useState<CaptureAnalysis | null>(ctxCaptureAnalysis);
   const [captureError, setCaptureError] = useState('');
   const [showGuide, setShowGuide] = useState(false);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
@@ -441,7 +442,8 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
   };
 
   const handleUse = () => {
-    if (captureResult) onDone(captureResult, stitchedImage!);
+    if (captureResult && stitchedImage) onDone(captureResult, stitchedImage);
+    else if (captureResult) setCaptureAnalysis(captureResult);
     go('s5b');
   };
 
@@ -573,9 +575,10 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
 
 /* ─── 메인 ─── */
 export default function ReferenceScreen() {
-  const { go, setReferenceAnalysis, setCaptureAnalysis } = useApp();
+  const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis } = useApp();
 
-  const [tab, setTab]       = useState<Tab>('url');
+  // Restore to the previously active tab based on what analysis data is available
+  const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
   const [url, setUrl]       = useState('');
   const [text, setText]     = useState('');
   const [loading, setLoading] = useState(false);

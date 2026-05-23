@@ -306,35 +306,57 @@ export default function ThumbScreen() {
       <div className="fg">
         <div className="fl">썸네일 타입 <span className="freq">*</span></div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          {THUMB_TYPES.map(t => {
+          {THUMB_TYPES.filter(t => !t.disabled).map(t => {
             const isOn = selectedType === t.key;
             return (
               <button
                 key={t.key}
                 type="button"
-                disabled={t.disabled}
-                onClick={() => !t.disabled && setSelectedType(p => p === t.key ? '' : t.key)}
+                onClick={() => setSelectedType(p => p === t.key ? '' : t.key)}
                 style={{
                   textAlign: 'left',
                   padding: '10px 12px',
                   border: `1.5px solid ${isOn ? 'var(--ac)' : 'var(--bd)'}`,
                   borderRadius: 'var(--r)',
-                  background: isOn ? 'var(--al)' : t.disabled ? 'var(--sf)' : 'var(--white)',
-                  cursor: t.disabled ? 'default' : 'pointer',
-                  opacity: t.disabled ? 0.5 : 1,
+                  background: isOn ? 'var(--al)' : 'var(--white)',
+                  cursor: 'pointer',
                   fontFamily: 'var(--f)',
                   transition: 'border-color .15s, background .15s',
                 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 700, color: isOn ? 'var(--ac)' : 'var(--tx)', marginBottom: 3 }}>
-                  {t.label}
-                  {t.disabled && <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--tx3)', marginLeft: 5 }}>준비 중</span>}
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: isOn ? 'var(--ac)' : 'var(--tx)', marginBottom: 3 }}>{t.label}</div>
                 <div style={{ fontSize: 11, color: isOn ? 'var(--ac)' : 'var(--tx3)', lineHeight: 1.4 }}>{t.desc}</div>
               </button>
             );
           })}
         </div>
+        {THUMB_TYPES.some(t => t.disabled) && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1, height: 1, background: 'var(--bd)' }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--tx3)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>준비 중</span>
+              <div style={{ flex: 1, height: 1, background: 'var(--bd)' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, opacity: 0.45 }}>
+              {THUMB_TYPES.filter(t => t.disabled).map(t => (
+                <div
+                  key={t.key}
+                  style={{
+                    textAlign: 'left', padding: '10px 12px',
+                    border: '1.5px solid var(--bd)', borderRadius: 'var(--r)',
+                    background: 'var(--sf)', cursor: 'default',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tx)', marginBottom: 3 }}>
+                    {t.label}
+                    <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--tx3)', marginLeft: 5 }}>Coming Soon</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.4 }}>{t.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 레퍼런스 이미지 (ref_copy / ref_vibe) */}

@@ -24,6 +24,11 @@ const DEFAULT_SECTIONS: Section[] = [
   },
 ];
 
+/* ─── HTML 이스케이프 ─── */
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+
 /* ─── 통이미지 다운로드 ─── */
 async function downloadMergedImage(
   sections: Section[],
@@ -46,7 +51,7 @@ async function downloadMergedImage(
     )
   );
   const OUTPUT_W = 1080;
-  const heights = imgs.map(img => Math.round(img.naturalHeight * (OUTPUT_W / img.naturalWidth)));
+  const heights = imgs.map(img => img.naturalWidth ? Math.round(img.naturalHeight * (OUTPUT_W / img.naturalWidth)) : 0);
   const totalH = heights.reduce((s, h) => s + h, 0);
   const canvas = document.createElement('canvas');
   canvas.width = OUTPUT_W;
@@ -86,16 +91,16 @@ function downloadHtml(
     const sectionsHtml = sections.map(sec => {
       const imgUrl = imgMap[sec.num]?.url;
       const imgBlock = imgUrl
-        ? `<img src="${imgUrl}" alt="${sec.imageLabel}" style="width:100%;display:block;margin-bottom:32px;" />`
-        : `<div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${sec.imageLabel}</div><div class="img-desc">${sec.imageDesc}</div></div>`;
-      return `\n    <section class="sec">\n      <h2>${sec.headline.replace(/\n/g, '<br>')}</h2>\n      ${imgBlock}\n      <p>${sec.body}</p>\n    </section>`;
+        ? `<img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin-bottom:32px;" />`
+        : `<div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div><div class="img-desc">${escHtml(sec.imageDesc)}</div></div>`;
+      return `\n    <section class="sec">\n      <h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>\n      ${imgBlock}\n      <p>${escHtml(sec.body)}</p>\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${productName || '상세페이지'} — PageCraft</title>
+  <title>${escHtml(productName || '상세페이지')} — PageCraft</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #fff; color: #111; max-width: 860px; margin: 0 auto; }
@@ -110,7 +115,7 @@ function downloadHtml(
   </style>
 </head>
 <body>
-  <div class="meta">PageCraft 생성 · ${meta}</div>
+  <div class="meta">PageCraft 생성 · ${escHtml(meta)}</div>
 ${sectionsHtml}
 </body>
 </html>`;
@@ -640,7 +645,25 @@ export default function ResultScreen() {
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
 
-  const displaySections = sections.length > 0 ? sections : DEFAULT_SECTIONS;
+  if (sections.length === 0) {
+    return (
+      <div className="result-shell">
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ fontSize: 44, marginBottom: 16 }}>⚠️</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626', marginBottom: 10 }}>결과가 비어 있어요</div>
+          <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32 }}>
+            콘텐츠가 생성되지 않았어요. 정보를 확인하고 다시 시도해주세요.
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button className="btn-back" onClick={() => go('s5')}>← 정보 수정</button>
+            <button className="btn-next" onClick={() => go('s6')}>↻ 다시 생성</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const displaySections = sections;
 
   const effectiveOut =
     ch === '쿠팡'                       ? 'slide' :
@@ -855,20 +878,22 @@ export default function ResultScreen() {
               <div className="dl-sub">헤드카피 · 이미지 가이드 · 본문 전체 포함</div>
             </div>
             <div className="dl-btns" style={{ flexDirection: 'column', gap: 8 }}>
-              <button
-                className="dl-main-btn"
-                style={{ fontSize: 13, opacity: htmlLoading ? 0.7 : 1, cursor: htmlLoading ? 'default' : 'pointer' }}
-                disabled={htmlLoading}
-                onClick={async () => {
-                  setHtmlLoading(true);
-                  await new Promise(r => setTimeout(r, 50));
-                  const ok = downloadHtml(displaySections, meta, productName, sectionImages);
-                  if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
-                  setTimeout(() => setHtmlLoading(false), 2000);
-                }}
-              >
-                {htmlLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a0b9d9', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />저장 중...</> : '💾 HTML 다운로드'}
-              </button>
+              {isHtml && (
+                <button
+                  className="dl-main-btn"
+                  style={{ fontSize: 13, opacity: htmlLoading ? 0.7 : 1, cursor: htmlLoading ? 'default' : 'pointer' }}
+                  disabled={htmlLoading}
+                  onClick={async () => {
+                    setHtmlLoading(true);
+                    await new Promise(r => setTimeout(r, 50));
+                    const ok = downloadHtml(displaySections, meta, productName, sectionImages);
+                    if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+                    setTimeout(() => setHtmlLoading(false), 2000);
+                  }}
+                >
+                  {htmlLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a0b9d9', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />저장 중...</> : '💾 HTML 다운로드'}
+                </button>
+              )}
               <button
                 className="dl-main-btn"
                 style={{ background: 'var(--white)', color: 'var(--ac)', border: '1.5px solid var(--ac)', fontSize: 13 }}
