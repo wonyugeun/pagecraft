@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const maxDuration = 60;
 
 // vision 이해용 모델 (이미지 생성이 아닌 이미지 분석/설명)
-const VISION_MODEL = 'gemini-2.0-flash';
+const VISION_MODEL = 'gemini-3.5-flash';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
 function parseFirstJson(text: string): Record<string, unknown> | null {
