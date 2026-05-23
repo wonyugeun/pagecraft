@@ -1,9 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// vision 이해용 모델 (이미지 생성이 아닌 이미지 분석/설명)
+const VISION_MODEL = 'gemini-2.0-flash';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
 
 function parseFirstJson(text: string): Record<string, unknown> | null {
   const match = text.match(/\{[\s\S]*\}/);
@@ -11,18 +12,36 @@ function parseFirstJson(text: string): Record<string, unknown> | null {
   try { return JSON.parse(match[0]); } catch { return null; }
 }
 
-async function geminiVision(imageBase64: string, prompt: string, retry = true): Promise<Record<string, unknown>> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
-  });
+async function geminiVision(
+  apiKey: string,
+  imageBase64: string,
+  prompt: string,
+  retry = true,
+): Promise<Record<string, unknown>> {
+  const callOnce = async (p: string): Promise<string> => {
+    const res = await fetch(`${API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [
+            { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
+            { text: p },
+          ],
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+      }),
+      signal: AbortSignal.timeout(55_000),
+    });
 
-  const callOnce = async (p: string) => {
-    const res = await model.generateContent([
-      { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
-      { text: p },
-    ]);
-    return res.response.text();
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`Gemini ${res.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
   };
 
   const text = await callOnce(prompt);
@@ -106,11 +125,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'step은 1 또는 2여야 해요.' }, { status: 400 });
   }
 
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY가 설정되지 않았어요.' }, { status: 500 });
+  }
+
   // ── Stage 1: 구조 분석 ──
   if (body.step === 1) {
     let parsed: Record<string, unknown>;
     try {
-      parsed = await geminiVision(body.image, STAGE1_PROMPT);
+      parsed = await geminiVision(apiKey, body.image, STAGE1_PROMPT);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[capture/stage1]', msg);
@@ -131,7 +155,7 @@ export async function POST(req: NextRequest) {
   const stage1Json = JSON.stringify(body.stage1, null, 2);
   let parsed: Record<string, unknown>;
   try {
-    parsed = await geminiVision(body.image, buildStage2Prompt(stage1Json));
+    parsed = await geminiVision(apiKey, body.image, buildStage2Prompt(stage1Json));
   } catch (err) {
     console.warn('[capture/stage2] 실패, 기본값 사용:', err);
     parsed = { 섹션상세: [], 전체톤: '직설', 브랜드무드: '실용적' };
