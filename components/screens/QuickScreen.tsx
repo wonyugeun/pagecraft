@@ -98,8 +98,9 @@ export default function QuickScreen() {
         signal: AbortSignal.timeout(30_000),
       });
       const data = await res.json();
-      if (data && (data.headline !== undefined || data.body !== undefined)) {
-        section = data as Section;
+      const parsed: Section | null = data?.section ?? null;
+      if (parsed?.headline !== undefined || parsed?.body !== undefined) {
+        section = parsed;
         setSectionResult(section);
         setGenStatus('image');
       } else {
