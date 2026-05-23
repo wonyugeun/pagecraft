@@ -150,11 +150,18 @@ function GenImageCard({
             <img
               src={imgUrl}
               alt={`${c.name} ${i + 1}`}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f8fafc', display: 'block', cursor: 'zoom-in', transition: 'transform .2s', transform: hovered ? 'scale(1.03)' : 'scale(1)' }}
-              onClick={onLightbox}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#f8fafc', display: 'block', cursor: isGen ? 'default' : 'zoom-in', transition: 'transform .2s', transform: (!isGen && hovered) ? 'scale(1.03)' : 'scale(1)' }}
+              onClick={isGen ? undefined : onLightbox}
             />
-            {/* 호버 오버레이 */}
-            {hovered && (
+            {/* 재생성 중 로딩 오버레이 */}
+            {isGen && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span style={{ display: 'inline-block', width: 24, height: 24, border: '2.5px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700 }}>{editPrompt ? '수정 중...' : '재생성 중...'}</span>
+              </div>
+            )}
+            {/* 호버 오버레이 (재생성 중엔 숨김) */}
+            {!isGen && hovered && (
               <div onClick={onLightbox} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', transition: 'opacity .15s' }}>
                 <div style={{ background: 'rgba(255,255,255,.92)', borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: 'var(--tx)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   🔍 확대
@@ -187,13 +194,15 @@ function GenImageCard({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {/* Primary: 이 이미지 사용 */}
             <button
-              onClick={onToggleSelect}
+              onClick={isGen ? undefined : onToggleSelect}
+              disabled={isGen}
               style={{
                 width: '100%', padding: '7px 0', fontSize: 11, fontWeight: 700,
                 background: isSel ? 'var(--ac)' : 'var(--white)',
                 color: isSel ? '#fff' : 'var(--ac)',
                 border: `1.5px solid var(--ac)`, borderRadius: 'var(--rs)',
-                cursor: 'pointer', fontFamily: 'var(--f)', transition: 'all .15s',
+                cursor: isGen ? 'default' : 'pointer', fontFamily: 'var(--f)', transition: 'all .15s',
+                opacity: isGen ? 0.4 : 1,
               }}
             >
               {isSel ? '✓ 선택됨' : '이 이미지 사용'}
@@ -203,9 +212,9 @@ function GenImageCard({
               <button
                 onClick={() => onRegen(editPrompt || undefined)}
                 disabled={isRegenActive}
-                style={{ flex: 1, padding: '5px 0', fontSize: 10, background: 'transparent', border: '1px solid var(--bd)', borderRadius: 'var(--rs)', cursor: isRegenActive ? 'default' : 'pointer', color: 'var(--tx2)', fontFamily: 'var(--f)', opacity: isRegenActive ? 0.4 : 1 }}
+                style={{ flex: 1, padding: '5px 0', fontSize: 10, background: editPrompt ? 'var(--al)' : 'transparent', border: `1px solid ${editPrompt ? 'var(--ac)' : 'var(--bd)'}`, borderRadius: 'var(--rs)', cursor: isRegenActive ? 'default' : 'pointer', color: editPrompt ? 'var(--ac)' : 'var(--tx2)', fontFamily: 'var(--f)', fontWeight: editPrompt ? 700 : 400, opacity: isRegenActive ? 0.4 : 1, transition: 'all .15s' }}
               >
-                ↻ 다시 그리기
+                {editPrompt ? '✨ 수정 반영' : '↻ 새로 생성'}
               </button>
               <a
                 href={imgUrl}
@@ -220,12 +229,14 @@ function GenImageCard({
               type="text"
               placeholder='수정 요청 (선택) — 예: "배경을 더 밝게"'
               value={editPrompt}
+              disabled={isGen}
               onChange={e => onEditChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !isRegenActive) { e.preventDefault(); onRegen(editPrompt || undefined); } }}
               style={{
-                width: '100%', padding: '5px 8px', fontSize: 10, border: '1px solid var(--bd)',
+                width: '100%', padding: '5px 8px', fontSize: 10, border: `1px solid ${editPrompt ? 'var(--ac)' : 'var(--bd)'}`,
                 borderRadius: 'var(--rs)', fontFamily: 'var(--f)', color: 'var(--tx)',
-                background: 'var(--sf)', outline: 'none', boxSizing: 'border-box',
+                background: isGen ? '#f1f5f9' : 'var(--sf)', outline: 'none', boxSizing: 'border-box',
+                opacity: isGen ? 0.5 : 1, transition: 'border-color .15s',
               }}
             />
           </div>
