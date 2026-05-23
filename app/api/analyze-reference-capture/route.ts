@@ -1,0 +1,163 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { NextRequest, NextResponse } from 'next/server';
+
+export const maxDuration = 60;
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+function parseFirstJson(text: string): Record<string, unknown> | null {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try { return JSON.parse(match[0]); } catch { return null; }
+}
+
+async function geminiVision(imageBase64: string, prompt: string, retry = true): Promise<Record<string, unknown>> {
+  const model = genAI.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+  });
+
+  const callOnce = async (p: string) => {
+    const res = await model.generateContent([
+      { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
+      { text: p },
+    ]);
+    return res.response.text();
+  };
+
+  const text = await callOnce(prompt);
+  const parsed = parseFirstJson(text);
+  if (parsed) return parsed;
+
+  if (retry) {
+    const retryText = await callOnce(
+      prompt + '\n\n★ 중요: 순수 JSON만 응답하세요. { 로 시작해서 } 로 끝나는 JSON 외 어떤 텍스트도 포함하지 마세요.',
+    );
+    const retryParsed = parseFirstJson(retryText);
+    if (retryParsed) return retryParsed;
+  }
+
+  throw new Error('JSON 파싱 실패 — Gemini 응답에서 JSON을 찾지 못했어요.');
+}
+
+const STAGE1_PROMPT = `이 이미지는 한국 이커머스 상세페이지 캡처입니다.
+
+★ 중요 제외 규칙: 아래 영역은 절대 본문으로 분류하지 마세요.
+  - 사이트 상단 네비게이션 / 헤더
+  - 광고 배너 / 팝업
+  - 사이트 하단 푸터
+  - 추천상품 / 연관상품 영역
+  - 구매자 리뷰 목록 (리뷰 박스)
+  - 와디즈 달성률 / 펀딩 현황 위젯
+
+★ 분석 대상: 판매자가 직접 작성한 '상세페이지 본문' (제품 스토리, 성분/소재, 사용법, USP, FAQ, CTA 등)만 분석하세요.
+
+아래 JSON 형식으로만 응답하세요. 다른 텍스트, 설명, 마크다운 코드블록 절대 금지:
+{
+  "총섹션수": 5,
+  "섹션목록": [
+    {
+      "순서": 1,
+      "타입": "히어로",
+      "y시작": 0,
+      "y끝": 18,
+      "핵심메시지": "제품 핵심 가치를 한 줄로",
+      "카피톤": "감성",
+      "이미지무드": "라이프스타일"
+    }
+  ]
+}
+
+타입 (반드시 이 중 하나만): 히어로, 공감, USP, 사용법, 비교표, 후기, FAQ, CTA, 성분신뢰, 브랜드스토리, 배송포장, AS환불, 인증특허, 제조공정, 선물포장
+카피톤 (반드시 이 중 하나만): 감성, 직설, 위트, 전문가, 친근
+이미지무드 (반드시 이 중 하나만): 라이프스타일, 제품독립, 인포그래픽, 모델사용, 디테일클로즈업
+y시작 / y끝: 이미지 전체 높이 기준 0~100 정수 (맨 위=0, 맨 아래=100)`;
+
+function buildStage2Prompt(stage1Json: string) {
+  return `앞서 파악한 섹션 구조를 기반으로, 각 섹션을 PageCraft 카피 생성용으로 상세 분석하세요.
+
+섹션 구조:
+${stage1Json}
+
+아래 JSON 형식으로만 응답하세요. 다른 텍스트, 마크다운 코드블록 절대 금지:
+{
+  "섹션상세": [
+    {
+      "순서": 1,
+      "카피구조": "헤드라인 + 서브헤드 + CTA 형식으로 구성",
+      "사용된키워드": ["주요 키워드1", "키워드2"],
+      "강조포인트": "이 섹션의 핵심 차별화 메시지",
+      "이미지스타일": "밝은 배경, 클로즈업, 따뜻한 색감 등 구체적으로",
+      "톤매너노트": "셀러가 따라야 할 카피 톤의 핵심 (예: 전문 용어 사용, 숫자 강조 등)"
+    }
+  ],
+  "전체톤": "감성적",
+  "브랜드무드": "프리미엄"
+}`;
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.json() as { step: 1 | 2; image: string; stage1?: unknown };
+
+  if (!body.image) {
+    return NextResponse.json({ error: '이미지 데이터가 필요해요.' }, { status: 400 });
+  }
+  if (body.step !== 1 && body.step !== 2) {
+    return NextResponse.json({ error: 'step은 1 또는 2여야 해요.' }, { status: 400 });
+  }
+
+  // ── Stage 1: 구조 분석 ──
+  if (body.step === 1) {
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = await geminiVision(body.image, STAGE1_PROMPT);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[capture/stage1]', msg);
+      return NextResponse.json({ error: `구조 분석 실패: ${msg}` }, { status: 500 });
+    }
+
+    const sections = parsed['섹션목록'];
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return NextResponse.json({
+        error: '본문을 인식하지 못했어요. 광고·리뷰·추천상품 영역을 제외하고 상세페이지 본문만 캡처해서 다시 시도해주세요.',
+      }, { status: 422 });
+    }
+
+    return NextResponse.json({ stage1: parsed });
+  }
+
+  // ── Stage 2: 디테일 추출 ──
+  const stage1Json = JSON.stringify(body.stage1, null, 2);
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = await geminiVision(body.image, buildStage2Prompt(stage1Json));
+  } catch (err) {
+    console.warn('[capture/stage2] 실패, 기본값 사용:', err);
+    parsed = { 섹션상세: [], 전체톤: '직설', 브랜드무드: '실용적' };
+  }
+
+  const s1 = body.stage1 as { 섹션목록: Array<Record<string, unknown>> };
+  const s2Details = (parsed['섹션상세'] as Array<Record<string, unknown>>) ?? [];
+
+  const merged = s1.섹션목록.map(sec => {
+    const detail = s2Details.find(d => d['순서'] === sec['순서']) ?? {};
+    return {
+      ...sec,
+      카피구조: detail['카피구조'],
+      사용된키워드: detail['사용된키워드'] ?? [],
+      강조포인트: detail['강조포인트'],
+      이미지스타일: detail['이미지스타일'],
+      톤매너노트: detail['톤매너노트'],
+    };
+  });
+
+  return NextResponse.json({
+    analysis: {
+      총섹션수: merged.length,
+      섹션목록: merged,
+      전체톤: parsed['전체톤'] ?? '직설',
+      브랜드무드: parsed['브랜드무드'] ?? '실용적',
+    },
+  });
+}

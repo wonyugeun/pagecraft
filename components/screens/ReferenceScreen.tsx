@@ -1,53 +1,14 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { useApp, ReferenceAnalysis } from '@/store/AppContext';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useApp, ReferenceAnalysis, CaptureAnalysis, CaptureSection } from '@/store/AppContext';
 
-type Tab = 'url' | 'text' | 'skip';
+type Tab = 'url' | 'text' | 'capture' | 'skip';
+type CaptureStage = 'idle' | 'stitching' | 'stage1' | 'stage2' | 'done' | 'error';
 
-/* ─── 분석 결과 카드 ─── */
-function AnalysisResult({ result, onReset }: { result: ReferenceAnalysis; onReset: () => void }) {
-  return (
-    <div className="ref-result" style={{ margin: '4px 0 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div className="ref-ok">✅ 구조 분석 완료 — 이 스타일로 참고해서 생성할게요</div>
-        <button
-          onClick={onReset}
-          style={{ fontSize: 11, color: 'var(--tx3)', background: 'transparent', border: '1px solid var(--bd)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--f)', flexShrink: 0 }}
-        >
-          초기화
-        </button>
-      </div>
+interface FileEntry { id: string; dataUrl: string }
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 6, letterSpacing: '0.05em' }}>섹션 구조</div>
-        <div className="ref-sps">
-          {result.sections.map((s, i) => <span key={i} className="ref-sp">{s}</span>)}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-        <div className="ref-tone"><b>카피 톤:</b> {result.tone}</div>
-        <div className="ref-tone"><b>헤드라인 패턴:</b> {result.headlinePattern}</div>
-      </div>
-
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 6, letterSpacing: '0.05em' }}>주요 강조 포인트</div>
-        <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {result.emphasisPoints.map((p, i) => (
-            <li key={i} style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.6 }}>{p}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div style={{ background: 'var(--pl)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--pu)', fontWeight: 600 }}>
-        💡 {result.summary}
-      </div>
-    </div>
-  );
-}
-
-/* ─── 공통 에러 박스 ─── */
+/* ─── 공통 ─── */
 function ErrorBox({ msg }: { msg: string }) {
   return (
     <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#be123c', lineHeight: 1.6 }}>
@@ -55,40 +16,582 @@ function ErrorBox({ msg }: { msg: string }) {
     </div>
   );
 }
-
-/* ─── 분석 버튼 ─── */
-function AnalyzeBtn({ loading, disabled, onClick }: { loading: boolean; disabled: boolean; onClick: () => void }) {
+function AnalyzeBtn({ loading, disabled, onClick, label = '🔍 분석하기' }: { loading: boolean; disabled: boolean; onClick: () => void; label?: string }) {
   return (
-    <button
-      className="ref-analyze"
-      onClick={onClick}
-      disabled={loading || disabled}
-      style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-    >
+    <button className="ref-analyze" onClick={onClick} disabled={loading || disabled} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
       {loading
         ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />분석 중...</>
-        : '🔍 분석하기'}
+        : label}
     </button>
+  );
+}
+
+/* ─── URL / 텍스트 탭 공통 분석 결과 ─── */
+function AnalysisResult({ result, onReset }: { result: ReferenceAnalysis; onReset: () => void }) {
+  return (
+    <div className="ref-result" style={{ margin: '4px 0 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="ref-ok">✅ 구조 분석 완료 — 이 스타일로 참고해서 생성할게요</div>
+        <button onClick={onReset} style={{ fontSize: 11, color: 'var(--tx3)', background: 'transparent', border: '1px solid var(--bd)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--f)', flexShrink: 0 }}>초기화</button>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 6, letterSpacing: '0.05em' }}>섹션 구조</div>
+        <div className="ref-sps">{result.sections.map((s, i) => <span key={i} className="ref-sp">{s}</span>)}</div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+        <div className="ref-tone"><b>카피 톤:</b> {result.tone}</div>
+        <div className="ref-tone"><b>헤드라인 패턴:</b> {result.headlinePattern}</div>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 6, letterSpacing: '0.05em' }}>주요 강조 포인트</div>
+        <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {result.emphasisPoints.map((p, i) => <li key={i} style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.6 }}>{p}</li>)}
+        </ul>
+      </div>
+      <div style={{ background: 'var(--pl)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--pu)', fontWeight: 600 }}>💡 {result.summary}</div>
+    </div>
+  );
+}
+
+/* ─── 캡처 가이드 모달 ─── */
+function CaptureGuideModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      onClick={onClose}>
+      <div style={{ background: '#fff', borderRadius: 16, padding: '28px 24px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', position: 'relative' }}
+        onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--tx3)', lineHeight: 1 }}>×</button>
+        <div style={{ fontSize: 22, marginBottom: 8 }}>📸</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--tx1)', marginBottom: 4 }}>상세페이지 캡처하는 법</div>
+        <div style={{ fontSize: 12, color: 'var(--tx3)', marginBottom: 20 }}>어떤 방법이든 OK — 여러 장도 괜찮아요!</div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* PC */}
+          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--pu)', marginBottom: 8 }}>💻 PC에서 (전체 스크롤 캡처 — 추천)</div>
+            <div style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.8 }}>
+              <b>GoFullPage</b> (크롬 확장) 설치 후<br />
+              상세페이지에서 아이콘 클릭 → 자동으로 전체 캡처<br />
+              <span style={{ color: 'var(--tx3)' }}>→ 검색: "GoFullPage Chrome extension"</span>
+            </div>
+          </div>
+
+          {/* Mobile */}
+          <div style={{ background: '#f8fafc', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0891b2', marginBottom: 8 }}>📱 모바일에서 (스크롤 캡처)</div>
+            <div style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.8 }}>
+              <b>iPhone:</b> 스크린샷 후 좌하단 미리보기 탭 → "전체 페이지"<br />
+              <b>Android:</b> 캡처 후 "스크롤 캡처" 버튼 (기종마다 다를 수 있어요)
+            </div>
+          </div>
+
+          {/* Multiple */}
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>✅ 일반 스크린샷 여러 장도 완전 OK!</div>
+            <div style={{ fontSize: 12, color: '#166534', lineHeight: 1.8 }}>
+              전체 캡처가 어려우면 상단부터 내리면서<br />
+              여러 장으로 나눠 찍어 올리세요.<br />
+              <b>AI가 자동으로 이어 붙여서 분석해요.</b>
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.7, padding: '0 2px' }}>
+            💡 <b>팁:</b> 광고 배너나 추천상품 영역은 빼고 상세페이지 본문만 캡처하면 더 정확해요.
+            정확하지 않아도 AI가 알아서 걸러내니 걱정 마세요.
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{ marginTop: 20, width: '100%', padding: '11px 0', background: 'var(--pu)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
+        >
+          알겠어요!
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 섹션 크롭 미리보기 ─── */
+function SectionCrop({ src, yStart, yEnd }: { src: string; yStart: number; yEnd: number }) {
+  const yCenter = (yStart + yEnd) / 2;
+  return (
+    <div style={{ width: 88, height: 60, overflow: 'hidden', borderRadius: 6, flexShrink: 0, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+      <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `50% ${yCenter}%` }} />
+    </div>
+  );
+}
+
+/* ─── 섹션 타입 배지 색상 ─── */
+const TYPE_COLOR: Record<string, { bg: string; color: string }> = {
+  히어로:     { bg: '#ede9fe', color: '#7c3aed' },
+  공감:       { bg: '#dbeafe', color: '#1d4ed8' },
+  USP:        { bg: '#d1fae5', color: '#065f46' },
+  사용법:     { bg: '#fef3c7', color: '#92400e' },
+  비교표:     { bg: '#fee2e2', color: '#991b1b' },
+  후기:       { bg: '#e0f2fe', color: '#0369a1' },
+  FAQ:        { bg: '#f3f4f6', color: '#374151' },
+  CTA:        { bg: '#fdf4ff', color: '#86198f' },
+  성분신뢰:   { bg: '#ecfdf5', color: '#14532d' },
+  브랜드스토리:{ bg: '#fff7ed', color: '#c2410c' },
+  배송포장:   { bg: '#f0f9ff', color: '#0c4a6e' },
+  AS환불:     { bg: '#fafafa', color: '#525252' },
+  인증특허:   { bg: '#f0fdf4', color: '#166534' },
+  제조공정:   { bg: '#f5f3ff', color: '#5b21b6' },
+  선물포장:   { bg: '#fff0f6', color: '#9d174d' },
+};
+
+/* ─── 캡처 분석 결과 뷰 ─── */
+function CaptureResultView({
+  result,
+  stitchedImage,
+  onReset,
+  onUse,
+}: {
+  result: CaptureAnalysis;
+  stitchedImage: string;
+  onReset: () => void;
+  onUse: () => void;
+}) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#065f46' }}>
+            ✅ 분석 완료 — {result.총섹션수}개 섹션 추출
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--tx3)', marginTop: 2 }}>
+            전체 톤: <b>{result.전체톤}</b> · 브랜드 무드: <b>{result.브랜드무드}</b>
+          </div>
+        </div>
+        <button onClick={onReset} style={{ fontSize: 11, color: 'var(--tx3)', background: 'transparent', border: '1px solid var(--bd)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'var(--f)', flexShrink: 0 }}>
+          다시 업로드
+        </button>
+      </div>
+
+      {/* 섹션 카드 목록 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        {result.섹션목록.map((sec: CaptureSection) => {
+          const color = TYPE_COLOR[sec.타입] ?? { bg: '#f3f4f6', color: '#374151' };
+          return (
+            <div key={sec.순서} style={{ background: '#fff', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <SectionCrop src={stitchedImage} yStart={sec.y시작} yEnd={sec.y끝} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)' }}>{sec.순서}.</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: color.bg, color: color.color }}>
+                    {sec.타입}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx1)', marginBottom: 5, lineHeight: 1.4 }}>{sec.핵심메시지}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <span style={{ fontSize: 10, background: '#f1f5f9', color: '#475569', borderRadius: 4, padding: '2px 6px' }}>
+                    {sec.카피톤}
+                  </span>
+                  <span style={{ fontSize: 10, background: '#f1f5f9', color: '#475569', borderRadius: 4, padding: '2px 6px' }}>
+                    {sec.이미지무드}
+                  </span>
+                  {sec.강조포인트 && (
+                    <span style={{ fontSize: 10, background: 'var(--pl)', color: 'var(--pu)', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>
+                      {sec.강조포인트}
+                    </span>
+                  )}
+                </div>
+                {sec.톤매너노트 && (
+                  <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 4, lineHeight: 1.5, fontStyle: 'italic' }}>
+                    💬 {sec.톤매너노트}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* CTA */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={onUse}
+          style={{ flex: 1, padding: '13px 0', background: 'var(--pu)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
+        >
+          ✨ 이 구조 그대로 만들기 →
+        </button>
+      </div>
+      {result.총섹션수 <= 2 && (
+        <div style={{ marginTop: 10, fontSize: 12, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', lineHeight: 1.6 }}>
+          💡 {result.총섹션수}개 섹션만 추출됐어요. 다음 단계에서 직접 섹션을 추가할 수 있어요.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── 분석 진행 중 표시 ─── */
+function CaptureProgress({ stage }: { stage: CaptureStage }) {
+  const steps: { key: CaptureStage; icon: string; label: string }[] = [
+    { key: 'stitching', icon: '🖼️', label: '이미지 합치는 중...' },
+    { key: 'stage1',    icon: '📸', label: '1단계: 본문 영역 찾는 중...' },
+    { key: 'stage2',    icon: '🔍', label: '2단계: 섹션별 디테일 분석 중...' },
+  ];
+  const activeIdx = steps.findIndex(s => s.key === stage);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0 24px', gap: 20 }}>
+      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #e9d5ff', borderTopColor: '#7c3aed', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 280 }}>
+        {steps.map((s, i) => {
+          const isDone = i < activeIdx;
+          const isActive = i === activeIdx;
+          return (
+            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: isDone || isActive ? 1 : 0.35 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                background: isDone ? '#d1fae5' : isActive ? '#ede9fe' : '#f3f4f6',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                border: isActive ? '2px solid #7c3aed' : 'none',
+              }}>
+                {isDone ? '✓' : s.icon}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 400, color: isActive ? 'var(--pu)' : isDone ? '#065f46' : 'var(--tx3)' }}>
+                {s.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, textAlign: 'center' }}>
+        Gemini Vision이 상세페이지를 분석하고 있어요<br />
+        보통 30~60초 소요돼요
+      </div>
+    </div>
+  );
+}
+
+/* ─── 이미지 스티칭 (Canvas) ─── */
+async function stitchImages(dataUrls: string[]): Promise<string> {
+  const MAX_W = 800;
+  const QUALITY = 0.78;
+
+  const imgs = await Promise.all(
+    dataUrls.map(url => new Promise<HTMLImageElement>((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = url;
+    }))
+  );
+
+  const scaled = imgs.map(img => {
+    const scale = img.naturalWidth > MAX_W ? MAX_W / img.naturalWidth : 1;
+    return { img, w: Math.round(img.naturalWidth * scale), h: Math.round(img.naturalHeight * scale) };
+  });
+
+  const totalW = Math.max(...scaled.map(s => s.w), 1);
+  const totalH = scaled.reduce((sum, s) => sum + s.h, 0);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = totalW;
+  canvas.height = totalH;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalW, totalH);
+
+  let y = 0;
+  for (const { img, w, h } of scaled) {
+    ctx.drawImage(img, 0, y, w, h);
+    y += h;
+  }
+
+  return canvas.toDataURL('image/jpeg', QUALITY);
+}
+
+/* ─── 캡처 탭 ─── */
+function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedImage: string) => void }) {
+  const { setCaptureAnalysis, go, setReferenceAnalysis } = useApp();
+  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [stage, setStage] = useState<CaptureStage>('idle');
+  const [stitchedImage, setStitchedImage] = useState<string | null>(null);
+  const [captureResult, setCaptureResult] = useState<CaptureAnalysis | null>(null);
+  const [captureError, setCaptureError] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  const addFiles = useCallback((newFiles: File[]) => {
+    const readers = newFiles.slice(0, 10 - files.length).map(file => {
+      return new Promise<FileEntry>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ id: `${Date.now()}_${Math.random()}`, dataUrl: reader.result as string });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+    Promise.all(readers).then(entries => setFiles(prev => [...prev, ...entries].slice(0, 10)));
+  }, [files.length]);
+
+  const removeFile = (id: string) => setFiles(f => f.filter(x => x.id !== id));
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const dropped = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (dropped.length) addFiles(dropped);
+  };
+
+  const handleThumbDragStart = (i: number) => setDraggingIdx(i);
+  const handleThumbDragOver = (e: React.DragEvent, i: number) => { e.preventDefault(); setDragOverIdx(i); };
+  const handleThumbDrop = (e: React.DragEvent, targetIdx: number) => {
+    e.preventDefault();
+    if (draggingIdx === null || draggingIdx === targetIdx) { setDraggingIdx(null); setDragOverIdx(null); return; }
+    setFiles(prev => {
+      const next = [...prev];
+      const [item] = next.splice(draggingIdx, 1);
+      next.splice(targetIdx, 0, item);
+      return next;
+    });
+    setDraggingIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const analyze = async () => {
+    if (!files.length) return;
+    setCaptureError('');
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
+    let timedOut = false;
+
+    try {
+      // 스티칭
+      setStage('stitching');
+      const stitched = await stitchImages(files.map(f => f.dataUrl));
+      if (ctrl.signal.aborted) return;
+      setStitchedImage(stitched);
+
+      const base64 = stitched.split(',')[1];
+
+      // Stage 1
+      setStage('stage1');
+      const tid1 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
+      const res1 = await fetch('/api/analyze-reference-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 1, image: base64 }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid1);
+      if (!res1.ok) {
+        const d = await res1.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error ?? `분석 실패 (${res1.status})`);
+      }
+      const { stage1 } = await res1.json() as { stage1: unknown };
+
+      // Stage 2
+      setStage('stage2');
+      const tid2 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
+      const res2 = await fetch('/api/analyze-reference-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 2, image: base64, stage1 }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid2);
+      if (!res2.ok) {
+        const d = await res2.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error ?? `디테일 분석 실패 (${res2.status})`);
+      }
+      const { analysis } = await res2.json() as { analysis: CaptureAnalysis };
+
+      setCaptureResult(analysis);
+      setCaptureAnalysis(analysis);
+      setReferenceAnalysis(null); // URL/텍스트 분석과 중복 방지
+      setStage('done');
+    } catch (err) {
+      if (ctrl.signal.aborted) {
+        if (timedOut) setCaptureError('60초를 초과했어요. 이미지 장수를 줄이거나 다시 시도해주세요.');
+        return;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[CaptureTab]', msg);
+      setCaptureError(msg);
+      setStage('error');
+    }
+  };
+
+  const reset = () => {
+    abortRef.current?.abort();
+    setFiles([]);
+    setStitchedImage(null);
+    setCaptureResult(null);
+    setCaptureError('');
+    setStage('idle');
+    setCaptureAnalysis(null);
+  };
+
+  const handleUse = () => {
+    if (captureResult) onDone(captureResult, stitchedImage!);
+    go('s5b');
+  };
+
+  // ── 분석 진행 중 ──
+  if (stage === 'stitching' || stage === 'stage1' || stage === 'stage2') {
+    return <CaptureProgress stage={stage} />;
+  }
+
+  // ── 분석 완료 ──
+  if (stage === 'done' && captureResult && stitchedImage) {
+    return <CaptureResultView result={captureResult} stitchedImage={stitchedImage} onReset={reset} onUse={handleUse} />;
+  }
+
+  // ── 업로드 / 에러 ──
+  return (
+    <div>
+      {/* 안내 문구 */}
+      <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#5b21b6', lineHeight: 1.7, marginBottom: 14 }}>
+        💡 와디즈·스마트스토어·쿠팡 등 상세페이지를 캡처해서 올려주세요.<br />
+        <b>한 장의 긴 캡처도 OK, 여러 장으로 나눠 찍은 것도 OK</b> — AI가 자동으로 이어 붙여요.
+        <button
+          onClick={() => setShowGuide(true)}
+          style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--pu)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', textDecoration: 'underline', padding: 0 }}
+        >
+          어떻게 캡처하나요? →
+        </button>
+      </div>
+
+      {/* 드롭존 */}
+      {files.length === 0 && (
+        <div
+          ref={dropZoneRef}
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+          onClick={() => fileInputRef.current?.click()}
+          style={{ border: '2px dashed var(--bd)', borderRadius: 12, padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, cursor: 'pointer', background: '#fafafa', transition: 'border-color .15s' }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--pu)')}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}
+        >
+          <div style={{ fontSize: 36 }}>📸</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx1)' }}>이미지를 올려주세요</div>
+          <div style={{ fontSize: 12, color: 'var(--tx3)', textAlign: 'center', lineHeight: 1.6 }}>
+            클릭하거나 드래그&드롭<br />
+            최대 10장 · JPG, PNG, WebP
+          </div>
+        </div>
+      )}
+
+      {/* 썸네일 그리드 */}
+      {files.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 8 }}>
+            {files.length}장 업로드됨 — 드래그로 순서 변경 가능
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+            {files.map((f, i) => (
+              <div
+                key={f.id}
+                draggable
+                onDragStart={() => handleThumbDragStart(i)}
+                onDragOver={e => handleThumbDragOver(e, i)}
+                onDrop={e => handleThumbDrop(e, i)}
+                onDragEnd={() => { setDraggingIdx(null); setDragOverIdx(null); }}
+                style={{
+                  position: 'relative', borderRadius: 8, overflow: 'hidden',
+                  aspectRatio: '3/4', cursor: 'grab',
+                  border: dragOverIdx === i ? '2px solid var(--pu)' : '2px solid transparent',
+                  opacity: draggingIdx === i ? 0.5 : 1,
+                  transition: 'opacity .15s, border-color .1s',
+                }}
+              >
+                <img src={f.dataUrl} alt={`캡처 ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 6px' }}>
+                  {i + 1}
+                </div>
+                <button
+                  onClick={() => removeFile(f.id)}
+                  style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, background: 'rgba(239,68,68,0.9)', color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--f)' }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {files.length < 10 && (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{ borderRadius: 8, border: '2px dashed var(--bd)', aspectRatio: '3/4', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 4, color: 'var(--tx3)' }}
+              >
+                <span style={{ fontSize: 22 }}>+</span>
+                <span style={{ fontSize: 10 }}>추가</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: 'none' }}
+        onChange={e => {
+          const picked = Array.from(e.target.files ?? []).filter(f => f.type.startsWith('image/'));
+          if (picked.length) addFiles(picked);
+          e.target.value = '';
+        }}
+      />
+
+      {captureError && stage === 'error' && (
+        <div style={{ marginBottom: 12 }}>
+          <ErrorBox msg={captureError} />
+        </div>
+      )}
+
+      {files.length > 0 && (
+        <button
+          onClick={analyze}
+          style={{ width: '100%', padding: '13px 0', background: 'var(--pu)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)', marginTop: 4 }}
+        >
+          🔍 분석 시작 ({files.length}장)
+        </button>
+      )}
+
+      {showGuide && <CaptureGuideModal onClose={() => setShowGuide(false)} />}
+    </div>
   );
 }
 
 /* ─── 메인 ─── */
 export default function ReferenceScreen() {
-  const { go, setReferenceAnalysis } = useApp();
+  const { go, setReferenceAnalysis, setCaptureAnalysis } = useApp();
 
-  const [tab,     setTab]     = useState<Tab>('url');
-  const [url,     setUrl]     = useState('');
-  const [text,    setText]    = useState('');
+  const [tab, setTab]       = useState<Tab>('url');
+  const [url, setUrl]       = useState('');
+  const [text, setText]     = useState('');
   const [loading, setLoading] = useState(false);
-  const [result,  setResult]  = useState<ReferenceAnalysis | null>(null);
-  const [error,   setError]   = useState('');
+  const [result, setResult] = useState<ReferenceAnalysis | null>(null);
+  const [error, setError]   = useState('');
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); };
 
-  const switchTab = (t: Tab) => { setTab(t); reset(); };
+  const switchTab = (t: Tab) => {
+    setTab(t);
+    reset();
+    if (t !== 'capture') setCaptureAnalysis(null);
+  };
 
   const callApi = async (body: Record<string, string>) => {
     abortRef.current?.abort();
@@ -101,11 +604,9 @@ export default function ReferenceScreen() {
     setError('');
     setResult(null);
     try {
-      const res  = await fetch('/api/crawl-reference', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(body),
-        signal:  ctrl.signal,
+      const res = await fetch('/api/crawl-reference', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), signal: ctrl.signal,
       });
       clearTimeout(tid);
       const data = await res.json();
@@ -116,10 +617,9 @@ export default function ReferenceScreen() {
       clearTimeout(tid);
       if ((err as Error).name === 'AbortError') {
         if (timedOut) setError('40초 초과 — 다시 시도해주세요.');
-        return; // 언마운트로 인한 abort는 상태 업데이트 스킵
+        return;
       }
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       if (!ctrl.signal.aborted || timedOut) setLoading(false);
     }
@@ -130,8 +630,7 @@ export default function ReferenceScreen() {
     if (!trimmed) return;
     const normalized = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
     try { new URL(normalized); } catch {
-      setError('올바른 URL 형식이 아니에요. https://로 시작하는 주소를 확인해주세요.');
-      return;
+      setError('올바른 URL 형식이 아니에요. https://로 시작하는 주소를 확인해주세요.'); return;
     }
     callApi({ url: trimmed });
   };
@@ -141,12 +640,18 @@ export default function ReferenceScreen() {
   };
 
   const tabStyle = (t: Tab): React.CSSProperties => ({
-    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: tab === t ? 700 : 400,
+    flex: 1, padding: '10px 0', fontSize: 12, fontWeight: tab === t ? 700 : 400,
     color: tab === t ? 'var(--pu)' : 'var(--tx3)',
     background: tab === t ? 'var(--white)' : 'transparent',
     border: 'none', borderBottom: tab === t ? '2px solid var(--pu)' : '2px solid transparent',
     cursor: 'pointer', fontFamily: 'var(--f)', transition: 'all .15s',
+    position: 'relative',
   });
+
+  const handleCaptureDone = (analysis: CaptureAnalysis, _stitchedImage: string) => {
+    setCaptureAnalysis(analysis);
+    setReferenceAnalysis(null);
+  };
 
   return (
     <div className="inner">
@@ -155,9 +660,13 @@ export default function ReferenceScreen() {
 
       {/* ── 탭 ── */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--bd)', marginBottom: 20, marginTop: 4 }}>
-        <button style={tabStyle('url')}  onClick={() => switchTab('url')}>🔗 URL 분석</button>
-        <button style={tabStyle('text')} onClick={() => switchTab('text')}>📋 텍스트 붙여넣기</button>
-        <button style={tabStyle('skip')} onClick={() => switchTab('skip')}>⏭️ 건너뛰기</button>
+        <button style={tabStyle('url')}   onClick={() => switchTab('url')}>🔗 URL 분석</button>
+        <button style={tabStyle('text')}  onClick={() => switchTab('text')}>📝 텍스트 분석</button>
+        <button style={{ ...tabStyle('capture'), position: 'relative' }} onClick={() => switchTab('capture')}>
+          📸 캡처 분석
+          <span style={{ position: 'absolute', top: 4, right: 4, fontSize: 8, background: '#7c3aed', color: '#fff', borderRadius: 4, padding: '1px 4px', lineHeight: 1.4 }}>NEW</span>
+        </button>
+        <button style={tabStyle('skip')}  onClick={() => switchTab('skip')}>⏭️ 건너뛰기</button>
       </div>
 
       {/* ── URL 탭 ── */}
@@ -165,27 +674,21 @@ export default function ReferenceScreen() {
         <div className="fb">
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', lineHeight: 1.7, marginBottom: 16 }}>
             💡 <b>자사몰·해외몰</b>은 URL로 바로 분석 가능해요.<br />
-            <b>스마트스토어·쿠팡·올리브영</b>은 봇 차단으로 크롤링이 제한됩니다 — <button onClick={() => switchTab('text')} style={{ fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>텍스트 탭</button>을 이용해주세요.
+            <b>스마트스토어·쿠팡·올리브영</b>은 봇 차단으로 크롤링이 제한됩니다 —{' '}
+            <button onClick={() => switchTab('text')} style={{ fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>텍스트 탭</button>이나{' '}
+            <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>캡처 분석</button>을 이용해주세요.
           </div>
-
           <div className="fg">
             <div className="fl">상세페이지 URL <span className="fopt">선택</span></div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className="finp"
-                type="url"
-                placeholder="https://brand.com/product/..."
-                value={url}
+              <input className="finp" type="url" placeholder="https://brand.com/product/..." value={url}
                 onChange={e => { setUrl(e.target.value); reset(); }}
                 onKeyDown={e => e.key === 'Enter' && !loading && analyzeUrl()}
-                style={{ flex: 1 }}
-                disabled={loading}
-              />
+                style={{ flex: 1 }} disabled={loading} />
               <AnalyzeBtn loading={loading} disabled={!url.trim()} onClick={analyzeUrl} />
             </div>
             <div className="fhint">sokoglam, yesstyle, 브랜드 직영몰 등 일반 웹사이트 권장</div>
           </div>
-
           {error  && <ErrorBox msg={error} />}
           {result && <AnalysisResult result={result} onReset={reset} />}
         </div>
@@ -198,26 +701,25 @@ export default function ReferenceScreen() {
             💡 스마트스토어·쿠팡 상세페이지를 열고, <b>Ctrl+A → Ctrl+C</b>로 전체 복사한 뒤 아래에 붙여넣으세요.<br />
             헤드라인·본문·성분 등 텍스트가 많을수록 분석 정확도가 올라가요.
           </div>
-
           <div className="fg">
             <div className="fl">상세페이지 텍스트 <span className="fopt">선택</span></div>
-            <textarea
-              className="finp"
+            <textarea className="finp"
               placeholder={"상세페이지에서 복사한 텍스트를 여기에 붙여넣으세요.\n\n예시:\n제주 병풀 진정 토너 200ml\n피부과 테스트 완료 · 비건 인증\n병풀 추출물 52% 고농도...\n히어로 섹션: 예민한 피부를 위한 솔루션\n성분 섹션: EWG 그린등급 98%..."}
-              value={text}
-              onChange={e => { setText(e.target.value); reset(); }}
-              disabled={loading}
-              style={{ minHeight: 200, resize: 'vertical', lineHeight: 1.7 }}
-            />
+              value={text} onChange={e => { setText(e.target.value); reset(); }}
+              disabled={loading} style={{ minHeight: 200, resize: 'vertical', lineHeight: 1.7 }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
               <div className="fhint">{text.length.toLocaleString()}자 입력 · 분석에 최적화된 분량: 500자 이상</div>
               <AnalyzeBtn loading={loading} disabled={text.trim().length < 30} onClick={analyzeText} />
             </div>
           </div>
-
           {error  && <ErrorBox msg={error} />}
           {result && <AnalysisResult result={result} onReset={reset} />}
         </div>
+      )}
+
+      {/* ── 캡처 분석 탭 ── */}
+      {tab === 'capture' && (
+        <CaptureTab onDone={handleCaptureDone} />
       )}
 
       {/* ── 건너뛰기 탭 ── */}
@@ -236,8 +738,8 @@ export default function ReferenceScreen() {
         </div>
       )}
 
-      {/* ── 하단 네비 ── */}
-      {tab !== 'skip' && (
+      {/* ── 하단 네비 (캡처/건너뛰기 탭 제외) ── */}
+      {tab !== 'skip' && tab !== 'capture' && (
         <div className="cta-row" style={{ marginTop: 24 }}>
           <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
@@ -253,6 +755,19 @@ export default function ReferenceScreen() {
               {result ? '이 스타일로 생성하기 →' : '다음 →'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* 캡처 탭 하단 네비 */}
+      {tab === 'capture' && (
+        <div className="cta-row" style={{ marginTop: 16 }}>
+          <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
+          <button
+            style={{ fontSize: 12, color: 'var(--tx3)', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', textDecoration: 'underline', padding: '4px 0' }}
+            onClick={() => { setCaptureAnalysis(null); setReferenceAnalysis(null); go('s5b'); }}
+          >
+            건너뛰고 바로 생성 →
+          </button>
         </div>
       )}
     </div>

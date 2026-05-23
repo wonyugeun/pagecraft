@@ -25,6 +25,28 @@ export interface ReferenceAnalysis {
   summary: string;          // 한 줄 요약
 }
 
+export interface CaptureSection {
+  순서: number;
+  타입: string;
+  y시작: number;
+  y끝: number;
+  핵심메시지: string;
+  카피톤: string;
+  이미지무드: string;
+  카피구조?: string;
+  사용된키워드?: string[];
+  강조포인트?: string;
+  이미지스타일?: string;
+  톤매너노트?: string;
+}
+
+export interface CaptureAnalysis {
+  총섹션수: number;
+  섹션목록: CaptureSection[];
+  전체톤: string;
+  브랜드무드: string;
+}
+
 export interface HistoryItem {
   id: string;
   productName: string;
@@ -53,6 +75,7 @@ interface AppState {
   productExtra: string;
   productImages: string[]; // base64 data URLs (업로드된 제품 이미지)
   referenceAnalysis: ReferenceAnalysis | null;
+  captureAnalysis: CaptureAnalysis | null;
   sectionStructure: string[];
   credits: number;
   creditModalOpen: boolean;
@@ -76,6 +99,7 @@ interface AppContextType extends AppState {
   setProductExtra: (v: string) => void;
   setProductImages: (images: string[]) => void;
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
+  setCaptureAnalysis: (a: CaptureAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
   deductCredits: (amount?: number) => void;
   setCreditModalOpen: (v: boolean) => void;
@@ -195,6 +219,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
+  const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
 
   /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
@@ -332,6 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductExtraState('');
     setProductImagesState([]);
     setReferenceAnalysisState(null);
+    setCaptureAnalysisState(null);
     setSectionStructureState([]);
     setSections([]);
     setRestoredImages({});
@@ -350,7 +376,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, sectionStructure,
+      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
       credits, creditModalOpen, restoredImages,
       go,
       setCat: setCatState,
@@ -368,6 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductName: setProductNameState,
       setProductImages: setProductImagesState,
       setReferenceAnalysis: setReferenceAnalysisState,
+      setCaptureAnalysis: setCaptureAnalysisState,
       setSectionStructure: setSectionStructureState,
       deductCredits,
       setCreditModalOpen: setCreditModalOpenState,

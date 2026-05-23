@@ -481,13 +481,20 @@ function getDefaultSecCnt(ch: string, secCnt: number): number {
 /* ─────────────────────────────────────────────
    API 핸들러
 ───────────────────────────────────────────── */
+interface CaptureAnalysisInput {
+  전체톤: string;
+  브랜드무드: string;
+  섹션목록: Array<{ 타입: string; 핵심메시지: string; 카피톤?: string; 톤매너노트?: string; 사용된키워드?: string[] }>;
+}
+
 export async function POST(req: NextRequest) {
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure } =
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, captureAnalysis } =
     await req.json() as {
       cat: string; ch: string; type: string; out: string;
       secCnt: number; productName: string; productExtra: string;
       referenceAnalysis?: ReferenceAnalysis;
       sectionStructure?: string[];
+      captureAnalysis?: CaptureAnalysisInput;
     };
 
   const outputType = out === 'blog' ? '블로그형 (글+그림)' : out === 'slide' ? '이미지 슬라이드형' : 'HTML 섹션형';
@@ -513,6 +520,15 @@ export async function POST(req: NextRequest) {
 ※ 위 레퍼런스의 구조·톤을 참고하되, 상품 정보는 아래 제공된 내용으로 새롭게 작성하세요.\n`
     : '';
 
+  const captureBlock = captureAnalysis
+    ? `\n[캡처 분석 레퍼런스 — 아래 톤·무드를 카피 전반에 반영하세요]
+- 전체 카피 톤: ${captureAnalysis.전체톤}
+- 브랜드 무드: ${captureAnalysis.브랜드무드}
+- 섹션별 참고 톤매너:
+${captureAnalysis.섹션목록.map(s => `  · ${s.타입}: ${s.톤매너노트 ?? s.카피톤 ?? ''} ${s.사용된키워드?.length ? `(키워드: ${s.사용된키워드.join(', ')})` : ''}`).filter(l => l.trim().length > 6).join('\n')}
+※ 위 레퍼런스 톤을 바탕으로 카피를 작성하되, 상품 정보는 아래 제공된 내용으로 새롭게 작성하세요.\n`
+    : '';
+
   const userPrompt = `다음 조건으로 상세페이지 섹션을 생성해주세요.
 
 [생성 조건]
@@ -525,7 +541,7 @@ export async function POST(req: NextRequest) {
 
 [섹션 기획 가이드]
 ${sectionGuide}
-${productDetailBlock}${sectionBlock}${referenceBlock}
+${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}
 [카피 작성 7대 원칙 — 반드시 준수]
 1. AIDA 심리 구조: 전체 섹션이 공감(Attention)→흥미(Interest)→욕구(Desire)→행동(Action) 흐름을 이루도록 순서 구성
 2. 업계 전문 용어 필수: 시스템 프롬프트에 명시된 업계 전문 용어를 각 섹션에 자연스럽게 포함 (일반 소비자 언어만으로 채우지 말 것)

@@ -71,10 +71,11 @@ const BTN_SHARED: React.CSSProperties = {
 const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'default' };
 
 export default function SectionStructureScreen() {
-  const { cat, type, go, referenceAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { cat, type, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
   const getInitial = (): string[] => {
     if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
+    if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
     return (
       CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
       ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA']
@@ -110,19 +111,25 @@ export default function SectionStructureScreen() {
   };
 
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
+  const fromCapture = !fromRef && Boolean(captureAnalysis?.섹션목록?.length);
   const available = ALL_SECTIONS.filter(s => !secs.includes(s));
 
   return (
     <div className="inner">
       <div className="stitle">섹션 구조를 확인해주세요</div>
       <div className="ssub">
-        {fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'}
+        {fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'}
         {' — 순서 변경·추가·삭제가 가능해요'}
       </div>
 
       {fromRef && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--pl)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'var(--pu)', fontWeight: 700, marginBottom: 14 }}>
           ✅ 레퍼런스 기반 추천
+        </div>
+      )}
+      {fromCapture && (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#f5f3ff', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#5b21b6', fontWeight: 700, marginBottom: 14 }}>
+          📸 캡처 분석 기반 추천
         </div>
       )}
 
