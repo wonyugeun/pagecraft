@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const maxDuration = 300;
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 interface ReferenceAnalysis {
@@ -560,6 +562,7 @@ ${productDetailBlock}${sectionBlock}${referenceBlock}
     return NextResponse.json({ sections });
   } catch (err) {
     console.error('Generate error:', err);
-    return NextResponse.json({ sections: [] }, { status: 500 });
+    const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+    return NextResponse.json({ sections: [], error: `생성 중 오류가 발생했어요: ${msg}` }, { status: 500 });
   }
 }

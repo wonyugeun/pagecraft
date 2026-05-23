@@ -41,6 +41,8 @@ export default function GeneratingScreen() {
     abortRef.current = new AbortController();
     const start  = Date.now();
     const timers: NodeJS.Timeout[] = [];
+    // closure flag: true only when our setTimeout fires — never stale from re-mount cleanup
+    let timedOut = false;
 
     // ── 애니메이션 타이머 ──
     GEN_STEPS.forEach((_, i) => {
@@ -52,9 +54,12 @@ export default function GeneratingScreen() {
     });
 
     // ── API 호출 ──
-    // 로컬 개발: 300초, 프로덕션(Vercel 60초 함수 제한 감안): 120초
-    const TIMEOUT_MS = process.env.NODE_ENV === 'development' ? 300_000 : 120_000;
-    const timeoutId = setTimeout(() => abortRef.current?.abort(), TIMEOUT_MS);
+    // 로컬 개발: 300초, 프로덕션(Vercel maxDuration=300 적용): 280초
+    const TIMEOUT_MS = process.env.NODE_ENV === 'development' ? 300_000 : 280_000;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      abortRef.current?.abort();
+    }, TIMEOUT_MS);
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,8 +102,12 @@ export default function GeneratingScreen() {
       })
       .catch(err => {
         clearTimeout(timeoutId);
-        if (err.name === 'AbortError' || cancelledRef.current) {
-          if (!cancelledRef.current) {
+        // cancelledRef가 true이면 사용자가 직접 취소 — 무시
+        if (cancelledRef.current) return;
+        // timedOut closure flag으로 진짜 타임아웃 여부 판단 (Strict Mode 이중마운트 cleanup abort와 구분)
+        if (err.name === 'AbortError') {
+          if (timedOut) {
+            timers.forEach(clearTimeout);
             setApiError('요청 시간이 초과되었어요. 다시 시도해주세요.');
           }
           return;
