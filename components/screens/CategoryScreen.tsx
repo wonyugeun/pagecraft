@@ -41,10 +41,10 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
         alignItems: 'flex-start',
         padding: '24px',
         width: '100%',
-        background: selected ? '#eef2ff' : '#ffffff',
-        border: `1px solid ${selected ? '#4f46e5' : hovered ? '#d4d4d4' : '#e5e5e5'}`,
+        background: selected ? '#fefce8' : '#ffffff',
+        border: `1px solid ${selected ? '#0a0a0a' : hovered ? '#d4d4d4' : '#e5e5e5'}`,
         boxShadow: selected
-          ? '0 0 0 1px #4f46e5'
+          ? '0 0 0 1px #0a0a0a'
           : hovered
           ? '0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04)'
           : 'none',
@@ -66,13 +66,13 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
             right: '12px',
             width: '20px',
             height: '20px',
-            background: '#4f46e5',
+            background: '#0a0a0a',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '11px',
-            color: '#fff',
+            color: '#facc15',
             fontWeight: 700,
             lineHeight: 1,
             flexShrink: 0,
@@ -92,7 +92,7 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
         style={{
           fontSize: '15px',
           fontWeight: 600,
-          color: selected ? '#4f46e5' : '#0a0a0a',
+          color: '#0a0a0a',
           letterSpacing: '-0.01em',
           marginBottom: '5px',
           display: 'block',
@@ -196,8 +196,8 @@ export default function CategoryScreen() {
               선택됨:{' '}
               <span
                 style={{
-                  background: '#eef2ff',
-                  color: '#4f46e5',
+                  background: '#fef9c3',
+                  color: '#0a0a0a',
                   padding: '3px 10px',
                   borderRadius: '6px',
                   fontSize: '12px',
@@ -216,7 +216,7 @@ export default function CategoryScreen() {
             onMouseLeave={() => setNextHovered(false)}
             style={{
               background: !cat ? '#f5f5f5' : nextHovered ? '#262626' : '#0a0a0a',
-              color: !cat ? '#a3a3a3' : '#ffffff',
+              color: !cat ? '#a3a3a3' : '#facc15',
               border: 'none',
               borderRadius: '8px',
               padding: '11px 28px',
