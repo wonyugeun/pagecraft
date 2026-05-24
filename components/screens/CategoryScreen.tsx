@@ -41,10 +41,10 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
         alignItems: 'flex-start',
         padding: '24px',
         width: '100%',
-        background: selected ? '#fefce8' : '#ffffff',
-        border: `1px solid ${selected ? '#0a0a0a' : hovered ? '#d4d4d4' : '#e5e5e5'}`,
+        background: selected ? '#F4F9FF' : '#ffffff',
+        border: `1px solid ${selected ? '#3182F6' : hovered ? '#d4d4d4' : '#e5e5e5'}`,
         boxShadow: selected
-          ? '0 0 0 1px #0a0a0a'
+          ? '0 0 0 1px #3182F6'
           : hovered
           ? '0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04)'
           : 'none',
@@ -66,13 +66,13 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
             right: '12px',
             width: '20px',
             height: '20px',
-            background: '#0a0a0a',
+            background: '#3182F6',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '11px',
-            color: '#facc15',
+            color: '#ffffff',
             fontWeight: 700,
             lineHeight: 1,
             flexShrink: 0,
@@ -92,7 +92,7 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
         style={{
           fontSize: '15px',
           fontWeight: 600,
-          color: '#0a0a0a',
+          color: '#191F28',
           letterSpacing: '-0.01em',
           marginBottom: '5px',
           display: 'block',
@@ -103,7 +103,7 @@ export function CatCard({ icon, name, sub, selected, onClick }: CatCardProps) {
       </span>
 
       {/* 설명 */}
-      <span style={{ fontSize: '12px', color: '#737373', lineHeight: 1.5, display: 'block' }}>
+      <span style={{ fontSize: '12px', color: '#8B95A1', lineHeight: 1.5, display: 'block' }}>
         {sub}
       </span>
     </button>
@@ -131,7 +131,7 @@ export default function CategoryScreen() {
           style={{
             fontSize: '28px',
             fontWeight: 700,
-            color: '#0a0a0a',
+            color: '#191F28',
             letterSpacing: '-0.03em',
             lineHeight: 1.25,
             marginBottom: '10px',
@@ -139,7 +139,7 @@ export default function CategoryScreen() {
         >
           어떤 상품의 상세페이지를 만드세요?
         </h1>
-        <p style={{ fontSize: '15px', color: '#737373', lineHeight: 1.6 }}>
+        <p style={{ fontSize: '15px', color: '#4E5968', lineHeight: 1.6 }}>
           카테고리를 선택하면 그에 맞는 기획 구조로 자동 설계됩니다
         </p>
       </div>
@@ -196,8 +196,8 @@ export default function CategoryScreen() {
               선택됨:{' '}
               <span
                 style={{
-                  background: '#fef9c3',
-                  color: '#0a0a0a',
+                  background: '#E8F2FE',
+                  color: '#3182F6',
                   padding: '3px 10px',
                   borderRadius: '6px',
                   fontSize: '12px',
@@ -215,8 +215,9 @@ export default function CategoryScreen() {
             onMouseEnter={() => setNextHovered(true)}
             onMouseLeave={() => setNextHovered(false)}
             style={{
-              background: !cat ? '#f5f5f5' : nextHovered ? '#262626' : '#0a0a0a',
-              color: !cat ? '#a3a3a3' : '#facc15',
+              background: !cat ? '#f5f5f5' : nextHovered ? '#1b6de8' : '#3182F6',
+              color: !cat ? '#a3a3a3' : '#ffffff',
+              boxShadow: cat ? '0 4px 12px rgba(49,130,246,0.2)' : 'none',
               border: 'none',
               borderRadius: '8px',
               padding: '11px 28px',
