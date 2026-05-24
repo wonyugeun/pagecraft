@@ -571,10 +571,22 @@ ${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}
       messages:   [{ role: 'user', content: userPrompt }],
     });
 
+    if (!message.content || message.content.length === 0) {
+      throw new Error('Claude 응답 비어있음 (content 배열 길이 0)');
+    }
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-    const jsonMatch = raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('No JSON found');
+    // non-greedy로 첫 번째 배열만 추출
+    const jsonMatch = raw.match(/\[[\s\S]*?\](?=\s*$|\s*\n|$)/m) ?? raw.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('응답에서 JSON 배열을 찾을 수 없음');
     const sections = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(sections)) {
+      throw new Error(`JSON이 배열이 아님: ${typeof sections}`);
+    }
+    const invalid = sections.findIndex(s => !s.num || !s.headline || !s.body);
+    if (invalid !== -1) {
+      console.error(`[generate] 섹션 ${invalid} 필수 필드 누락:`, JSON.stringify(sections[invalid]).slice(0, 200));
+      throw new Error(`섹션 ${invalid + 1}에 필수 필드(num/headline/body) 누락`);
+    }
     return NextResponse.json({ sections });
   } catch (err) {
     console.error('Generate error:', err);

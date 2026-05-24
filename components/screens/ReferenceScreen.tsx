@@ -497,7 +497,10 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
       setStage('done');
     } catch (err) {
       if (ctrl.signal.aborted) {
-        if (timedOut) setCaptureError('분석 시간이 초과됐어요. 이미지 장수를 줄이거나 다시 시도해주세요.');
+        if (timedOut) {
+          setCaptureError('분석 시간이 초과됐어요. 이미지 장수를 줄이거나 다시 시도해주세요.');
+          setStage('error');
+        }
         return;
       }
       const msg = err instanceof Error ? err.message : String(err);

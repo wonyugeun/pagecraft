@@ -302,7 +302,7 @@ export default function ImageScreen() {
     let cancelled = false;
     Promise.all(imgs.slice(0, 3).map(s => toBase64(s.url)))
       .then(base64s => { if (!cancelled) setProductImages(base64s); })
-      .catch(() => {});
+      .catch(err => { console.error('[ImageScreen] 제품 이미지 base64 변환 실패 — AI 이미지 생성에 반영 안 됨:', err); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imgs]);

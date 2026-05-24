@@ -269,10 +269,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         persist(updated);
       } catch (e) {
         if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-          // Remove oldest entries one at a time until it fits
+          let saved = false;
           for (let trim = updated.length - 1; trim > 0; trim--) {
-            try { persist(updated.slice(0, trim)); break; } catch { /* keep trimming */ }
+            try { persist(updated.slice(0, trim)); saved = true; break; } catch { /* keep trimming */ }
           }
+          if (!saved) console.warn('[saveHistory] localStorage 용량 부족 — 최신 기록 저장 실패');
         }
       }
     } catch {
@@ -289,8 +290,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         existing[0] = { ...existing[0], sectionImages: images };
         localStorage.setItem(key, JSON.stringify(existing));
       }
-    } catch {
+    } catch (e) {
       // 이미지 용량 초과 시 텍스트 데이터는 그대로 유지
+      console.warn('[updateLatestHistoryImages] localStorage 저장 실패:', e);
     }
   };
 
