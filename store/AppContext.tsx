@@ -225,14 +225,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
   useEffect(() => {
     if (status === 'authenticated') {
-      const email = session?.user?.email ?? 'guest';
-      const key = `pc_cr_${email}`;
-      const stored = localStorage.getItem(key);
-      if (stored === null) {
-        localStorage.setItem(key, '30');
-        setCreditsState(30);
-      } else {
-        setCreditsState(parseInt(stored, 10) || 0);
+      try {
+        const email = session?.user?.email ?? 'guest';
+        const key = `pc_cr_${email}`;
+        const stored = localStorage.getItem(key);
+        if (stored === null) {
+          localStorage.setItem(key, '30');
+          setCreditsState(30);
+        } else {
+          const parsed = parseInt(stored, 10);
+          setCreditsState(Number.isFinite(parsed) ? parsed : 0);
+        }
+      } catch {
+        // Safari private mode 등 localStorage 접근 불가 시 기본값 유지
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -243,7 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const key = `pc_cr_${email}`;
     setCreditsState(prev => {
       const next = Math.max(0, prev - amount);
-      localStorage.setItem(key, String(next));
+      try { localStorage.setItem(key, String(next)); } catch { /* no-op */ }
       return next;
     });
   };

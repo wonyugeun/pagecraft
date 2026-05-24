@@ -639,7 +639,7 @@ export default function ResultScreen() {
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
-  const cancelRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
   const savedImagesRef = useRef(false);
 
   const productImagesRef = useRef(productImages);
@@ -673,7 +673,7 @@ export default function ResultScreen() {
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
 
-  const generateImage = useCallback(async (sec: Section) => {
+  const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false } }));
     try {
       const images = productImagesRef.current;
@@ -685,22 +685,26 @@ export default function ResultScreen() {
           sectionNum: sec.num,
           productImages: images.length > 0 ? images : undefined,
         }),
-        signal: AbortSignal.timeout(130_000),
+        signal,
       });
+      if (signal.aborted) return;
       const data = await res.json();
+      if (signal.aborted) return;
       if (data.imageBase64) {
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
       } else {
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
       }
-    } catch {
+    } catch (err) {
+      if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
     }
   }, []);
 
   useEffect(() => {
     if (!displaySections.length) return;
-    cancelRef.current = false;
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     savedImagesRef.current = false;
 
     if (Object.keys(restoredImages).length > 0) {
@@ -715,16 +719,21 @@ export default function ResultScreen() {
 
     (async () => {
       for (let i = 0; i < displaySections.length; i++) {
-        if (cancelRef.current) break;
+        if (ctrl.signal.aborted) break;
         const sec = displaySections[i];
         if (restoredImages[sec.num]) continue;
-        if (i > 0) await new Promise(r => setTimeout(r, 3_000));
-        if (cancelRef.current) break;
-        await generateImage(sec);
+        if (i > 0) {
+          await new Promise<void>(r => {
+            const id = setTimeout(r, 3_000);
+            ctrl.signal.addEventListener('abort', () => { clearTimeout(id); r(); }, { once: true });
+          });
+        }
+        if (ctrl.signal.aborted) break;
+        await generateImage(sec, ctrl.signal);
       }
     })();
 
-    return () => { cancelRef.current = true; };
+    return () => { ctrl.abort(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displaySections.length]);
 
@@ -820,7 +829,7 @@ export default function ResultScreen() {
                 <BlogSection
                   key={i} sec={sec} onRegen={regenFn}
                   imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec)}
+                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                   isLast={i === displaySections.length - 1}
                   onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                 />
@@ -841,7 +850,7 @@ export default function ResultScreen() {
                 <ImageSection
                   key={i} sec={sec}
                   imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec)}
+                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                   index={i} accent="blue"
                   onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                 />
@@ -862,7 +871,7 @@ export default function ResultScreen() {
                 <ImageSection
                   key={i} sec={sec}
                   imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec)}
+                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                   index={i} accent="purple"
                   onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                 />
