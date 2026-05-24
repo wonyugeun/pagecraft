@@ -1,5 +1,7 @@
 'use client';
 
+import { useSession } from 'next-auth/react';
+import LandingPage from '@/components/landing/LandingPage';
 import { AppProvider, useApp } from '@/store/AppContext';
 import TopBar from '@/components/layout/TopBar';
 import ProgressBar from '@/components/layout/ProgressBar';
@@ -138,10 +140,19 @@ function App() {
   );
 }
 
-export default function Page() {
+function PageRouter() {
+  const { status } = useSession();
+
+  // 로그인 여부 확인 전 로딩 중: 랜딩 표시 (깜빡임 방지)
+  if (status === 'unauthenticated') return <LandingPage />;
+
   return (
     <AppProvider>
       <App />
     </AppProvider>
   );
+}
+
+export default function Page() {
+  return <PageRouter />;
 }
