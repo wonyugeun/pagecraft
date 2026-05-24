@@ -235,10 +235,10 @@ function CaptureResultView({
 }
 
 /* ─── 분석 진행 중 표시 ─── */
-function CaptureProgress({ stage }: { stage: CaptureStage }) {
+function CaptureProgress({ stage, chunkLabel }: { stage: CaptureStage; chunkLabel?: string }) {
   const steps: { key: CaptureStage; icon: string; label: string }[] = [
     { key: 'stitching', icon: '🖼️', label: '이미지 합치는 중...' },
-    { key: 'stage1',    icon: '📸', label: '1단계: 본문 영역 찾는 중...' },
+    { key: 'stage1',    icon: '📸', label: chunkLabel ?? '1단계: 본문 영역 찾는 중...' },
     { key: 'stage2',    icon: '🔍', label: '2단계: 섹션별 디테일 분석 중...' },
   ];
   const activeIdx = steps.findIndex(s => s.key === stage);
@@ -277,8 +277,8 @@ function CaptureProgress({ stage }: { stage: CaptureStage }) {
 
 /* ─── 이미지 스티칭 (Canvas) ─── */
 async function stitchImages(dataUrls: string[]): Promise<string> {
-  const MAX_W = 800;
-  const QUALITY = 0.78;
+  const MAX_W = 1200;
+  const QUALITY = 0.85;
 
   const imgs = await Promise.all(
     dataUrls.map(url => new Promise<HTMLImageElement>((res, rej) => {
@@ -310,7 +310,53 @@ async function stitchImages(dataUrls: string[]): Promise<string> {
     y += h;
   }
 
-  return canvas.toDataURL('image/jpeg', QUALITY);
+  const result = canvas.toDataURL('image/jpeg', QUALITY);
+  console.log(`[stitchImages] output: ${totalW}×${totalH}px, base64 size ~${Math.round(result.length * 3/4/1024)} KB`);
+  return result;
+}
+
+/* ─── 이미지 분할 (Gemini Vision은 8000px 이상 처리 시 섹션 누락 발생) ─── */
+async function splitImageIfNeeded(dataUrl: string, maxHeightPx = 8000): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (h <= maxHeightPx) { resolve([dataUrl]); return; }
+      const chunks: string[] = [];
+      let yOffset = 0;
+      while (yOffset < h) {
+        const chunkH = Math.min(maxHeightPx, h - yOffset);
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = chunkH;
+        const cx = cv.getContext('2d')!;
+        cx.drawImage(img, 0, yOffset, w, chunkH, 0, 0, w, chunkH);
+        chunks.push(cv.toDataURL('image/jpeg', 0.85));
+        yOffset += chunkH;
+      }
+      console.log(`[splitImageIfNeeded] ${w}×${h}px → ${chunks.length} chunks (max ${maxHeightPx}px each)`);
+      resolve(chunks);
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+/* ─── 청크 경계 부근 중복 섹션 제거 (y-range IoU > 0.4) ─── */
+function deduplicateSections(sections: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [];
+  for (const sec of sections) {
+    const yS = sec['y시작'] as number;
+    const yE = sec['y끝'] as number;
+    const isDup = out.some(ex => {
+      const eS = ex['y시작'] as number;
+      const eE = ex['y끝'] as number;
+      const inter = Math.max(0, Math.min(yE, eE) - Math.max(yS, eS));
+      const union = Math.max(yE, eE) - Math.min(yS, eS);
+      return union > 0 && inter / union > 0.4;
+    });
+    if (!isDup) out.push(sec);
+  }
+  return out;
 }
 
 /* ─── 캡처 탭 ─── */
@@ -322,6 +368,7 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
   const [stitchedImage, setStitchedImage] = useState<string | null>(null);
   const [captureResult, setCaptureResult] = useState<CaptureAnalysis | null>(ctxCaptureAnalysis);
   const [captureError, setCaptureError] = useState('');
+  const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -369,6 +416,7 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
   const analyze = async () => {
     if (!files.length) return;
     setCaptureError('');
+    setChunkProgress(null);
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
@@ -381,31 +429,59 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
       if (ctrl.signal.aborted) return;
       setStitchedImage(stitched);
 
-      const base64 = stitched.split(',')[1];
+      // 청크 분할 (Gemini Vision은 8000px 이상 이미지에서 섹션 누락 발생)
+      const chunks = await splitImageIfNeeded(stitched);
+      const totalChunks = chunks.length;
 
-      // Stage 1
+      // Stage 1: 청크별 개별 분석 → y좌표 전역 리매핑
       setStage('stage1');
-      const tid1 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
-      const res1 = await fetch('/api/analyze-reference-capture', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 1, image: base64 }),
-        signal: ctrl.signal,
-      });
-      clearTimeout(tid1);
-      if (!res1.ok) {
-        const d = await res1.json().catch(() => ({})) as { error?: string };
-        throw new Error(d.error ?? `분석 실패 (${res1.status})`);
-      }
-      const { stage1 } = await res1.json() as { stage1: unknown };
+      setChunkProgress({ current: 0, total: totalChunks });
+      const allSections: Array<Record<string, unknown>> = [];
 
-      // Stage 2
+      for (let ci = 0; ci < totalChunks; ci++) {
+        if (ctrl.signal.aborted) return;
+        setChunkProgress({ current: ci + 1, total: totalChunks });
+        const chunkBase64 = chunks[ci].split(',')[1];
+        const yOffset = (ci / totalChunks) * 100;
+        const yScale = 1 / totalChunks;
+
+        const tid = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
+        const res1 = await fetch('/api/analyze-reference-capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step: 1, image: chunkBase64 }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(tid);
+        if (!res1.ok) {
+          const d = await res1.json().catch(() => ({})) as { error?: string };
+          throw new Error(d.error ?? `분석 실패 (${res1.status})`);
+        }
+        const { stage1 } = await res1.json() as { stage1: { 섹션목록?: Array<Record<string, unknown>> } };
+        const chunkSecs = stage1?.섹션목록 ?? [];
+        // 청크 내 y좌표 (0-100) → 전체 이미지 기준 전역 y좌표로 리매핑
+        const remapped = chunkSecs.map(sec => ({
+          ...sec,
+          y시작: Math.round(yOffset + (sec['y시작'] as number) * yScale),
+          y끝: Math.round(yOffset + (sec['y끝'] as number) * yScale),
+        }));
+        allSections.push(...remapped);
+      }
+
+      // 청크 경계 중복 제거 + 순서 재부여
+      const deduped = deduplicateSections(allSections);
+      deduped.forEach((s, i) => { s['순서'] = i + 1; });
+      const mergedStage1 = { 총섹션수: deduped.length, 섹션목록: deduped };
+      console.log(`[analyze] stage1 raw: ${allSections.length} → deduped: ${deduped.length}`);
+
+      // Stage 2: 전체 이미지 기준 디테일 분석
       setStage('stage2');
-      const tid2 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
+      const fullBase64 = stitched.split(',')[1];
+      const tid2 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 90_000);
       const res2 = await fetch('/api/analyze-reference-capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 2, image: base64, stage1 }),
+        body: JSON.stringify({ step: 2, image: fullBase64, stage1: mergedStage1 }),
         signal: ctrl.signal,
       });
       clearTimeout(tid2);
@@ -417,11 +493,11 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
 
       setCaptureResult(analysis);
       setCaptureAnalysis(analysis);
-      setReferenceAnalysis(null); // URL/텍스트 분석과 중복 방지
+      setReferenceAnalysis(null);
       setStage('done');
     } catch (err) {
       if (ctrl.signal.aborted) {
-        if (timedOut) setCaptureError('60초를 초과했어요. 이미지 장수를 줄이거나 다시 시도해주세요.');
+        if (timedOut) setCaptureError('분석 시간이 초과됐어요. 이미지 장수를 줄이거나 다시 시도해주세요.');
         return;
       }
       const msg = err instanceof Error ? err.message : String(err);
@@ -449,7 +525,10 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
 
   // ── 분석 진행 중 ──
   if (stage === 'stitching' || stage === 'stage1' || stage === 'stage2') {
-    return <CaptureProgress stage={stage} />;
+    const chunkLabel = stage === 'stage1' && chunkProgress && chunkProgress.total > 1
+      ? `1단계: 본문 영역 찾는 중... (${chunkProgress.current}/${chunkProgress.total})`
+      : undefined;
+    return <CaptureProgress stage={stage} chunkLabel={chunkLabel} />;
   }
 
   // ── 분석 완료 ──
