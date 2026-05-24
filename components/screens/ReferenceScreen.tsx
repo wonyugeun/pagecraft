@@ -531,8 +531,8 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
     return <CaptureProgress stage={stage} chunkLabel={chunkLabel} />;
   }
 
-  // ── 분석 완료 ──
-  if (stage === 'done' && captureResult && stitchedImage) {
+  // ── 분석 완료 ── (stitchedImage는 로컬 state라 재마운트 시 null — 결과 표시는 captureResult만 확인)
+  if (stage === 'done' && captureResult) {
     return <CaptureResultView result={captureResult} stitchedImage={stitchedImage} onReset={reset} onUse={handleUse} />;
   }
 
@@ -654,7 +654,7 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
 
 /* ─── 메인 ─── */
 export default function ReferenceScreen() {
-  const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis } = useApp();
+  const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis, setSectionStructure } = useApp();
 
   // Restore to the previously active tab based on what analysis data is available
   const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
@@ -672,7 +672,7 @@ export default function ReferenceScreen() {
   const switchTab = (t: Tab) => {
     setTab(t);
     reset();
-    if (t !== 'capture') setCaptureAnalysis(null);
+    // captureAnalysis는 탭 전환 시 유지 — URL/텍스트 분석 성공 시에만 상호 제거
   };
 
   const callApi = async (body: Record<string, string>) => {
@@ -695,6 +695,8 @@ export default function ReferenceScreen() {
       if (!res.ok || data.error) { setError(data.error ?? '분석 실패'); return; }
       setResult(data.analysis);
       setReferenceAnalysis(data.analysis);
+      setCaptureAnalysis(null);   // URL/텍스트 분석 성공 시 캡처 분석 제거
+      setSectionStructure([]);    // 이전 섹션 구조 제거 → referenceAnalysis가 우선 적용되도록
     } catch (err) {
       clearTimeout(tid);
       if ((err as Error).name === 'AbortError') {
@@ -733,6 +735,7 @@ export default function ReferenceScreen() {
   const handleCaptureDone = (analysis: CaptureAnalysis, _stitchedImage: string) => {
     setCaptureAnalysis(analysis);
     setReferenceAnalysis(null);
+    setSectionStructure([]); // 이전 섹션 구조 제거 → captureAnalysis가 SectionStructureScreen에서 우선 적용되도록
   };
 
   return (
