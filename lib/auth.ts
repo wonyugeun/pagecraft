@@ -3,6 +3,8 @@ import GoogleProvider from 'next-auth/providers/google';
 import KakaoProvider from 'next-auth/providers/kakao';
 
 export const authOptions: NextAuthOptions = {
+  debug: process.env.NODE_ENV === 'development',
+
   providers: [
     GoogleProvider({
       clientId:     process.env.GOOGLE_CLIENT_ID!,
