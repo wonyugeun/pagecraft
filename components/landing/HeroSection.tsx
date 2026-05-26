@@ -13,15 +13,15 @@ export default function HeroSection() {
   return (
     <section style={{
       background: '#F4F0FF',
-      padding: '80px 40px',
+      padding: '100px 48px',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
       <div style={{
-        maxWidth: '1280px',
+        maxWidth: '1360px',
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '60px',
+        gridTemplateColumns: '1fr 1.1fr',
+        gap: '64px',
         alignItems: 'center',
       }} className="hero-grid">
 
@@ -31,9 +31,9 @@ export default function HeroSection() {
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             background: '#EDE8FF', border: '1px solid #D9D2FF',
-            borderRadius: '100px', padding: '6px 14px',
+            borderRadius: '100px', padding: '8px 16px',
             fontSize: '13px', fontWeight: 600, color: '#6E5BFB',
-            marginBottom: '28px',
+            marginBottom: '32px',
           }}>
             <span>✨</span>
             AI 상세페이지 자동 생성 서비스
@@ -41,12 +41,12 @@ export default function HeroSection() {
 
           {/* 타이틀 — 2줄 */}
           <h1 style={{
-            fontSize: '46px',
+            fontSize: '56px',
             fontWeight: 700,
             color: '#191F28',
-            letterSpacing: '-1px',
-            lineHeight: 1.25,
-            marginBottom: '20px',
+            letterSpacing: '-1.2px',
+            lineHeight: 1.2,
+            marginBottom: '24px',
           }}>
             AI가 만드는 고퀄리티<br />
             상세페이지, <span style={{ color: '#6E5BFB' }}>단 3분</span> 만에
@@ -56,8 +56,8 @@ export default function HeroSection() {
           <p style={{
             fontSize: '16px',
             color: '#4E5968',
-            lineHeight: 1.75,
-            marginBottom: '36px',
+            lineHeight: 1.7,
+            marginBottom: '32px',
           }}>
             카테고리별 전문 AI가 상품 정보를 분석해<br />
             판매 채널에 최적화된 상세페이지를 자동으로 완성합니다.
@@ -72,7 +72,7 @@ export default function HeroSection() {
               style={{
                 background: hoverCta ? '#5447D9' : '#6E5BFB',
                 border: 'none', borderRadius: '10px',
-                padding: '15px 32px', fontSize: '15px', fontWeight: 700,
+                padding: '14px 28px', fontSize: '15px', fontWeight: 700,
                 color: '#fff', cursor: 'pointer', transition: 'all 150ms',
                 fontFamily: 'inherit',
                 boxShadow: '0 4px 16px rgba(110,91,251,0.32)',
@@ -88,7 +88,7 @@ export default function HeroSection() {
               style={{
                 background: '#fff',
                 border: `1.5px solid ${hoverSample ? '#6E5BFB' : '#D9D2FF'}`,
-                borderRadius: '10px', padding: '15px 24px',
+                borderRadius: '10px', padding: '14px 24px',
                 fontSize: '15px', fontWeight: 600,
                 color: hoverSample ? '#6E5BFB' : '#4E5968',
                 cursor: 'pointer', transition: 'all 150ms',
@@ -124,7 +124,7 @@ export default function HeroSection() {
         </div>
 
         {/* ── 우: 이미지 ── */}
-        <div className="hero-card-wrap" style={{ lineHeight: 0 }}>
+        <div className="hero-card-wrap" style={{ lineHeight: 0, width: '100%' }}>
           <Image
             src="/images/landing/hero-preview.png"
             alt="PageCraft AI 상세페이지 미리보기"
