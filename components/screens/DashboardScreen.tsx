@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Home, FileText, BookOpen,
   Crown, Zap, ArrowRight, Sparkles, TrendingUp, TrendingDown, Trash2, Ellipsis,
@@ -96,53 +97,36 @@ function BarChart({ counts }: { counts: number[] }) {
   );
 }
 
-// ── 메인 액션 카드 목업 ───────────────────────────────────
-function CardMockup() {
+// ── 메인 액션 카드 목업 (실제 이미지) ────────────────────
+function MockupImage() {
   return (
-    <div style={{ position: 'relative', width: 230, height: 155, flexShrink: 0 }}>
-      {/* 뒤 카드 */}
+    <div style={{ position: 'relative', width: 280, height: 188, flexShrink: 0 }}>
+      {/* 깊이감용 뒤 카드 2장 */}
       <div style={{
-        position: 'absolute', left: 0, top: 18,
-        width: 160, height: 125,
-        background: 'linear-gradient(135deg, #F4F0FF, #EDE8FF)',
-        borderRadius: 14, border: '1px solid #DDD6FE',
-        boxShadow: '0 2px 8px rgba(109,76,255,0.08)',
+        position: 'absolute', inset: 0, borderRadius: 16,
+        background: 'linear-gradient(135deg, #C4B5FD, #A78BFA)',
+        transform: 'rotate(-3deg) translate(-10px, 12px)',
+        opacity: 0.3,
       }} />
-      {/* 앞 카드 */}
       <div style={{
-        position: 'absolute', left: 30, top: 0,
-        width: 168, height: 132,
-        background: '#fff', borderRadius: 12,
-        border: '1px solid #EBEBF2',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-        overflow: 'hidden',
+        position: 'absolute', inset: 0, borderRadius: 16,
+        background: '#DDD6FE',
+        transform: 'rotate(-1.5deg) translate(-5px, 6px)',
+        opacity: 0.55,
+      }} />
+      {/* 앞: 실제 이미지 */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        borderRadius: 16, overflow: 'hidden',
+        boxShadow: '0 10px 32px rgba(109,76,255,0.22)',
       }}>
-        <div style={{ display: 'flex', gap: 3, padding: '7px 8px 5px', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF5F57' }} />
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FEBC2E' }} />
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#28C840' }} />
-        </div>
-        <div style={{ display: 'flex', padding: '8px 10px', gap: 8 }}>
-          <div style={{
-            width: 62, height: 78, flexShrink: 0,
-            background: 'linear-gradient(145deg, #F0EEFF 0%, #DDD6FE 100%)',
-            borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 28,
-          }}>🧴</div>
-          <div style={{ flex: 1, paddingTop: 2 }}>
-            <div style={{ fontSize: 7.5, fontWeight: 700, color: '#222', marginBottom: 5, lineHeight: 1.4 }}>
-              깊은 보습 수분 크림
-            </div>
-            <div style={{ height: 5, background: '#EDE8FF', borderRadius: 3, width: '95%', marginBottom: 3 }} />
-            <div style={{ height: 5, background: '#F0EEF8', borderRadius: 3, width: '80%', marginBottom: 3 }} />
-            <div style={{ height: 5, background: '#F0EEF8', borderRadius: 3, width: '65%', marginBottom: 7 }} />
-            <div style={{ display: 'flex', gap: 3 }}>
-              <div style={{ height: 13, width: 40, background: '#6D4CFF', borderRadius: 4 }} />
-              <div style={{ height: 13, width: 30, background: '#EDE8FF', borderRadius: 4 }} />
-            </div>
-          </div>
-        </div>
+        <Image
+          src="/images/dashboard/main-mockup.png"
+          alt="상세페이지 미리보기"
+          fill
+          quality={95}
+          style={{ objectFit: 'cover', objectPosition: 'top left' }}
+        />
       </div>
     </div>
   );
@@ -479,42 +463,49 @@ export default function DashboardScreen() {
           {/* ── 좌: 메인 영역 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* 수정 3: 메인 액션 카드 (padding 확대) */}
+            {/* 메인 액션 카드 */}
             <div
-              style={{ ...card('main'), padding: '28px 32px', border: `2px solid ${hov === 'main' ? '#6D4CFF' : '#DDD6FE'}` }}
+              style={{
+                ...card('main'),
+                padding: '40px 44px',
+                border: `2px solid ${hov === 'main' ? '#6D4CFF' : '#DDD6FE'}`,
+                background: hov === 'main'
+                  ? 'linear-gradient(135deg, #EDE8FF 0%, #E8E3FF 100%)'
+                  : 'linear-gradient(135deg, #F4F0FF 0%, #EEE8FF 60%, #F8F5FF 100%)',
+              }}
               onMouseEnter={() => setHov('main')}
               onMouseLeave={() => setHov(null)}
               onClick={startDetail}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F4F0FF', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', marginBottom: 12 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#EDE8FF', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', marginBottom: 14 }}>
                     AI가 구성해드려요
                     <span style={{ background: '#6D4CFF', borderRadius: '50%', width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, marginLeft: 2 }}>+</span>
                   </div>
-                  <div style={{ fontSize: 32, fontWeight: 800, color: '#111', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 10 }}>
+                  <div style={{ fontSize: 34, fontWeight: 800, color: '#111', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 12 }}>
                     상세페이지 만들기
                   </div>
-                  <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 16 }}>
+                  <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, marginBottom: 20 }}>
                     카테고리·채널·타입 선택 → AI가 카피+이미지 구조 완성
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {['기본형', '프리미엄형', '블로그형(글+그림) 포함'].map(c => (
-                      <span key={c} style={{ background: '#F4F0FF', borderRadius: 999, padding: '4px 10px', fontSize: 11, color: '#6D4CFF' }}>{c}</span>
+                      <span key={c} style={{ background: '#fff', borderRadius: 999, padding: '5px 12px', fontSize: 11, color: '#6D4CFF', border: '1px solid #DDD6FE' }}>{c}</span>
                     ))}
                   </div>
                 </div>
-                <CardMockup />
+                <MockupImage />
                 <CheckList />
                 <div style={{
-                  width: 56, height: 56, flexShrink: 0,
+                  width: 60, height: 60, flexShrink: 0,
                   background: '#6D4CFF', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(109,76,255,0.35)',
+                  boxShadow: '0 4px 20px rgba(109,76,255,0.40)',
                   transition: 'transform 150ms',
-                  transform: hov === 'main' ? 'scale(1.08)' : 'scale(1)',
+                  transform: hov === 'main' ? 'scale(1.10)' : 'scale(1)',
                 }}>
-                  <ArrowRight size={24} color="#fff" />
+                  <ArrowRight size={26} color="#fff" />
                 </div>
               </div>
             </div>
