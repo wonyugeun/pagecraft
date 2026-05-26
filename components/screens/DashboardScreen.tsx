@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Home, FileText, LayoutGrid, BookOpen, Settings,
-  Crown, Zap, Image as ImageIcon, ChevronRight,
-  ArrowRight, Sparkles, Bot, TrendingUp, TrendingDown, Trash2, Ellipsis, Folder,
+  Crown, Zap, ChevronRight,
+  ArrowRight, Sparkles, Bot, TrendingUp, TrendingDown, Trash2, Ellipsis,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
 
@@ -153,6 +153,17 @@ const MENUS = [
   { icon: BookOpen, label: '가이드', active: false },
   { icon: Settings, label: '설정', active: false },
 ];
+
+function getCatStyle(cat: string): { bg: string; emoji: string } {
+  if (cat?.includes('화장품') || cat?.includes('미용')) return { bg: '#FDF2F8', emoji: '🧴' };
+  if (cat?.includes('식품') || cat?.includes('음식')) return { bg: '#FEF3C7', emoji: '🍲' };
+  if (cat?.includes('가구') || cat?.includes('인테리어')) return { bg: '#F0FDF4', emoji: '🪑' };
+  if (cat?.includes('디지털') || cat?.includes('가전')) return { bg: '#EFF6FF', emoji: '📱' };
+  if (cat?.includes('패션') || cat?.includes('잡화')) return { bg: '#FAF5FF', emoji: '👗' };
+  if (cat?.includes('스포츠') || cat?.includes('아웃도어')) return { bg: '#FFF7ED', emoji: '🏃' };
+  if (cat?.includes('반려') || cat?.includes('펫')) return { bg: '#FEF9EE', emoji: '🐾' };
+  return { bg: '#F4F0FF', emoji: '📄' };
+}
 
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
@@ -414,8 +425,8 @@ export default function DashboardScreen() {
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #F4F4F6' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</span>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'none', border: 'none', fontSize: 12, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  전체 보기 <ChevronRight size={12} />
+                <button style={{ background: 'none', border: 'none', fontSize: 12, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+                  전체 보기 →
                 </button>
               </div>
 
@@ -456,21 +467,28 @@ export default function DashboardScreen() {
                         onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFC')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <div style={{ width: 52, height: 52, flexShrink: 0, background: '#F4F0FF', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <ImageIcon size={20} color="#C4B5FD" />
-                        </div>
+                        {(() => {
+                          const { bg, emoji } = getCatStyle(item.cat);
+                          return (
+                            <div style={{ width: 52, height: 52, flexShrink: 0, background: bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+                              {emoji}
+                            </div>
+                          );
+                        })()}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.productName || '(상품명 없음)'}
                           </div>
-                          <div style={{ display: 'flex', gap: 5 }}>
-                            {[item.cat, item.ch].map(t => (
-                              <span key={t} style={{ background: '#F4F4F6', borderRadius: 999, padding: '2px 8px', fontSize: 11, color: '#666' }}>{t}</span>
+                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                            {[item.cat, item.ch].filter(Boolean).map(t => (
+                              <span key={t} style={{ background: '#F4F4F6', borderRadius: 999, padding: '2px 8px', fontSize: 11, color: '#555' }}>{t}</span>
                             ))}
-                            <span style={{ background: '#F4F4F6', borderRadius: 999, padding: '2px 8px', fontSize: 11, color: '#666' }}>{item.secCnt}섹션</span>
                           </div>
                         </div>
-                        <div style={{ fontSize: 11, color: '#CCC', flexShrink: 0 }}>{fmt(item.createdAt)}</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: '#888' }}>{item.secCnt}섹션</span>
+                          <div style={{ fontSize: 11, color: '#CCC' }}>{fmt(item.createdAt)}</div>
+                        </div>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
                           <button
                             onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === item.id ? null : item.id); }}
