@@ -16,6 +16,13 @@ export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoverLogin, setHoverLogin] = useState(false);
   const [hoverCta, setHoverCta] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    if (loading) return;
+    setLoading(true);
+    await signIn('google', { callbackUrl: '/' });
+  };
 
   return (
     <nav style={{
@@ -62,32 +69,35 @@ export default function LandingNav() {
       {/* 우측 버튼 */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button
-          onClick={() => signIn('google')}
+          onClick={handleSignIn}
           onMouseEnter={() => setHoverLogin(true)}
           onMouseLeave={() => setHoverLogin(false)}
+          disabled={loading}
           style={{
             background: 'transparent',
             border: `1px solid ${hoverLogin ? '#CBD2D9' : '#E8ECF0'}`,
             borderRadius: '8px', padding: '8px 18px',
             fontSize: '14px', fontWeight: 500,
             color: hoverLogin ? '#191F28' : '#4E5968',
-            cursor: 'pointer', transition: 'all 150ms',
-            fontFamily: 'inherit',
+            cursor: loading ? 'default' : 'pointer', transition: 'all 150ms',
+            fontFamily: 'inherit', opacity: loading ? 0.6 : 1,
           }}
         >
-          로그인
+          {loading ? '로그인 중...' : '로그인'}
         </button>
         <button
-          onClick={() => signIn('google')}
+          onClick={handleSignIn}
           onMouseEnter={() => setHoverCta(true)}
           onMouseLeave={() => setHoverCta(false)}
+          disabled={loading}
           style={{
             background: hoverCta ? '#5447D9' : '#6E5BFB',
             border: 'none', borderRadius: '8px',
             padding: '8px 20px', fontSize: '14px', fontWeight: 600,
-            color: '#fff', cursor: 'pointer', transition: 'background 150ms',
+            color: '#fff', cursor: loading ? 'default' : 'pointer', transition: 'background 150ms',
             fontFamily: 'inherit',
             boxShadow: '0 2px 8px rgba(110,91,251,0.25)',
+            opacity: loading ? 0.6 : 1,
           }}
         >
           무료로 시작하기
@@ -128,11 +138,13 @@ export default function LandingNav() {
             </Link>
           ))}
           <button
-            onClick={() => signIn('google')}
+            onClick={handleSignIn}
+            disabled={loading}
             style={{
               background: '#6E5BFB', border: 'none', borderRadius: '8px',
               padding: '12px', fontSize: '15px', fontWeight: 600,
-              color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+              color: '#fff', cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit',
+              opacity: loading ? 0.6 : 1,
             }}
           >
             무료로 시작하기

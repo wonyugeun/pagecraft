@@ -9,6 +9,13 @@ const META_ITEMS = ['회원가입 즉시 무료', '신용카드 불필요', '고
 export default function HeroSection() {
   const [hoverCta, setHoverCta] = useState(false);
   const [hoverSample, setHoverSample] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSignIn = async () => {
+    if (loading) return;
+    setLoading(true);
+    await signIn('google', { callbackUrl: '/' });
+  };
 
   return (
     <section style={{
@@ -66,21 +73,23 @@ export default function HeroSection() {
           {/* CTA 버튼 */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '28px' }}>
             <button
-              onClick={() => signIn('google')}
+              onClick={handleSignIn}
               onMouseEnter={() => setHoverCta(true)}
               onMouseLeave={() => setHoverCta(false)}
+              disabled={loading}
               style={{
                 background: hoverCta ? '#5447D9' : '#6E5BFB',
                 border: 'none', borderRadius: '10px',
                 padding: '14px 28px', fontSize: '15px', fontWeight: 700,
-                color: '#fff', cursor: 'pointer', transition: 'all 150ms',
+                color: '#fff', cursor: loading ? 'default' : 'pointer', transition: 'all 150ms',
                 fontFamily: 'inherit',
                 boxShadow: '0 4px 16px rgba(110,91,251,0.32)',
                 transform: hoverCta ? 'translateY(-1px)' : 'none',
                 whiteSpace: 'nowrap',
+                opacity: loading ? 0.6 : 1,
               }}
             >
-              무료로 시작하기 →
+              {loading ? '로그인 중...' : '무료로 시작하기 →'}
             </button>
             <button
               onMouseEnter={() => setHoverSample(true)}
