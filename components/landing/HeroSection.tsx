@@ -21,8 +21,8 @@ export default function HeroSection() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
-          gap: '56px',
-          alignItems: 'center',
+          gap: '40px',
+          alignItems: 'start',
         }} className="hero-grid">
 
           {/* ── 좌: 카피 ── */}
@@ -139,9 +139,8 @@ export default function HeroSection() {
             </div>
           </div>
 
-          {/* ── 우: 히어로 이미지 ── */}
-          {/* 실제 이미지 해상도: 1536×1024 (3:2) */}
-          <div className="hero-card-wrap" style={{ lineHeight: 0 }}>
+          {/* ── 우: 히어로 이미지 (1536×1024, 3:2) ── */}
+          <div className="hero-card-wrap" style={{ lineHeight: 0, width: '100%' }}>
             <Image
               src="/images/landing/hero-preview.png"
               alt="PageCraft AI 상세페이지 미리보기"
@@ -153,8 +152,7 @@ export default function HeroSection() {
                 width: '100%',
                 height: 'auto',
                 display: 'block',
-                borderRadius: '20px',
-                boxShadow: '0 24px 60px rgba(109,76,255,0.12)',
+                borderRadius: '16px',
               }}
             />
           </div>
