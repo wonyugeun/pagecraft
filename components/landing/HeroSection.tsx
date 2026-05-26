@@ -20,13 +20,13 @@ export default function HeroSection() {
         maxWidth: '1360px',
         margin: '0 auto',
         display: 'grid',
-        gridTemplateColumns: '1fr 1.1fr',
-        gap: '64px',
+        gridTemplateColumns: '1fr 1.3fr',
+        gap: '48px',
         alignItems: 'center',
       }} className="hero-grid">
 
         {/* ── 좌: 카피 ── */}
-        <div className="hero-copy">
+        <div className="hero-copy" style={{ paddingLeft: '60px' }}>
           {/* eyebrow 배지 */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',

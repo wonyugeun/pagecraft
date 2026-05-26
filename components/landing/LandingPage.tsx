@@ -45,6 +45,7 @@ export default function LandingPage() {
 
         @media (max-width: 768px) {
           .hero-grid { padding: 0 !important; }
+          .hero-copy { padding-left: 0 !important; }
           .hero-grid h1 { font-size: 36px !important; }
           .hero-grid p { font-size: 14px !important; }
           .hero-card-wrap { max-width: 100% !important; }
