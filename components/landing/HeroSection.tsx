@@ -12,34 +12,25 @@ export default function HeroSection() {
 
   return (
     <section style={{
-      background: 'linear-gradient(180deg, #F9F8FF 0%, #FFFFFF 100%)',
-      padding: '80px 0 0',
-      overflow: 'hidden',
+      background: '#F4F0FF',
+      padding: '80px 40px',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
-      {/* 전체 너비 그리드 — 이미지가 우측 끝까지 뻗어나감 */}
       <div style={{
+        maxWidth: '1280px',
+        margin: '0 auto',
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
-        alignItems: 'start',
-        gap: '40px',
+        gap: '60px',
+        alignItems: 'center',
       }} className="hero-grid">
 
-        {/* ── 좌: 카피 (1280px 컨테이너 내부 위치로 패딩 계산) ── */}
-        <div
-          className="hero-copy"
-          style={{
-            paddingLeft: 'max(40px, calc((100vw - 1280px) / 2 + 40px))',
-            paddingRight: '0',
-            paddingTop: '40px',
-            paddingBottom: '80px',
-            maxWidth: 'calc(640px + max(0px, (100vw - 1280px) / 2))',
-          }}
-        >
+        {/* ── 좌: 카피 ── */}
+        <div className="hero-copy">
           {/* eyebrow 배지 */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            background: '#F4F2FF', border: '1px solid #E8E5FF',
+            background: '#EDE8FF', border: '1px solid #D9D2FF',
             borderRadius: '100px', padding: '6px 14px',
             fontSize: '13px', fontWeight: 600, color: '#6E5BFB',
             marginBottom: '28px',
@@ -48,19 +39,17 @@ export default function HeroSection() {
             AI 상세페이지 자동 생성 서비스
           </div>
 
-          {/* 타이틀 */}
+          {/* 타이틀 — 2줄 */}
           <h1 style={{
-            fontSize: '50px',
+            fontSize: '46px',
             fontWeight: 700,
             color: '#191F28',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.18,
-            marginBottom: '22px',
-            maxWidth: '520px',
+            letterSpacing: '-1px',
+            lineHeight: 1.25,
+            marginBottom: '20px',
           }}>
-            AI가 만드는<br />
-            고퀄리티 상세페이지,<br />
-            <span style={{ color: '#6E5BFB' }}>단 3분</span> 만에
+            AI가 만드는 고퀄리티<br />
+            상세페이지, <span style={{ color: '#6E5BFB' }}>단 3분</span> 만에
           </h1>
 
           {/* 부제 */}
@@ -69,7 +58,6 @@ export default function HeroSection() {
             color: '#4E5968',
             lineHeight: 1.75,
             marginBottom: '36px',
-            maxWidth: '460px',
           }}>
             카테고리별 전문 AI가 상품 정보를 분석해<br />
             판매 채널에 최적화된 상세페이지를 자동으로 완성합니다.
@@ -99,7 +87,7 @@ export default function HeroSection() {
               onMouseLeave={() => setHoverSample(false)}
               style={{
                 background: '#fff',
-                border: `1.5px solid ${hoverSample ? '#6E5BFB' : '#E8E5FF'}`,
+                border: `1.5px solid ${hoverSample ? '#6E5BFB' : '#D9D2FF'}`,
                 borderRadius: '10px', padding: '15px 24px',
                 fontSize: '15px', fontWeight: 600,
                 color: hoverSample ? '#6E5BFB' : '#4E5968',
@@ -111,7 +99,7 @@ export default function HeroSection() {
             >
               <span style={{
                 width: '20px', height: '20px',
-                background: hoverSample ? '#6E5BFB' : '#F4F2FF',
+                background: hoverSample ? '#6E5BFB' : '#EDE8FF',
                 borderRadius: '50%', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
                 fontSize: '9px', color: hoverSample ? '#fff' : '#6E5BFB',
@@ -135,8 +123,8 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* ── 우: 이미지 (화면 우측 끝까지) ── */}
-        <div className="hero-card-wrap" style={{ lineHeight: 0, alignSelf: 'stretch' }}>
+        {/* ── 우: 이미지 ── */}
+        <div className="hero-card-wrap" style={{ lineHeight: 0 }}>
           <Image
             src="/images/landing/hero-preview.png"
             alt="PageCraft AI 상세페이지 미리보기"
@@ -146,10 +134,10 @@ export default function HeroSection() {
             priority
             style={{
               width: '100%',
-              height: '100%',
+              height: 'auto',
               display: 'block',
-              objectFit: 'cover',
-              objectPosition: 'left center',
+              borderRadius: '12px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
             }}
           />
         </div>
