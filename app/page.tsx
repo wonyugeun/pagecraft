@@ -105,8 +105,9 @@ function OutputScreen() {
 
 function App() {
   const { screen, chatOpen } = useApp();
+  const isDash = screen === 's-dash';
   const hasProgress = Boolean(STEP_MAP[screen]);
-  const paddingTop = screen === 's0' ? 56 : hasProgress ? 106 : 56;
+  const paddingTop = isDash ? 0 : screen === 's0' ? 56 : hasProgress ? 106 : 56;
 
   const screenMap: Record<string, React.ReactNode> = {
     's0': <LoginScreen />,
@@ -127,7 +128,7 @@ function App() {
 
   return (
     <>
-      <TopBar />
+      {!isDash && <TopBar />}
       {hasProgress && <ProgressBar />}
       <div className={`main${chatOpen ? ' chat-open' : ''}`} style={{ paddingTop }}>
         <div className="scr">
