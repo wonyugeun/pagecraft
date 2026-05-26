@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   pages: {
-    signIn: '/',   // 우리 앱 루트가 로그인 화면
+    signIn: '/login',
   },
 
   callbacks: {

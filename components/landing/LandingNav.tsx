@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const NAV_LINKS = [
   { label: '서비스 소개', href: '/about' },
@@ -16,13 +16,7 @@ export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [hoverLogin, setHoverLogin] = useState(false);
   const [hoverCta, setHoverCta] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleSignIn = async () => {
-    if (loading) return;
-    setLoading(true);
-    await signIn('google', { callbackUrl: '/' });
-  };
+  const router = useRouter();
 
   return (
     <nav style={{
@@ -69,35 +63,32 @@ export default function LandingNav() {
       {/* 우측 버튼 */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <button
-          onClick={handleSignIn}
+          onClick={() => router.push('/login')}
           onMouseEnter={() => setHoverLogin(true)}
           onMouseLeave={() => setHoverLogin(false)}
-          disabled={loading}
           style={{
             background: 'transparent',
             border: `1px solid ${hoverLogin ? '#CBD2D9' : '#E8ECF0'}`,
             borderRadius: '8px', padding: '8px 18px',
             fontSize: '14px', fontWeight: 500,
             color: hoverLogin ? '#191F28' : '#4E5968',
-            cursor: loading ? 'default' : 'pointer', transition: 'all 150ms',
-            fontFamily: 'inherit', opacity: loading ? 0.6 : 1,
+            cursor: 'pointer', transition: 'all 150ms',
+            fontFamily: 'inherit',
           }}
         >
-          {loading ? '로그인 중...' : '로그인'}
+          로그인
         </button>
         <button
-          onClick={handleSignIn}
+          onClick={() => router.push('/login')}
           onMouseEnter={() => setHoverCta(true)}
           onMouseLeave={() => setHoverCta(false)}
-          disabled={loading}
           style={{
             background: hoverCta ? '#5447D9' : '#6E5BFB',
             border: 'none', borderRadius: '8px',
             padding: '8px 20px', fontSize: '14px', fontWeight: 600,
-            color: '#fff', cursor: loading ? 'default' : 'pointer', transition: 'background 150ms',
+            color: '#fff', cursor: 'pointer', transition: 'background 150ms',
             fontFamily: 'inherit',
             boxShadow: '0 2px 8px rgba(110,91,251,0.25)',
-            opacity: loading ? 0.6 : 1,
           }}
         >
           무료로 시작하기
@@ -138,13 +129,11 @@ export default function LandingNav() {
             </Link>
           ))}
           <button
-            onClick={handleSignIn}
-            disabled={loading}
+            onClick={() => { setMobileOpen(false); router.push('/login'); }}
             style={{
               background: '#6E5BFB', border: 'none', borderRadius: '8px',
               padding: '12px', fontSize: '15px', fontWeight: 600,
-              color: '#fff', cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit',
-              opacity: loading ? 0.6 : 1,
+              color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
             무료로 시작하기
