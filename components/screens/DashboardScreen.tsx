@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import {
-  Home, FileText, LayoutGrid, BookOpen, Settings,
+  Home, FileText, BookOpen,
   Crown, Zap, ArrowRight, Sparkles, TrendingUp, TrendingDown, Trash2, Ellipsis,
+  LogOut, User, Settings,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
 
@@ -49,15 +51,15 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
   return { bg: '#F4F0FF', emoji: '📄' };
 }
 
+// 수정 5: 숫자 없이 카테고리명만
 const PLATFORM_CATS = [
-  { name: '화장품/미용', count: '12,408개' },
-  { name: '식품',       count: '8,721개' },
-  { name: '가구/인테리어', count: '6,531개' },
-  { name: '디지털/가전', count: '4,982개' },
-  { name: '패션/잡화',  count: '3,652개' },
+  '화장품/미용',
+  '식품',
+  '가구/인테리어',
+  '디지털/가전',
+  '패션/잡화',
 ];
 
-// 예시 데이터 (history가 비어있을 때 미리보기용)
 const SAMPLE_HISTORY: HistoryItem[] = [
   { id: 'sample-1', productName: '데일리 수분 크림 상세페이지', cat: '화장품/미용', ch: '스마트스토어', type: '기본형', out: 'blog', secCnt: 16, createdAt: '2026-05-22T18:08:00', sections: [] },
   { id: 'sample-2', productName: '원목 의자 상세페이지', cat: '가구/인테리어', ch: '스마트스토어', type: '기본형', out: 'slide', secCnt: 12, createdAt: '2026-05-22T17:48:00', sections: [] },
@@ -83,7 +85,6 @@ function BarChart({ counts }: { counts: number[] }) {
               width: '100%', height: h,
               background: isToday ? '#6D4CFF' : v === 0 ? '#EBEBF2' : '#C4B5FD',
               borderRadius: '3px 3px 0 0',
-              transition: 'height 300ms',
             }} />
             <span style={{ fontSize: 9, color: isToday ? '#6D4CFF' : '#CCC', fontWeight: isToday ? 700 : 400 }}>
               {labels[i]}
@@ -95,54 +96,50 @@ function BarChart({ counts }: { counts: number[] }) {
   );
 }
 
-// ── 메인 액션 카드 목업 (실제 상세페이지 미리보기) ────────
+// ── 메인 액션 카드 목업 ───────────────────────────────────
 function CardMockup() {
   return (
-    <div style={{ position: 'relative', width: 220, height: 145, flexShrink: 0 }}>
+    <div style={{ position: 'relative', width: 230, height: 155, flexShrink: 0 }}>
       {/* 뒤 카드 */}
       <div style={{
-        position: 'absolute', left: 0, top: 16,
-        width: 155, height: 118,
+        position: 'absolute', left: 0, top: 18,
+        width: 160, height: 125,
         background: 'linear-gradient(135deg, #F4F0FF, #EDE8FF)',
         borderRadius: 14, border: '1px solid #DDD6FE',
         boxShadow: '0 2px 8px rgba(109,76,255,0.08)',
       }} />
-      {/* 앞 카드 - 상세페이지 미리보기 */}
+      {/* 앞 카드 */}
       <div style={{
-        position: 'absolute', left: 28, top: 0,
-        width: 162, height: 125,
+        position: 'absolute', left: 30, top: 0,
+        width: 168, height: 132,
         background: '#fff', borderRadius: 12,
         border: '1px solid #EBEBF2',
-        boxShadow: '0 6px 20px rgba(0,0,0,0.10)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
         overflow: 'hidden',
       }}>
-        {/* 브라우저 dots */}
         <div style={{ display: 'flex', gap: 3, padding: '7px 8px 5px', background: '#FAFAFA', borderBottom: '1px solid #F0F0F0' }}>
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FF5F57' }} />
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#FEBC2E' }} />
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#28C840' }} />
         </div>
-        {/* 상품 이미지 + 정보 */}
         <div style={{ display: 'flex', padding: '8px 10px', gap: 8 }}>
-          {/* 이미지 박스 */}
           <div style={{
-            width: 58, height: 72, flexShrink: 0,
+            width: 62, height: 78, flexShrink: 0,
             background: 'linear-gradient(145deg, #F0EEFF 0%, #DDD6FE 100%)',
             borderRadius: 8,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26,
+            fontSize: 28,
           }}>🧴</div>
-          {/* 텍스트 영역 */}
           <div style={{ flex: 1, paddingTop: 2 }}>
             <div style={{ fontSize: 7.5, fontWeight: 700, color: '#222', marginBottom: 5, lineHeight: 1.4 }}>
-              집은 보습 수분 크림
+              깊은 보습 수분 크림
             </div>
             <div style={{ height: 5, background: '#EDE8FF', borderRadius: 3, width: '95%', marginBottom: 3 }} />
             <div style={{ height: 5, background: '#F0EEF8', borderRadius: 3, width: '80%', marginBottom: 3 }} />
             <div style={{ height: 5, background: '#F0EEF8', borderRadius: 3, width: '65%', marginBottom: 7 }} />
             <div style={{ display: 'flex', gap: 3 }}>
-              <div style={{ height: 13, width: 38, background: '#6D4CFF', borderRadius: 4 }} />
-              <div style={{ height: 13, width: 28, background: '#EDE8FF', borderRadius: 4 }} />
+              <div style={{ height: 13, width: 40, background: '#6D4CFF', borderRadius: 4 }} />
+              <div style={{ height: 13, width: 30, background: '#EDE8FF', borderRadius: 4 }} />
             </div>
           </div>
         </div>
@@ -179,56 +176,47 @@ function CheckList() {
   );
 }
 
-// ── 사이드바 메뉴 ─────────────────────────────────────────
-const MENUS = [
-  { icon: Home, label: '홈', active: true },
-  { icon: FileText, label: '내 작업', active: false },
-  { icon: LayoutGrid, label: '템플릿', active: false },
-  { icon: BookOpen, label: '가이드', active: false },
-  { icon: Settings, label: '설정', active: false },
-];
-
 // ── 로봇 일러스트 SVG ─────────────────────────────────────
 function RobotIllust() {
   return (
     <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-      {/* 몸통 */}
-      <rect x="18" y="36" width="44" height="32" rx="10" fill="#7C3AED" opacity="0.15"/>
       <rect x="20" y="38" width="40" height="28" rx="8" fill="#6D4CFF"/>
-      {/* 눈 */}
       <circle cx="31" cy="50" r="5" fill="white"/>
       <circle cx="49" cy="50" r="5" fill="white"/>
       <circle cx="32" cy="51" r="2.5" fill="#3B1FCC"/>
       <circle cx="50" cy="51" r="2.5" fill="#3B1FCC"/>
-      {/* 입 */}
       <rect x="31" y="59" width="18" height="3" rx="1.5" fill="white" opacity="0.7"/>
-      {/* 안테나 */}
       <line x1="40" y1="26" x2="40" y2="36" stroke="#6D4CFF" strokeWidth="2.5" strokeLinecap="round"/>
       <circle cx="40" cy="23" r="4" fill="#A78BFA"/>
       <circle cx="40" cy="23" r="2" fill="#6D4CFF"/>
-      {/* 머리 */}
-      <rect x="14" y="26" width="52" height="14" rx="7" fill="#6D4CFF" opacity="0.2"/>
       <rect x="16" y="28" width="48" height="12" rx="6" fill="#7C3AED" opacity="0.5"/>
-      {/* 팔 */}
       <rect x="8" y="42" width="10" height="18" rx="5" fill="#6D4CFF" opacity="0.7"/>
       <rect x="62" y="42" width="10" height="18" rx="5" fill="#6D4CFF" opacity="0.7"/>
-      {/* 반짝이 */}
       <circle cx="65" cy="30" r="2" fill="#A78BFA" opacity="0.8"/>
       <circle cx="14" cy="34" r="1.5" fill="#C4B5FD" opacity="0.6"/>
-      <circle cx="70" cy="50" r="1" fill="#DDD6FE" opacity="0.9"/>
     </svg>
   );
 }
 
+// ── 수정 1: 사이드바 메뉴 3개 ────────────────────────────
+const MENUS = [
+  { icon: Home,     label: '홈',    path: null },
+  { icon: FileText, label: '내 작업', path: '/my-works' },
+  { icon: BookOpen, label: '가이드', path: '/guide' },
+];
+
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
-  const { startDetail, go, loadFromHistory, toggleChat, credits } = useApp();
+  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen } = useApp();
   const { data: session } = useSession();
+  const router = useRouter();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [hov, setHov] = useState<string | null>(null);
   const [hoverSidebar, setHoverSidebar] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const email = session?.user?.email ?? 'guest';
   const rawName = session?.user?.name ?? '';
@@ -243,9 +231,11 @@ export default function DashboardScreen() {
     } catch {}
   }, [email]);
 
+  // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpenMenu(null);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
@@ -261,7 +251,6 @@ export default function DashboardScreen() {
 
   const stats = getWeeklyStats(history);
   const isEmpty = history.length === 0;
-  // history가 비어있으면 예시 데이터로 렌더링
   const displayHistory = isEmpty ? SAMPLE_HISTORY : history.slice(0, 4);
 
   const card = (id: string, extra?: React.CSSProperties): React.CSSProperties => ({
@@ -282,14 +271,13 @@ export default function DashboardScreen() {
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
 
-      {/* ══════════ 사이드바 ══════════ */}
+      {/* ══════════ 수정 1: 사이드바 (3개 메뉴) ══════════ */}
       <aside style={{
         width: 240, flexShrink: 0,
         background: '#fff', borderRight: '1px solid #ECECF2',
         display: 'flex', flexDirection: 'column',
         overflowY: 'auto',
       }}>
-        {/* 로고 */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '24px 20px 20px',
@@ -303,24 +291,24 @@ export default function DashboardScreen() {
           <span style={{ fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>PageCraft</span>
         </div>
 
-        {/* 메뉴 */}
         <nav style={{ flex: 1, padding: '12px 8px' }}>
           {MENUS.map(m => {
             const Icon = m.icon;
+            const isActive = m.path === null;
             const isHov = hoverSidebar === m.label;
             return (
               <div
                 key={m.label}
-                onClick={() => go('s-dash')}
+                onClick={() => m.path ? router.push(m.path) : go('s-dash')}
                 onMouseEnter={() => setHoverSidebar(m.label)}
                 onMouseLeave={() => setHoverSidebar(null)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
                   marginBottom: 2,
-                  background: m.active ? '#F4F0FF' : isHov ? '#FAFAFC' : 'transparent',
-                  color: m.active ? '#6D4CFF' : '#555',
-                  fontSize: 14, fontWeight: m.active ? 600 : 400,
+                  background: isActive ? '#F4F0FF' : isHov ? '#FAFAFC' : 'transparent',
+                  color: isActive ? '#6D4CFF' : '#555',
+                  fontSize: 14, fontWeight: isActive ? 600 : 400,
                   transition: 'background 100ms',
                 }}
               >
@@ -331,7 +319,6 @@ export default function DashboardScreen() {
           })}
         </nav>
 
-        {/* 프로 플랜 카드 */}
         <div style={{ padding: '0 12px 20px' }}>
           <div style={{
             background: 'linear-gradient(135deg, #6D4CFF 0%, #4A33CC 100%)',
@@ -359,7 +346,7 @@ export default function DashboardScreen() {
       {/* ══════════ 메인 콘텐츠 ══════════ */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 40px' }}>
 
-        {/* 헤더 */}
+        {/* ── 수정 2: 헤더 기능 활성화 ── */}
         <div style={{
           display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', marginBottom: 24,
@@ -370,20 +357,118 @@ export default function DashboardScreen() {
             </div>
             <div style={{ fontSize: 14, color: '#888' }}>오늘은 어떤 상세페이지를 만들어볼까요?</div>
           </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#16A34A' }}>
-              <span style={{ width: 7, height: 7, background: '#22C55E', borderRadius: '50%', display: 'inline-block' }} />
+            {/* AI 도우미 배지 - 클릭 시 챗봇 열기 */}
+            <button
+              onClick={toggleChat}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#F0FDF4', borderRadius: 999,
+                padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#16A34A',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#DCFCE7')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#F0FDF4')}
+            >
+              <span style={{ width: 7, height: 7, background: '#22C55E', borderRadius: '50%', display: 'inline-block', flexShrink: 0 }} />
               AI 도우미
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#FFF7E6', borderRadius: 999, padding: '6px 14px', fontSize: 13, fontWeight: 700, color: '#D97706' }}>
+            </button>
+
+            {/* 크레딧 버튼 - 클릭 시 크레딧 모달 */}
+            <button
+              onClick={() => setCreditModalOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: '#FFF7E6', borderRadius: 999,
+                padding: '6px 14px', fontSize: 13, fontWeight: 700, color: '#D97706',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#FEF3C7')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#FFF7E6')}
+            >
               <Zap size={13} /> {credits}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: '#fff', border: '1px solid #ECECF2', borderRadius: 999, padding: '6px 14px', fontSize: 13, color: '#333', cursor: 'default' }}>
-              <div style={{ width: 24, height: 24, background: '#EDE8FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#6D4CFF' }}>
-                {displayName[0]}
-              </div>
-              {displayName}
-              <span style={{ color: '#BBB', fontSize: 10 }}>▼</span>
+            </button>
+
+            {/* 프로필 드롭다운 */}
+            <div ref={profileRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setProfileOpen(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  background: '#fff', border: '1px solid #ECECF2',
+                  borderRadius: 999, padding: '6px 14px',
+                  fontSize: 13, color: '#333', cursor: 'pointer',
+                  fontFamily: 'inherit', transition: 'border-color 150ms',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#C4B5FD')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#ECECF2')}
+              >
+                <div style={{
+                  width: 24, height: 24, background: '#EDE8FF', borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, color: '#6D4CFF', flexShrink: 0,
+                }}>
+                  {displayName[0]}
+                </div>
+                {displayName}
+                <span style={{ color: '#BBB', fontSize: 10 }}>▼</span>
+              </button>
+
+              {profileOpen && (
+                <div style={{
+                  position: 'absolute', right: 0, top: 'calc(100% + 8px)',
+                  background: '#fff', border: '1px solid #ECECF2',
+                  borderRadius: 14, padding: '6px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+                  zIndex: 100, minWidth: 160,
+                }}>
+                  <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid #F4F4F6', marginBottom: 4 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{rawName || '사용자'}</div>
+                    <div style={{ fontSize: 11, color: '#AAA', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{email}</div>
+                  </div>
+                  {[
+                    { icon: User, label: '프로필', action: () => {} },
+                    { icon: Settings, label: '설정', action: () => {} },
+                  ].map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => { setProfileOpen(false); item.action(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          width: '100%', background: 'none', border: 'none',
+                          padding: '9px 12px', fontSize: 13, color: '#333',
+                          cursor: 'pointer', borderRadius: 8, fontFamily: 'inherit',
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFC')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                      >
+                        <Icon size={14} color="#888" /> {item.label}
+                      </button>
+                    );
+                  })}
+                  <div style={{ height: 1, background: '#F4F4F6', margin: '4px 0' }} />
+                  <button
+                    onClick={() => { setProfileOpen(false); signOut({ callbackUrl: '/' }); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      width: '100%', background: 'none', border: 'none',
+                      padding: '9px 12px', fontSize: 13, color: '#EF4444',
+                      cursor: 'pointer', borderRadius: 8, fontFamily: 'inherit',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    <LogOut size={14} color="#EF4444" /> 로그아웃
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -394,24 +479,23 @@ export default function DashboardScreen() {
           {/* ── 좌: 메인 영역 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* 메인 액션 카드 */}
+            {/* 수정 3: 메인 액션 카드 (padding 확대) */}
             <div
-              style={{ ...card('main'), padding: '24px 28px', border: `2px solid ${hov === 'main' ? '#6D4CFF' : '#DDD6FE'}` }}
+              style={{ ...card('main'), padding: '28px 32px', border: `2px solid ${hov === 'main' ? '#6D4CFF' : '#DDD6FE'}` }}
               onMouseEnter={() => setHov('main')}
               onMouseLeave={() => setHov(null)}
               onClick={startDetail}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                {/* 좌: 텍스트 */}
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F4F0FF', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', marginBottom: 10 }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#F4F0FF', borderRadius: 999, padding: '4px 12px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', marginBottom: 12 }}>
                     AI가 구성해드려요
                     <span style={{ background: '#6D4CFF', borderRadius: '50%', width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, marginLeft: 2 }}>+</span>
                   </div>
-                  <div style={{ fontSize: 30, fontWeight: 800, color: '#111', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 8 }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: '#111', letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 10 }}>
                     상세페이지 만들기
                   </div>
-                  <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, color: '#888', lineHeight: 1.6, marginBottom: 16 }}>
                     카테고리·채널·타입 선택 → AI가 카피+이미지 구조 완성
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -420,30 +504,23 @@ export default function DashboardScreen() {
                     ))}
                   </div>
                 </div>
-
-                {/* 중: 목업 */}
                 <CardMockup />
-
-                {/* 우: 체크리스트 */}
                 <CheckList />
-
-                {/* 화살표 */}
                 <div style={{
-                  width: 52, height: 52, flexShrink: 0,
+                  width: 56, height: 56, flexShrink: 0,
                   background: '#6D4CFF', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 4px 16px rgba(109,76,255,0.35)',
                   transition: 'transform 150ms',
                   transform: hov === 'main' ? 'scale(1.08)' : 'scale(1)',
                 }}>
-                  <ArrowRight size={22} color="#fff" />
+                  <ArrowRight size={24} color="#fff" />
                 </div>
               </div>
             </div>
 
             {/* 서브 카드 2열 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              {/* 빠른 제작 */}
               <div
                 style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}
                 onMouseEnter={() => setHov('quick')}
@@ -459,8 +536,6 @@ export default function DashboardScreen() {
                   <ArrowRight size={15} color="#92400E" />
                 </div>
               </div>
-
-              {/* 썸네일 만들기 */}
               <div
                 style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}
                 onMouseEnter={() => setHov('thumb')}
@@ -505,23 +580,38 @@ export default function DashboardScreen() {
                       onMouseEnter={e => { if (!isSample) e.currentTarget.style.background = '#FAFAFC'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
+                      {/* 썸네일 */}
                       <div style={{ width: 52, height: 52, flexShrink: 0, background: bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                         {emoji}
                       </div>
+
+                      {/* 제목 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.productName || '(상품명 없음)'}
                         </div>
+                        {/* 수정 4: 카테고리 칩 보라색, 채널 칩 회색 */}
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                          {[item.cat, item.ch].filter(Boolean).map(t => (
-                            <span key={t} style={{ background: '#F4F4F6', borderRadius: 999, padding: '2px 8px', fontSize: 11, color: '#555' }}>{t}</span>
-                          ))}
+                          {item.cat && (
+                            <span style={{ background: '#F4F0FF', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#6D4CFF', fontWeight: 500 }}>
+                              {item.cat}
+                            </span>
+                          )}
+                          {item.ch && (
+                            <span style={{ background: '#F4F4F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#888' }}>
+                              {item.ch}
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      {/* 섹션 수 + 날짜 */}
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                         <span style={{ fontSize: 11, color: '#888' }}>{item.secCnt}섹션</span>
                         <div style={{ fontSize: 11, color: '#CCC' }}>{fmt(item.createdAt)}</div>
                       </div>
+
+                      {/* ⋯ 메뉴 */}
                       {!isSample && (
                         <div style={{ position: 'relative', flexShrink: 0 }}>
                           <button
@@ -548,7 +638,7 @@ export default function DashboardScreen() {
                   );
                 })}
 
-                {/* 빈 상태 / CTA 배너 */}
+                {/* CTA 배너 */}
                 <div style={{ padding: '16px 20px', background: '#FAFAFC', borderTop: '1px solid #F4F4F6', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 40, height: 40, background: '#EDE8FF', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Sparkles size={18} color="#7C3AED" />
@@ -568,16 +658,14 @@ export default function DashboardScreen() {
           {/* ── 우: 사이드 영역 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* AI 추천 카테고리 */}
+            {/* 수정 5: AI 추천 카테고리 - 숫자 제거 */}
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', padding: '18px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>✦ AI 추천 카테고리</span>
-              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>✦ AI 추천 카테고리</div>
               <p style={{ fontSize: 12, color: '#AAA', marginBottom: 14, lineHeight: 1.5 }}>
                 요즘 많이 만드는 카테고리를 확인해보세요.
               </p>
-              {PLATFORM_CATS.map((c, i) => (
-                <div key={c.name} style={{
+              {PLATFORM_CATS.map((name, i) => (
+                <div key={name} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '8px 0',
                   borderBottom: i < 4 ? '1px solid #F5F5F7' : 'none',
@@ -589,13 +677,12 @@ export default function DashboardScreen() {
                     fontSize: 11, fontWeight: 700,
                     color: i === 0 ? '#fff' : '#6D4CFF',
                   }}>{i + 1}</div>
-                  <span style={{ flex: 1, fontSize: 13, color: '#333' }}>{c.name}</span>
-                  <span style={{ fontSize: 11, color: '#AAA' }}>{c.count}</span>
+                  <span style={{ fontSize: 13, color: '#333' }}>{name}</span>
                 </div>
               ))}
             </div>
 
-            {/* 이번 주 사용 리포트 (0개여도 차트 표시) */}
+            {/* 수정 6: 이번 주 사용 리포트 - 0개여도 차트 표시 */}
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', padding: '18px 20px' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>📊 이번 주 사용 리포트</div>
               <div style={{ fontSize: 11, color: '#AAA', marginBottom: 10 }}>생성한 상세페이지 수</div>
