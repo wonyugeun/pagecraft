@@ -31,10 +31,11 @@ export default function LandingPage() {
             gap: 48px !important;
           }
           .hero-card-wrap {
-            max-width: 480px;
+            max-width: 520px;
             margin: 0 auto;
             width: 100%;
           }
+          .hiw-img-wrap { max-width: 100% !important; }
           .landing-nav-menu { display: none !important; }
           .landing-hamburger { display: flex !important; }
           .features-grid {

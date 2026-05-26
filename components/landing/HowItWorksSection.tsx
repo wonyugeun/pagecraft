@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 const STEPS = [
   {
     num: '01',
@@ -18,15 +20,6 @@ const STEPS = [
   },
 ];
 
-const RESULT_CARDS = [
-  { label: 'BEAUTY', name: '수분 광채 세럼', grad: 'linear-gradient(135deg, #FCE4EC, #F48FB1)' },
-  { label: 'FOOD', name: '유기농 그래놀라', grad: 'linear-gradient(135deg, #FFF3E0, #FFCC80)' },
-  { label: 'FASHION', name: '린넨 와이드 팬츠', grad: 'linear-gradient(135deg, #E3F2FD, #90CAF9)' },
-  { label: 'LIVING', name: '무드 간접조명', grad: 'linear-gradient(135deg, #E8F5E9, #A5D6A7)' },
-  { label: 'TECH', name: '무선 노이즈캔슬링', grad: 'linear-gradient(135deg, #EDE7F6, #B39DDB)' },
-  { label: 'PET', name: '저알레르기 사료', grad: 'linear-gradient(135deg, #FBE9E7, #FFAB91)' },
-];
-
 export default function HowItWorksSection() {
   return (
     <section style={{
@@ -41,6 +34,7 @@ export default function HowItWorksSection() {
           gap: '80px',
           alignItems: 'center',
         }} className="hiw-grid">
+
           {/* 좌: 단계 설명 */}
           <div>
             <div style={{
@@ -62,9 +56,8 @@ export default function HowItWorksSection() {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-              {STEPS.map((step, i) => (
+              {STEPS.map(step => (
                 <div key={step.num} style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-                  {/* 번호 원 */}
                   <div style={{
                     width: '40px', height: '40px', flexShrink: 0,
                     background: '#F4F2FF', borderRadius: '50%',
@@ -73,7 +66,7 @@ export default function HowItWorksSection() {
                   }}>
                     {step.num}
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div>
                     <div style={{
                       fontSize: '16px', fontWeight: 700, color: '#191F28',
                       marginBottom: '6px', letterSpacing: '-0.01em',
@@ -84,48 +77,25 @@ export default function HowItWorksSection() {
                       {step.desc}
                     </p>
                   </div>
-                  {i < STEPS.length - 1 && (
-                    <div style={{
-                      position: 'absolute', left: '20px',
-                      fontSize: '18px', color: '#E8E5FF', marginTop: '40px',
-                    }} />
-                  )}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* 우: 결과물 그리드 */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px',
+          {/* 우: 결과물 이미지 */}
+          <div className="hiw-img-wrap" style={{
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+            lineHeight: 0,
           }}>
-            {RESULT_CARDS.map(card => (
-              <div
-                key={card.name}
-                style={{
-                  background: card.grad,
-                  borderRadius: '14px',
-                  padding: '20px 16px',
-                  minHeight: '110px',
-                  display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                }}
-              >
-                <div style={{
-                  fontSize: '10px', fontWeight: 700,
-                  color: 'rgba(0,0,0,0.4)', letterSpacing: '0.08em', marginBottom: '4px',
-                }}>
-                  {card.label}
-                </div>
-                <div style={{
-                  fontSize: '13px', fontWeight: 600,
-                  color: 'rgba(0,0,0,0.75)', lineHeight: 1.4,
-                }}>
-                  {card.name}
-                </div>
-              </div>
-            ))}
+            <Image
+              src="/images/landing/samples-grid.png"
+              alt="PageCraft 결과물 예시"
+              width={600}
+              height={480}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+            />
           </div>
         </div>
       </div>

@@ -1,9 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 
-const NAV_LINKS = ['서비스 소개', '기능', '템플릿', '요금제', '가이드'];
+const NAV_LINKS = [
+  { label: '서비스 소개', href: '/about' },
+  { label: '기능', href: '/features' },
+  { label: '템플릿', href: '/templates' },
+  { label: '요금제', href: '/pricing' },
+  { label: '가이드', href: '/guide' },
+];
 
 export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -24,7 +31,7 @@ export default function LandingNav() {
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
       {/* 로고 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'default' }}>
+      <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
         <div style={{
           width: '32px', height: '32px', background: '#6E5BFB',
           borderRadius: '8px', display: 'flex', alignItems: 'center',
@@ -35,20 +42,20 @@ export default function LandingNav() {
         <span style={{ fontSize: '17px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
           PageCraft
         </span>
-      </div>
+      </Link>
 
       {/* 데스크탑 메뉴 */}
       <div style={{ display: 'flex', gap: '32px', alignItems: 'center' }} className="landing-nav-menu">
         {NAV_LINKS.map(l => (
-          <a
-            key={l}
-            href="#"
+          <Link
+            key={l.href}
+            href={l.href}
             style={{ fontSize: '14px', color: '#4E5968', textDecoration: 'none', fontWeight: 500, transition: 'color 150ms' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
             onMouseLeave={e => (e.currentTarget.style.color = '#4E5968')}
           >
-            {l}
-          </a>
+            {l.label}
+          </Link>
         ))}
       </div>
 
@@ -96,7 +103,7 @@ export default function LandingNav() {
             flexDirection: 'column', gap: '5px',
           }}
         >
-          {[0,1,2].map(i => (
+          {[0, 1, 2].map(i => (
             <span key={i} style={{ display: 'block', width: '22px', height: '2px', background: '#4E5968', borderRadius: '2px' }} />
           ))}
         </button>
@@ -108,11 +115,17 @@ export default function LandingNav() {
           position: 'absolute', top: '64px', left: 0, right: 0,
           background: '#fff', borderBottom: '1px solid #F0EEF8',
           padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '16px',
+          zIndex: 501,
         }}>
           {NAV_LINKS.map(l => (
-            <a key={l} href="#" style={{ fontSize: '15px', color: '#4E5968', textDecoration: 'none', fontWeight: 500 }}>
-              {l}
-            </a>
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMobileOpen(false)}
+              style={{ fontSize: '15px', color: '#4E5968', textDecoration: 'none', fontWeight: 500 }}
+            >
+              {l.label}
+            </Link>
           ))}
           <button
             onClick={() => signIn('google')}

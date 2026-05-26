@@ -1,25 +1,38 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { IconBrandKakoTalk } from '@tabler/icons-react';
 
 const FOOTER_COLS = [
   {
     title: '서비스',
-    links: ['서비스 소개', '기능 안내', '템플릿 갤러리'],
+    links: [
+      { label: '서비스 소개', href: '/about' },
+      { label: '기능 안내', href: '/features' },
+      { label: '템플릿 갤러리', href: '/templates' },
+    ],
   },
   {
     title: '고객 지원',
-    links: ['사용 가이드', 'FAQ', '문의하기'],
+    links: [
+      { label: '사용 가이드', href: '/guide' },
+      { label: 'FAQ', href: '/faq' },
+      { label: '문의하기', href: '/contact' },
+    ],
   },
   {
     title: '회사 정보',
-    links: ['회사 소개', '이용 약관', '개인정보 처리방침'],
+    links: [
+      { label: '회사 소개', href: '/company' },
+      { label: '이용 약관', href: '/terms' },
+      { label: '개인정보 처리방침', href: '/privacy' },
+    ],
   },
 ];
 
 export default function LandingFooter() {
-  const [email, setEmail] = useState('');
-  const [subHov, setSubHov] = useState(false);
+  const [kakaoHov, setKakaoHov] = useState(false);
 
   return (
     <footer style={{
@@ -37,7 +50,7 @@ export default function LandingFooter() {
         }} className="footer-grid">
           {/* 로고 + 설명 */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <div style={{
                 width: '28px', height: '28px', background: '#6E5BFB',
                 borderRadius: '7px', display: 'flex', alignItems: 'center',
@@ -48,7 +61,7 @@ export default function LandingFooter() {
               <span style={{ fontSize: '16px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
                 PageCraft
               </span>
-            </div>
+            </Link>
             <p style={{ fontSize: '13px', color: '#8B95A1', lineHeight: 1.7 }}>
               AI가 만드는 카테고리 맞춤<br />
               상세페이지 자동 완성 서비스
@@ -66,58 +79,47 @@ export default function LandingFooter() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {col.links.map(link => (
-                  <a
-                    key={link}
-                    href="#"
+                  <Link
+                    key={link.href}
+                    href={link.href}
                     style={{ fontSize: '13px', color: '#8B95A1', textDecoration: 'none', transition: 'color 150ms' }}
                     onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
                     onMouseLeave={e => (e.currentTarget.style.color = '#8B95A1')}
                   >
-                    {link}
-                  </a>
+                    {link.label}
+                  </Link>
                 ))}
               </div>
             </div>
           ))}
 
-          {/* 뉴스레터 */}
+          {/* 카카오 채널 */}
           <div>
             <div style={{
-              fontSize: '13px', fontWeight: 700, color: '#191F28',
-              marginBottom: '10px',
+              fontSize: '13px', fontWeight: 700, color: '#191F28', marginBottom: '10px',
             }}>
-              뉴스레터
+              PageCraft 카카오톡 채널
             </div>
             <p style={{ fontSize: '12px', color: '#8B95A1', lineHeight: 1.6, marginBottom: '14px' }}>
-              AI 마케팅 트렌드와 PageCraft 업데이트를 받아보세요
+              업데이트 소식과 셀러 인사이트를<br />받아보세요
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="이메일 주소 입력"
-                style={{
-                  width: '100%', padding: '9px 12px',
-                  border: '1.5px solid #E8E5FF', borderRadius: '8px',
-                  fontSize: '13px', color: '#191F28', background: '#fff',
-                  outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
-              />
-              <button
-                onMouseEnter={() => setSubHov(true)}
-                onMouseLeave={() => setSubHov(false)}
-                style={{
-                  width: '100%', padding: '9px',
-                  background: subHov ? '#5447D9' : '#6E5BFB',
-                  border: 'none', borderRadius: '8px',
-                  fontSize: '13px', fontWeight: 600, color: '#fff',
-                  cursor: 'pointer', transition: 'background 150ms', fontFamily: 'inherit',
-                }}
-              >
-                구독하기
-              </button>
-            </div>
+            <a
+              href="#"
+              onMouseEnter={() => setKakaoHov(true)}
+              onMouseLeave={() => setKakaoHov(false)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                background: kakaoHov ? '#F4D900' : '#FEE500',
+                border: 'none', borderRadius: '8px',
+                padding: '10px 16px', fontSize: '13px', fontWeight: 700,
+                color: '#191F28', cursor: 'pointer', textDecoration: 'none',
+                transition: 'background 150ms',
+                fontFamily: 'inherit',
+              }}
+            >
+              <IconBrandKakoTalk size={18} color="#191F28" stroke={1.8} />
+              채널 추가하기
+            </a>
           </div>
         </div>
 
@@ -131,16 +133,20 @@ export default function LandingFooter() {
             © 2026 PageCraft. All rights reserved.
           </span>
           <div style={{ display: 'flex', gap: '20px' }}>
-            {['이용약관', '개인정보처리방침', '사업자정보'].map(t => (
-              <a
-                key={t}
-                href="#"
+            {[
+              { label: '이용약관', href: '/terms' },
+              { label: '개인정보처리방침', href: '/privacy' },
+              { label: '회사 소개', href: '/company' },
+            ].map(t => (
+              <Link
+                key={t.href}
+                href={t.href}
                 style={{ fontSize: '12px', color: '#B0B8C1', textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
                 onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}
               >
-                {t}
-              </a>
+                {t.label}
+              </Link>
             ))}
           </div>
         </div>
