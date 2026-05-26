@@ -22,7 +22,7 @@ export default function HeroSection() {
         display: 'grid',
         gridTemplateColumns: '1fr 1.3fr',
         gap: '48px',
-        alignItems: 'center',
+        alignItems: 'start',
       }} className="hero-grid">
 
         {/* ── 좌: 카피 ── */}
