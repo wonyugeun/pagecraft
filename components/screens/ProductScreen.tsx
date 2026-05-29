@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
+import { ChevronDown, ChevronUp, Zap, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -60,10 +61,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['가성비 (합리적 가격 강조)','중간 (가성비+품질 균형)','프리미엄 (품질/브랜드 강조)','더마/전문가 브랜드 (임상·전문성 강조)','자연주의/에코 브랜드'],
     },
     {
-      id: 'c8', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
-    },
-    {
       id: 'c9', label: '⚠️ 법적 고지 (화장품 필수 표시)', req: true, mode: 'legal',
       fields: ['제조사명','제조국','사용기한 또는 개봉 후 사용기간'],
       hint: '화장품법에 의거 상세페이지 하단에 자동 법적 고지 섹션이 생성됩니다',
@@ -117,10 +114,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['제조일로부터 기간 표시','소비기한(날짜) 표시','개봉 후 사용기한 별도','유통기한+개봉 후 기한 병기'],
     },
     {
-      id: 'f7', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
-    },
-    {
       id: 'f8', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 냉동 배송, 소분 판매, 유통기한 제조일로부터 12개월, 개봉 후 냉장 보관...',
       hint: '보관·섭취 방법, 특이사항 등 AI에게 전달할 추가 정보를 자유롭게 입력하세요',
@@ -167,10 +160,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['국내 제조(MADE IN KOREA)','핸드메이드','빅사이즈 전문(XL~3XL)','체형 커버 디자인','구김 거의 없음','UV 차단','흡습속건','친환경/비건 소재','사이즈 교환 무료','30일 무료 반품'],
     },
     {
-      id: 'fa6', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
-    },
-    {
       id: 'fa7', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 사이즈 측정 오차 ±2cm, 색상은 모니터에 따라 실물과 다를 수 있음, 드라이클리닝 권장...',
       hint: '사이즈·세탁·컬러 안내 등 AI에게 전달할 추가 정보를 입력하세요',
@@ -215,10 +204,6 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'lv5', label: '주요 타겟', req: false, mode: 'multi',
       opts: ['1인 가구','신혼부부','가족(자녀 있음)','인테리어 관심 고객','반려동물 가정','B2B/사업자(카페/사무실)','시니어'],
-    },
-    {
-      id: 'lv6', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
     },
     {
       id: 'lv7', label: '기타 추가 정보', req: false, mode: 'textarea',
@@ -354,10 +339,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['실온 보관','냉장 보관 권장','냉동 보관','개봉 후 밀봉 보관','건조한 곳 보관','직사광선 피해 보관'],
     },
     {
-      id: 'pt6', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
-    },
-    {
       id: 'pt7', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 급여 방법, 1일 권장량, 보관 방법, 특정 질환견 금기 여부...',
       hint: '급여·보관·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
@@ -393,10 +374,6 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'sp4', label: '특징/인증', req: false, mode: 'multi',
       opts: ['국내 브랜드','해외 직수입 정품','공식 수입 인증','프로선수 착용/추천','공인 기관 테스트 완료','한정판/콜라보','특허 기술/소재','리사이클 친환경 소재'],
-    },
-    {
-      id: 'sp5', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
     },
     {
       id: 'sp6', label: '기타 추가 정보', req: false, mode: 'textarea',
@@ -436,10 +413,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['국내 생산(MADE IN KOREA)','소아과 원장 추천','입체재단(신체 발달 고려)','선물 세트 구성','친환경/에코 소재','방수 처리','성장에 맞게 설계(오래 사용)'],
     },
     {
-      id: 'ba5', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
-    },
-    {
       id: 'ba6', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 사용 방법, 세탁 방법, 보관 방법, 함께 쓰면 좋은 제품, 주의사항...',
       hint: '사용·관리·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
@@ -475,10 +448,6 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'ht4', label: '타겟 대상', req: false, mode: 'multi',
       opts: ['20~30대','40~50대','시니어(60대+)','남성','여성','수험생/직장인','임산부/수유부(주의)','어린이(주니어 전용)'],
-    },
-    {
-      id: 'ht5', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
     {
       id: 'ht6', label: '기타 추가 정보', req: false, mode: 'textarea',
@@ -518,10 +487,6 @@ const CQ: Record<string, Question[]> = {
       opts: ['KC안전인증','TUV/CE인증(유럽)','FCC인증(미국)','정품 인증 QR','국내 제조','특허 기술/디자인','수입 정품','1년 AS 보장','2년 AS 보장'],
     },
     {
-      id: 'cr5', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~5만원','5~15만원','15~30만원','30만원 이상'],
-    },
-    {
       id: 'cr6', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 설치 소요 시간 30분, 호환 불가 차종(국산 전기차 일부), 방수 등급 IP67...',
       hint: '설치·호환·주의사항 등 AI에게 전달할 추가 정보를 입력하세요',
@@ -544,10 +509,6 @@ const CQ: Record<string, Question[]> = {
     {
       id: 'et4', label: '핵심 특징/장점', req: true, mode: 'textarea',
       placeholder: '예: 국내 수제 제작, 친환경 소재, 맞춤 제작 가능, 선물 포장 포함...',
-    },
-    {
-      id: 'et5', label: '가격대', req: false, mode: 'single',
-      opts: ['1만원 미만','1~3만원','3~5만원','5~10만원','10만원 이상'],
     },
     {
       id: 'et6', label: '기타 추가 정보', req: false, mode: 'textarea',
@@ -797,8 +758,183 @@ const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
   기타:     '예: 브랜드명을 입력해주세요',
 };
 
+/* ─────────────────────────────────────────────
+   섹션 매핑 및 AI 추천
+───────────────────────────────────────────── */
+const SECTION_MAP: Record<string, Partial<Record<string, string[]>>> = {
+  화장품: { s2:['c1','c2','c3'], s3:['c4'], s4:['c5'], s5:['c6'], s6:['c7'], s7:['c8'], s8:['c9','c10'] },
+  식품:   { s2:['f1','f3','f4'], s3:['f5','f5b','f6','f6b'], s5:['f2'], s7:['f7'], s8:['f8'] },
+  패션:   { s2:['fa1','fa2','fa3'], s3:['fa3b','fa3c','fa5'], s5:['fa4'], s7:['fa6'], s8:['fa4b','fa7'] },
+  생활:   { s2:['lv1','lv2','lv3'], s3:['lv3b','lv3c','lv4','lv4b'], s5:['lv5'], s7:['lv6'], s8:['lv7'] },
+  가전:   { s2:['dg1','dg3'], s3:['dg2','dg3b','dg3c','dg4','dg5','dg5b','dg5c','dg6'], s6:['dg7'], s5:['dg9'], s8:['dg8','dg10','dg11'] },
+  반려동물:{ s2:['pt1','pt2','pt3'], s3:['pt4','pt4b','pt5','pt5b','pt5c'], s7:['pt6'], s8:['pt7'] },
+  스포츠: { s2:['sp1','sp1b','sp2'], s3:['sp3b','sp4'], s5:['sp3'], s7:['sp5'], s8:['sp6'] },
+  유아:   { s2:['ba1','ba2','ba3'], s3:['ba3b','ba3c','ba4'], s7:['ba5'], s8:['ba6'] },
+  건강:   { s2:['ht1','ht2','ht3'], s3:['ht3b','ht3c'], s5:['ht4'], s7:['ht5'], s8:['ht6'] },
+  자동차: { s2:['cr1','cr2','cr3'], s3:['cr2b','cr3b','cr4'], s7:['cr5'], s8:['cr6'] },
+  기타:   { s2:['et1','et2'], s3:['et4'], s5:['et3'], s7:['et5'], s8:['et6'] },
+};
+
+const SECTION_DEFS = [
+  { id:'s2', title:'카테고리 & 키워드' },
+  { id:'s3', title:'상품 핵심 정보' },
+  { id:'s4', title:'브랜드/제품 한 줄 소개' },
+  { id:'s5', title:'주요 대상' },
+  { id:'s6', title:'브랜드 포지셔닝' },
+  { id:'s7', title:'가격대' },
+  { id:'s8', title:'기타 추가 정보' },
+];
+
+const AI_RECS: Record<string, {label:string; chips:string[]}[]> = {
+  화장품: [
+    { label:'추천 키워드', chips:['수분케어','트러블진정','미백','피부결개선','수분충전'] },
+    { label:'추천 핵심 성분', chips:['히알루론산','세라마이드','판테놀','알란토인','나이아신아마이드'] },
+    { label:'추천 타겟', chips:['건성피부','민감성피부','20대 여성','피부 고민 있는 분','뷰티 관심층'] },
+  ],
+  식품: [
+    { label:'추천 키워드', chips:['신선식품','건강간식','다이어트식','가족반찬','집밥'] },
+    { label:'추천 인증', chips:['HACCP인증','국내산','무첨가','유기농','산지직송'] },
+    { label:'추천 타겟', chips:['1인가구','다이어터','가족','시니어','건강관리'] },
+  ],
+  패션: [
+    { label:'추천 키워드', chips:['트렌디','베이직','데일리룩','모던','편안함'] },
+    { label:'추천 소재', chips:['면100%','스트레치','흡습속건','항균','친환경소재'] },
+    { label:'추천 타겟', chips:['20대','30대','직장인','대학생','패션관심층'] },
+  ],
+  생활: [
+    { label:'추천 키워드', chips:['인테리어','공간활용','모던','북유럽','심플'] },
+    { label:'추천 특징', chips:['국내제조','친환경','항균','내구성','사용편의'] },
+    { label:'추천 타겟', chips:['신혼부부','1인가구','인테리어관심','반려동물가정','B2B'] },
+  ],
+  가전: [
+    { label:'추천 키워드', chips:['스마트가전','에너지절약','저소음','고성능','편의성'] },
+    { label:'추천 기능', chips:['앱연동','자동청소','저소음','에너지절약','원격제어'] },
+    { label:'추천 타겟', chips:['맞벌이부부','1인가구','청소관심','스마트홈','시니어'] },
+  ],
+  반려동물: [
+    { label:'추천 키워드', chips:['천연원료','무첨가','고단백','소화건강','관절케어'] },
+    { label:'추천 특징', chips:['휴먼그레이드','무방부제','수의사추천','HACCP','국내산'] },
+    { label:'추천 타겟', chips:['강아지보호자','고양이보호자','펫맘','노령견보호자','건강케어'] },
+  ],
+  스포츠: [
+    { label:'추천 키워드', chips:['기능성','경량','고성능','트레이닝','운동성능'] },
+    { label:'추천 기능', chips:['흡습속건','압박','경량','항균','UV차단'] },
+    { label:'추천 타겟', chips:['헬스인','러너','요가인','입문자','20~30대'] },
+  ],
+  유아: [
+    { label:'추천 키워드', chips:['안전인증','유아용','신생아','발달','친환경'] },
+    { label:'추천 인증', chips:['KC인증','무형광','BPA프리','오가닉코튼','소아과추천'] },
+    { label:'추천 타겟', chips:['신생아','영아','1세아기','임산부','선물용'] },
+  ],
+  건강: [
+    { label:'추천 키워드', chips:['영양보충','피로회복','면역력','에너지충전','건강관리'] },
+    { label:'추천 핵심 성분', chips:['비타민B군','비타민C','비타민D','아연','셀레늄'] },
+    { label:'추천 타겟', chips:['직장인','학생','운동하는 사람','육아맘','건강관리 중인 분'] },
+  ],
+  자동차: [
+    { label:'추천 키워드', chips:['차량용품','안전','고성능','편의성','스마트'] },
+    { label:'추천 기능', chips:['무선충전','야간시인성','방수','쉬운설치','앱연동'] },
+    { label:'추천 타겟', chips:['직장인운전자','신차구매자','안전중시','장거리운전','스마트카'] },
+  ],
+  기타: [
+    { label:'추천 키워드', chips:['실용적','선물용','고품질','국내제조','특별한'] },
+    { label:'추천 특징', chips:['수공예','친환경','맞춤제작','한정판','독창적'] },
+    { label:'추천 타겟', chips:['선물구매자','일반소비자','취미인','수집가','B2B'] },
+  ],
+};
+
+/* ─────────────────────────────────────────────
+   ProgressCircle 컴포넌트
+───────────────────────────────────────────── */
+function ProgressCircle({ pct }: { pct: number }) {
+  const r = 20;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={52} height={52} viewBox="0 0 52 52">
+      <circle cx={26} cy={26} r={r} fill="none" stroke="#F3F4F6" strokeWidth={5} />
+      <circle
+        cx={26} cy={26} r={r} fill="none"
+        stroke="#6D4CFF" strokeWidth={5}
+        strokeDasharray={`${dash} ${circ - dash}`}
+        strokeLinecap="round"
+        transform="rotate(-90 26 26)"
+      />
+      <text x={26} y={31} textAnchor="middle" fontSize={11} fontWeight={700} fill="#6D4CFF">{pct}%</text>
+    </svg>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   AccordionSection 컴포넌트
+───────────────────────────────────────────── */
+function AccordionSection({
+  num, title, req, isOpen, onToggle, badge, children,
+}: {
+  num: number;
+  title: string;
+  req?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
+  badge?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      border: '1.5px solid #E5E7EB',
+      borderRadius: 10,
+      marginBottom: 10,
+      overflow: 'hidden',
+    }}>
+      <div
+        onClick={onToggle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '14px 18px',
+          background: isOpen ? '#F7F5FF' : '#fff',
+          cursor: 'pointer',
+          userSelect: 'none',
+          transition: 'background .15s',
+        }}
+      >
+        <div style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: isOpen ? '#6D4CFF' : '#F3F4F6',
+          color: isOpen ? '#fff' : '#6B7280',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 12, fontWeight: 700, flexShrink: 0,
+          transition: 'all .15s',
+        }}>{num}</div>
+        <span style={{ fontSize: 14, fontWeight: 600, color: '#111', flex: 1 }}>{title}</span>
+        {req && (
+          <span style={{
+            fontSize: 10, fontWeight: 600, color: '#6D4CFF',
+            background: '#EDE9FE', borderRadius: 4, padding: '2px 7px',
+          }}>필수</span>
+        )}
+        {badge && (
+          <span style={{
+            fontSize: 10, color: '#6B7280',
+            background: '#F9FAFB', border: '1px solid #E5E7EB',
+            borderRadius: 4, padding: '2px 7px',
+          }}>{badge}</span>
+        )}
+        {isOpen ? <ChevronUp size={16} color="#6B7280" /> : <ChevronDown size={16} color="#6B7280" />}
+      </div>
+      {isOpen && (
+        <div style={{ padding: '16px 18px 8px', background: '#fff' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   ProductScreen
+───────────────────────────────────────────── */
 export default function ProductScreen() {
-  const { cat, ch, type, go, productName, setProductName, setProductExtra } = useApp();
+  const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
@@ -809,10 +945,61 @@ export default function ProductScreen() {
   const [brand,     setBrand]     = useState('');
   const [diff,      setDiff]      = useState('');
   const [extraNote, setExtraNote] = useState('');
-  const [priceChip, setPriceChip] = useState<string[]>([]);
   const [answers,   setAnswers]   = useState<Record<string, string | string[]>>({});
   const setAnswer = (id: string, val: string | string[]) =>
     setAnswers(p => ({ ...p, [id]: val }));
+
+  // 새 상태
+  const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
+  const [quickMode, setQuickMode] = useState(false);
+  const [brandIntro, setBrandIntro] = useState('');
+  const [aiSelections, setAiSelections] = useState<string[]>([]);
+  const [previewTab, setPreviewTab] = useState<'blog' | 'slide'>('blog');
+
+  // 섹션 helpers
+  const getSectionQs = (sectionId: string) => {
+    const catMap = SECTION_MAP[cat ?? '기타'] ?? {};
+    const qIds = (catMap[sectionId] ?? []) as string[];
+    return qs.filter(q => qIds.includes(q.id));
+  };
+
+  const countSection = (sectionId: string): string => {
+    const sectionQs = getSectionQs(sectionId);
+    const total = sectionQs.reduce((s, q) => s + (q.opts?.length ?? 0), 0);
+    const selected = sectionQs.reduce((s, q) => {
+      const v = answers[q.id];
+      return s + (Array.isArray(v) ? v.length : (v && String(v).trim() ? 1 : 0));
+    }, 0);
+    return total > 0 ? `선택 ${selected}/${total}` : (selected > 0 ? '선택' : '선택');
+  };
+
+  // 진행률 계산
+  const requiredQs = qs.filter(q => q.req);
+  const filledReq = requiredQs.filter(q => {
+    const v = answers[q.id];
+    if (!v) return false;
+    if (Array.isArray(v)) return v.length > 0;
+    return String(v).trim().length > 0;
+  });
+  const pct = requiredQs.length > 0
+    ? Math.round(((filledReq.length + (productName.trim() ? 1 : 0)) / (requiredQs.length + 1)) * 100)
+    : productName.trim() ? 100 : 0;
+
+  // 섹션 토글
+  const toggleSec = (id: string) => {
+    setOpenSecs(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // 가시적인 섹션만 (질문이 있거나 s4는 항상 보임)
+  const visibleSections = SECTION_DEFS.filter(s => {
+    if (s.id === 's4') return true;
+    return getSectionQs(s.id).length > 0;
+  });
 
   // 다음 클릭 → 전체 입력값을 직렬화해 AppContext에 저장
   const handleNext = () => {
@@ -821,101 +1008,524 @@ export default function ProductScreen() {
       return;
     }
     const lines: string[] = [];
-    if (brand.trim())                     lines.push(`브랜드명: ${brand.trim()}`);
-    if (isGaejeon && priceChip.length)    lines.push(`가격대: ${priceChip[0]}`);
+    if (brand.trim()) lines.push(`브랜드명: ${brand.trim()}`);
+    if (regularPrice || salePrice) {
+      if (regularPrice) lines.push(`정가: ${Number(regularPrice).toLocaleString()}원`);
+      if (salePrice)    lines.push(`판매가: ${Number(salePrice).toLocaleString()}원`);
+      if (regularPrice && salePrice && Number(regularPrice) > Number(salePrice)) {
+        const discount = Math.round((1 - Number(salePrice) / Number(regularPrice)) * 100);
+        lines.push(`할인율: ${discount}%`);
+      }
+      lines.push(`가격 표시 여부: ${showPrice ? '상세페이지에 표시' : '표시 안 함'}`);
+    }
     qs.forEach(q => {
       const val = answers[q.id];
       if (!val || (Array.isArray(val) && val.length === 0) || val === '') return;
       const str = Array.isArray(val) ? val.join(', ') : String(val).trim();
       if (str) lines.push(`[${q.label}]: ${str}`);
     });
-    if (!isGaejeon && diff.trim())        lines.push(`경쟁 차별점: ${diff.trim()}`);
+    const validOptions = productOptions.filter(o => o.name.trim() && o.values.trim());
+    if (validOptions.length) {
+      lines.push(`옵션: ${validOptions.map(o => `${o.name.trim()}(${o.values.trim()})`).join(' / ')}`);
+    }
+    if (!isGaejeon && diff.trim()) lines.push(`경쟁 차별점: ${diff.trim()}`);
     if (extraNote.trim())                 lines.push(`기타 요청사항: ${extraNote.trim()}`);
+    if (brandIntro.trim())                lines.push(`브랜드 소개: ${brandIntro.trim()}`);
+    if (aiSelections.length)              lines.push(`AI 추천 키워드: ${aiSelections.join(', ')}`);
     setProductExtra(lines.join('\n'));
     go('s5-5');
   };
 
   const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';
 
+  const aiRecs = AI_RECS[cat ?? '기타'] ?? AI_RECS['기타'];
+
   return (
-    <div className="inner">
-      <div className="stitle">상품 정보를 입력해주세요</div>
-      <div className="ssub">{cat} · {ch} · {type} 기준 — 꼭 필요한 정보만 물어볼게요</div>
-
-      {/* 기본 정보 */}
-      <div className="fb">
-        <div className="fdiv">
-          <div className="fdiv-line" /><span className="fdiv-lbl">기본 정보</span><div className="fdiv-line" />
+    <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.03em', color: '#111' }}>
+          상품 정보를 입력해주세요 ✦
         </div>
-        <div className="fg">
-          <div className="fl">상품명 <span className="freq">*</span></div>
-          <input
-            className="finp"
-            type="text"
-            placeholder={namePlaceholder}
-            value={productName}
-            onChange={e => setProductName(e.target.value)}
-          />
-        </div>
-        <div className="fg">
-          <div className="fl">브랜드명 <span className="fopt">선택</span></div>
-          <input className="finp" type="text" placeholder={brandPlaceholder}
-            value={brand} onChange={e => setBrand(e.target.value)} />
-        </div>
-        {isGaejeon && (
-          <div className="fg">
-            <div className="fl">가격대 <span className="fopt">선택</span></div>
-            <ChipGroup opts={['5만원 미만','5~15만원','15~30만원','30~50만원','50만원 이상']}
-              multi={false} value={priceChip} onChange={setPriceChip} />
-          </div>
-        )}
-      </div>
-
-      {/* 카테고리 전용 질문 */}
-      <div className="fb">
-        {!isGaejeon && (
-          <div className="fdiv">
-            <div className="fdiv-line" /><span className="fdiv-lbl">{cat} 전용 정보</span><div className="fdiv-line" />
-          </div>
-        )}
-        {qs.map(q => (
-          <QuestionField
-            key={q.id}
-            q={q}
-            answer={answers[q.id] ?? (q.mode === 'single' || q.mode === 'multi' ? [] : '')}
-            onAnswer={val => setAnswer(q.id, val)}
-          />
-        ))}
-      </div>
-
-      {/* 판매 전략 */}
-      <div className="fb">
-        <div className="fdiv">
-          <div className="fdiv-line" /><span className="fdiv-lbl">판매 전략</span><div className="fdiv-line" />
-        </div>
-        {!isGaejeon && (
-          <div className="fg">
-            <div className="fl">경쟁 제품 대비 차별점 <span className="freq">*</span></div>
-            <textarea className="finp" placeholder={diffPlaceholder}
-              value={diff} onChange={e => setDiff(e.target.value)} />
-          </div>
-        )}
-        <div className="fg">
-          <div className="fl">기타 요청사항 <span className="fopt">선택</span></div>
-          <textarea
-            className="finp"
-            placeholder={'AI에게 추가로 전달할 내용을 자유롭게 입력하세요.\n예: 톤은 친근하게, 영어 단어 최소화, 가격보다 성분 강조...'}
-            value={extraNote}
-            onChange={e => setExtraNote(e.target.value)}
-            style={{ minHeight: 76 }}
-          />
-          <div className="fhint">입력한 내용이 AI 생성 지침에 직접 반영됩니다</div>
+        <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4, lineHeight: 1.6 }}>
+          {cat} · {ch} · {type} 기준 — 꼭 필요한 정보만 물어볼게요
         </div>
       </div>
 
-      <div className="cta-row">
-        <button className="btn-back" onClick={() => go(prevScreen as any)}>← 이전</button>
-        <button className="btn-next" onClick={handleNext}>레퍼런스 →</button>
+      {/* 빠른 생성 모드 배너 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: '#F7F5FF', border: '1.5px solid #DDD6FE',
+        borderRadius: 10, padding: '12px 18px', marginBottom: 24, marginTop: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Zap size={16} color="#6D4CFF" />
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#6D4CFF' }}>빠른 생성 모드</span>
+          <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 4 }}>
+            필수 항목만 입력하고 바로 생성해요
+          </span>
+        </div>
+        <div
+          onClick={() => setQuickMode(p => !p)}
+          style={{
+            width: 44, height: 24, borderRadius: 12,
+            background: quickMode ? '#6D4CFF' : '#D1D5DB',
+            position: 'relative', cursor: 'pointer', transition: 'background .2s',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{
+            position: 'absolute', top: 3,
+            left: quickMode ? 23 : 3,
+            width: 18, height: 18,
+            borderRadius: '50%', background: '#fff',
+            transition: 'left .2s',
+            boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+          }} />
+        </div>
+      </div>
+
+      {/* 2-column layout */}
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+
+        {/* ── Left: Form ── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+
+          {/* Progress row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <ProgressCircle pct={pct} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {[
+                { label: '신뢰도 향상', val: '+23%' },
+                { label: '전환율 향상', val: '+18%' },
+                { label: '검색 노출 향상', val: '+15%' },
+              ].map(b => (
+                <div key={b.label} style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  background: '#F0FDF4', border: '1px solid #BBF7D0',
+                  borderRadius: 20, padding: '4px 11px',
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A' }}>{b.val}</span>
+                  <span style={{ fontSize: 11, color: '#166534' }}>{b.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 1: 기본 정보 (always open) */}
+          <AccordionSection
+            num={1}
+            title="기본 정보"
+            req={true}
+            isOpen={openSecs.has('s1')}
+            onToggle={() => toggleSec('s1')}
+          >
+            <div className="fg">
+              <div className="fl">상품명 <span className="freq">*</span></div>
+              <input
+                className="finp"
+                type="text"
+                placeholder={namePlaceholder}
+                value={productName}
+                onChange={e => setProductName(e.target.value)}
+              />
+            </div>
+            <div className="fg">
+              <div className="fl">브랜드명 <span className="fopt">선택</span></div>
+              <input className="finp" type="text" placeholder={brandPlaceholder}
+                value={brand} onChange={e => setBrand(e.target.value)} />
+            </div>
+            <div style={{
+              border: '1px solid #ECECF2', borderRadius: 16, background: '#FAFAFC',
+              padding: '16px 18px',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 12 }}>
+                판매 가격 <span style={{ fontSize: 12, fontWeight: 400, color: '#999' }}>선택</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {([
+                  { label: '정가', val: regularPrice, set: setRegularPrice },
+                  { label: '판매가', val: salePrice, set: setSalePrice },
+                ] as { label: string; val: string; set: (v: string) => void }[]).map(({ label, val, set }) => (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, color: '#555', width: 44, flexShrink: 0 }}>{label}</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={val ? Number(val).toLocaleString() : ''}
+                      onChange={e => set(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="0"
+                      style={{
+                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        padding: '0 12px', fontSize: 14, textAlign: 'right',
+                        background: '#fff', outline: 'none', fontFamily: 'var(--f)',
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#6D4CFF'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#ECECF2'; }}
+                    />
+                    <span style={{ fontSize: 13, color: '#666', flexShrink: 0 }}>원</span>
+                  </div>
+                ))}
+              </div>
+              {regularPrice && salePrice && Number(regularPrice) > Number(salePrice) && (
+                <div style={{ marginTop: 10, fontSize: 12.5, color: '#6D4CFF', fontWeight: 600 }}>
+                  할인율 {Math.round((1 - Number(salePrice) / Number(regularPrice)) * 100)}% 자동 계산됨
+                </div>
+              )}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
+                cursor: 'pointer', fontSize: 13, color: '#555',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={showPrice}
+                  onChange={e => setShowPrice(e.target.checked)}
+                  style={{ width: 15, height: 15, accentColor: '#6D4CFF', cursor: 'pointer' }}
+                />
+                가격을 상세페이지에 표시
+              </label>
+            </div>
+            {/* 옵션 입력 */}
+            <div style={{
+              border: '1px solid #ECECF2', borderRadius: 16, background: '#fff',
+              padding: '16px 18px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>
+                  옵션 <span style={{ fontSize: 12, fontWeight: 400, color: '#999' }}>선택</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProductOptions([...productOptions, { name: '', values: '' }])}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 700, color: '#6D4CFF',
+                    display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'var(--f)',
+                  }}
+                >
+                  + 옵션 추가
+                </button>
+              </div>
+              {productOptions.length === 0 && (
+                <p style={{ fontSize: 13, color: '#BBB', margin: 0 }}>
+                  예: 용량(50ml/100ml), 색상(블랙/화이트), 구성(단품/세트)
+                </p>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {productOptions.map((opt, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="text"
+                      value={opt.name}
+                      onChange={e => {
+                        const next = [...productOptions];
+                        next[idx] = { ...next[idx], name: e.target.value };
+                        setProductOptions(next);
+                      }}
+                      placeholder="옵션명 (예: 용량)"
+                      style={{
+                        width: 120, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        padding: '0 10px', fontSize: 13, fontFamily: 'var(--f)', outline: 'none',
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#6D4CFF'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#ECECF2'; }}
+                    />
+                    <input
+                      type="text"
+                      value={opt.values}
+                      onChange={e => {
+                        const next = [...productOptions];
+                        next[idx] = { ...next[idx], values: e.target.value };
+                        setProductOptions(next);
+                      }}
+                      placeholder="옵션값 (예: 50ml, 100ml)"
+                      style={{
+                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        padding: '0 10px', fontSize: 13, fontFamily: 'var(--f)', outline: 'none',
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = '#6D4CFF'; }}
+                      onBlur={e => { e.currentTarget.style.borderColor = '#ECECF2'; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setProductOptions(productOptions.filter((_, i) => i !== idx))}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: 'none',
+                        background: 'transparent', cursor: 'pointer', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#BBB',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#FFF0F5'; e.currentTarget.style.color = '#FF4D8D'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#BBB'; }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {!isGaejeon && (
+              <div className="fg">
+                <div className="fl">경쟁 제품 대비 차별점 <span className="freq">*</span></div>
+                <textarea className="finp" placeholder={diffPlaceholder}
+                  value={diff} onChange={e => setDiff(e.target.value)} />
+              </div>
+            )}
+          </AccordionSection>
+
+          {/* Dynamic sections s2~s8 */}
+          {visibleSections.map((sec, idx) => {
+            const num = idx + 2;
+            const sectionQs = getSectionQs(sec.id);
+            const hasChips = sectionQs.some(q => q.opts && q.opts.length > 0);
+            const badge = hasChips ? countSection(sec.id) : undefined;
+            const hasReq = sectionQs.some(q => q.req);
+            // s4 is special: show brandIntro textarea if no CQ questions
+            const isS4 = sec.id === 's4';
+            const isOpen = openSecs.has(sec.id);
+
+            return (
+              <AccordionSection
+                key={sec.id}
+                num={num}
+                title={sec.title}
+                req={hasReq || (isS4 && sectionQs.length === 0 ? false : false)}
+                isOpen={isOpen}
+                onToggle={() => toggleSec(sec.id)}
+                badge={badge}
+              >
+                {sectionQs.length > 0
+                  ? sectionQs.map(q => (
+                      <QuestionField
+                        key={q.id}
+                        q={q}
+                        answer={answers[q.id] ?? (q.mode === 'single' || q.mode === 'multi' ? [] : '')}
+                        onAnswer={val => setAnswer(q.id, val)}
+                      />
+                    ))
+                  : isS4 && (
+                      <div className="fg">
+                        <div className="fl">브랜드/제품 한 줄 소개 <span className="fopt">선택</span></div>
+                        <textarea
+                          className="finp"
+                          placeholder="예: 10년 연구 끝에 탄생한 피부과 의사 추천 제품입니다..."
+                          value={brandIntro}
+                          onChange={e => setBrandIntro(e.target.value)}
+                        />
+                        <div className="fhint">브랜드 스토리 섹션에 활용됩니다</div>
+                      </div>
+                    )
+                }
+              </AccordionSection>
+            );
+          })}
+
+          {/* 기타 요청사항 (always shown) */}
+          <AccordionSection
+            num={visibleSections.length + 2}
+            title="기타 요청사항"
+            isOpen={openSecs.has('s_extra')}
+            onToggle={() => toggleSec('s_extra')}
+          >
+            <div className="fg">
+              <textarea
+                className="finp"
+                placeholder={'AI에게 추가로 전달할 내용을 자유롭게 입력하세요.\n예: 톤은 친근하게, 영어 단어 최소화, 가격보다 성분 강조...'}
+                value={extraNote}
+                onChange={e => setExtraNote(e.target.value)}
+                style={{ minHeight: 76 }}
+              />
+              <div className="fhint">입력한 내용이 AI 생성 지침에 직접 반영됩니다</div>
+            </div>
+          </AccordionSection>
+
+          {/* AI 추천 추가 정보 */}
+          <div style={{
+            border: '1.5px solid #DDD6FE',
+            borderRadius: 10, padding: '16px 18px', marginTop: 16,
+            background: '#FAFAFF',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
+              <Sparkles size={15} color="#6D4CFF" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>AI가 추천한 추가 정보</span>
+              <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 4 }}>선택하면 생성 품질이 올라가요</span>
+            </div>
+            {aiRecs.map(rec => (
+              <div key={rec.label} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 7 }}>{rec.label}</div>
+                <div className="chips">
+                  {rec.chips.map(chip => {
+                    const on = aiSelections.includes(chip);
+                    return (
+                      <div
+                        key={chip}
+                        className={`chip${on ? ' on' : ''}`}
+                        onClick={() => setAiSelections(p => on ? p.filter(x => x !== chip) : [...p, chip])}
+                      >{chip}</div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 경고 배너 */}
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            background: '#FFFBEB', border: '1.5px solid #FDE68A',
+            borderRadius: 10, padding: '12px 16px', marginTop: 20,
+          }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#92400E' }}>정확한 정보 입력이 중요해요!</div>
+              <div style={{ fontSize: 12, color: '#78350F', marginTop: 3, lineHeight: 1.6 }}>
+                입력하신 정보를 바탕으로 AI가 상세페이지를 생성합니다. 정확한 정보일수록 완성도가 높아져요.
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation footer */}
+          <div className="cta-row" style={{ marginTop: 28 }}>
+            <button className="btn-back" onClick={() => go(prevScreen as any)}>
+              <ArrowLeft size={14} style={{ display: 'inline', marginRight: 4 }} />
+              이전 단계
+            </button>
+            <span style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', flex: 1 }}>
+              입력하신 정보는 언제든 수정 가능합니다
+            </span>
+            <button className="btn-next" onClick={handleNext}>
+              다음 단계로 →
+            </button>
+          </div>
+        </div>
+
+        {/* ── Right: 실시간 미리보기 panel ── */}
+        <div style={{
+          width: 290, flexShrink: 0,
+          position: 'sticky', top: 24,
+          border: '1.5px solid #E5E7EB',
+          borderRadius: 12, overflow: 'hidden',
+          background: '#fff',
+        }}>
+          {/* Panel header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px',
+            borderBottom: '1px solid #F3F4F6',
+            background: '#F7F5FF',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>✦ 실시간 미리보기</span>
+            <button
+              onClick={() => {}}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                color: '#9CA3AF', display: 'flex', alignItems: 'center',
+              }}
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6' }}>
+            {(['blog', 'slide'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setPreviewTab(t)}
+                style={{
+                  flex: 1, padding: '9px 0', fontSize: 12, fontWeight: 600,
+                  border: 'none', cursor: 'pointer',
+                  background: previewTab === t ? '#fff' : '#FAFAFA',
+                  color: previewTab === t ? '#6D4CFF' : '#9CA3AF',
+                  borderBottom: previewTab === t ? '2px solid #6D4CFF' : '2px solid transparent',
+                  transition: 'all .15s',
+                }}
+              >
+                {t === 'blog' ? '블로그형' : '슬라이드형'}
+              </button>
+            ))}
+          </div>
+
+          {/* Preview card */}
+          <div style={{ padding: '14px 14px 0' }}>
+            <div style={{
+              border: '1px solid #E5E7EB', borderRadius: 8,
+              overflow: 'hidden', marginBottom: 14,
+            }}>
+              {/* Product image */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=280&h=160&fit=crop"
+                alt="상품 미리보기"
+                style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+              />
+              <div style={{ padding: '10px 12px' }}>
+                {/* Product name */}
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: productName.trim() ? '#111' : '#D1D5DB',
+                  marginBottom: 5, lineHeight: 1.4,
+                }}>
+                  {productName.trim() || '상품명을 입력해주세요'}
+                </div>
+                {/* Tags */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {[`#${cat ?? '카테고리'}`, '#AI상세페이지'].map(tag => (
+                    <span key={tag} style={{
+                      fontSize: 10, color: '#6D4CFF',
+                      background: '#EDE9FE', borderRadius: 20, padding: '2px 8px',
+                    }}>{tag}</span>
+                  ))}
+                </div>
+                {/* Feature rows */}
+                {[
+                  '핵심 성분 · 효능 자동 분석',
+                  '타겟 맞춤 카피 생성',
+                  '법적 고지 자동 포함',
+                ].map(feat => (
+                  <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: '#22C55E', flexShrink: 0, display: 'inline-block',
+                    }} />
+                    <span style={{ fontSize: 11, color: '#374151' }}>{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 입력 정보 요약 */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 8 }}>입력 정보 요약</div>
+              {[
+                { label: '상품명', value: productName.trim() || '-' },
+                { label: '브랜드', value: brand.trim() || '-' },
+                { label: '카테고리', value: cat ?? '-' },
+              ].map(row => (
+                <div key={row.label} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '5px 0', borderBottom: '1px solid #F3F4F6',
+                }}>
+                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{row.label}</span>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: '#111',
+                    maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* AI TIP */}
+            <div style={{
+              background: '#F7F5FF', borderRadius: 8, padding: '10px 12px', marginBottom: 16,
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6D4CFF', marginBottom: 4 }}>✦ AI TIP</div>
+              <div style={{ fontSize: 11, color: '#7C3AED', lineHeight: 1.6 }}>
+                필수 항목을 모두 채우면 AI가 더 정확한 상세페이지를 만들어드려요. 현재 완성도 {pct}%
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

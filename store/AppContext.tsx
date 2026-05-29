@@ -80,6 +80,11 @@ interface AppState {
   credits: number;
   creditModalOpen: boolean;
   restoredImages: Record<string, string>;
+  sidebarCollapsed: boolean;
+  regularPrice: string;
+  salePrice: string;
+  showPrice: boolean;
+  productOptions: { name: string; values: string }[];
 }
 
 interface AppContextType extends AppState {
@@ -106,6 +111,11 @@ interface AppContextType extends AppState {
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
   updateLatestHistoryImages: (images: Record<string, string>) => void;
+  setSidebarCollapsed: (v: boolean) => void;
+  setRegularPrice: (v: string) => void;
+  setSalePrice: (v: string) => void;
+  setShowPrice: (v: boolean) => void;
+  setProductOptions: (v: { name: string; values: string }[]) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -221,6 +231,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
   const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [regularPrice, setRegularPrice] = useState('');
+  const [salePrice, setSalePrice] = useState('');
+  const [showPrice, setShowPrice] = useState(false);
+  const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>([]);
 
   /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
   useEffect(() => {
@@ -379,6 +394,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSectionStructureState([]);
     setSections([]);
     setRestoredImages({});
+    setRegularPrice('');
+    setSalePrice('');
+    setShowPrice(false);
+    setProductOptions([]);
     go('s1');
   };
 
@@ -395,7 +414,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
-      credits, creditModalOpen, restoredImages,
+      credits, creditModalOpen, restoredImages, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -419,6 +438,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveHistory,
       loadFromHistory,
       updateLatestHistoryImages,
+      setSidebarCollapsed,
+      setRegularPrice,
+      setSalePrice,
+      setShowPrice,
+      setProductOptions,
     }}>
       {children}
     </AppContext.Provider>

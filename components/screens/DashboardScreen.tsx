@@ -2,14 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Home, FileText, BookOpen,
-  Crown, Zap, ArrowRight, Sparkles, TrendingUp, TrendingDown, Trash2, Ellipsis,
+  Zap, ArrowRight, Sparkles, TrendingUp, TrendingDown, Trash2, Ellipsis,
   LogOut, User, Settings,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
+import Sidebar from '@/components/layout/Sidebar';
 
 // ── 유틸 ─────────────────────────────────────────────────
 function fmt(iso: string) {
@@ -182,23 +181,14 @@ function RobotIllust() {
   );
 }
 
-// ── 수정 1: 사이드바 메뉴 3개 ────────────────────────────
-const MENUS = [
-  { icon: Home,     label: '홈',    path: null },
-  { icon: FileText, label: '내 작업', path: '/my-works' },
-  { icon: BookOpen, label: '가이드', path: '/guide' },
-];
-
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
-  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen } = useApp();
+  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, sidebarCollapsed, setSidebarCollapsed } = useApp();
   const { data: session } = useSession();
-  const router = useRouter();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hov, setHov] = useState<string | null>(null);
-  const [hoverSidebar, setHoverSidebar] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -255,77 +245,12 @@ export default function DashboardScreen() {
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
 
-      {/* ══════════ 수정 1: 사이드바 (3개 메뉴) ══════════ */}
-      <aside style={{
-        width: 240, flexShrink: 0,
-        background: '#fff', borderRight: '1px solid #ECECF2',
-        display: 'flex', flexDirection: 'column',
-        overflowY: 'auto',
-      }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '24px 20px 20px',
-          borderBottom: '1px solid #F4F4F6',
-        }}>
-          <div style={{
-            width: 32, height: 32, background: '#6D4CFF', borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 16, fontWeight: 800, color: '#fff',
-          }}>P</div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: '-0.02em' }}>PageCraft</span>
-        </div>
-
-        <nav style={{ flex: 1, padding: '12px 8px' }}>
-          {MENUS.map(m => {
-            const Icon = m.icon;
-            const isActive = m.path === null;
-            const isHov = hoverSidebar === m.label;
-            return (
-              <div
-                key={m.label}
-                onClick={() => m.path ? router.push(m.path) : go('s-dash')}
-                onMouseEnter={() => setHoverSidebar(m.label)}
-                onMouseLeave={() => setHoverSidebar(null)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '11px 14px', borderRadius: 10, cursor: 'pointer',
-                  marginBottom: 2,
-                  background: isActive ? '#F4F0FF' : isHov ? '#FAFAFC' : 'transparent',
-                  color: isActive ? '#6D4CFF' : '#555',
-                  fontSize: 14, fontWeight: isActive ? 600 : 400,
-                  transition: 'background 100ms',
-                }}
-              >
-                <Icon size={16} />
-                {m.label}
-              </div>
-            );
-          })}
-        </nav>
-
-        <div style={{ padding: '0 12px 20px' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #6D4CFF 0%, #4A33CC 100%)',
-            borderRadius: 16, padding: '18px 16px', color: '#fff',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-              <Crown size={16} color="#FFD700" />
-              <span style={{ fontSize: 13, fontWeight: 700 }}>프로 플랜 업그레이드</span>
-            </div>
-            <p style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
-              더 많은 AI 기능과<br />프리미엄 템플릿을<br />무제한으로 이용하세요.
-            </p>
-            <button style={{
-              width: '100%', background: '#fff', border: 'none',
-              borderRadius: 10, padding: '9px 0',
-              fontSize: 12, fontWeight: 700, color: '#6D4CFF',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              업그레이드 하기 →
-            </button>
-          </div>
-        </div>
-      </aside>
+      {/* ══════════ 사이드바 ══════════ */}
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        activeScreen="s-dash"
+      />
 
       {/* ══════════ 메인 콘텐츠 ══════════ */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 40px' }}>

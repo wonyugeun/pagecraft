@@ -123,6 +123,11 @@ export default function SectionStructureScreen() {
         {fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'}
         {' — 순서 변경·추가·삭제가 가능해요'}
       </div>
+      {(fromRef || fromCapture) && (
+        <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, color: '#166534', fontWeight: 600 }}>
+          📐 참고 페이지 구조가 자동 반영됐어요. 아래에서 자유롭게 수정하세요.
+        </div>
+      )}
 
       {fromRef && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--pl)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'var(--pu)', fontWeight: 700, marginBottom: 14 }}>

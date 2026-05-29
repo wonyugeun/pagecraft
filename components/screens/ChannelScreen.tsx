@@ -1,337 +1,361 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronRight, SlidersHorizontal, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 
-const CHANNELS = [
+const TOP_CHANNELS = [
   {
     key: '스마트스토어',
-    ico: '🛒',
-    tag: '셀러 1순위 추천',
-    tagStyle: { background: '#FFF4E6', color: '#D4691C' },
-    tl: '네이버 쇼핑 기반',
-    why: '검색 유입 = 비교하고 온 고객. 블로그형 글+그림 구성이 SEO와 전환율 모두 잡는 핵심.',
-    pills: ['블로그형 글+그림', '이미지 슬라이드', '썸네일 3종'],
-    note: '출력형태 선택 가능: 블로그형 또는 이미지 슬라이드형',
-    noteAuto: false,
+    emoji: '🛒',
+    iconBg: 'linear-gradient(135deg, #EDE8FF 0%, #D8CFFF 100%)',
+    badge: '추천 채널',
+    sub: '네이버 쇼핑 기반',
+    desc: '검색 유입을 기반으로 한 고객에게 신뢰도 높은 상세페이지를 제작합니다.',
+    tags: ['블로그형 글+그림', '이미지 슬라이드', '썸네일 3종'],
   },
   {
     key: '쿠팡',
-    ico: '🚀',
-    tag: '이미지 중심',
-    tagStyle: { background: '#E8F2FE', color: '#3182F6' },
-    tl: '로켓배송 경쟁 환경',
-    why: '가격·배송이 먼저 보이는 환경. 첫 3초 안에 구매 이유를 줘야 함.',
-    pills: ['이미지 슬라이드', '흰 배경 누끼컷', '썸네일 2종'],
-    note: '출력형태 자동 적용: 이미지 슬라이드형',
-    noteAuto: true,
-  },
-  {
-    key: '자사몰',
-    ico: '🏪',
-    tag: '브랜드 스토리',
-    tagStyle: { background: '#FCE7F3', color: '#BE185D' },
-    tl: '브랜드 직접 운영',
-    why: '브랜드에 관심 있어서 온 고객. 세계관·스토리·감성 카피가 충성 고객 전환의 핵심.',
-    pills: ['HTML 섹션', '감성 카피', '컨셉컷'],
-    note: '출력형태 자동 적용: HTML 섹션형',
-    noteAuto: true,
-  },
-  {
-    key: '와디즈',
-    ico: '💡',
-    tag: '스토리텔링',
-    tagStyle: { background: '#F3E8FF', color: '#7C3AED' },
-    tl: '펀딩·예약판매',
-    why: '처음 보는 제품을 납득시켜야 함. 창업 스토리+개발 과정+긴박감이 핵심.',
-    pills: ['긴 스크롤 HTML', '50장+', 'GIF 포함'],
-    note: '출력형태 자동 적용: HTML 긴 스크롤형',
-    noteAuto: true,
+    emoji: '🚀',
+    iconBg: 'linear-gradient(135deg, #FFECF4 0%, #FFD6E9 100%)',
+    badge: null,
+    sub: '로켓배송 경쟁 환경',
+    desc: '빠른 스크롤과 구매 전환을 고려한 시각적 임팩트 중심으로 제작합니다.',
+    tags: ['이미지 슬라이드', '흰 배경 누끼컷', '썸네일 2종'],
   },
 ];
 
-function ChannelCard({
-  c,
-  selected,
-  onClick,
-}: {
-  c: (typeof CHANNELS)[number];
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const [hovered, setHovered] = useState(false);
+const BOTTOM_CHANNELS = [
+  {
+    key: '자사몰',
+    emoji: '🏪',
+    iconBg: 'linear-gradient(135deg, #FFEEE8 0%, #FFD9CC 100%)',
+    sub: '브랜드 직접 운영',
+    desc: '브랜드의 스토리와 고객 경험을 강화하는 프리미엄 상세페이지 제작',
+    tags: ['HTML 섹션형', '감성 카피', '전셀 맞춤'],
+  },
+  {
+    key: '와디즈',
+    emoji: '💡',
+    iconBg: 'linear-gradient(135deg, #FFFBEA 0%, #FFF3B8 100%)',
+    sub: '펀딩·예약판매',
+    desc: '창의적인 스토리텔링으로 후원자의 공감을 이끌어내는 페이지 제작',
+    tags: ['긴 스크롤 HTML', '50장+ 이미지', 'GIF 포함'],
+  },
+];
+
+const TAG_STYLE = {
+  fontSize: '11.5px', fontWeight: 500,
+  padding: '4px 10px', borderRadius: '6px',
+  background: '#F2F4F6', color: '#4E5968',
+} as const;
+
+export default function ChannelScreen() {
+  const { ch, setCh, go } = useApp();
 
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        background: selected ? '#F4F9FF' : '#ffffff',
-        border: `${selected ? '2px' : '1px'} solid ${selected ? '#3182F6' : hovered ? '#CBD2D9' : '#E8ECF0'}`,
-        boxShadow: selected
-          ? 'none'
-          : hovered
-          ? '0 4px 16px rgba(0,0,0,0.08)'
-          : '0 1px 3px rgba(0,0,0,0.04)',
-        borderRadius: '14px',
-        padding: '28px 24px',
-        cursor: 'pointer',
-        transition: 'border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, background 150ms ease',
-        transform: hovered && !selected ? 'translateY(-2px)' : 'none',
-        userSelect: 'none',
-        fontFamily: 'var(--f)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0px',
-      }}
-    >
-      {/* 선택 체크 */}
-      {selected && (
-        <span
-          style={{
-            position: 'absolute',
-            top: '12px',
-            right: '12px',
-            width: '20px',
-            height: '20px',
-            background: '#3182F6',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px',
-            color: '#ffffff',
-            fontWeight: 700,
-          }}
-        >
-          ✓
-        </span>
-      )}
+    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>
 
-      {/* 헤더: 이모지 + 채널명 + tl */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px' }}>
-        <span style={{ fontSize: '44px', lineHeight: 1, flexShrink: 0 }}>{c.ico}</span>
-        <div>
-          <div
-            style={{
-              fontSize: '17px',
-              fontWeight: 600,
-              color: selected ? '#3182F6' : '#191F28',
-              letterSpacing: '-0.02em',
-              marginBottom: '3px',
-              transition: 'color 150ms ease',
-            }}
-          >
-            {c.key}
+      {/* STEP pill */}
+      <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+        <span style={{
+          display: 'inline-block', padding: '5px 14px',
+          border: '1.5px solid #D8CFFF', borderRadius: '100px',
+          fontSize: '12px', fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.04em',
+        }}>
+          STEP 2 / 10
+        </span>
+      </div>
+
+      {/* 타이틀 */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '30px', fontWeight: 800, color: '#111',
+          letterSpacing: '-0.04em', lineHeight: 1.3, marginBottom: '10px',
+        }}>
+          어떤 <span style={{ color: '#6D4CFF' }}>채널</span>에서 <span style={{ color: '#6D4CFF' }}>판매</span>하시나요? 🤔
+        </h1>
+        <p style={{ fontSize: '14px', color: '#9CA3AF', lineHeight: 1.6 }}>
+          각 채널의 특성에 맞게 최적의 상세페이지 구조로 자동 분기됩니다
+        </p>
+      </div>
+
+      {/* AI 배너 */}
+      <div style={{
+        background: '#F8F7FF',
+        border: '1px solid #EAE4FF', borderRadius: '16px',
+        padding: '28px 32px', marginBottom: '14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        overflow: 'hidden', position: 'relative',
+      }}>
+        {/* 텍스트 */}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '14px', color: '#A89DD4', marginBottom: '10px', letterSpacing: '0.08em' }}>✦ ✦</div>
+          <p style={{ fontSize: '19px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.03em', lineHeight: 1.5, margin: 0 }}>
+            AI가 채널 특성에 맞게<br />
+            <span style={{ color: '#6D4CFF' }}>최적의</span> 상세페이지를 설계해드려요
+          </p>
+        </div>
+
+        {/* 우측 일러스트 — 페이지 레이아웃 미리보기 스타일 */}
+        <div style={{ flexShrink: 0, display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+          {/* 미니 페이지 카드 */}
+          <div style={{
+            width: '88px', background: '#fff', borderRadius: '10px',
+            border: '1px solid #E4DCFF', padding: '10px 10px 8px',
+            display: 'flex', flexDirection: 'column', gap: '5px',
+            boxShadow: '0 2px 12px rgba(109,76,255,0.08)',
+          }}>
+            <div style={{ width: '100%', height: '36px', borderRadius: '6px', background: 'linear-gradient(135deg,#EDE8FF,#D8CFFF)' }} />
+            <div style={{ width: '80%', height: '5px', borderRadius: '3px', background: '#E4DCFF' }} />
+            <div style={{ width: '60%', height: '5px', borderRadius: '3px', background: '#EDE9FE' }} />
+            <div style={{ width: '70%', height: '5px', borderRadius: '3px', background: '#EDE9FE' }} />
+            <div style={{ width: '100%', height: '20px', borderRadius: '5px', background: '#8B5CF6', marginTop: '2px' }} />
           </div>
-          <div style={{ fontSize: '12px', color: '#8B95A1' }}>{c.tl}</div>
+
+          {/* 도넛 차트 */}
+          <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '50%',
+              background: 'conic-gradient(#7C3AED 0deg 190deg, #A78BFA 190deg 270deg, #DDD6FE 270deg 360deg)',
+            }} />
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+              width: '28px', height: '28px', borderRadius: '50%', background: '#F8F7FF',
+            }} />
+          </div>
+
+          {/* 아이콘 2개 세로 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '9px',
+              background: '#fff', border: '1px solid #DDD6FE',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 6px rgba(109,76,255,0.07)',
+            }}>
+              <div style={{ width: '18px', height: '14px', borderRadius: '3px', background: 'linear-gradient(135deg,#C4B5FD,#A78BFA)' }} />
+            </div>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '9px',
+              background: '#fff', border: '1px solid #DDD6FE',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 6px rgba(109,76,255,0.07)',
+            }}>
+              <div style={{
+                width: '16px', height: '16px', borderRadius: '50%',
+                border: '2.5px solid #A78BFA', borderTopColor: 'transparent',
+                transform: 'rotate(45deg)',
+              }} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 배지 */}
-      <span
-        style={{
-          display: 'inline-block',
-          fontSize: '12px',
-          fontWeight: 600,
-          padding: '4px 10px',
-          borderRadius: '100px',
-          marginBottom: '14px',
-          width: 'fit-content',
-          ...c.tagStyle,
-        }}
-      >
-        {c.tag}
-      </span>
-
-      {/* 설명 텍스트 */}
-      <p
-        style={{
-          fontSize: '13px',
-          color: '#4E5968',
-          lineHeight: 1.65,
-          marginBottom: '14px',
-        }}
-      >
-        {c.why}
-      </p>
-
-      {/* 출력형태 칩 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-        {c.pills.map(p => (
-          <span
-            key={p}
-            style={{
-              fontSize: '12px',
-              fontWeight: 500,
-              padding: '5px 11px',
-              borderRadius: '8px',
-              background: '#F2F4F6',
-              color: '#4E5968',
-            }}
-          >
-            {p}
-          </span>
+      {/* 상단 2채널 - 풀 와이드 가로 카드 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+        {TOP_CHANNELS.map(c => (
+          <TopCard key={c.key} c={c} selected={ch === c.key} onClick={() => setCh(c.key)} />
         ))}
       </div>
 
-      {/* 출력형태 자동 안내 */}
-      <div
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '5px',
-          fontSize: '12px',
-          fontWeight: 500,
-          padding: '6px 10px',
-          borderRadius: '8px',
-          background: c.noteAuto ? '#F4F9FF' : '#F2F4F6',
-          color: c.noteAuto ? '#3182F6' : '#8B95A1',
-          width: 'fit-content',
-        }}
-      >
-        {c.noteAuto && <span>⚡</span>}
-        {c.note}
+      {/* 하단 2채널 - 2열 카드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px' }}>
+        {BOTTOM_CHANNELS.map(c => (
+          <BottomCard key={c.key} c={c} selected={ch === c.key} onClick={() => setCh(c.key)} />
+        ))}
+      </div>
+
+      {/* 원하는 채널이 없나요 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: '#FAFAFA', border: '1px solid #EBEBEB', borderRadius: '12px',
+        padding: '16px 20px', marginBottom: '36px',
+      }}>
+        <div>
+          <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#333', marginBottom: '2px', letterSpacing: '-0.01em' }}>
+            원하는 채널이 없나요?
+          </div>
+          <div style={{ fontSize: '12px', color: '#AAA' }}>
+            직접 설정으로 나만의 상세페이지를 제작해보세요.
+          </div>
+        </div>
+        <button style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          padding: '8px 14px', background: '#fff', border: '1px solid #D8CFFF',
+          borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#6D4CFF',
+          cursor: 'pointer', flexShrink: 0,
+        }}>
+          <SlidersHorizontal size={13} /> 직접 설정하기 <ChevronRight size={13} />
+        </button>
+      </div>
+
+      {/* 하단 네비 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        paddingTop: '24px', borderTop: '1px solid #EBEBEB',
+      }}>
+        <button onClick={() => go('s1')} style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          background: 'none', border: 'none',
+          fontSize: '13.5px', fontWeight: 600, color: '#9CA3AF',
+          cursor: 'pointer', padding: '8px 0',
+        }}>
+          <ArrowLeft size={15} /> 이전 단계
+        </button>
+
+        <span style={{ fontSize: '12px', color: '#C4C4C4', letterSpacing: '-0.01em' }}>
+          {ch ? `${ch} 선택됨` : '채널을 선택하면 다음 단계로 이동합니다'}
+        </span>
+
+        <button
+          disabled={!ch}
+          onClick={() => ch && go('s3')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '12px 26px',
+            background: ch ? '#6D4CFF' : '#EDE8FF',
+            color: ch ? '#fff' : '#B0A0E8',
+            border: 'none', borderRadius: '10px',
+            fontSize: '14px', fontWeight: 700,
+            cursor: ch ? 'pointer' : 'not-allowed',
+            letterSpacing: '-0.01em',
+            transition: 'all 150ms ease',
+            boxShadow: ch ? '0 4px 14px rgba(109,76,255,0.30)' : 'none',
+          }}
+        >
+          다음 단계로 <ArrowRight size={15} />
+        </button>
       </div>
     </div>
   );
 }
 
-export default function ChannelScreen() {
-  const { ch, setCh, go } = useApp();
-  const [backHovered, setBackHovered] = useState(false);
-  const [nextHovered, setNextHovered] = useState(false);
+/* ─── 상단 풀-와이드 가로 카드 ─── */
+type TopCh = typeof TOP_CHANNELS[number];
+
+function TopCard({ c, selected, onClick }: { c: TopCh; selected: boolean; onClick: () => void }) {
+  const [hov, setHov] = useState(false);
 
   return (
     <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
       style={{
-        maxWidth: '960px',
-        margin: '0 auto',
-        padding: '56px 24px 120px',
-        fontFamily: 'var(--f)',
+        display: 'flex', alignItems: 'center', gap: '20px',
+        padding: '22px 24px',
+        background: selected ? '#F7F5FF' : '#fff',
+        border: `${selected ? 2 : 1.5}px solid ${selected ? '#6D4CFF' : hov ? '#C4B5FD' : '#E5E7EB'}`,
+        borderRadius: '14px', cursor: 'pointer',
+        boxShadow: selected ? '0 0 0 3px rgba(109,76,255,0.08)' : hov ? '0 4px 16px rgba(0,0,0,0.06)' : 'none',
+        transition: 'all 140ms ease', userSelect: 'none',
       }}
     >
-      {/* 헤더 */}
-      <div style={{ marginBottom: '64px', textAlign: 'center' }}>
-        <h1
-          style={{
-            fontSize: '36px',
-            fontWeight: 700,
-            color: '#191F28',
-            letterSpacing: '-0.03em',
-            lineHeight: 1.2,
-            marginBottom: '12px',
-          }}
-        >
-          어디서 판매하고 계세요?
-        </h1>
-        <p style={{ fontSize: '16px', color: '#4E5968', lineHeight: 1.6 }}>
-          채널마다 구매자 심리가 달라요 — 최적 구조로 자동 분기됩니다
-        </p>
+      {/* 이모지 아이콘 */}
+      <div style={{
+        width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0,
+        background: c.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '30px', lineHeight: 1,
+      }}>
+        {c.emoji}
       </div>
 
-      {/* 채널 그리드 */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px',
-          marginBottom: '0',
-        }}
-      >
-        {CHANNELS.map(c => (
-          <ChannelCard
-            key={c.key}
-            c={c}
-            selected={ch === c.key}
-            onClick={() => setCh(c.key)}
-          />
-        ))}
-      </div>
-
-      {/* 하단 CTA */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: '48px',
-          paddingTop: '28px',
-          borderTop: '1px solid #E8ECF0',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <button
-          onClick={() => go('s1')}
-          onMouseEnter={() => setBackHovered(true)}
-          onMouseLeave={() => setBackHovered(false)}
-          style={{
-            background: 'transparent',
-            border: `1px solid ${backHovered ? '#CBD2D9' : '#E8ECF0'}`,
-            borderRadius: '8px',
-            padding: '10px 20px',
-            fontSize: '14px',
-            color: backHovered ? '#191F28' : '#4E5968',
-            cursor: 'pointer',
-            fontFamily: 'var(--f)',
-            transition: 'all 150ms ease',
-          }}
-        >
-          ← 이전
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {ch ? (
-            <span style={{ fontSize: '13px', color: '#8B95A1' }}>
-              선택됨:{' '}
-              <span
-                style={{
-                  background: '#E8F2FE',
-                  color: '#3182F6',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                }}
-              >
-                {ch}
-              </span>
-            </span>
-          ) : (
-            <span style={{ fontSize: '13px', color: '#B0B8C1' }}>
-              ← 채널을 선택해주세요
-            </span>
-          )}
-
-          <button
-            disabled={!ch}
-            onClick={() => ch && go('s3')}
-            onMouseEnter={() => setNextHovered(true)}
-            onMouseLeave={() => setNextHovered(false)}
-            style={{
-              background: !ch ? '#F2F4F6' : nextHovered ? '#1B64DA' : '#3182F6',
-              color: !ch ? '#B0B8C1' : '#ffffff',
-              boxShadow: ch ? '0 4px 12px rgba(49,130,246,0.22)' : 'none',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '11px 28px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: !ch ? 'not-allowed' : 'pointer',
-              fontFamily: 'var(--f)',
-              transition: 'all 150ms ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            다음 →
-          </button>
+      {/* 채널명 + 배지 */}
+      <div style={{ flexShrink: 0, width: '130px' }}>
+        {c.badge && (
+          <span style={{
+            display: 'inline-block', fontSize: '11px', fontWeight: 700,
+            padding: '3px 9px', borderRadius: '100px', marginBottom: '6px',
+            background: '#6D4CFF', color: '#fff',
+          }}>
+            {c.badge}
+          </span>
+        )}
+        <div style={{
+          fontSize: '17px', fontWeight: 800, letterSpacing: '-0.03em',
+          color: selected ? '#6D4CFF' : '#111', marginBottom: '4px',
+        }}>
+          {c.key}
         </div>
+        <div style={{ fontSize: '12px', color: '#B0B8C1' }}>{c.sub}</div>
+      </div>
+
+      {/* 설명 + 태그 */}
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: '13.5px', color: '#555', lineHeight: 1.65, marginBottom: '11px', letterSpacing: '-0.01em' }}>
+          {c.desc}
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {c.tags.map(t => <span key={t} style={TAG_STYLE}>{t}</span>)}
+        </div>
+      </div>
+
+      {/* 화살표 */}
+      <div style={{
+        width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+        background: selected ? '#6D4CFF' : '#F0ECFF',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 140ms ease',
+      }}>
+        <ChevronRight size={16} color={selected ? '#fff' : '#6D4CFF'} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── 하단 2열 소형 카드 ─── */
+type BotCh = typeof BOTTOM_CHANNELS[number];
+
+function BottomCard({ c, selected, onClick }: { c: BotCh; selected: boolean; onClick: () => void }) {
+  const [hov, setHov] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        padding: '20px 20px 18px',
+        background: selected ? '#F7F5FF' : '#fff',
+        border: `${selected ? 2 : 1.5}px solid ${selected ? '#6D4CFF' : hov ? '#C4B5FD' : '#E5E7EB'}`,
+        borderRadius: '14px', cursor: 'pointer',
+        boxShadow: selected ? '0 0 0 3px rgba(109,76,255,0.08)' : hov ? '0 4px 16px rgba(0,0,0,0.06)' : 'none',
+        transition: 'all 140ms ease', userSelect: 'none',
+      }}
+    >
+      {/* 아이콘 + 화살표 */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{
+          width: '54px', height: '54px', borderRadius: '50%',
+          background: c.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '26px', lineHeight: 1,
+        }}>
+          {c.emoji}
+        </div>
+        <div style={{
+          width: '28px', height: '28px', borderRadius: '50%',
+          background: selected ? '#6D4CFF' : '#F0ECFF',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 140ms ease',
+        }}>
+          <ChevronRight size={14} color={selected ? '#fff' : '#6D4CFF'} />
+        </div>
+      </div>
+
+      {/* 채널명 */}
+      <div style={{ fontSize: '16px', fontWeight: 800, color: selected ? '#6D4CFF' : '#111', letterSpacing: '-0.03em', marginBottom: '3px' }}>
+        {c.key}
+      </div>
+      <div style={{ fontSize: '12px', color: '#B0B8C1', marginBottom: '12px' }}>{c.sub}</div>
+
+      {/* 설명 */}
+      <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.65, marginBottom: '14px', letterSpacing: '-0.01em' }}>
+        {c.desc}
+      </p>
+
+      {/* 태그 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+        {c.tags.map(t => <span key={t} style={{ ...TAG_STYLE, fontSize: '11px', padding: '3px 9px' }}>{t}</span>)}
       </div>
     </div>
   );

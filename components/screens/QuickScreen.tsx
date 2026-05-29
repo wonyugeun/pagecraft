@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useApp, Section } from '@/store/AppContext';
+import { resolveOutputType } from '@/lib/outputType';
 
 interface ImgFile { url: string; }
 
@@ -78,6 +79,15 @@ const SECTION_FIELDS: Record<string, FieldDef[]> = {
     { id: 'message',  label: '메시지 카드', type: 'input',    placeholder: '예: 손편지 카드 무료 동봉, 원하는 문구 인쇄 가능' },
     { id: 'design',   label: '포장 디자인', type: 'input',    placeholder: '예: 시즌별 기념 박스, 브랜드 시그니처 패키지' },
   ],
+  infographic: [
+    { id: 'metric1', label: '핵심 수치 1',        type: 'input', placeholder: '예: 히알루론산 함량 3배' },
+    { id: 'metric2', label: '핵심 수치 2',        type: 'input', placeholder: '예: 24시간 보습 지속' },
+    { id: 'metric3', label: '핵심 수치 3 (선택)', type: 'input', placeholder: '예: 만족도 98%' },
+  ],
+  goods: [
+    { id: 'goodsName', label: '굿즈/사은품 이름',    type: 'input', placeholder: '예: 미니 파우치 증정' },
+    { id: 'goodsDesc', label: '굿즈 설명 (선택)',   type: 'input', placeholder: '예: 첫 구매 한정' },
+  ],
 };
 
 const QUICK_SECTIONS = [
@@ -95,7 +105,9 @@ const QUICK_SECTIONS = [
   { id: 'as',            name: 'A/S·환불',   desc: '사후 보장',      ico: '🔧', num: 'SECTION 12' },
   { id: 'certification', name: '인증/특허',   desc: '공식 인증',      ico: '🏅', num: 'SECTION 13' },
   { id: 'process',       name: '제조 공정',   desc: '생산 품질',      ico: '🏭', num: 'SECTION 14' },
-  { id: 'gift',          name: '선물 포장',   desc: '기프팅 옵션',   ico: '🎁', num: 'SECTION 15' },
+  { id: 'gift',          name: '선물 포장',      desc: '기프팅 옵션',          ico: '🎁', num: 'SECTION 15' },
+  { id: 'infographic',  name: '수치 인포그래픽', desc: '효능·성분을 숫자로 시각화', ico: '📈', num: 'SECTION 16' },
+  { id: 'goods',        name: '굿즈/사은품',    desc: '증정품·구성품 안내',      ico: '🎀', num: 'SECTION 17' },
 ];
 
 const CAT_CHIPS = [
@@ -170,8 +182,7 @@ export default function QuickScreen() {
 
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
 
-  // 스마트스토어만 블로그형(글+그림), 나머지는 슬라이드형
-  const outType = (!ch || ch === '스마트스토어') ? 'blog' : 'slide';
+  const outType = resolveOutputType(ch || null, null);
 
   const setField = (id: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [id]: value }));

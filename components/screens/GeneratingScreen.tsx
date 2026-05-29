@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useApp, Section } from '@/store/AppContext';
+import {
+  Sparkles, Check, Loader2, Clock, Lightbulb,
+  FolderOpen, Users, Target, Layers, Palette, LayoutGrid, CheckCircle,
+} from 'lucide-react';
 
+// ── 기존 진행 로직(API/타이머)용 6단계 ──
 const GEN_STEPS = [
   '레퍼런스 URL 구조 분석 중...',
   '카테고리 기획 IP 적용 중...',
@@ -11,12 +16,112 @@ const GEN_STEPS = [
   '출력 형태 조립 중...',
   '최종 검수...',
 ];
-
 const STEP_PCTS = [12, 28, 50, 70, 87, 100];
-
 const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
-
 const GENERATION_COST = 10;
+
+// ── UI 표시용 시안 7단계 ──
+interface UIStep {
+  title: string;
+  icon: typeof FolderOpen;
+  desc: string;
+  activeDesc: string;
+  waitDesc: string;
+  time: string;
+}
+
+const UI_STEPS: UIStep[] = [
+  { title: '상품 정보 분석', icon: FolderOpen, desc: '상품명, 카테고리, 핵심 키워드를 분석했어요.', activeDesc: '상품명, 카테고리, 핵심 키워드를 분석하고 있어요.', waitDesc: '상품 정보를 분석할 예정이에요.', time: '00:03' },
+  { title: '타겟 고객 분석', icon: Users, desc: '고객 관심사와 니즈를 파악했어요.', activeDesc: '고객 관심사와 니즈를 파악하고 있어요.', waitDesc: '타겟 고객을 분석할 예정이에요.', time: '00:02' },
+  { title: '핵심 메시지 도출', icon: Target, desc: '제품의 강점과 차별점을 정리했어요.', activeDesc: '제품의 강점과 차별점을 정리하고 있어요.', waitDesc: '핵심 메시지를 도출할 예정이에요.', time: '00:02' },
+  { title: '섹션 구조 설계', icon: Layers, desc: '최적의 흐름과 섹션 구성을 설계했어요.', activeDesc: '최적의 흐름과 섹션 구성을 설계하고 있어요.', waitDesc: '섹션 구조를 설계할 예정이에요.', time: '00:04' },
+  { title: '디자인 레이아웃 생성', icon: Palette, desc: '브랜드 톤앤매너에 맞는 레이아웃을 만들었어요.', activeDesc: '브랜드 톤앤매너에 맞는 레이아웃을 만들고 있어요.', waitDesc: '디자인 레이아웃을 생성할 예정이에요.', time: '00:05' },
+  { title: '콘텐츠 및 이미지 배치', icon: LayoutGrid, desc: '텍스트 작성과 이미지 배치를 완료했어요.', activeDesc: '텍스트 작성과 이미지 배치를 진행하고 있어요.', waitDesc: '콘텐츠와 이미지를 배치할 예정이에요.', time: '00:06' },
+  { title: '최종 검토 및 최적화', icon: CheckCircle, desc: '모든 요소를 검토하고 최종 최적화했어요.', activeDesc: '모든 요소를 검토하고 최종 최적화하고 있어요.', waitDesc: '최종 검토 및 최적화할 예정이에요.', time: '00:03' },
+];
+const TOTAL_UI_STEPS = UI_STEPS.length;
+
+type StepStatus = 'done' | 'active' | 'wait';
+
+function StepCard({ step, status }: { step: UIStep; status: StepStatus }) {
+  if (status === 'done') {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        borderRadius: 16, background: '#F0FAF4', border: '1px solid #D9F0E3', padding: 16,
+      }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%', background: '#22C55E',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Check size={16} color="#fff" strokeWidth={3} />
+        </div>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', background: '#E0F5E9',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <step.icon size={20} color="#22C55E" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#15803D' }}>{step.title} 완료</div>
+          <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{step.desc}</div>
+        </div>
+        <span style={{ fontSize: 13, color: '#999', flexShrink: 0 }}>{step.time}</span>
+      </div>
+    );
+  }
+
+  if (status === 'active') {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        borderRadius: 16, background: '#F4F0FF', border: '1px solid #D8D2FF', padding: 16,
+      }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%',
+          border: '2px solid #6D4CFF', background: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Check size={14} color="#6D4CFF" strokeWidth={3} />
+        </div>
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%', background: '#E8E2FF',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <Loader2 size={20} color="#6D4CFF" style={{ animation: 'spin 0.8s linear infinite' }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#6D4CFF' }}>{step.title} 중</div>
+          <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{step.activeDesc}</div>
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF', flexShrink: 0 }}>진행 중</span>
+      </div>
+    );
+  }
+
+  // wait
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16,
+      borderRadius: 16, background: '#fff', border: '1px solid #ECECF2', padding: 16,
+    }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%', background: '#ECECF2', flexShrink: 0,
+      }} />
+      <div style={{
+        width: 44, height: 44, borderRadius: '50%', background: '#F4F4F8',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Clock size={20} color="#999" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#999' }}>{step.title} 중</div>
+        <div style={{ fontSize: 13, color: '#BBB', marginTop: 2 }}>{step.waitDesc}</div>
+      </div>
+      <span style={{ fontSize: 13, color: '#BBB', flexShrink: 0 }}>대기 중</span>
+    </div>
+  );
+}
 
 export default function GeneratingScreen() {
   const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory } = useApp();
@@ -45,10 +150,8 @@ export default function GeneratingScreen() {
     abortRef.current = new AbortController();
     const start  = Date.now();
     const timers: NodeJS.Timeout[] = [];
-    // closure flag: true only when our setTimeout fires — never stale from re-mount cleanup
     let timedOut = false;
 
-    // ── 애니메이션 타이머 ──
     GEN_STEPS.forEach((_, i) => {
       const t = setTimeout(() => {
         setStepIdx(i);
@@ -57,8 +160,6 @@ export default function GeneratingScreen() {
       timers.push(t);
     });
 
-    // ── API 호출 ──
-    // 로컬 개발: 300초, 프로덕션(Vercel maxDuration=300 적용): 280초
     const TIMEOUT_MS = process.env.NODE_ENV === 'development' ? 300_000 : 280_000;
     const timeoutId = setTimeout(() => {
       timedOut = true;
@@ -106,9 +207,7 @@ export default function GeneratingScreen() {
       })
       .catch(err => {
         clearTimeout(timeoutId);
-        // cancelledRef가 true이면 사용자가 직접 취소 — 무시
         if (cancelledRef.current) return;
-        // timedOut closure flag으로 진짜 타임아웃 여부 판단 (Strict Mode 이중마운트 cleanup abort와 구분)
         if (err.name === 'AbortError') {
           if (timedOut) {
             timers.forEach(clearTimeout);
@@ -146,9 +245,16 @@ export default function GeneratingScreen() {
     setRetryKey(k => k + 1);
   };
 
-  const label = out === 'blog' ? '블로그형' : out === 'slide' ? '슬라이드형' : 'HTML형';
+  // 진행률(pct) 기반으로 시안 7단계 상태 판정
+  const currentUIStep = Math.min(Math.floor((pct / 100) * TOTAL_UI_STEPS), TOTAL_UI_STEPS - 1);
+  const getStatus = (idx: number): StepStatus => {
+    if (pct >= 100) return 'done';
+    if (idx < currentUIStep) return 'done';
+    if (idx === currentUIStep) return 'active';
+    return 'wait';
+  };
 
-  // ── 크레딧 부족 화면 ──
+  // ── 크레딧 부족 화면 ── (기존 분기 유지)
   if (creditInsufficient) {
     return (
       <div className="gen-shell">
@@ -173,7 +279,7 @@ export default function GeneratingScreen() {
     );
   }
 
-  // ── 에러 화면 ──
+  // ── 에러 화면 ── (기존 분기 유지)
   if (apiError) {
     return (
       <div className="gen-shell">
@@ -190,31 +296,83 @@ export default function GeneratingScreen() {
     );
   }
 
-  // ── 생성 중 화면 ──
+  // ── 생성 중 화면 (시안 기준) ──
   return (
-    <div className="gen-shell">
-      <div className="gen-ico">✦</div>
-      <div className="gen-title">생성 중이에요</div>
-      <div className="gen-sub">
-        {cat} · {ch} · {type} · {label}<br />
-        카테고리 기획 구조를 적용하고 있어요
+    <div style={{
+      maxWidth: 820, margin: '0 auto', padding: '48px 40px 100px', fontFamily: 'var(--f)',
+    }}>
+      {/* 상단 아이콘 + 타이틀 */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: 32,
+      }}>
+        <div style={{
+          width: 120, height: 120, borderRadius: '50%', background: '#F4F0FF',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+        }}>
+          <Sparkles size={48} color="#6D4CFF" />
+        </div>
+        <h1 style={{
+          fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#111',
+          display: 'flex', alignItems: 'center', gap: 8, lineHeight: 1.3,
+        }}>
+          상세페이지를 생성하고 있어요
+          <Sparkles size={22} color="#6D4CFF" />
+        </h1>
+        <p style={{
+          fontSize: 15, color: '#666', marginTop: 12, lineHeight: 1.7,
+        }}>
+          선택하신 정보와 이미지를 바탕으로 AI가 최적의 상세페이지를 만들고 있어요.<br />
+          잠시만 기다려주세요!
+        </p>
       </div>
-      <div className="gen-bar-bg">
-        <div className="gen-bar" style={{ width: `${pct}%` }} />
+
+      {/* 진행바 + 퍼센트 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <div style={{
+          flex: 1, height: 10, borderRadius: 999, background: '#ECECF2', overflow: 'hidden',
+        }}>
+          <div style={{
+            height: '100%', background: '#6D4CFF', borderRadius: 999,
+            width: `${pct}%`, transition: 'width .5s ease',
+          }} />
+        </div>
+        <span style={{
+          fontSize: 14, fontWeight: 700, color: '#666', width: 44, textAlign: 'right',
+        }}>{pct}%</span>
       </div>
-      <div className="gen-pct">{pct}%</div>
-      <div className="gen-steps">
-        {GEN_STEPS.map((s, i) => {
-          const status = i < stepIdx ? 'done' : i === stepIdx ? 'active' : '';
-          return (
-            <div key={i} className={`gen-step ${status}`}>
-              <div className="gen-dot" />
-              {s}
+
+      {/* 단계 카드 리스트 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {UI_STEPS.map((step, idx) => (
+          <StepCard key={idx} step={step} status={getStatus(idx)} />
+        ))}
+      </div>
+
+      {/* 하단 안내 + 작업 취소 */}
+      <div style={{
+        marginTop: 24, borderRadius: 20, background: '#F4F0FF', padding: 20,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <Lightbulb size={22} color="#FBBF24" style={{ flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>더 좋은 결과를 위해 잠시 기다려주세요!</div>
+            <div style={{ fontSize: 13, color: '#666', marginTop: 4, lineHeight: 1.6 }}>
+              AI가 고객의 시선을 사로잡는 최고의 상세페이지를 만들어 드릴게요.
             </div>
-          );
-        })}
+          </div>
+        </div>
+        <button
+          onClick={cancel}
+          style={{
+            height: 44, borderRadius: 14, border: '1px solid #ECECF2', background: '#fff',
+            padding: '0 20px', fontSize: 14, fontWeight: 700, color: '#666',
+            whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--f)',
+          }}
+        >
+          작업 취소
+        </button>
       </div>
-      <button className="gen-back" onClick={cancel}>← 정보 수정하기</button>
     </div>
   );
 }

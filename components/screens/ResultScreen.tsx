@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp, Section } from '@/store/AppContext';
+import { resolveOutputType } from '@/lib/outputType';
+import {
+  Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
+  Type, Image as ImageIcon, ArrowUpDown, EyeOff,
+} from 'lucide-react';
 
 const DEFAULT_SECTIONS: Section[] = [
   {
@@ -92,7 +97,7 @@ function downloadHtml(
       const imgUrl = imgMap[sec.num]?.url;
       const imgBlock = imgUrl
         ? `<img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin-bottom:32px;" />`
-        : `<div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div><div class="img-desc">${escHtml(sec.imageDesc)}</div></div>`;
+        : `<div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
       return `\n    <section class="sec">\n      <h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>\n      ${imgBlock}\n      <p>${escHtml(sec.body)}</p>\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
@@ -269,7 +274,6 @@ function ImgSlot({
         <>
           <div style={{ fontSize: 28 }}>📸</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>{sec.imageLabel}</div>
-          <div style={{ fontSize: 11, color: descColor, textAlign: 'center', maxWidth: 260, lineHeight: 1.6 }}>{sec.imageDesc}</div>
           {!error && <div style={{ marginTop: 8, fontSize: 11, padding: '4px 12px', background: genBg, color: '#3b82f6', borderRadius: 20, fontWeight: 600 }}>✦ 클릭하여 재생성</div>}
           {error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>생성 실패 — 클릭하여 재시도</div>}
         </>
@@ -278,33 +282,30 @@ function ImgSlot({
   );
 }
 
-/* ─── 블로그형 섹션 ─── */
-function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast, onLightbox }: {
+/* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
+function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox }: {
   sec: Section;
-  onRegen: (s: Section) => Promise<Section | null>;
+  onRegen: () => void;
+  regenLoading: boolean;
+  onSaveBody: (body: string) => void;
   imgState: ImgState;
   onGenerateImage: () => void;
   isLast: boolean;
   onLightbox?: () => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
-  const [headline, setHeadline] = useState(sec.headline);
   const [editVal, setEditVal] = useState(sec.body);
-  const [saved, setSaved] = useState(sec.body);
-  const [regenLoading, setRegenLoading] = useState(false);
 
-  const handleRegen = async () => {
-    setRegenLoading(true);
-    const result = await onRegen({ ...sec, headline, body: saved });
-    if (result) { setHeadline(result.headline); setSaved(result.body); setEditVal(result.body); }
-    setRegenLoading(false);
-  };
+  // 외부에서 sec.body가 바뀌면(재생성/override) 편집 중이 아닐 때만 동기화
+  useEffect(() => {
+    if (!editOpen) setEditVal(sec.body);
+  }, [sec.body, editOpen]);
 
   return (
     <>
       <div style={{ background: '#fff' }}>
         <div style={{ paddingTop: 48, textAlign: 'center', fontSize: 9, fontWeight: 700, color: '#ddd', letterSpacing: '0.2em' }}>{sec.num}</div>
-        <div style={{ padding: '14px 36px 0', textAlign: 'center', fontSize: 23, fontWeight: 800, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{headline}</div>
+        <div style={{ padding: '14px 36px 0', textAlign: 'center', fontSize: 23, fontWeight: 800, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
         <div style={{ marginTop: 28 }}>
           <ImgSlot
             sec={sec} imgState={imgState} onGenerate={onGenerateImage}
@@ -312,10 +313,10 @@ function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast, onLightb
             onLightbox={onLightbox}
           />
         </div>
-        <div style={{ padding: '26px 36px 0', textAlign: 'center', fontSize: 14.5, color: '#555', lineHeight: 2.1, maxWidth: 580, margin: '0 auto' }}>{saved}</div>
+        <div style={{ padding: '26px 36px 0', textAlign: 'center', fontSize: 14.5, color: '#555', lineHeight: 2.1, maxWidth: 580, margin: '0 auto' }}>{sec.body}</div>
         <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
           <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
-          <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
+          <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
             {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
           </button>
         </div>
@@ -323,8 +324,8 @@ function BlogSection({ sec, onRegen, imgState, onGenerateImage, isLast, onLightb
           <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
             <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
             <div className="edit-actions">
-              <button className="edit-save" onClick={() => { setSaved(editVal); setEditOpen(false); }}>저장</button>
-              <button className="edit-cancel" onClick={() => { setEditVal(saved); setEditOpen(false); }}>취소</button>
+              <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
+              <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
             </div>
           </div>
         )}
@@ -531,12 +532,10 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 
   return (
     <div>
-      {/* 채널 규격 안내 */}
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', marginBottom: 20, lineHeight: 1.7 }}>
         📐 <b>{ch ?? '기본'} 권장 규격:</b> {size}px &nbsp;·&nbsp; 썸네일은 다운로드 전용이며 상세페이지에 추가되지 않아요
       </div>
 
-      {/* 타입 선택 */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', marginBottom: 10 }}>썸네일 타입 선택</div>
         <div className="chips">
@@ -555,7 +554,6 @@ function ThumbnailPanel({ ch, productName, productImages }: {
         )}
       </div>
 
-      {/* 레퍼런스 이미지 업로드 (ref_copy 전용) */}
       {selectedType === 'ref_copy' && (
         <div style={{ marginBottom: 16, background: 'var(--sf)', border: '1px dashed var(--bd2)', borderRadius: 8, padding: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 10 }}>레퍼런스 이미지 업로드</div>
@@ -578,7 +576,6 @@ function ThumbnailPanel({ ch, productName, productImages }: {
         </div>
       )}
 
-      {/* 생성 버튼 */}
       {selectedType && (
         <button
           onClick={generate}
@@ -597,7 +594,6 @@ function ThumbnailPanel({ ch, productName, productImages }: {
         </button>
       )}
 
-      {/* 결과 */}
       {result?.url && (
         <div style={{ background: '#fff', border: '1px solid var(--bd)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -633,18 +629,79 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, updateLatestHistoryImages } = useApp();
-  const [activeTab,      setActiveTab]      = useState<'detail' | 'thumb'>('detail');
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
+  const [createdAt] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
+  // 섹션 목록 조작용 로컬 state
+  const [sectionOrder,     setSectionOrder]     = useState<number[]>([]);
+  const [hiddenSections,   setHiddenSections]   = useState<Set<number>>(new Set());
+  const [dragIdx,          setDragIdx]          = useState<number | null>(null);
+  const [hoveredIdx,       setHoveredIdx]       = useState<number | null>(null);
+  const [sectionOverrides, setSectionOverrides] = useState<Record<number, Partial<Section>>>({});
+  const [regenLoadingSet,  setRegenLoadingSet]  = useState<Set<number>>(new Set());
+  // 뷰모드 / 줌
+  const [viewMode, setViewMode] = useState<'mobile' | 'pc'>('mobile');
+  const [zoom,     setZoom]     = useState(100);
+  const zoomOut = () => setZoom(z => Math.max(50, z - 10));
+  const zoomIn  = () => setZoom(z => Math.min(150, z + 10));
+
+  // 빠른 수정 안내용 toast + 섹션 목록 ref
+  const [hint, setHint] = useState<string | null>(null);
+  const [sectionListHighlight, setSectionListHighlight] = useState(false);
+  const hintTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const sectionListRef = useRef<HTMLDivElement>(null);
+
+  const showHint = (msg: string) => {
+    setHint(msg);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setHint(null), 3000);
+  };
+
+  const scrollToSectionList = () => {
+    sectionListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setSectionListHighlight(true);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => setSectionListHighlight(false), 1800);
+  };
+
+  useEffect(() => () => {
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
   const savedImagesRef = useRef(false);
+
+  // sections 길이가 바뀌면 순서/숨김/오버라이드 초기화
+  useEffect(() => {
+    setSectionOrder(sections.map((_, i) => i));
+    setHiddenSections(new Set());
+    setSectionOverrides({});
+  }, [sections.length]);
+
+  // 최종 섹션 단일 소스: 원본 + override(headline/body 수정 + 재생성 결과)
+  const getEffectiveSection = (realIdx: number): Section => ({
+    ...sections[realIdx],
+    ...sectionOverrides[realIdx],
+  });
+
+  const updateSection = (realIdx: number, patch: Partial<Section>) => {
+    setSectionOverrides(prev => ({
+      ...prev,
+      [realIdx]: { ...prev[realIdx], ...patch },
+    }));
+  };
 
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
 
+  // 빈 sections fallback ── 기존 유지
   if (sections.length === 0) {
     return (
       <div className="result-shell">
@@ -665,10 +722,7 @@ export default function ResultScreen() {
 
   const displaySections = sections;
 
-  const effectiveOut =
-    ch === '쿠팡'                       ? 'slide' :
-    (ch === '자사몰' || ch === '와디즈') ? 'html'  :
-    (out ?? 'blog');
+  const effectiveOut = resolveOutputType(ch, out);
   const isSlide = effectiveOut === 'slide';
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
@@ -775,8 +829,12 @@ export default function ResultScreen() {
     }
   }, [cat, ch, type, out, productName, productExtra]);
 
+  const outputTypeLabel = isBlog ? '블로그형' : isSlide ? '슬라이드형' : 'HTML형';
   const label = isSlide ? '이미지 슬라이드형' : isHtml ? 'HTML 섹션형' : '블로그형 (글+그림)';
   const meta  = [cat, ch, type, label, `${displaySections.length}섹션`].filter(Boolean).join(' · ');
+
+  // TODO: 실제 페이지 길이 계산 (현재는 섹션 수 기반 추정)
+  const totalLength = (displaySections.length * 1040).toLocaleString();
 
   const closeLightbox = useCallback(() => setLightboxSecNum(null), []);
 
@@ -788,156 +846,526 @@ export default function ResultScreen() {
     ? lightboxItems.findIndex(i => i.secNum === lightboxSecNum)
     : -1;
 
+  const handleHtmlDownload = async () => {
+    setHtmlLoading(true);
+    await new Promise(r => setTimeout(r, 50));
+    // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영)
+    const ok = downloadHtml(finalSectionsForExport, meta, productName, sectionImages);
+    if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+    setTimeout(() => setHtmlLoading(false), 2000);
+  };
+
+  // ── 섹션 순서 + 숨김 적용 ──
+  // sectionOrder가 비어있으면(초기 마운트 직후) sections 그대로 사용
+  const effectiveOrder = sectionOrder.length === displaySections.length
+    ? sectionOrder
+    : displaySections.map((_, i) => i);
+
+  const orderedVisibleSections = effectiveOrder
+    .filter(realIdx => !hiddenSections.has(realIdx))
+    .map(realIdx => ({
+      section: getEffectiveSection(realIdx),
+      realIdx,
+    }));
+
+  // 다운로드용 최종 섹션 배열 (순서 + 숨김 + override 모두 반영)
+  const finalSectionsForExport = orderedVisibleSections.map(o => o.section);
+
+  const toggleHidden = (realIdx: number) => {
+    setHiddenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(realIdx)) next.delete(realIdx);
+      else next.add(realIdx);
+      return next;
+    });
+  };
+
+  const handleDragStart = (idx: number) => setDragIdx(idx);
+  const handleDragOver = (e: React.DragEvent, overIdx: number) => {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === overIdx) return;
+    setSectionOrder(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIdx, 1);
+      next.splice(overIdx, 0, moved);
+      return next;
+    });
+    setDragIdx(overIdx);
+  };
+  const handleDragEnd = () => setDragIdx(null);
+
+  const handleRegenSection = async (realIdx: number) => {
+    const targetSec = getEffectiveSection(realIdx);
+    if (!targetSec) return;
+    setRegenLoadingSet(prev => new Set(prev).add(realIdx));
+    try {
+      const result = await regenFn(targetSec);
+      if (result) {
+        updateSection(realIdx, { headline: result.headline, body: result.body });
+      }
+    } finally {
+      setRegenLoadingSet(prev => { const n = new Set(prev); n.delete(realIdx); return n; });
+    }
+  };
+
+  // ── 빠른 수정 메뉴 ── 클릭 시 안내 toast + 필요시 섹션 목록으로 스크롤
+  const quickActions: Array<{
+    icon: typeof Type; title: string; desc: string; onClick: () => void;
+  }> = [
+    {
+      icon: Type, title: '카피(텍스트) 수정', desc: '문구, 제목, 설명을 수정할 수 있어요',
+      onClick: () => showHint("미리보기의 '✏️ 수정' 버튼으로 각 섹션 텍스트를 바로 고칠 수 있어요"),
+    },
+    {
+      icon: ImageIcon, title: '이미지 교체 / 재생성', desc: '이미지, 배경을 교체하거나 AI로 재생성',
+      onClick: () => showHint("미리보기의 각 이미지 위 '✦ 재생성' 버튼으로 이미지를 새로 만들 수 있어요"),
+    },
+    {
+      icon: ArrowUpDown, title: '섹션 순서 변경', desc: '섹션 순서를 드래그로 변경할 수 있어요',
+      onClick: () => { showHint('우측 섹션 목록에서 드래그로 순서를 바꿀 수 있어요'); scrollToSectionList(); },
+    },
+    {
+      icon: EyeOff, title: '특정 섹션 숨기기', desc: '불필요한 섹션을 숨길 수 있어요',
+      onClick: () => { showHint('섹션 목록의 눈 아이콘을 클릭해서 섹션을 숨길 수 있어요'); scrollToSectionList(); },
+    },
+  ];
+
   return (
-    <div className="result-shell">
+    <div style={{
+      maxWidth: 1280, margin: '0 auto', padding: '32px 32px 100px', fontFamily: 'var(--f)',
+    }}>
+      {/* 타이틀 */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{
+          fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em', color: '#111',
+          display: 'flex', alignItems: 'center', gap: 8, lineHeight: 1.3,
+        }}>
+          <Sparkles size={24} color="#6D4CFF" />
+          상세페이지가 완성되었어요!
+        </h1>
+        <p style={{ fontSize: 15, color: '#666', marginTop: 8, lineHeight: 1.6 }}>
+          아래 결과물을 확인하고, 필요시 빠르게 수정하거나 스토어에 바로 업로드해보세요.
+        </p>
+      </div>
 
-      {/* 상단 */}
-      <div className="result-top">
+      {/* 2단 그리드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+
+        {/* ── 좌측: 미리보기 ── */}
         <div>
-          <div className="result-title">상세페이지 완성 🎉</div>
-          <div className="result-meta">{meta}</div>
-        </div>
-        <div className="result-top-btns">
-          <button className="btn-outline" onClick={() => go('s5')}>← 정보 수정</button>
-          <button className="btn-outline" onClick={() => go('s6')}>← 이미지 수정</button>
-        </div>
-      </div>
-
-      {/* 탭 */}
-      <div className="rtabs" style={{ marginTop: 16 }}>
-        <button className={`rtab${activeTab === 'detail' ? ' active' : ''}`} onClick={() => setActiveTab('detail')}>📝 상세페이지</button>
-        <button className={`rtab${activeTab === 'thumb' ? ' active' : ''}`} onClick={() => setActiveTab('thumb')}>🖼️ 썸네일</button>
-      </div>
-
-      {/* ── 상세페이지 탭 ── */}
-      {activeTab === 'detail' && (
-        <>
-          <div style={{ padding: '4px 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--tx2)' }}>
-            {isSlide ? '🖼️ 이미지 슬라이드 결과' : isHtml ? '🌐 HTML 섹션형 결과' : '📝 블로그형 (글+그림) 결과'}
+          {/* 출력형태 탭 */}
+          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #ECECF2', marginBottom: 16 }}>
+            {[
+              { id: 'blog',  label: '블로그형',   active: isBlog  },
+              { id: 'slide', label: '슬라이드형', active: isSlide },
+              { id: 'html',  label: 'HTML형',    active: isHtml  },
+            ].map(t => (
+              <button
+                key={t.id}
+                style={{
+                  padding: '10px 16px', fontSize: 14, fontWeight: 700,
+                  background: 'transparent', border: 'none',
+                  borderBottom: t.active ? '2px solid #6D4CFF' : '2px solid transparent',
+                  color: t.active ? '#6D4CFF' : '#999',
+                  cursor: t.active ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                }}
+                disabled
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {isGenerating && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#1d4ed8', marginTop: 12, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #93c5fd', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
-              이미지 자동 생성 중 ({doneCount}/{displaySections.length}) — 순서대로 생성됩니다
-            </div>
-          )}
-
-          {isBlog && (
-            <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'hidden' }}>
-              {displaySections.map((sec, i) => (
-                <BlogSection
-                  key={i} sec={sec} onRegen={regenFn}
-                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
-                  isLast={i === displaySections.length - 1}
-                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
-                />
-              ))}
-            </div>
-          )}
-
-          {isHtml && (
-            <div style={{ marginTop: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, background: '#eff6ff', color: '#2563eb', padding: '3px 9px', borderRadius: 20 }}>🌐 HTML 섹션형 — {ch} 최적화</span>
-                <span style={{ fontSize: 11, color: '#a8a59d' }}>각 섹션을 HTML로 내보낼 수 있어요</span>
-              </div>
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 12 }}>
-                💡 텍스트 카피는 아래 &apos;섹션별 텍스트 보기&apos;에서 확인하세요
-              </div>
-              {displaySections.map((sec, i) => (
-                <ImageSection
-                  key={i} sec={sec}
-                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
-                  index={i} accent="blue"
-                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
-                />
-              ))}
-            </div>
-          )}
-
-          {isSlide && (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, background: '#e8f3ff', color: '#2563eb', padding: '3px 9px', borderRadius: 20 }}>🖼️ 이미지 슬라이드형 — {ch} 최적화</span>
-                <span style={{ fontSize: 11, color: '#a8a59d' }}>각 카드가 슬라이드 1장 기준이에요</span>
-              </div>
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 12 }}>
-                💡 텍스트 카피는 아래 &apos;섹션별 텍스트 보기&apos;에서 확인하세요
-              </div>
-              {displaySections.map((sec, i) => (
-                <ImageSection
-                  key={i} sec={sec}
-                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
-                  index={i} accent="purple"
-                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* 다운로드 배너 */}
-          <div className="dl-banner" style={{ marginTop: 24 }}>
-            <div className="dl-left">
-              <div className="dl-lbl">전체 다운로드</div>
-              <div className="dl-title">생성된 상세페이지를 복사하거나 HTML 파일로 받아가세요</div>
-              <div className="dl-sub">헤드카피 · 이미지 가이드 · 본문 전체 포함</div>
-            </div>
-            <div className="dl-btns" style={{ flexDirection: 'column', gap: 8 }}>
-              {isHtml && (
-                <button
-                  className="dl-main-btn"
-                  style={{ fontSize: 13, opacity: htmlLoading ? 0.7 : 1, cursor: htmlLoading ? 'default' : 'pointer' }}
-                  disabled={htmlLoading}
-                  onClick={async () => {
-                    setHtmlLoading(true);
-                    await new Promise(r => setTimeout(r, 50));
-                    const ok = downloadHtml(displaySections, meta, productName, sectionImages);
-                    if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
-                    setTimeout(() => setHtmlLoading(false), 2000);
-                  }}
-                >
-                  {htmlLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a0b9d9', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />저장 중...</> : '💾 HTML 다운로드'}
-                </button>
-              )}
+          {/* 미리보기 컨트롤 바 */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16,
+          }}>
+            {/* 모바일/PC 토글 */}
+            <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: '#F4F0FF' }}>
               <button
-                className="dl-main-btn"
-                style={{ background: 'var(--white)', color: 'var(--ac)', border: '1.5px solid var(--ac)', fontSize: 13 }}
-                onClick={() => setTextModalOpen(true)}
-              >
-                📄 섹션별 텍스트 보기
-              </button>
-              <button
-                className="dl-main-btn"
-                style={{ fontSize: 13, background: 'var(--white)', color: '#111', border: '1.5px solid #d1d5db', opacity: mergeLoading ? 0.7 : 1, cursor: mergeLoading ? 'default' : 'pointer' }}
-                disabled={mergeLoading}
-                onClick={async () => {
-                  setMergeLoading(true);
-                  try { await downloadMergedImage(displaySections, sectionImages, productName); }
-                  finally { setMergeLoading(false); }
+                onClick={() => setViewMode('mobile')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8,
+                  background: viewMode === 'mobile' ? '#fff' : 'transparent',
+                  border: 'none',
+                  fontSize: 13, fontWeight: 700,
+                  color: viewMode === 'mobile' ? '#6D4CFF' : '#999',
+                  cursor: 'pointer', fontFamily: 'var(--f)',
+                  boxShadow: viewMode === 'mobile' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all .15s',
                 }}
               >
-                {mergeLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #ccc', borderTopColor: '#555', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />합성 중...</> : '🖼️ 통이미지 다운로드'}
+                <Smartphone size={14} /> 모바일
+              </button>
+              <button
+                onClick={() => setViewMode('pc')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 8,
+                  background: viewMode === 'pc' ? '#fff' : 'transparent',
+                  border: 'none',
+                  fontSize: 13, fontWeight: 700,
+                  color: viewMode === 'pc' ? '#6D4CFF' : '#999',
+                  cursor: 'pointer', fontFamily: 'var(--f)',
+                  boxShadow: viewMode === 'pc' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all .15s',
+                }}
+              >
+                <Monitor size={14} /> PC
+              </button>
+            </div>
+
+            {/* 줌 / 전체화면 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '6px 12px', borderRadius: 10, border: '1px solid #ECECF2',
+                background: '#fff', fontSize: 13, color: '#111',
+              }}>
+                <button
+                  onClick={zoomOut}
+                  disabled={zoom <= 50}
+                  style={{
+                    background: 'none', border: 'none',
+                    cursor: zoom <= 50 ? 'default' : 'pointer',
+                    fontSize: 14, color: zoom <= 50 ? '#CCC' : '#666',
+                    fontFamily: 'var(--f)', padding: 0,
+                  }}
+                >−</button>
+                <span style={{ minWidth: 36, textAlign: 'center', fontWeight: 600 }}>{zoom}%</span>
+                <button
+                  onClick={zoomIn}
+                  disabled={zoom >= 150}
+                  style={{
+                    background: 'none', border: 'none',
+                    cursor: zoom >= 150 ? 'default' : 'pointer',
+                    fontSize: 14, color: zoom >= 150 ? '#CCC' : '#666',
+                    fontFamily: 'var(--f)', padding: 0,
+                  }}
+                >+</button>
+              </div>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 10, border: '1px solid #ECECF2',
+                background: '#fff', fontSize: 13, fontFamily: 'var(--f)',
+                cursor: 'pointer', color: '#666',
+              }}>
+                <Maximize size={14} /> 전체화면
               </button>
             </div>
           </div>
-        </>
-      )}
 
-      {/* ── 썸네일 탭 ── */}
-      {activeTab === 'thumb' && (
-        <ThumbnailPanel ch={ch} productName={productName} productImages={productImages} />
-      )}
+          {/* 미리보기 캔버스 */}
+          <div style={{
+            borderRadius: 24, border: '1px solid #ECECF2', background: '#fff',
+            padding: 16, display: 'flex', justifyContent: 'center',
+            overflow: 'auto',
+          }}>
+            <div style={{
+              width: viewMode === 'mobile' ? 400 : 800,
+              transform: `scale(${zoom / 100})`,
+              transformOrigin: 'top center',
+              transition: 'width .2s ease',
+            }}>
+              {isGenerating && (
+                <div style={{
+                  background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8,
+                  padding: '10px 16px', fontSize: 12, color: '#1d4ed8',
+                  marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{
+                    display: 'inline-block', width: 14, height: 14,
+                    border: '2px solid #93c5fd', borderTopColor: '#3b82f6', borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite', flexShrink: 0,
+                  }} />
+                  이미지 자동 생성 중 ({doneCount}/{displaySections.length})
+                </div>
+              )}
 
-      {/* 텍스트 모달 */}
+              {isBlog && (
+                <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'hidden' }}>
+                  {orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
+                    <BlogSection
+                      key={realIdx}
+                      sec={sec}
+                      onRegen={() => handleRegenSection(realIdx)}
+                      regenLoading={regenLoadingSet.has(realIdx)}
+                      onSaveBody={body => updateSection(realIdx, { body })}
+                      imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                      onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                      isLast={displayIdx === orderedVisibleSections.length - 1}
+                      onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {isHtml && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
+                <ImageSection
+                  key={realIdx}
+                  sec={sec}
+                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                  index={displayIdx} accent="blue"
+                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                />
+              ))}
+
+              {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
+                <ImageSection
+                  key={realIdx}
+                  sec={sec}
+                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                  index={displayIdx} accent="purple"
+                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 우측 패널 ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* 1. 페이지 정보 */}
+          <div style={{
+            borderRadius: 20, border: '1px solid #ECECF2', background: '#fff', padding: 20,
+          }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#111' }}>페이지 정보</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#666' }}>생성 타입</span>
+                <span style={{ fontWeight: 700, color: '#111' }}>{outputTypeLabel}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#666' }}>전체 길이</span>
+                <span style={{ fontWeight: 700, color: '#111' }}>{totalLength}px (예상)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#666' }}>생성 일시</span>
+                <span style={{ fontWeight: 700, color: '#111' }}>{createdAt}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. 빠른 수정 — UI만 */}
+          <div style={{
+            borderRadius: 20, border: '1px solid #ECECF2', background: '#fff', padding: 20,
+          }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#111' }}>빠른 수정</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {quickActions.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={item.onClick}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: 12, borderRadius: 12, border: '1px solid #ECECF2',
+                    background: '#fff', textAlign: 'left', cursor: 'pointer',
+                    fontFamily: 'var(--f)', transition: 'border-color .15s, background .15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#D8D2FF'; e.currentTarget.style.background = '#FBFAFF'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#ECECF2'; e.currentTarget.style.background = '#fff'; }}
+                >
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10, background: '#F4F0FF',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <item.icon size={18} color="#6D4CFF" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>{item.title}</div>
+                    <div style={{ fontSize: 11.5, color: '#999', marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. 섹션 목록 — 표시만 */}
+          <div
+            ref={sectionListRef}
+            style={{
+              borderRadius: 20,
+              border: sectionListHighlight ? '2px solid #6D4CFF' : '1px solid #ECECF2',
+              background: '#fff', padding: 20,
+              boxShadow: sectionListHighlight ? '0 0 0 4px rgba(109,76,255,0.15)' : 'none',
+              transition: 'all .25s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>섹션 목록</h3>
+              <span style={{ fontSize: 12, color: '#999' }}>총 {displaySections.length}개</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {effectiveOrder.map((realIdx, displayIdx) => {
+                if (!sections[realIdx]) return null;
+                const sec = getEffectiveSection(realIdx);
+                const thumb = sectionImages[sec.num]?.url;
+                const isHidden = hiddenSections.has(realIdx);
+                const isHovered = hoveredIdx === realIdx;
+                const isDragging = dragIdx === displayIdx;
+                const isRegenerating = regenLoadingSet.has(realIdx);
+                return (
+                  <div
+                    key={realIdx}
+                    draggable
+                    onDragStart={() => handleDragStart(displayIdx)}
+                    onDragOver={e => handleDragOver(e, displayIdx)}
+                    onDragEnd={handleDragEnd}
+                    onMouseEnter={() => setHoveredIdx(realIdx)}
+                    onMouseLeave={() => setHoveredIdx(p => p === realIdx ? null : p)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: 10, borderRadius: 12,
+                      background: isHovered ? '#FAFAFC' : 'transparent',
+                      opacity: isHidden ? 0.5 : isDragging ? 0.4 : 1,
+                      transition: 'opacity .15s, background .15s',
+                    }}
+                  >
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleHidden(realIdx); }}
+                      aria-label={isHidden ? '표시' : '숨김'}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        width: 24, height: 24, padding: 0, background: 'none', border: 'none',
+                        cursor: 'pointer', flexShrink: 0,
+                      }}
+                    >
+                      {isHidden
+                        ? <EyeOff size={16} color="#999" />
+                        : <Eye size={16} color="#6D4CFF" />
+                      }
+                    </button>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 8,
+                      background: '#F4F0FF', flexShrink: 0, overflow: 'hidden',
+                    }}>
+                      {thumb && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 13, fontWeight: 500, flex: 1, color: '#111',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {String(displayIdx + 1).padStart(2, '0')} {sec.name?.split('—')[0]?.trim() || sec.name}
+                    </span>
+                    {/* 호버 시 재생성 버튼 */}
+                    {(isHovered || isRegenerating) && (
+                      <button
+                        onClick={e => { e.stopPropagation(); handleRegenSection(realIdx); }}
+                        disabled={isRegenerating}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          fontSize: 12, fontWeight: 700, color: '#6D4CFF',
+                          padding: '4px 8px', borderRadius: 8,
+                          background: '#F4F0FF', border: 'none',
+                          cursor: isRegenerating ? 'default' : 'pointer',
+                          flexShrink: 0, fontFamily: 'var(--f)',
+                          opacity: isRegenerating ? 0.6 : 1,
+                        }}
+                      >
+                        {isRegenerating ? (
+                          <>
+                            <span style={{ display: 'inline-block', width: 10, height: 10, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                            생성 중
+                          </>
+                        ) : (
+                          <><Sparkles size={12} /> 재생성</>
+                        )}
+                      </button>
+                    )}
+                    <GripVertical
+                      size={14}
+                      color="#CCC"
+                      style={{ flexShrink: 0, cursor: 'grab' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. 액션 버튼 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* 채널 업로드 — UI만 */}
+            <button
+              onClick={() => alert(`${ch ?? '스토어'}에 업로드 기능은 곧 추가됩니다.`)}
+              style={{
+                width: '100%', height: 48, borderRadius: 14, background: '#6D4CFF', color: '#fff',
+                fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer', fontFamily: 'var(--f)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                boxShadow: '0 4px 14px rgba(109,76,255,0.30)',
+              }}
+            >
+              <Upload size={16} /> {ch ?? '스토어'}에 업로드
+            </button>
+
+            {/* HTML 다운로드 — 기존 downloadHtml 항상 노출 */}
+            <button
+              onClick={handleHtmlDownload}
+              disabled={htmlLoading}
+              style={{
+                width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                cursor: htmlLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                opacity: htmlLoading ? 0.7 : 1,
+              }}
+            >
+              {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
+            </button>
+
+            {/* 다시 생성하기 — go('s6') */}
+            <button
+              onClick={() => go('s6')}
+              style={{
+                width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                cursor: 'pointer', fontFamily: 'var(--f)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              <RefreshCw size={16} /> 다시 생성하기
+            </button>
+          </div>
+
+          {/* 도움말 박스 */}
+          <div style={{ background: '#F4F0FF', borderRadius: 16, padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 6 }}>
+              더 다양한 수정이 필요하신가요?
+            </div>
+            <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6 }}>
+              상단의 각 단계를 돌아가면 더 세밀한 설정과 재생성이 가능합니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 하단 이전 단계 */}
+      <div style={{ marginTop: 24 }}>
+        <button
+          onClick={() => go('s6')}
+          style={{
+            height: 44, borderRadius: 16, border: '1px solid #ECECF2',
+            background: '#fff', padding: '0 20px',
+            fontSize: 14, fontWeight: 700, color: '#666',
+            cursor: 'pointer', fontFamily: 'var(--f)',
+          }}
+        >
+          ← 이전 단계로
+        </button>
+      </div>
+
+      {/* 텍스트 모달 — 기존 유지 */}
       {textModalOpen && (
         <TextModal sections={displaySections} onClose={() => setTextModalOpen(false)} />
       )}
 
-      {/* 라이트박스 */}
+      {/* 라이트박스 — 기존 유지 */}
       {lightboxSecNum && lightboxInitIdx >= 0 && (
         <EnhancedLightbox
           items={lightboxItems}
@@ -946,6 +1374,19 @@ export default function ResultScreen() {
         />
       )}
 
+      {/* 빠른 수정 안내 toast */}
+      {hint && (
+        <div style={{
+          position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9000, padding: '12px 20px', borderRadius: 14,
+          background: '#111', color: '#fff', fontSize: 14, fontWeight: 500,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+          maxWidth: '90vw', textAlign: 'center', lineHeight: 1.5,
+          pointerEvents: 'none',
+        }}>
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

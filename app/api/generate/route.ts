@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 
 export const maxDuration = 300;
 
@@ -497,12 +498,25 @@ export async function POST(req: NextRequest) {
       captureAnalysis?: CaptureAnalysisInput;
     };
 
-  const outputType = out === 'blog' ? '블로그형 (글+그림)' : out === 'slide' ? '이미지 슬라이드형' : 'HTML 섹션형';
+  const outputType = OUTPUT_TYPE_LABEL[resolveOutputType(ch, out)];
   const count      = sectionStructure?.length || getDefaultSecCnt(ch, secCnt);
   const { system, sectionGuide } = getCategoryConfig(cat, ch);
 
+  const hasPriceInfo = productExtra?.includes('가격 표시 여부:');
+  const showPriceInCopy = productExtra?.includes('가격 표시 여부: 상세페이지에 표시');
+  const priceGuide = hasPriceInfo
+    ? showPriceInCopy
+      ? `\n[가격 카피 지침: 정가·판매가·할인율 정보가 있습니다 — 해당 수치를 카피(헤드라인 또는 본문)에 자연스럽게 활용하세요.]\n`
+      : `\n[가격 카피 지침: 가격 정보가 있으나 상세페이지에 표시하지 않습니다 — 카피에 구체적인 가격·할인율을 언급하지 마세요.]\n`
+    : '';
+
+  const hasOptions = productExtra?.includes('옵션:');
+  const optionsGuide = hasOptions
+    ? `\n[옵션 카피 지침: 옵션 정보가 있습니다 — 구성/선택 안내 섹션이나 비교표에 옵션 종류와 선택 방법을 자연스럽게 안내하세요.]\n`
+    : '';
+
   const productDetailBlock = productExtra
-    ? `\n[상품 상세 정보 — 아래 내용을 카피에 반드시 반영하세요. 수치·인증·소재명이 있으면 헤드라인과 본문에 직접 녹이세요]\n${productExtra}\n`
+    ? `\n[상품 상세 정보 — 아래 내용을 카피에 반드시 반영하세요. 수치·인증·소재명이 있으면 헤드라인과 본문에 직접 녹이세요]\n${productExtra}\n${priceGuide}${optionsGuide}`
     : '';
 
   const sectionBlock = sectionStructure?.length
