@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useApp, Section } from '@/store/AppContext';
+import { useApp, Section, Block } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
+import BlockRenderer from '@/components/result/BlockRenderer';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
   Type, Image as ImageIcon, ArrowUpDown, EyeOff,
@@ -110,13 +111,14 @@ function downloadHtml(
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #fff; color: #111; max-width: 860px; margin: 0 auto; }
     .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
-    .sec { padding: 60px 40px; border-bottom: 1px solid #f0f0f0; }
-    h2 { font-size: 28px; font-weight: 800; text-align: center; line-height: 1.45; margin-bottom: 32px; letter-spacing: -0.5px; }
-    .img-slot { width: 100%; height: 340px; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 32px; }
+    .sec { padding: 60px 40px 0; }
+    .sec + .sec { padding-top: 56px; }
+    h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.55; margin-bottom: 20px; letter-spacing: -0.4px; }
+    .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
     .img-icon { font-size: 36px; }
     .img-label { font-size: 14px; font-weight: 700; color: #64748b; }
-    .img-desc { font-size: 12px; color: #94a3b8; text-align: center; max-width: 320px; line-height: 1.6; }
-    p { font-size: 16px; line-height: 2; text-align: center; color: #444; max-width: 640px; margin: 0 auto; }
+    p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
   </style>
 </head>
 <body>
@@ -283,7 +285,7 @@ function ImgSlot({
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox }: {
+function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
@@ -292,6 +294,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
   onGenerateImage: () => void;
   isLast: boolean;
   onLightbox?: () => void;
+  blockImages?: Record<string, ImgState>;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editVal, setEditVal] = useState(sec.body);
@@ -301,36 +304,50 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
     if (!editOpen) setEditVal(sec.body);
   }, [sec.body, editOpen]);
 
+  const hasBlocks = !!sec.blocks?.length;
+
   return (
     <>
       <div style={{ background: '#fff' }}>
-        <div style={{ paddingTop: 48, textAlign: 'center', fontSize: 9, fontWeight: 700, color: '#ddd', letterSpacing: '0.2em' }}>{sec.num}</div>
-        <div style={{ padding: '14px 36px 0', textAlign: 'center', fontSize: 23, fontWeight: 800, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
-        <div style={{ marginTop: 28 }}>
-          <ImgSlot
-            sec={sec} imgState={imgState} onGenerate={onGenerateImage}
-            slotStyle={{ width: '100%', height: 300, background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            onLightbox={onLightbox}
-          />
-        </div>
-        <div style={{ padding: '26px 36px 0', textAlign: 'center', fontSize: 14.5, color: '#555', lineHeight: 2.1, maxWidth: 580, margin: '0 auto' }}>{sec.body}</div>
-        <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
-          <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-            {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-          </button>
-        </div>
-        {editOpen && (
-          <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
-            <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
-            <div className="edit-actions">
-              <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
-              <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
+        {hasBlocks ? (
+          <>
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} />
+            <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
+                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+              </button>
             </div>
-          </div>
+          </>
+        ) : (
+          <>
+            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
+            <div style={{ marginTop: 20 }}>
+              <ImgSlot
+                sec={sec} imgState={imgState} onGenerate={onGenerateImage}
+                slotStyle={{ width: '100%', aspectRatio: '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
+                onLightbox={onLightbox}
+              />
+            </div>
+            <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 14.5, color: '#555', lineHeight: 2.1, whiteSpace: 'pre-line' }}>{sec.body}</div>
+            <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+              <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
+              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
+                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+              </button>
+            </div>
+            {editOpen && (
+              <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
+                <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
+                <div className="edit-actions">
+                  <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
+                  <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
-      {!isLast && <div style={{ height: 1, background: '#efefef' }} />}
+      {!isLast && <div style={{ height: 56 }} />}
     </>
   );
 }
@@ -632,6 +649,7 @@ export default function ResultScreen() {
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
+  const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   const [createdAt] = useState(() => {
@@ -731,13 +749,17 @@ export default function ResultScreen() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false } }));
     try {
       const images = productImagesRef.current;
+      const promptText = effectiveOut === 'blog'
+        ? sec.imageDesc
+        : `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`,
+          prompt: promptText,
           sectionNum: sec.num,
           productImages: images.length > 0 ? images : undefined,
+          outputType: effectiveOut,
         }),
         signal,
       });
@@ -752,6 +774,36 @@ export default function ResultScreen() {
     } catch (err) {
       if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
+    }
+  }, [effectiveOut]);
+
+  const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
+    const key = `${sec.num}#${blockIdx}`;
+    setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false } }));
+    try {
+      const images = productImagesRef.current;
+      const res = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: desc,
+          sectionNum: key,
+          productImages: images.length > 0 ? images : undefined,
+          outputType: 'blog',
+        }),
+        signal,
+      });
+      if (signal.aborted) return;
+      const data = await res.json();
+      if (signal.aborted) return;
+      if (data.imageBase64) {
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
+      } else {
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
+      }
+    } catch (err) {
+      if (signal.aborted) return;
+      setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
     }
   }, []);
 
@@ -770,20 +822,39 @@ export default function ResultScreen() {
     } else {
       setSectionImages({});
     }
+    setBlockImages({});
+
+    const sleep = (ms: number) => new Promise<void>(r => {
+      const id = setTimeout(r, ms);
+      ctrl.signal.addEventListener('abort', () => { clearTimeout(id); r(); }, { once: true });
+    });
 
     (async () => {
+      let count = 0;
       for (let i = 0; i < displaySections.length; i++) {
         if (ctrl.signal.aborted) break;
         const sec = displaySections[i];
-        if (restoredImages[sec.num]) continue;
-        if (i > 0) {
-          await new Promise<void>(r => {
-            const id = setTimeout(r, 3_000);
-            ctrl.signal.addEventListener('abort', () => { clearTimeout(id); r(); }, { once: true });
-          });
+        const hasBlocks = !!sec.blocks?.length;
+
+        if (hasBlocks) {
+          // 블록 모드: image 블록만 따로 생성 (섹션 대표 이미지 skip)
+          for (let bi = 0; bi < sec.blocks!.length; bi++) {
+            if (ctrl.signal.aborted) break;
+            const block = sec.blocks![bi];
+            if (block.type !== 'image') continue;
+            if (count > 0) await sleep(3_000);
+            if (ctrl.signal.aborted) break;
+            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
+            count++;
+          }
+        } else {
+          // 기존 경로: 섹션 대표 이미지
+          if (restoredImages[sec.num]) continue;
+          if (count > 0) await sleep(3_000);
+          if (ctrl.signal.aborted) break;
+          await generateImage(sec, ctrl.signal);
+          count++;
         }
-        if (ctrl.signal.aborted) break;
-        await generateImage(sec, ctrl.signal);
       }
     })();
 
@@ -1084,7 +1155,7 @@ export default function ResultScreen() {
               )}
 
               {isBlog && (
-                <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ background: '#fff' }}>
                   {orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
                     <BlogSection
                       key={realIdx}
@@ -1096,6 +1167,7 @@ export default function ResultScreen() {
                       onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                       isLast={displayIdx === orderedVisibleSections.length - 1}
                       onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                      blockImages={blockImages}
                     />
                   ))}
                 </div>

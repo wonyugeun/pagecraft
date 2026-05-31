@@ -26,12 +26,13 @@ function errJson(msg: string, extra?: Record<string, unknown>, status = 500) {
 
 export async function POST(req: NextRequest) {
   // ── 1. 요청 파싱 ──
-  let prompt: string, sectionNum: string, productImages: string[] | undefined;
+  let prompt: string, sectionNum: string, productImages: string[] | undefined, outputType: string | undefined;
   try {
-    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[] };
+    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[]; outputType?: string };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
     productImages = body.productImages;
+    outputType    = body.outputType;
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
@@ -50,14 +51,34 @@ export async function POST(req: NextRequest) {
 
   // ── 3. 페이로드 구성 ──
   const hasRefImages = productImages && productImages.length > 0;
+  const isBlog       = outputType === 'blog';
+
+  // 제품 reference 보존 — 최우선. ref 이미지가 있을 때만 의미 있음.
+  const PRODUCT_RULES = hasRefImages
+    ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. Even when showing ingredients, materials, backgrounds, or skin close-ups, the same product from the reference must remain consistent across all images.`
+    : '';
+
+  // 인물 금지 (피부 클로즈업은 허용) — 항상 적용. 매번 다른 얼굴이 나와 브랜드 일관성이 깨지는 것을 막기 위해.
+  const PEOPLE_RULES =
+    `Do NOT show any human faces, identifiable people, full bodies, or models. ` +
+    `Skin close-ups WITHOUT a face are allowed (e.g. close-up of skin texture, cheek surface, back of hand skin) to show product effect — but never a recognizable face or full person.`;
+
+  // 텍스트 금지 — 블로그형에서만. 슬라이드형은 헤드라인 오버레이를 유지.
+  const TEXT_RULES = isBlog
+    ? `Do NOT render any text, letters, numbers, labels, or typography overlaid on the image (the product's own existing label and branding from the reference must remain as-is). Clean photographic image, no captions.`
+    : '';
+
+  const rulesTail = [PEOPLE_RULES, TEXT_RULES].filter(Boolean).join(' ');
 
   const fullPrompt = hasRefImages
     ? `Korean e-commerce product detail page image. ` +
-      `The reference images above show the actual product — maintain the product's exact appearance, colors, shape, and branding throughout. ` +
+      `${PRODUCT_RULES} ` +
       `${prompt}. ` +
-      `High quality commercial photography, professional studio lighting, clean composition.`
+      `High quality commercial photography, professional studio lighting, clean composition. ` +
+      `${rulesTail}`
     : `Korean e-commerce product detail page image. ${prompt}. ` +
-      `High quality commercial photography, professional studio lighting, clean composition.`;
+      `High quality commercial photography, professional studio lighting, clean composition. ` +
+      `${rulesTail}`;
 
   const refImageParts = (productImages ?? []).slice(0, 3).map(dataUrl => {
     const [header, data] = dataUrl.split(',');

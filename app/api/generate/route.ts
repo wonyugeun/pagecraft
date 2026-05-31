@@ -498,8 +498,10 @@ export async function POST(req: NextRequest) {
       captureAnalysis?: CaptureAnalysisInput;
     };
 
-  const outputType = OUTPUT_TYPE_LABEL[resolveOutputType(ch, out)];
-  const count      = sectionStructure?.length || getDefaultSecCnt(ch, secCnt);
+  const resolvedOut  = resolveOutputType(ch, out);
+  const isBlogOutput = resolvedOut === 'blog';
+  const outputType   = OUTPUT_TYPE_LABEL[resolvedOut];
+  const count        = sectionStructure?.length || getDefaultSecCnt(ch, secCnt);
   const { system, sectionGuide } = getCategoryConfig(cat, ch);
 
   const hasPriceInfo = productExtra?.includes('가격 표시 여부:');
@@ -543,6 +545,51 @@ ${captureAnalysis.섹션목록.map(s => `  · ${s.타입}: ${s.톤매너노트 ?
 ※ 위 레퍼런스 톤을 바탕으로 카피를 작성하되, 상품 정보는 아래 제공된 내용으로 새롭게 작성하세요.\n`
     : '';
 
+  const blocksGuide = isBlogOutput
+    ? `
+[블로그형 추가 출력 — blocks]
+blog 형태에서는 각 섹션에 "blocks" 배열을 추가로 출력하세요.
+blocks는 섹션 내용을 다양한 형태로 표현하는 단위입니다.
+섹션 이름(역할)에 맞는 블록 타입을 선택하세요:
+
+- 히어로/메인 섹션 → hero(title, subtitle) + image
+- 고민/공감 섹션 → heading + checklist(items[]) + image(선택)
+- 성분/특징 섹션 → heading + iconcards(cards[{title, desc}]) (3~4개)
+- 수치/효과/증명 섹션 → heading + stats(items[{value, label}]) (2~4개)
+- 사용법/방법 섹션 → heading + steps(items[{title, desc}]) + image(선택)
+- 비교 섹션 → heading + compare(headers[], rows[])
+- 후기/리뷰 섹션 → heading + quote(text, author, rating)
+- FAQ/자주묻는질문 섹션 → heading + faq(items[{q, a}])
+- 마지막 CTA/구매유도 섹션 → cta(text, button)
+- 그 외 일반 설명 → heading + paragraph(text) + image(선택)
+
+블록 타입별 형식:
+{ "type": "hero", "title": "...", "subtitle": "..." }
+{ "type": "heading", "text": "..." }
+{ "type": "paragraph", "text": "..." }
+{ "type": "checklist", "items": ["...", "..."] }
+{ "type": "steps", "items": [{"title": "...", "desc": "..."}] }
+{ "type": "iconcards", "cards": [{"title": "...", "desc": "..."}] }
+{ "type": "stats", "items": [{"value": "95%", "label": "..."}] }
+{ "type": "compare", "headers": ["항목", "우리제품", "일반제품"], "rows": [["병풀함량", "95%", "낮음"]] }
+{ "type": "quote", "text": "...", "author": "...", "rating": 5 }
+{ "type": "faq", "items": [{"q": "...", "a": "..."}] }
+{ "type": "image", "label": "...", "desc": "이미지 생성 프롬프트" }
+{ "type": "cta", "text": "...", "button": "지금 구매하기" }
+
+각 섹션 JSON에 기존 headline, body, imageLabel, imageDesc도 그대로 포함하고, 추가로 blocks 배열을 넣으세요.
+image 블록의 desc는 이미지 생성 프롬프트입니다(기존 imageDesc와 동일 역할).
+`
+    : '';
+
+  const imagePromptRules = `
+[이미지 프롬프트 작성 규칙 — imageDesc${isBlogOutput ? ' 및 image 블록의 desc' : ''} 작성 시 반드시 준수]
+- 이미지에는 항상 제품(셀러가 제공한 제품)을 중심에 두세요. 원료·소재·배경·피부 디테일은 제품과 함께 보조적으로 표현합니다.
+- 모든 이미지에서 제품의 모양·색·라벨이 동일하게 유지되도록 묘사하세요. 섹션·블록이 달라도 같은 제품이라는 것이 명확해야 합니다.
+- 사람 얼굴/인물/전신/모델을 등장시키지 마세요. 매번 다른 얼굴이 나와 브랜드 일관성이 깨집니다.
+- 단, 얼굴 없는 피부 클로즈업(피부 질감, 볼 표면, 손등 피부 등 — 인물 식별이 안 되는 디테일)은 효과 표현용으로 허용됩니다.
+${isBlogOutput ? '- 이미지 안에 별도로 오버레이되는 텍스트·문구·라벨·숫자·타이포그래피를 묘사하지 마세요(제품 자체의 기존 라벨/브랜딩은 reference 그대로 유지). 깔끔한 사진 이미지여야 합니다.\n' : ''}`;
+
   const userPrompt = `다음 조건으로 상세페이지 섹션을 생성해주세요.
 
 [생성 조건]
@@ -555,7 +602,7 @@ ${captureAnalysis.섹션목록.map(s => `  · ${s.타입}: ${s.톤매너노트 ?
 
 [섹션 기획 가이드]
 ${sectionGuide}
-${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}
+${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}${blocksGuide}${imagePromptRules}
 [카피 작성 7대 원칙 — 반드시 준수]
 1. AIDA 심리 구조: 전체 섹션이 공감(Attention)→흥미(Interest)→욕구(Desire)→행동(Action) 흐름을 이루도록 순서 구성
 2. 업계 전문 용어 필수: 시스템 프롬프트에 명시된 업계 전문 용어를 각 섹션에 자연스럽게 포함 (일반 소비자 언어만으로 채우지 말 것)
@@ -573,26 +620,51 @@ ${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}
     "headline": "헤드라인 카피 (이모지 포함, 업계 전문 용어·수치·차별점을 자연스럽게 반영, 구체적이고 설득력 있게)",
     "body": "본문 카피 (2~4문장, AIDA 흐름·업계 전문 용어·채널 최적화 적용, 상품 정보와 카테고리 특성 최대 반영)",
     "imageLabel": "이미지 슬롯 라벨 (예: 📸 메인 이미지 슬롯)",
-    "imageDesc": "이미지 설명 (촬영 방향, 분위기, 구도, 색조, 핵심 요소 등 구체적으로)"
+    "imageDesc": "이미지 설명 (촬영 방향, 분위기, 구도, 색조, 핵심 요소 등 구체적으로)"${isBlogOutput ? `,
+    "blocks": [
+      { "type": "hero", "title": "...", "subtitle": "..." }
+    ]` : ''}
   }
 ]`;
 
   try {
-    const message = await client.messages.create({
+    const stream = client.messages.stream({
       model:      'claude-sonnet-4-6',
-      max_tokens: 16000,
+      max_tokens: 32000,
       system,
       messages:   [{ role: 'user', content: userPrompt }],
     });
+    const message = await stream.finalMessage();
 
     if (!message.content || message.content.length === 0) {
       throw new Error('Claude 응답 비어있음 (content 배열 길이 0)');
     }
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-    // non-greedy로 첫 번째 배열만 추출
-    const jsonMatch = raw.match(/\[[\s\S]*?\](?=\s*$|\s*\n|$)/m) ?? raw.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('응답에서 JSON 배열을 찾을 수 없음');
-    const sections = JSON.parse(jsonMatch[0]);
+    const stopReason = message.stop_reason;
+    const usage = message.usage;
+    console.log(`[generate] stop_reason=${stopReason} input=${usage?.input_tokens} output=${usage?.output_tokens} raw_len=${raw.length} isBlog=${isBlogOutput}`);
+    if (stopReason === 'max_tokens') {
+      console.error(`[generate] 응답 잘림 (max_tokens 도달). raw tail:\n${raw.slice(-400)}`);
+      throw new Error('응답이 max_tokens(32000)에 도달해 잘렸어요. 섹션 수를 줄이거나 max_tokens를 더 늘려주세요.');
+    }
+    // 외부 배열만 추출 — 첫 '['부터 마지막 ']'까지 (nested array에 강함)
+    const first = raw.indexOf('[');
+    const last  = raw.lastIndexOf(']');
+    if (first === -1 || last === -1 || last < first) {
+      console.error(`[generate] JSON 배열 미발견. raw head:\n${raw.slice(0, 500)}`);
+      throw new Error('응답에서 JSON 배열을 찾을 수 없음');
+    }
+    const jsonText = raw.slice(first, last + 1);
+    let sections: unknown;
+    try {
+      sections = JSON.parse(jsonText);
+    } catch (parseErr) {
+      const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      const pos = pmsg.match(/position (\d+)/)?.[1];
+      const around = pos ? jsonText.slice(Math.max(0, +pos - 120), +pos + 120) : jsonText.slice(0, 300);
+      console.error(`[generate] JSON.parse 실패: ${pmsg}\n주변 ±120자:\n${around}\nraw tail:\n${raw.slice(-400)}`);
+      throw new Error(`JSON 파싱 실패: ${pmsg}`);
+    }
     if (!Array.isArray(sections)) {
       throw new Error(`JSON이 배열이 아님: ${typeof sections}`);
     }
@@ -601,7 +673,28 @@ ${productDetailBlock}${sectionBlock}${referenceBlock}${captureBlock}
       console.error(`[generate] 섹션 ${invalid} 필수 필드 누락:`, JSON.stringify(sections[invalid]).slice(0, 200));
       throw new Error(`섹션 ${invalid + 1}에 필수 필드(num/headline/body) 누락`);
     }
-    return NextResponse.json({ sections });
+
+    const VALID_BLOCK_TYPES = new Set([
+      'hero', 'heading', 'paragraph', 'checklist', 'steps', 'iconcards',
+      'stats', 'compare', 'quote', 'faq', 'image', 'cta',
+    ]);
+    const sanitizedSections = sections.map((s: Record<string, unknown>) => {
+      const base = { ...s };
+      if (isBlogOutput && Array.isArray(s.blocks)) {
+        const validBlocks = (s.blocks as unknown[]).filter(b =>
+          b !== null && typeof b === 'object' &&
+          typeof (b as { type?: unknown }).type === 'string' &&
+          VALID_BLOCK_TYPES.has((b as { type: string }).type),
+        );
+        if (validBlocks.length) base.blocks = validBlocks;
+        else delete base.blocks;
+      } else {
+        delete base.blocks;
+      }
+      return base;
+    });
+
+    return NextResponse.json({ sections: sanitizedSections });
   } catch (err) {
     console.error('Generate error:', err);
     const msg = err instanceof Error ? err.message : '알 수 없는 오류';

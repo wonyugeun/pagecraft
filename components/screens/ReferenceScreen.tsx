@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp, ReferenceAnalysis, CaptureAnalysis, CaptureSection, CH_OUT_AUTO } from '@/store/AppContext';
 import { inferOutFromSections } from '@/lib/outputType';
-import { ArrowLeft, ArrowRight, Link2, FileText, Image as ImageIcon, Sparkles, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Link2, Image as ImageIcon, Sparkles, Plus } from 'lucide-react';
 
-type Tab = 'url' | 'text' | 'capture' | 'skip';
+type Tab = 'url' | 'capture' | 'skip';
 type CaptureStage = 'idle' | 'stitching' | 'stage1' | 'stage2' | 'done' | 'error';
 
 interface FileEntry { id: string; dataUrl: string }
@@ -82,7 +82,14 @@ function CaptureGuideModal({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: 12, color: 'var(--tx2)', lineHeight: 1.8 }}>
               <b>GoFullPage</b> (크롬 확장) 설치 후<br />
               상세페이지에서 아이콘 클릭 → 자동으로 전체 캡처<br />
-              <span style={{ color: 'var(--tx3)' }}>→ 검색: "GoFullPage Chrome extension"</span>
+              <a
+                href="https://chromewebstore.google.com/detail/gofullpage-full-page-scre/fdpohaocaechififmbbbbbknoalclacl"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-block', marginTop: 8, padding: '6px 12px', background: '#6D4CFF', color: '#fff', borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: 'none' }}
+              >
+                GoFullPage 설치하기 →
+              </a>
             </div>
           </div>
 
@@ -535,9 +542,40 @@ function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedIm
           onClick={() => setShowGuide(true)}
           style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: 'var(--pu)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', textDecoration: 'underline', padding: 0 }}
         >
-          어떻게 캡처하나요? →
+          자세히 보기 →
         </button>
       </div>
+
+      {files.length === 0 && (
+        <div style={{ background: '#F4F0FF', border: '1px solid #DDD6FE', borderRadius: 16, padding: '18px 18px', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#4C1D95', marginBottom: 12 }}>💻 PC에서 전체 화면 캡처하는 법</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            {([
+              '크롬 브라우저에서 GoFullPage 확장 설치 (무료)',
+              '상세페이지 열고 확장 아이콘 클릭 (또는 Alt+Shift+P)',
+              '자동으로 전체 페이지 캡처 → 이미지 저장',
+              '저장한 이미지를 아래에 업로드',
+            ] as string[]).map((step, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#6D4CFF', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
+                <span style={{ fontSize: 12.5, color: '#4C1D95', lineHeight: 1.6 }}>{step}</span>
+              </div>
+            ))}
+          </div>
+          <a
+            href="https://chromewebstore.google.com/detail/gofullpage-full-page-scre/fdpohaocaechififmbbbbbknoalclacl"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#6D4CFF', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+          >
+            GoFullPage 설치하기 →
+          </a>
+          <div style={{ marginTop: 10, fontSize: 11.5, color: '#5b21b6', lineHeight: 1.6 }}>
+            긴 페이지는 여러 장으로 나눠 올려도 AI가 자동으로 이어붙여요.<br />
+            휴대폰은 스크롤 캡처 기능으로 찍어 올려주세요.
+          </div>
+        </div>
+      )}
 
       {files.length === 0 && (
         <div
@@ -657,7 +695,6 @@ export default function ReferenceScreen() {
 
   const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
   const [url, setUrl]       = useState('');
-  const [text, setText]     = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReferenceAnalysis | null>(null);
   const [error, setError]   = useState('');
@@ -719,11 +756,6 @@ export default function ReferenceScreen() {
     callApi({ url: trimmed });
   };
 
-  const analyzeText = () => {
-    if (!text.trim()) { setError('텍스트를 입력해주세요.'); return; }
-    callApi({ text: text.trim() });
-  };
-
   const tabCardStyle = (active: boolean): React.CSSProperties => ({
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     padding: '14px 12px', borderRadius: 12,
@@ -769,17 +801,13 @@ export default function ReferenceScreen() {
             </p>
           </div>
 
-          {/* 탭 카드 4개 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+          {/* 탭 카드 3개 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
             <button style={tabCardStyle(tab === 'url')} onClick={() => switchTab('url')}>
               <Link2 size={15} /> URL 분석
             </button>
-            <button style={tabCardStyle(tab === 'text')} onClick={() => switchTab('text')}>
-              <FileText size={15} /> 텍스트 분석
-            </button>
             <button style={tabCardStyle(tab === 'capture')} onClick={() => switchTab('capture')}>
               <ImageIcon size={15} /> 파일 업로드
-              <span style={{ position: 'absolute', top: -6, right: -4, fontSize: 8.5, fontWeight: 800, background: '#6D4CFF', color: '#fff', borderRadius: 4, padding: '2px 5px', lineHeight: 1.2 }}>NEW</span>
             </button>
             <button style={tabCardStyle(tab === 'skip')} onClick={() => switchTab('skip')}>
               <Plus size={15} /> 직접 만들기
@@ -840,55 +868,30 @@ export default function ReferenceScreen() {
                   </button>
                 </div>
 
-                {/* 칩 3개 */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                  {[
-                    { icon: '📦', label: '스마트스토어 감지' },
-                    { icon: '💼', label: '화장품 카테고리 감지' },
-                    { icon: '📐', label: '블로그형 구조 예상' },
-                  ].map(c => (
-                    <span key={c.label} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '6px 12px', background: '#F7F5FF', border: '1px solid #EDE8FF',
-                      borderRadius: 8, fontSize: 12, fontWeight: 600, color: '#6D4CFF',
-                    }}>
-                      <span style={{ fontSize: 13 }}>{c.icon}</span> {c.label}
-                    </span>
-                  ))}
-                </div>
-
                 {/* 안내 */}
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', lineHeight: 1.7, marginBottom: 14 }}>
                   💡 <b>자사몰·해외몰</b>은 URL로 바로 분석 가능해요.{' '}
                   <b>스마트스토어·쿠팡·올리브영</b>은 봇 차단으로 크롤링이 제한됩니다 —{' '}
-                  <button onClick={() => switchTab('text')} style={{ fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>텍스트 탭</button>이나{' '}
                   <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>파일 업로드</button>를 이용해주세요.
                 </div>
 
-                {error  && <ErrorBox msg={error} />}
-                {result && <AnalysisResult result={result} onReset={reset} />}
-              </div>
-            )}
-
-            {/* 텍스트 탭 */}
-            {tab === 'text' && (
-              <div className="fb">
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#166534', lineHeight: 1.7, marginBottom: 16 }}>
-                  💡 스마트스토어·쿠팡 상세페이지를 열고, <b>Ctrl+A → Ctrl+C</b>로 전체 복사한 뒤 아래에 붙여넣으세요.<br />
-                  헤드라인·본문·성분 등 텍스트가 많을수록 분석 정확도가 올라가요.
-                </div>
-                <div className="fg">
-                  <div className="fl">상세페이지 텍스트 <span className="fopt">선택</span></div>
-                  <textarea className="finp"
-                    placeholder={"상세페이지에서 복사한 텍스트를 여기에 붙여넣으세요.\n\n예시:\n제주 병풀 진정 토너 200ml\n피부과 테스트 완료 · 비건 인증\n병풀 추출물 52% 고농도...\n히어로 섹션: 예민한 피부를 위한 솔루션\n성분 섹션: EWG 그린등급 98%..."}
-                    value={text} onChange={e => { setText(e.target.value); reset(); }}
-                    disabled={loading} style={{ minHeight: 200, resize: 'vertical', lineHeight: 1.7 }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-                    <div className="fhint">{text.length.toLocaleString()}자 입력 · 분석에 최적화된 분량: 500자 이상</div>
-                    <AnalyzeBtn loading={loading} disabled={text.trim().length < 30} onClick={analyzeText} />
-                  </div>
-                </div>
-                {error  && <ErrorBox msg={error} />}
+                {error && (
+                  <>
+                    <ErrorBox msg={error} />
+                    <div style={{ marginTop: 12, background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 12.5, color: '#5b21b6', lineHeight: 1.7, marginBottom: 10 }}>
+                        스마트스토어·쿠팡 같은 페이지는 크롤링이 막혀 있어요.<br />
+                        캡처 이미지로 분석해보세요.
+                      </div>
+                      <button
+                        onClick={() => switchTab('capture')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#6D4CFF', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
+                      >
+                        파일 업로드로 분석하기 →
+                      </button>
+                    </div>
+                  </>
+                )}
                 {result && <AnalysisResult result={result} onReset={reset} />}
               </div>
             )}

@@ -7,6 +7,20 @@ export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
   | 's1' | 's2' | 's3' | 's3b' | 's4' | 's5' | 's5-5' | 's5b' | 's6' | 's7' | 's8' | 's9';
 
+export type Block =
+  | { type: 'hero'; title: string; subtitle?: string }
+  | { type: 'heading'; text: string }
+  | { type: 'paragraph'; text: string }
+  | { type: 'checklist'; items: string[] }
+  | { type: 'steps'; items: { title: string; desc?: string }[] }
+  | { type: 'iconcards'; cards: { title: string; desc?: string }[] }
+  | { type: 'stats'; items: { value: string; label: string }[] }
+  | { type: 'compare'; headers: string[]; rows: string[][] }
+  | { type: 'quote'; text: string; author?: string; rating?: number }
+  | { type: 'faq'; items: { q: string; a: string }[] }
+  | { type: 'image'; label: string; desc: string }
+  | { type: 'cta'; text: string; button: string };
+
 export interface Section {
   num: string;
   name: string;
@@ -14,6 +28,7 @@ export interface Section {
   body: string;
   imageLabel: string;
   imageDesc: string;
+  blocks?: Block[];
 }
 
 export interface ReferenceAnalysis {
