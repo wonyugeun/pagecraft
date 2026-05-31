@@ -206,12 +206,17 @@ function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
 }
 
 /* ─── image ─── */
-function ImageBlock({ label, imgState }: { label: string; imgState?: BlockImgState }) {
+function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?: BlockImgState; onLightbox?: () => void }) {
   if (imgState?.url) {
     return (
       <div style={{ padding: `28px ${PAD_X}px 0` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgState.url} alt={label} style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 8, display: 'block' }} />
+        <img
+          src={imgState.url}
+          alt={label}
+          onClick={onLightbox}
+          style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', borderRadius: 8, display: 'block', cursor: onLightbox ? 'zoom-in' : 'default' }}
+        />
       </div>
     );
   }
@@ -254,10 +259,11 @@ function CtaBlock({ text, button }: { text: string; button: string }) {
 }
 
 /* ─── 메인 렌더러 ─── */
-export default function BlockRenderer({ blocks, sectionNum, blockImages }: {
+export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock }: {
   blocks: Block[];
   sectionNum?: string;
   blockImages?: Record<string, BlockImgState>;
+  onLightboxBlock?: (key: string) => void;
 }) {
   return (
     <div style={{ background: '#fff', paddingBottom: 40 }}>
@@ -273,7 +279,12 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages }: {
           case 'compare':   return <CompareBlock   key={i} headers={b.headers} rows={b.rows} />;
           case 'quote':     return <QuoteBlock     key={i} text={b.text} author={b.author} rating={b.rating} />;
           case 'faq':       return <FaqBlock       key={i} items={b.items} />;
-          case 'image':     return <ImageBlock     key={i} label={b.label} imgState={sectionNum && blockImages ? blockImages[`${sectionNum}#${i}`] : undefined} />;
+          case 'image': {
+            const key = sectionNum ? `${sectionNum}#${i}` : '';
+            const imgState = blockImages && key ? blockImages[key] : undefined;
+            const onLightbox = imgState?.url && onLightboxBlock && key ? () => onLightboxBlock(key) : undefined;
+            return <ImageBlock key={i} label={b.label} imgState={imgState} onLightbox={onLightbox} />;
+          }
           case 'cta':       return <CtaBlock       key={i} text={b.text} button={b.button} />;
           default:          return null;
         }

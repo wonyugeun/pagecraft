@@ -285,7 +285,7 @@ function ImgSlot({
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages }: {
+function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages, onLightboxBlock }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
@@ -295,6 +295,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
   isLast: boolean;
   onLightbox?: () => void;
   blockImages?: Record<string, ImgState>;
+  onLightboxBlock?: (key: string) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editVal, setEditVal] = useState(sec.body);
@@ -311,7 +312,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
       <div style={{ background: '#fff' }}>
         {hasBlocks ? (
           <>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} />
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} />
             <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
               <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
                 {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
@@ -909,9 +910,19 @@ export default function ResultScreen() {
 
   const closeLightbox = useCallback(() => setLightboxSecNum(null), []);
 
-  const lightboxItems = displaySections
-    .filter(s => !!(sectionImages[s.num]?.url))
-    .map(s => ({ secNum: s.num, url: sectionImages[s.num].url as string, alt: s.imageLabel }));
+  const lightboxItems = [
+    ...displaySections
+      .filter(s => !!(sectionImages[s.num]?.url))
+      .map(s => ({ secNum: s.num, url: sectionImages[s.num].url as string, alt: s.imageLabel })),
+    ...displaySections.flatMap(s =>
+      (s.blocks ?? []).flatMap((b, idx) => {
+        if (b.type !== 'image') return [];
+        const k = `${s.num}#${idx}`;
+        const st = blockImages[k];
+        return st?.url ? [{ secNum: k, url: st.url, alt: b.label }] : [];
+      }),
+    ),
+  ];
 
   const lightboxInitIdx = lightboxSecNum !== null
     ? lightboxItems.findIndex(i => i.secNum === lightboxSecNum)
@@ -1134,10 +1145,14 @@ export default function ResultScreen() {
             overflow: 'auto',
           }}>
             <div style={{
+              width: (viewMode === 'mobile' ? 400 : 800) * (zoom / 100),
+              transition: 'width .2s ease',
+              flexShrink: 0,
+            }}>
+            <div style={{
               width: viewMode === 'mobile' ? 400 : 800,
               transform: `scale(${zoom / 100})`,
-              transformOrigin: 'top center',
-              transition: 'width .2s ease',
+              transformOrigin: 'top left',
             }}>
               {isGenerating && (
                 <div style={{
@@ -1168,6 +1183,7 @@ export default function ResultScreen() {
                       isLast={displayIdx === orderedVisibleSections.length - 1}
                       onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                       blockImages={blockImages}
+                      onLightboxBlock={(key: string) => setLightboxSecNum(key)}
                     />
                   ))}
                 </div>
@@ -1194,6 +1210,7 @@ export default function ResultScreen() {
                   onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                 />
               ))}
+            </div>
             </div>
           </div>
         </div>
