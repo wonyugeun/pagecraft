@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
+import { compressMap } from '@/lib/imageCompress';
 import BlockRenderer from '@/components/result/BlockRenderer';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
@@ -646,7 +647,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 
 /* ─── 메인 ─── */
 export default function ResultScreen() {
-  const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, updateLatestHistoryImages } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, restoredBlockImages, updateLatestHistoryImages } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -823,7 +824,15 @@ export default function ResultScreen() {
     } else {
       setSectionImages({});
     }
-    setBlockImages({});
+    if (Object.keys(restoredBlockImages).length > 0) {
+      const initialBlocks: Record<string, ImgState> = {};
+      for (const [key, url] of Object.entries(restoredBlockImages)) {
+        initialBlocks[key] = { loading: false, url, error: false };
+      }
+      setBlockImages(initialBlocks);
+    } else {
+      setBlockImages({});
+    }
 
     const sleep = (ms: number) => new Promise<void>(r => {
       const id = setTimeout(r, ms);
@@ -843,6 +852,7 @@ export default function ResultScreen() {
             if (ctrl.signal.aborted) break;
             const block = sec.blocks![bi];
             if (block.type !== 'image') continue;
+            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
             if (count > 0) await sleep(3_000);
             if (ctrl.signal.aborted) break;
             await generateBlockImage(sec, bi, block.desc, ctrl.signal);
@@ -866,21 +876,44 @@ export default function ResultScreen() {
   useEffect(() => {
     if (!displaySections.length || savedImagesRef.current) return;
     const allDone = displaySections.every(sec => {
+      if (sec.blocks?.length) {
+        return sec.blocks.every((b, bi) => {
+          if (b.type !== 'image') return true;
+          const img = blockImages[`${sec.num}#${bi}`];
+          return img && !img.loading;
+        });
+      }
       const img = sectionImages[sec.num];
       return img && !img.loading;
     });
     if (!allDone) return;
-    const urls: Record<string, string> = {};
+
+    const sectionUrls: Record<string, string> = {};
     for (const sec of displaySections) {
       const url = sectionImages[sec.num]?.url;
-      if (url) urls[sec.num] = url;
+      if (url) sectionUrls[sec.num] = url;
     }
-    if (Object.keys(urls).length > 0) {
-      savedImagesRef.current = true;
-      updateLatestHistoryImages(urls);
+    const blockUrls: Record<string, string> = {};
+    for (const sec of displaySections) {
+      if (!sec.blocks?.length) continue;
+      sec.blocks.forEach((b, bi) => {
+        if (b.type !== 'image') return;
+        const url = blockImages[`${sec.num}#${bi}`]?.url;
+        if (url) blockUrls[`${sec.num}#${bi}`] = url;
+      });
     }
+    if (Object.keys(sectionUrls).length === 0 && Object.keys(blockUrls).length === 0) return;
+
+    savedImagesRef.current = true;
+    (async () => {
+      const [compressedSection, compressedBlock] = await Promise.all([
+        compressMap(sectionUrls),
+        compressMap(blockUrls),
+      ]);
+      updateLatestHistoryImages(compressedSection, compressedBlock);
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sectionImages]);
+  }, [sectionImages, blockImages]);
 
   const doneCount    = Object.values(sectionImages).filter(s => !s.loading).length;
   const isGenerating = Object.values(sectionImages).some(s => s.loading);

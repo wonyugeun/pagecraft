@@ -72,7 +72,8 @@ export interface HistoryItem {
   secCnt: number;
   createdAt: string;
   sections: Section[];
-  sectionImages?: Record<string, string>; // sec.num → data URL
+  sectionImages?: Record<string, string>;  // sec.num → data URL
+  blockImages?: Record<string, string>;    // `${sec.num}#${blockIdx}` → data URL
 }
 
 interface AppState {
@@ -95,6 +96,7 @@ interface AppState {
   credits: number;
   creditModalOpen: boolean;
   restoredImages: Record<string, string>;
+  restoredBlockImages: Record<string, string>;
   sidebarCollapsed: boolean;
   regularPrice: string;
   salePrice: string;
@@ -125,7 +127,7 @@ interface AppContextType extends AppState {
   setCreditModalOpen: (v: boolean) => void;
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
-  updateLatestHistoryImages: (images: Record<string, string>) => void;
+  updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => void;
   setSidebarCollapsed: (v: boolean) => void;
   setRegularPrice: (v: string) => void;
   setSalePrice: (v: string) => void;
@@ -234,6 +236,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
+  const [restoredBlockImages, setRestoredBlockImages] = useState<Record<string, string>>({});
 
   /* ── NextAuth 세션 기반 로그인 상태 ── */
   const { data: session, status } = useSession();
@@ -311,17 +314,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateLatestHistoryImages = (images: Record<string, string>) => {
+  const updateLatestHistoryImages = (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => {
     const email = session?.user?.email ?? 'guest';
     const key = `pc_history_${email}`;
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       if (existing.length > 0) {
-        existing[0] = { ...existing[0], sectionImages: images };
-        localStorage.setItem(key, JSON.stringify(existing));
+        existing[0] = { ...existing[0], sectionImages, blockImages: blockImages ?? existing[0].blockImages };
+        try {
+          localStorage.setItem(key, JSON.stringify(existing));
+        } catch (e) {
+          if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+            // 용량 초과 — 오래된 기록부터 삭제
+            for (let trim = existing.length - 1; trim > 0; trim--) {
+              try {
+                localStorage.setItem(key, JSON.stringify(existing.slice(0, trim)));
+                console.warn(`[updateLatestHistoryImages] 용량 초과 — ${existing.length - trim}건 삭제 후 저장 성공`);
+                return;
+              } catch { /* keep trimming */ }
+            }
+            console.warn('[updateLatestHistoryImages] localStorage 용량 부족 — 이미지 저장 실패');
+          } else {
+            throw e;
+          }
+        }
       }
     } catch (e) {
-      // 이미지 용량 초과 시 텍스트 데이터는 그대로 유지
       console.warn('[updateLatestHistoryImages] localStorage 저장 실패:', e);
     }
   };
@@ -340,6 +358,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSectionStructureState([]);
     setSections(item.sections);
     setRestoredImages(item.sectionImages ?? {});
+    setRestoredBlockImages(item.blockImages ?? {});
     go('s8');
   };
 
@@ -409,6 +428,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSectionStructureState([]);
     setSections([]);
     setRestoredImages({});
+    setRestoredBlockImages({});
     setRegularPrice('');
     setSalePrice('');
     setShowPrice(false);
@@ -429,7 +449,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
-      credits, creditModalOpen, restoredImages, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
+      credits, creditModalOpen, restoredImages, restoredBlockImages, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       go,
       setCat: setCatState,
       setCh: setChState,
