@@ -40,9 +40,22 @@ function escHtml(s: string): string {
 async function downloadMergedImage(
   sections: Section[],
   imgMap: Record<string, ImgState>,
+  blockImgMap: Record<string, ImgState>,
   productName: string,
 ): Promise<void> {
-  const urls = sections.map(s => imgMap[s.num]?.url).filter((u): u is string => !!u);
+  const urls: string[] = [];
+  for (const sec of sections) {
+    if (sec.blocks?.length) {
+      sec.blocks.forEach((b, i) => {
+        if (b.type !== 'image') return;
+        const url = blockImgMap[`${sec.num}#${i}`]?.url;
+        if (url) urls.push(url);
+      });
+    } else {
+      const url = imgMap[sec.num]?.url;
+      if (url) urls.push(url);
+    }
+  }
   if (urls.length === 0) {
     alert('다운로드할 이미지가 없습니다. 섹션 이미지를 먼저 생성해주세요.');
     return;
@@ -87,15 +100,156 @@ async function downloadMergedImage(
   });
 }
 
+/* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
+function blocksToHtml(blocks: Block[], sectionNum: string, blockImageUrls: Record<string, string>): string {
+  return blocks.map((b, i) => {
+    switch (b.type) {
+      case 'hero':
+        return `<header class="hero">
+  <h1>${escHtml(b.title).replace(/\n/g, '<br>')}</h1>
+  ${b.subtitle ? `<p class="hero-sub">${escHtml(b.subtitle).replace(/\n/g, '<br>')}</p>` : ''}
+</header>`;
+      case 'heading':
+        return `<h2 class="heading">${escHtml(b.text).replace(/\n/g, '<br>')}</h2>`;
+      case 'paragraph':
+        return `<p class="paragraph">${escHtml(b.text)}</p>`;
+      case 'checklist':
+        return `<ul class="checklist">${b.items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`;
+      case 'steps':
+        return `<ol class="steps">${b.items.map((s, idx) => `<li>
+  <span class="step-num">${idx + 1}</span>
+  <div><strong>${escHtml(s.title)}</strong>${s.desc ? `<p>${escHtml(s.desc)}</p>` : ''}</div>
+</li>`).join('')}</ol>`;
+      case 'iconcards': {
+        const cols = b.cards.length >= 4 ? 4 : Math.max(2, b.cards.length);
+        return `<div class="iconcards" style="grid-template-columns:repeat(${cols},1fr);">${b.cards.map(c => `<div class="iconcard">
+  <div class="iconcard-icon">✦</div>
+  <strong>${escHtml(c.title)}</strong>
+  ${c.desc ? `<p>${escHtml(c.desc)}</p>` : ''}
+</div>`).join('')}</div>`;
+      }
+      case 'stats':
+        return `<div class="stats" style="grid-template-columns:repeat(${b.items.length},1fr);">${b.items.map(s => `<div class="stat">
+  <strong>${escHtml(s.value)}</strong>
+  <small>${escHtml(s.label)}</small>
+</div>`).join('')}</div>`;
+      case 'compare':
+        return `<table class="compare">
+  <thead><tr>${b.headers.map((h, idx) => `<th class="${idx === 1 ? 'hilite' : ''}">${escHtml(h)}</th>`).join('')}</tr></thead>
+  <tbody>${b.rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === 1 ? 'hilite' : idx === 0 ? 'firstcol' : ''}">${idx === 1 ? '<span class="check">✓</span>' : ''}${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+</table>`;
+      case 'quote': {
+        const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 5;
+        return `<blockquote class="quote">
+  <div class="quote-icon">&ldquo;</div>
+  <p>${escHtml(b.text)}</p>
+  <footer>
+    <span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>
+    ${b.author ? `<span class="author">${escHtml(b.author)}</span>` : ''}
+  </footer>
+</blockquote>`;
+      }
+      case 'faq':
+        return `<dl class="faq">${b.items.map(f => `<dt>Q. ${escHtml(f.q)}</dt>
+<dd>${escHtml(f.a)}</dd>`).join('')}</dl>`;
+      case 'image': {
+        const url = blockImageUrls[`${sectionNum}#${i}`];
+        return url
+          ? `<figure class="image"><img src="${url}" alt="${escHtml(b.label)}" /></figure>`
+          : `<div class="image-slot">📸 ${escHtml(b.label)}</div>`;
+      }
+      case 'cta':
+        return `<div class="cta">
+  <h2>${escHtml(b.text).replace(/\n/g, '<br>')}</h2>
+  <a class="cta-btn">${escHtml(b.button)} →</a>
+</div>`;
+      default:
+        return '';
+    }
+  }).join('\n');
+}
+
+const HTML_BLOCKS_CSS = `
+:root { color-scheme: light; }
+.hero { margin-bottom: 32px; }
+.hero h1 { font-size: 34px; font-weight: 900; line-height: 1.35; letter-spacing: -0.04em; color: #111; }
+.hero-sub { margin-top: 20px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
+.heading { margin: 40px 0 16px; border-left: 4px solid #6D4CFF; padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
+.paragraph { margin-bottom: 24px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
+
+.checklist { list-style: none; margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
+.checklist li { display: flex; gap: 12px; font-size: 15px; line-height: 1.7; color: #333; padding: 6px 0; }
+.checklist li::before { content: '\\2713'; color: #6D4CFF; font-weight: 700; flex-shrink: 0; }
+
+.steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
+.steps li { display: flex; gap: 16px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
+.step-num { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #6D4CFF; color: #fff; font-size: 14px; font-weight: 700; }
+.steps li strong { display: block; font-size: 16px; font-weight: 700; color: #111; }
+.steps li p { margin-top: 4px; font-size: 14px; line-height: 1.7; color: #666; }
+
+.iconcards { margin-bottom: 32px; display: grid; gap: 12px; }
+.iconcard { border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+.iconcard-icon { margin: 0 auto 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #F4F0FF; color: #6D4CFF; font-size: 22px; }
+.iconcard strong { display: block; font-size: 14px; font-weight: 700; color: #111; }
+.iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
+
+.stats { margin-bottom: 32px; display: grid; overflow: hidden; border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; }
+.stat { padding: 20px; text-align: center; border-right: 1px solid #E6DEFF; }
+.stat:last-child { border-right: none; }
+.stat strong { display: block; font-size: 30px; font-weight: 900; letter-spacing: -0.04em; color: #6D4CFF; }
+.stat small { margin-top: 4px; display: block; font-size: 13px; color: #666; }
+
+.compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
+.compare th, .compare td { padding: 16px; text-align: center; }
+.compare th { background: #FAFAFC; font-weight: 700; color: #111; }
+.compare th.hilite { background: #6D4CFF; color: #fff; }
+.compare td { border-top: 1px solid #ECECF2; }
+.compare td.firstcol { font-weight: 500; color: #111; }
+.compare td.hilite { background: #FBFAFF; font-weight: 700; color: #6D4CFF; }
+.compare .check { display: block; margin: 0 auto 4px; color: #6D4CFF; font-weight: 900; }
+
+.quote { margin-bottom: 32px; border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; padding: 24px; }
+.quote-icon { font-size: 36px; line-height: 1; color: #6D4CFF; font-family: Georgia, serif; margin-bottom: 8px; }
+.quote p { font-size: 16px; line-height: 1.85; color: #333; white-space: pre-line; }
+.quote footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.quote .stars { color: #6D4CFF; font-size: 14px; letter-spacing: 2px; }
+.quote .author { font-size: 13px; color: #666; }
+
+.faq { margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; overflow: hidden; }
+.faq dt { padding: 20px 20px 8px; font-size: 15px; font-weight: 700; color: #111; }
+.faq dd { padding: 0 20px 20px; font-size: 14px; line-height: 1.7; color: #666; border-bottom: 1px solid #ECECF2; }
+.faq dd:last-child { border-bottom: none; }
+
+.image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; }
+.image img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.image-slot { margin-bottom: 32px; width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg,#F4F0FF,#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #6D4CFF; }
+
+.cta { border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; padding: 32px; text-align: center; margin-bottom: 32px; }
+.cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
+.cta-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 24px; height: 48px; padding: 0 24px; border-radius: 16px; background: #6D4CFF; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+`;
+
 /* ─── HTML 다운로드 ─── */
-function downloadHtml(
+async function downloadHtml(
   sections: Section[],
   meta: string,
   productName: string,
   imgMap: Record<string, ImgState>,
-): boolean {
+  blockImgMap: Record<string, ImgState>,
+): Promise<boolean> {
   try {
+    // 블록 이미지 압축본으로 추출 (800px / JPEG 0.7)
+    const rawBlockUrls: Record<string, string> = {};
+    for (const [k, st] of Object.entries(blockImgMap)) {
+      if (st?.url) rawBlockUrls[k] = st.url;
+    }
+    const compressedBlockUrls = await compressMap(rawBlockUrls);
+
     const sectionsHtml = sections.map(sec => {
+      if (sec.blocks?.length) {
+        return `\n    <section class="sec sec-blocks">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls)}\n    </section>`;
+      }
+      // 기존 폴백 (blocks 없는 섹션)
       const imgUrl = imgMap[sec.num]?.url;
       const imgBlock = imgUrl
         ? `<img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin-bottom:32px;" />`
@@ -108,18 +262,20 @@ function downloadHtml(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escHtml(productName || '상세페이지')} — PageCraft</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #fff; color: #111; max-width: 860px; margin: 0 auto; }
+    body { font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, -apple-system, sans-serif; background: #fff; color: #111; max-width: 800px; margin: 0 auto; padding: 0 0 80px; }
     .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
-    .sec { padding: 60px 40px 0; }
-    .sec + .sec { padding-top: 56px; }
-    h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.55; margin-bottom: 20px; letter-spacing: -0.4px; }
+    .sec { padding: 48px 48px 0; }
+    .sec-blocks { padding-top: 0; padding-bottom: 0; }
+    .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.55; margin-bottom: 20px; letter-spacing: -0.4px; }
+    .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
     .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
     .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
     .img-icon { font-size: 36px; }
     .img-label { font-size: 14px; font-weight: 700; color: #64748b; }
-    p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
+    ${HTML_BLOCKS_CSS}
   </style>
 </head>
 <body>
@@ -965,9 +1121,22 @@ export default function ResultScreen() {
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
     // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영)
-    const ok = downloadHtml(finalSectionsForExport, meta, productName, sectionImages);
+    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages);
     if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
     setTimeout(() => setHtmlLoading(false), 2000);
+  };
+
+  const handleMergeDownload = async () => {
+    if (mergeLoading) return;
+    setMergeLoading(true);
+    try {
+      await downloadMergedImage(finalSectionsForExport, sectionImages, blockImages, productName);
+    } catch (err) {
+      console.error('[handleMergeDownload]', err);
+      alert('통이미지 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+    } finally {
+      setMergeLoading(false);
+    }
   };
 
   // ── 섹션 순서 + 숨김 적용 ──
@@ -1414,20 +1583,21 @@ export default function ResultScreen() {
 
           {/* 4. 액션 버튼 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* 채널 업로드 — UI만 */}
+            {/* 채널 업로드 — 준비 중 (비활성) */}
             <button
-              onClick={() => alert(`${ch ?? '스토어'}에 업로드 기능은 곧 추가됩니다.`)}
+              disabled
+              aria-disabled
+              title="준비 중인 기능입니다"
               style={{
-                width: '100%', height: 48, borderRadius: 14, background: '#6D4CFF', color: '#fff',
-                fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer', fontFamily: 'var(--f)',
+                width: '100%', height: 48, borderRadius: 14, background: '#F4F4F7', color: '#999',
+                fontWeight: 700, fontSize: 14, border: '1px solid #ECECF2', cursor: 'not-allowed', fontFamily: 'var(--f)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                boxShadow: '0 4px 14px rgba(109,76,255,0.30)',
               }}
             >
-              <Upload size={16} /> {ch ?? '스토어'}에 업로드
+              <Upload size={16} /> {ch ?? '스토어'} 업로드 (준비 중)
             </button>
 
-            {/* HTML 다운로드 — 기존 downloadHtml 항상 노출 */}
+            {/* HTML 다운로드 — 모든 출력형태에서 노출 */}
             <button
               onClick={handleHtmlDownload}
               disabled={htmlLoading}
@@ -1440,10 +1610,35 @@ export default function ResultScreen() {
             >
               {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
             </button>
+            <p style={{
+              margin: '-2px 2px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55,
+            }}>
+              자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
+            </p>
 
-            {/* 다시 생성하기 — go('s6') */}
+            {/* 통이미지 다운로드 — 블로그형 제외 (텍스트가 빠지므로) */}
+            {!isBlog && (
+              <button
+                onClick={handleMergeDownload}
+                disabled={mergeLoading}
+                style={{
+                  width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                  background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                  cursor: mergeLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: mergeLoading ? 0.7 : 1,
+                }}
+              >
+                <ImageIcon size={16} /> {mergeLoading ? '합치는 중...' : '통이미지 다운로드'}
+              </button>
+            )}
+
+            {/* 다시 생성하기 — go('s6') with confirm */}
             <button
-              onClick={() => go('s6')}
+              onClick={() => {
+                if (!window.confirm('전체 텍스트와 이미지를 다시 생성합니다. 크레딧과 이미지 생성 비용이 발생할 수 있어요. 계속하시겠어요?')) return;
+                go('s6');
+              }}
               style={{
                 width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
                 background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
