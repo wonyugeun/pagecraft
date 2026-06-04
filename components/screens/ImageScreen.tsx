@@ -97,8 +97,8 @@ export default function ImageScreen() {
         </p>
       </div>
 
-      {/* 2단 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24, alignItems: 'start' }}>
+      {/* 2단 그리드 (모바일 1단) */}
+      <div className="layout-grid-image">
         {/* ── 좌측 ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* 드롭존 / 미리보기 */}

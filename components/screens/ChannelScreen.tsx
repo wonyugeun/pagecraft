@@ -158,8 +158,8 @@ export default function ChannelScreen() {
         ))}
       </div>
 
-      {/* 하단 2채널 - 2열 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px' }}>
+      {/* 하단 2채널 - 2열 카드 (모바일 1열) */}
+      <div className="cards-2col" style={{ marginBottom: '24px' }}>
         {BOTTOM_CHANNELS.map(c => (
           <BottomCard key={c.key} c={c} selected={ch === c.key} onClick={() => setCh(c.key)} />
         ))}

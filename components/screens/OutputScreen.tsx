@@ -185,7 +185,7 @@ export default function OutputScreen() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+      <div className="cards-2col" style={{ marginBottom: '16px' }}>
         {OUTPUTS.map(o => {
           const selected = out === o.key;
           return (

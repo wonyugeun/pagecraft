@@ -52,13 +52,11 @@ export default function CategoryScreen() {
             </p>
           </div>
 
-          {/* 카테고리 그리드 */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '14px',
-            marginBottom: '28px',
-          }}>
+          {/* 카테고리 그리드 (데스크톱 4열 / 태블릿 3열 / 모바일 2열) */}
+          <div
+            className="cat-grid-responsive"
+            style={{ marginBottom: '28px' }}
+          >
             {CATEGORIES.map(c => (
               <CategoryCard
                 key={c.id}

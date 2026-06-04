@@ -25,7 +25,7 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
   const W = collapsed ? 72 : 240;
 
   return (
-    <aside style={{
+    <aside data-sidebar style={{
       width: W, flexShrink: 0,
       background: '#fff', borderRight: '1px solid #ECECF2',
       display: 'flex', flexDirection: 'column',

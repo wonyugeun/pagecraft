@@ -382,8 +382,8 @@ export default function DashboardScreen() {
           </div>
         </div>
 
-        {/* ── 2열 그리드 ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+        {/* ── 2열 그리드 (모바일 1단) ── */}
+        <div className="layout-grid-dashboard">
 
           {/* ── 좌: 메인 영역 ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -435,8 +435,8 @@ export default function DashboardScreen() {
               </div>
             </div>
 
-            {/* 서브 카드 2열 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {/* 서브 카드 2열 (모바일 1열) */}
+            <div className="cards-2col">
               <div
                 style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}
                 onMouseEnter={() => setHov('quick')}

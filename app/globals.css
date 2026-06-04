@@ -506,3 +506,58 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.6}
   .modal-ov { padding: 16px; align-items: flex-end; }
   .modal-card { padding: 24px 20px; border-radius: 16px 16px 0 0; max-width: 100%; }
 }
+
+/* ─── 모바일 공통 가드 (전 페이지 — 가로 스크롤 방지) ─── */
+html, body { max-width: 100vw; overflow-x: hidden; }
+
+/* ─── 좌우 2단 레이아웃 (데스크톱 기본 + 모바일 1단) ─── */
+.layout-grid-result    { display: grid; grid-template-columns: 1fr 340px;                       gap: 24px; align-items: start; }
+.layout-grid-reference { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr);   gap: 28px; align-items: start; }
+.layout-grid-image     { display: grid; grid-template-columns: 1fr 300px;                       gap: 24px; align-items: start; }
+.layout-grid-dashboard { display: grid; grid-template-columns: 1fr 300px;                       gap: 20px; align-items: start; }
+
+/* 카드 그리드 — 데스크톱 N열, 모바일 1열 */
+.cards-2col { display: grid; grid-template-columns: 1fr 1fr;          gap: 14px; }
+.cards-5col { display: grid; grid-template-columns: repeat(5, 1fr);   gap: 8px;  }
+
+@media (max-width: 768px) {
+  /* 2단/다단 그리드 일괄 1단 — !important 로 인라인 잔여 스타일까지 덮음 */
+  .layout-grid-result,
+  .layout-grid-reference,
+  .layout-grid-image,
+  .layout-grid-dashboard {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .cards-2col { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .cards-5col { grid-template-columns: repeat(3, 1fr) !important; }
+
+  /* 그리드 자식이 자체 width:300/340/etc 고정이어도 본문 폭에 맞춤 */
+  .layout-grid-result    > *,
+  .layout-grid-reference > *,
+  .layout-grid-image     > *,
+  .layout-grid-dashboard > * {
+    max-width: 100%;
+    min-width: 0;
+    width: auto;
+  }
+
+  /* 진행바 — 가로 스크롤 명시 + padding 축소 */
+  .prog { padding: 8px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .prog-inner { min-width: max-content; }
+}
+
+/* CategoryScreen — 데스크톱 4열 / @768 3열 / @480 2열 */
+.cat-grid-responsive { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 768px) { .cat-grid-responsive { grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; } }
+@media (max-width: 480px) { .cat-grid-responsive { grid-template-columns: repeat(2, 1fr) !important; gap: 8px  !important; } }
+
+/* ─── 미리보기 캔버스 모바일 폭 적응 ─── */
+.preview-canvas-wrap  { max-width: 100%; }
+.preview-canvas-inner { max-width: 100%; }
+
+/* ─── 사이드바 (DashboardScreen) — 모바일에서 폭 축소 ─── */
+@media (max-width: 768px) {
+  aside[data-sidebar] { width: 56px !important; flex-shrink: 0 !important; }
+}
+

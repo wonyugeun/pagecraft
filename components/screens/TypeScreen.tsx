@@ -220,8 +220,8 @@ export default function TypeScreen() {
         </div>
       </div>
 
-      {/* 타입 카드 2열 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+      {/* 타입 카드 2열 (모바일 1열) */}
+      <div className="cards-2col" style={{ marginBottom: '16px' }}>
         {TYPES.map(t => {
           const selected = type === t.key;
           return (
@@ -289,7 +289,7 @@ export default function TypeScreen() {
                 <div style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, marginBottom: '10px', letterSpacing: '-0.01em' }}>
                   {t.secLabel}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' }}>
+                <div className="cards-5col">
                   {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} />)}
                 </div>
               </div>

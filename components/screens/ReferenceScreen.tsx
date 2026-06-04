@@ -781,7 +781,7 @@ export default function ReferenceScreen() {
     <div style={{ maxWidth: 1480, margin: '0 auto', padding: '40px 28px 100px', fontFamily: 'var(--f)' }}>
 
       {/* 2-컬럼 레이아웃 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 28, alignItems: 'start' }}>
+      <div className="layout-grid-reference">
 
         {/* ── 왼쪽 ── */}
         <div>

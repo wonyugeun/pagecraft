@@ -1232,8 +1232,8 @@ export default function ResultScreen() {
         </p>
       </div>
 
-      {/* 2단 그리드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+      {/* 2단 그리드 (모바일 1단) */}
+      <div className="layout-grid-result">
 
         {/* ── 좌측: 미리보기 ── */}
         <div>
@@ -1344,18 +1344,24 @@ export default function ResultScreen() {
           <div style={{
             borderRadius: 24, border: '1px solid #ECECF2', background: '#fff',
             padding: 16, display: 'flex', justifyContent: 'center',
-            overflow: 'auto',
+            overflow: 'auto', maxWidth: '100%',
           }}>
-            <div style={{
-              width: (viewMode === 'mobile' ? 400 : 800) * (zoom / 100),
-              transition: 'width .2s ease',
-              flexShrink: 0,
-            }}>
-            <div style={{
-              width: viewMode === 'mobile' ? 400 : 800,
-              transform: `scale(${zoom / 100})`,
-              transformOrigin: 'top left',
-            }}>
+            <div
+              className="preview-canvas-wrap"
+              style={{
+                width: (viewMode === 'mobile' ? 400 : 800) * (zoom / 100),
+                transition: 'width .2s ease',
+                flexShrink: 0,
+              }}
+            >
+            <div
+              className="preview-canvas-inner"
+              style={{
+                width: viewMode === 'mobile' ? 400 : 800,
+                transform: `scale(${zoom / 100})`,
+                transformOrigin: 'top left',
+              }}
+            >
               {isGenerating && (
                 <div style={{
                   background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8,
