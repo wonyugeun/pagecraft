@@ -8,6 +8,8 @@ import {
   Check, ArrowLeft, ArrowRight, ThumbsUp,
 } from 'lucide-react';
 import { useApp, CH_CFG } from '@/store/AppContext';
+import TypeMobile from './TypeMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const SEC_TIPS: Record<string, { desc: string; eg: string }> = {
   '히어로':          { desc: '첫 화면, 시선 잡는 메인 카피',      eg: '민감한 피부, 이제 걱정 끝' },
@@ -85,7 +87,11 @@ function SecIcon({ label, accent }: { label: string; accent: string }) {
 }
 
 export default function TypeScreen() {
+  const isMobile = useIsMobile();
   const { ch, type, setType, go, goAfterType } = useApp();
+
+  if (isMobile) return <TypeMobile />;
+
   const cfg = CH_CFG[ch || '스마트스토어'] || CH_CFG['스마트스토어'];
 
   const TYPES = [

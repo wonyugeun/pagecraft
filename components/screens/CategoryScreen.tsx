@@ -6,6 +6,8 @@ import {
   Gift, ChevronRight,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import CategoryMobile from './CategoryMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const CATEGORIES = [
   { id: '화장품',   name: '화장품',   desc: '스킨케어·색조·선케어',  icon: Sparkles,   bgColor: '#F4F0FF', bgColorDark: '#E5DEFF', iconColor: '#6D4CFF' },
@@ -22,7 +24,10 @@ const CATEGORIES = [
 ];
 
 export default function CategoryScreen() {
+  const isMobile = useIsMobile();
   const { cat, setCat, go, toggleChat } = useApp();
+
+  if (isMobile) return <CategoryMobile />;
 
   const handleCatClick = (id: string) => {
     setCat(id);

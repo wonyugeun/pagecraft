@@ -2,14 +2,16 @@
 
 import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
+import ProductMobile from './ProductMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { ChevronDown, ChevronUp, Zap, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
 ───────────────────────────────────────────── */
-type QMode = 'single' | 'multi' | 'text' | 'textarea' | 'origin' | 'legal';
+export type QMode = 'single' | 'multi' | 'text' | 'textarea' | 'origin' | 'legal';
 
-interface Question {
+export interface Question {
   id: string;
   label: string;
   req: boolean;
@@ -24,7 +26,7 @@ interface Question {
 /* ─────────────────────────────────────────────
    카테고리별 질문 정의
 ───────────────────────────────────────────── */
-const CQ: Record<string, Question[]> = {
+export const CQ: Record<string, Question[]> = {
   화장품: [
     {
       id: 'c1', label: '화장품 종류', req: true, mode: 'single',
@@ -631,7 +633,7 @@ function ChipGroup({ opts, multi, value, onChange }: {
 /* ─────────────────────────────────────────────
    질문 한 개 렌더링
 ───────────────────────────────────────────── */
-function QuestionField({ q, answer, onAnswer }: {
+export function QuestionField({ q, answer, onAnswer }: {
   q: Question;
   answer: string | string[];
   onAnswer: (v: string | string[]) => void;
@@ -761,7 +763,7 @@ const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
 /* ─────────────────────────────────────────────
    섹션 매핑 및 AI 추천
 ───────────────────────────────────────────── */
-const SECTION_MAP: Record<string, Partial<Record<string, string[]>>> = {
+export const SECTION_MAP: Record<string, Partial<Record<string, string[]>>> = {
   화장품: { s2:['c1','c2','c3'], s3:['c4'], s4:['c5'], s5:['c6'], s6:['c7'], s7:['c8'], s8:['c9','c10'] },
   식품:   { s2:['f1','f3','f4'], s3:['f5','f5b','f6','f6b'], s5:['f2'], s7:['f7'], s8:['f8'] },
   패션:   { s2:['fa1','fa2','fa3'], s3:['fa3b','fa3c','fa5'], s5:['fa4'], s7:['fa6'], s8:['fa4b','fa7'] },
@@ -775,7 +777,7 @@ const SECTION_MAP: Record<string, Partial<Record<string, string[]>>> = {
   기타:   { s2:['et1','et2'], s3:['et4'], s5:['et3'], s7:['et5'], s8:['et6'] },
 };
 
-const SECTION_DEFS = [
+export const SECTION_DEFS = [
   { id:'s2', title:'카테고리 & 키워드' },
   { id:'s3', title:'상품 핵심 정보' },
   { id:'s4', title:'브랜드/제품 한 줄 소개' },
@@ -868,7 +870,7 @@ function ProgressCircle({ pct }: { pct: number }) {
 /* ─────────────────────────────────────────────
    AccordionSection 컴포넌트
 ───────────────────────────────────────────── */
-function AccordionSection({
+export function AccordionSection({
   num, title, req, isOpen, onToggle, badge, children,
 }: {
   num: number;
@@ -934,6 +936,7 @@ function AccordionSection({
    ProductScreen
 ───────────────────────────────────────────── */
 export default function ProductScreen() {
+  const isMobile = useIsMobile();
   const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
@@ -955,6 +958,9 @@ export default function ProductScreen() {
   const [brandIntro, setBrandIntro] = useState('');
   const [aiSelections, setAiSelections] = useState<string[]>([]);
   const [previewTab, setPreviewTab] = useState<'blog' | 'slide'>('blog');
+
+  // 모바일 분기 — 모든 훅 호출 후
+  if (isMobile) return <ProductMobile />;
 
   // 섹션 helpers
   const getSectionQs = (sectionId: string) => {

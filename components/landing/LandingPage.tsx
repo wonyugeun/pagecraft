@@ -7,8 +7,12 @@ import FeaturesSection from './FeaturesSection';
 import HowItWorksSection from './HowItWorksSection';
 import CTASection from './CTASection';
 import LandingFooter from './LandingFooter';
+import LandingPageMobile from './LandingPageMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 export default function LandingPage() {
+  const isMobile = useIsMobile();
+  if (isMobile) return <LandingPageMobile />;
   return (
     <>
       <style>{`

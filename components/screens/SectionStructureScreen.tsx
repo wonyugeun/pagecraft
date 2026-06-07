@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
+import SectionStructureMobile from './SectionStructureMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
-const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
+export const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
   화장품: {
     기본형:    ['히어로', '피부고민 공감', '성분 신뢰', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'],
     프리미엄형: ['히어로', '브랜드 세계관', '피부고민 공감', '성분 신뢰', '성분 인포그래픽', 'USP', '사용법', '비교표', '감성 카피', '후기', 'SNS 공유컷', 'FAQ', 'CTA'],
@@ -46,7 +48,7 @@ const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
   },
 };
 
-const ALL_SECTIONS = [
+export const ALL_SECTIONS = [
   '히어로', '공감', '피부고민 공감', '브랜드 세계관', '감성 카피', 'USP', '사용법',
   '비교표', '후기', 'FAQ', 'CTA', '성분 신뢰', '성분 인포그래픽', 'SNS 공유컷', '와디즈 스토리',
   '원산지 스토리', '맛/신선도', '영양 정보', '안전/인증', '레시피/보관법', '생산 과정',
@@ -71,6 +73,7 @@ const BTN_SHARED: React.CSSProperties = {
 const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'default' };
 
 export default function SectionStructureScreen() {
+  const isMobile = useIsMobile();
   const { cat, type, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, sectionStructure } = useApp();
 
   const getInitial = (): string[] => {
@@ -87,6 +90,8 @@ export default function SectionStructureScreen() {
   const [secs, setSecs] = useState<string[]>(getInitial);
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
+
+  if (isMobile) return <SectionStructureMobile />;
 
   const moveUp = (i: number) => setSecs(s => {
     if (i === 0) return s;

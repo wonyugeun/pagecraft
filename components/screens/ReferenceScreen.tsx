@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp, ReferenceAnalysis, CaptureAnalysis, CaptureSection, CH_OUT_AUTO } from '@/store/AppContext';
 import { inferOutFromSections } from '@/lib/outputType';
 import { ArrowLeft, ArrowRight, Link2, Image as ImageIcon, Sparkles, Plus } from 'lucide-react';
+import ReferenceMobile from './ReferenceMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 type Tab = 'url' | 'capture' | 'skip';
 type CaptureStage = 'idle' | 'stitching' | 'stage1' | 'stage2' | 'done' | 'error';
@@ -11,7 +13,7 @@ type CaptureStage = 'idle' | 'stitching' | 'stage1' | 'stage2' | 'done' | 'error
 interface FileEntry { id: string; dataUrl: string }
 
 /* ─── 공통 ─── */
-function ErrorBox({ msg }: { msg: string }) {
+export function ErrorBox({ msg }: { msg: string }) {
   return (
     <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#be123c', lineHeight: 1.6 }}>
       ⚠️ {msg}
@@ -29,7 +31,7 @@ function AnalyzeBtn({ loading, disabled, onClick, label = '🔍 분석하기' }:
 }
 
 /* ─── URL / 텍스트 탭 공통 분석 결과 ─── */
-function AnalysisResult({ result, onReset }: { result: ReferenceAnalysis; onReset: () => void }) {
+export function AnalysisResult({ result, onReset }: { result: ReferenceAnalysis; onReset: () => void }) {
   return (
     <div className="ref-result" style={{ margin: '4px 0 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -364,7 +366,7 @@ function deduplicateSections(sections: Array<Record<string, unknown>>): Array<Re
 }
 
 /* ─── 캡처 탭 ─── */
-function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedImage: string) => void }) {
+export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedImage: string) => void }) {
   const { setCaptureAnalysis, go, setReferenceAnalysis, captureAnalysis: ctxCaptureAnalysis } = useApp();
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [stage, setStage] = useState<CaptureStage>(ctxCaptureAnalysis ? 'done' : 'idle');
@@ -691,6 +693,7 @@ function AIFlowPanel() {
 
 /* ─── 메인 ─── */
 export default function ReferenceScreen() {
+  const isMobile = useIsMobile();
   const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis, setSectionStructure, ch, setOut } = useApp();
 
   const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
@@ -701,6 +704,8 @@ export default function ReferenceScreen() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  if (isMobile) return <ReferenceMobile />;
 
   const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); };
 

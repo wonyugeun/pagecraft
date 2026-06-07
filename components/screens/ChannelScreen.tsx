@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChevronRight, SlidersHorizontal, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import ChannelMobile from './ChannelMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 const TOP_CHANNELS = [
   {
@@ -51,7 +53,10 @@ const TAG_STYLE = {
 } as const;
 
 export default function ChannelScreen() {
+  const isMobile = useIsMobile();
   const { ch, setCh, go } = useApp();
+
+  if (isMobile) return <ChannelMobile />;
 
   return (
     <div style={{ maxWidth: '820px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>

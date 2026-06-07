@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
+import ResultMobile from './ResultMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import BlockRenderer from '@/components/result/BlockRenderer';
@@ -37,7 +39,7 @@ function escHtml(s: string): string {
 }
 
 /* ─── 통이미지 다운로드 ─── */
-async function downloadMergedImage(
+export async function downloadMergedImage(
   sections: Section[],
   imgMap: Record<string, ImgState>,
   blockImgMap: Record<string, ImgState>,
@@ -230,7 +232,7 @@ const HTML_BLOCKS_CSS = `
 `;
 
 /* ─── HTML 다운로드 ─── */
-async function downloadHtml(
+export async function downloadHtml(
   sections: Section[],
   meta: string,
   productName: string,
@@ -317,11 +319,11 @@ const THUMB_SIZES: Record<string, string> = {
 };
 
 /* ─── 이미지 상태 ─── */
-type ImgState = { loading: boolean; url: string | null; error: boolean };
-const EMPTY_IMG: ImgState = { loading: false, url: null, error: false };
+export type ImgState = { loading: boolean; url: string | null; error: boolean };
+export const EMPTY_IMG: ImgState = { loading: false, url: null, error: false };
 
 /* ─── 향상된 라이트박스 (prev/next + keyboard) ─── */
-function EnhancedLightbox({ items, initialIndex, onClose }: {
+export function EnhancedLightbox({ items, initialIndex, onClose }: {
   items: { url: string; alt: string }[];
   initialIndex: number;
   onClose: () => void;
@@ -442,7 +444,7 @@ function ImgSlot({
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages, onLightboxBlock }: {
+export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages, onLightboxBlock, isMobile }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
@@ -453,6 +455,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
   onLightbox?: () => void;
   blockImages?: Record<string, ImgState>;
   onLightboxBlock?: (key: string) => void;
+  isMobile?: boolean;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [editVal, setEditVal] = useState(sec.body);
@@ -469,7 +472,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
       <div style={{ background: '#fff' }}>
         {hasBlocks ? (
           <>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} />
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} />
             <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
               <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
                 {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
@@ -511,7 +514,7 @@ function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGener
 }
 
 /* ─── 슬라이드형 카드 ─── */
-function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLightbox }: {
+export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLightbox }: {
   sec: Section;
   onRegen: (s: Section) => Promise<Section | null>;
   imgState: ImgState;
@@ -568,7 +571,7 @@ function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLightbox 
 }
 
 /* ─── 이미지 전용 섹션 ─── */
-function ImageSection({ sec, imgState, onGenerateImage, index, accent, onLightbox }: {
+export function ImageSection({ sec, imgState, onGenerateImage, index, accent, onLightbox }: {
   sec: Section;
   imgState: ImgState;
   onGenerateImage: () => void;
@@ -803,6 +806,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 
 /* ─── 메인 ─── */
 export default function ResultScreen() {
+  const isMobile = useIsMobile();
   const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, restoredBlockImages, updateLatestHistoryImages } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
@@ -1098,6 +1102,9 @@ export default function ResultScreen() {
   const totalLength = (displaySections.length * 1040).toLocaleString();
 
   const closeLightbox = useCallback(() => setLightboxSecNum(null), []);
+
+  // 모바일 분기 — 모든 훅 호출 후
+  if (isMobile) return <ResultMobile />;
 
   const lightboxItems = [
     ...displaySections

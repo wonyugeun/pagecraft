@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
 import Sidebar from '@/components/layout/Sidebar';
+import DashboardMobile from './DashboardMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // ── 유틸 ─────────────────────────────────────────────────
 function fmt(iso: string) {
@@ -183,6 +185,7 @@ function RobotIllust() {
 
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
+  const isMobile = useIsMobile();
   const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, sidebarCollapsed, setSidebarCollapsed } = useApp();
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -214,6 +217,9 @@ export default function DashboardScreen() {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  // 모바일 분기 — 모든 훅 호출 후
+  if (isMobile) return <DashboardMobile />;
 
   const deleteItem = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();

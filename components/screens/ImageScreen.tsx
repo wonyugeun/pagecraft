@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
+import ImageMobile from './ImageMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   UploadCloud, Sparkles, ChevronDown, Lightbulb,
   Image as ImageIcon, Sun, Palette, FileText, X,
@@ -36,12 +38,15 @@ const fileToBase64 = (file: File): Promise<string> =>
   });
 
 export default function ImageScreen() {
+  const isMobile = useIsMobile();
   const { setProductImages, go } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const nukkiRef = useRef<HTMLInputElement>(null);
+
+  if (isMobile) return <ImageMobile />;
 
   const goPrev = () => go('s5b');
   const goNext = () => go('s7');

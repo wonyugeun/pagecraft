@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useApp, Section } from '@/store/AppContext';
+import GeneratingMobile from './GeneratingMobile';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   Sparkles, Check, Loader2, Clock, Lightbulb,
   FolderOpen, Users, Target, Layers, Palette, LayoutGrid, CheckCircle,
 } from 'lucide-react';
 
 // ── 기존 진행 로직(API/타이머)용 6단계 ──
-const GEN_STEPS = [
+export const GEN_STEPS = [
   '레퍼런스 URL 구조 분석 중...',
   '카테고리 기획 IP 적용 중...',
   '섹션별 카피 생성 중...',
@@ -16,12 +18,12 @@ const GEN_STEPS = [
   '출력 형태 조립 중...',
   '최종 검수...',
 ];
-const STEP_PCTS = [12, 28, 50, 70, 87, 100];
-const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
-const GENERATION_COST = 10;
+export const STEP_PCTS = [12, 28, 50, 70, 87, 100];
+export const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
+export const GENERATION_COST = 10;
 
 // ── UI 표시용 시안 7단계 ──
-interface UIStep {
+export interface UIStep {
   title: string;
   icon: typeof FolderOpen;
   desc: string;
@@ -30,7 +32,7 @@ interface UIStep {
   time: string;
 }
 
-const UI_STEPS: UIStep[] = [
+export const UI_STEPS: UIStep[] = [
   { title: '상품 정보 분석', icon: FolderOpen, desc: '상품명, 카테고리, 핵심 키워드를 분석했어요.', activeDesc: '상품명, 카테고리, 핵심 키워드를 분석하고 있어요.', waitDesc: '상품 정보를 분석할 예정이에요.', time: '00:03' },
   { title: '타겟 고객 분석', icon: Users, desc: '고객 관심사와 니즈를 파악했어요.', activeDesc: '고객 관심사와 니즈를 파악하고 있어요.', waitDesc: '타겟 고객을 분석할 예정이에요.', time: '00:02' },
   { title: '핵심 메시지 도출', icon: Target, desc: '제품의 강점과 차별점을 정리했어요.', activeDesc: '제품의 강점과 차별점을 정리하고 있어요.', waitDesc: '핵심 메시지를 도출할 예정이에요.', time: '00:02' },
@@ -39,11 +41,11 @@ const UI_STEPS: UIStep[] = [
   { title: '콘텐츠 및 이미지 배치', icon: LayoutGrid, desc: '텍스트 작성과 이미지 배치를 완료했어요.', activeDesc: '텍스트 작성과 이미지 배치를 진행하고 있어요.', waitDesc: '콘텐츠와 이미지를 배치할 예정이에요.', time: '00:06' },
   { title: '최종 검토 및 최적화', icon: CheckCircle, desc: '모든 요소를 검토하고 최종 최적화했어요.', activeDesc: '모든 요소를 검토하고 최종 최적화하고 있어요.', waitDesc: '최종 검토 및 최적화할 예정이에요.', time: '00:03' },
 ];
-const TOTAL_UI_STEPS = UI_STEPS.length;
+export const TOTAL_UI_STEPS = UI_STEPS.length;
 
-type StepStatus = 'done' | 'active' | 'wait';
+export type StepStatus = 'done' | 'active' | 'wait';
 
-function StepCard({ step, status }: { step: UIStep; status: StepStatus }) {
+export function StepCard({ step, status }: { step: UIStep; status: StepStatus }) {
   if (status === 'done') {
     return (
       <div style={{
@@ -124,6 +126,7 @@ function StepCard({ step, status }: { step: UIStep; status: StepStatus }) {
 }
 
 export default function GeneratingScreen() {
+  const isMobile = useIsMobile();
   const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
@@ -253,6 +256,9 @@ export default function GeneratingScreen() {
     if (idx === currentUIStep) return 'active';
     return 'wait';
   };
+
+  // 모바일 분기 — 모든 훅 호출 후
+  if (isMobile) return <GeneratingMobile />;
 
   // ── 크레딧 부족 화면 ── (기존 분기 유지)
   if (creditInsufficient) {
