@@ -62,6 +62,13 @@ export async function POST(req: NextRequest) {
     ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. Even when showing ingredients, materials, backgrounds, or skin close-ups, the same product from the reference must remain consistent across all images.`
     : '';
 
+  // 구성품 폴백 가드 — reference에 없는 구성품·공병·타사 제품을 임의 생성하는 것을 막는다. ref 이미지가 있을 때만 의미 있음.
+  const COMPONENT_RULES = hasRefImages
+    ? `Only depict the exact product(s) shown in the reference images. For bundle/option shots, show only multiples of the referenced product. ` +
+      `Never invent additional cosmetic containers, bottles, jars, or unrelated products not present in the reference. ` +
+      `Props must be non-product objects only (stones, plants, water, fabric, trays).`
+    : '';
+
   // 인물 금지 (피부 클로즈업은 허용) — 항상 적용. 매번 다른 얼굴이 나와 브랜드 일관성이 깨지는 것을 막기 위해.
   const PEOPLE_RULES =
     `Do NOT show any human faces, identifiable people, full bodies, or models. ` +
@@ -72,7 +79,7 @@ export async function POST(req: NextRequest) {
     ? `Do NOT render any text, letters, numbers, labels, or typography overlaid on the image (the product's own existing label and branding from the reference must remain as-is). Clean photographic image, no captions.`
     : '';
 
-  const rulesTail = [PEOPLE_RULES, TEXT_RULES].filter(Boolean).join(' ');
+  const rulesTail = [COMPONENT_RULES, PEOPLE_RULES, TEXT_RULES].filter(Boolean).join(' ');
 
   // 끝부분 마침표/공백 정리 — Claude 출력이 '.'으로 끝나도 우리가 또 찍지 않도록
   const cleanedPrompt = prompt.trim().replace(/[.\s]+$/, '');
