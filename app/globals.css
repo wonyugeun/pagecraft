@@ -561,3 +561,24 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   aside[data-sidebar] { width: 56px !important; flex-shrink: 0 !important; }
 }
 
+
+/* ─── 섹션 이미지 재생성 오버레이 버튼 (ResultScreen·ResultMobile·BlockRenderer 공용) ─── */
+.img-regen-wrap { position: relative; }
+.img-regen-overlay {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 13px; border: none; border-radius: 999px;
+  background: rgba(255,255,255,.95); color: #6D4CFF;
+  font-family: var(--f); font-size: 12px; font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0,0,0,.04);
+  cursor: pointer;
+}
+.img-regen-overlay:disabled { cursor: default; opacity: .75; }
+/* 터치 타겟 확장 — 시각 크기(~30px)는 유지하면서 히트 영역 44px 이상 확보 */
+.img-regen-overlay::before { content: ''; position: absolute; inset: -8px; border-radius: 999px; }
+/* 데스크탑(hover 가능): 평소 숨김, 이미지 영역 hover 시 표시. 생성 중엔 고정 표시 */
+@media (hover: hover) and (pointer: fine) {
+  .img-regen-overlay { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .img-regen-wrap:hover .img-regen-overlay,
+  .img-regen-overlay.is-loading { opacity: 1; pointer-events: auto; }
+}

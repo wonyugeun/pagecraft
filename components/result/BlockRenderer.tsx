@@ -4,6 +4,7 @@ import {
   Check, Star, Quote as QuoteIcon, ChevronDown, ArrowRight,
   Leaf, Droplets, Sparkles, ShieldCheck,
 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Block } from '@/store/AppContext';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
@@ -297,12 +298,12 @@ function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
 }
 
 /* ─── image ─── */
-function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?: BlockImgState; onLightbox?: () => void }) {
+function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; imgState?: BlockImgState; onLightbox?: () => void; overlay?: ReactNode }) {
   // imgState.aspectRatio는 Gemini 포맷("4:5"/"16:9"/"1:1"). CSS는 "4/5" 같은 슬래시.
   const cssAspect = imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '1/1';
   if (imgState?.url) {
     return (
-      <div style={{
+      <div className="img-regen-wrap" style={{
         marginBottom: 32, overflow: 'hidden',
         borderRadius: 24, border: `1px solid ${COLORS.border}`,
       }}>
@@ -317,17 +318,19 @@ function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?:
             cursor: onLightbox ? 'zoom-in' : 'default',
           }}
         />
+        {overlay}
       </div>
     );
   }
   const loading = imgState?.loading;
   const error = imgState?.error;
   return (
-    <div style={{
+    <div className="img-regen-wrap" style={{
       marginBottom: 32, aspectRatio: cssAspect, overflow: 'hidden',
       borderRadius: 24, border: `1px solid ${COLORS.border}`,
       background: `linear-gradient(135deg, ${COLORS.lightPurple} 0%, ${COLORS.white} 50%, ${COLORS.bg} 100%)`,
     }}>
+      {overlay}
       <div style={{
         height: '100%',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -386,14 +389,17 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
 }
 
 /* ─── 메인 렌더러 ─── */
-export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile }: {
+export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay }: {
   blocks: Block[];
   sectionNum?: string;
   blockImages?: Record<string, BlockImgState>;
   onLightboxBlock?: (key: string) => void;
   isMobile?: boolean;
+  /** 섹션 재생성 버튼 — 첫 image 블록 우상단에 오버레이로 렌더 (없으면 미표시) */
+  regenOverlay?: ReactNode;
 }) {
   const pad = isMobile ? 16 : PAD;
+  const firstImageIdx = blocks.findIndex(b => b.type === 'image');
   return (
     <div style={{
       background: COLORS.white,
@@ -417,7 +423,7 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
             const key = sectionNum ? `${sectionNum}#${i}` : '';
             const imgState = blockImages && key ? blockImages[key] : undefined;
             const onLightbox = imgState?.url && onLightboxBlock && key ? () => onLightboxBlock(key) : undefined;
-            return <ImageBlock key={i} label={b.label} imgState={imgState} onLightbox={onLightbox} />;
+            return <ImageBlock key={i} label={b.label} imgState={imgState} onLightbox={onLightbox} overlay={i === firstImageIdx ? regenOverlay : undefined} />;
           }
           case 'cta':       return <CtaBlock       key={i} text={b.text} button={b.button} isMobile={isMobile} />;
           default:          return null;

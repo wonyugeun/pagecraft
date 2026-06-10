@@ -420,7 +420,7 @@ function ImgSlot({
 
   if (url) {
     return (
-      <div style={{ ...slotStyle, height: 'auto', padding: 0, position: 'relative', display: 'flex', justifyContent: 'center', background: '#f8fafc' }}>
+      <div className="img-regen-wrap" style={{ ...slotStyle, height: 'auto', padding: 0, position: 'relative', display: 'flex', justifyContent: 'center', background: '#f8fafc' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url} alt={sec.imageLabel}
@@ -428,9 +428,10 @@ function ImgSlot({
           onClick={onLightbox}
         />
         <button
-          onClick={onGenerate}
-          style={{ position: 'absolute', bottom: 10, right: 10, fontSize: 11, padding: '4px 10px', background: 'rgba(0,0,0,.55)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--f)' }}
-        >✦ 재생성</button>
+          className="img-regen-overlay"
+          onClick={e => { e.stopPropagation(); onGenerate(); }}
+          aria-label="이미지 재생성"
+        ><Sparkles size={12} /> 재생성</button>
       </div>
     );
   }
@@ -481,18 +482,35 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
   }, [sec.body, editOpen]);
 
   const hasBlocks = !!sec.blocks?.length;
+  const hasImageBlock = !!sec.blocks?.some(b => b.type === 'image');
+
+  // 섹션 재생성 버튼 — 첫 image 블록 우상단 오버레이 (데스크탑 hover 표시, 모바일 항상 표시)
+  const regenOverlayBtn = (
+    <button
+      className={`img-regen-overlay${regenLoading ? ' is-loading' : ''}`}
+      onClick={e => { e.stopPropagation(); onRegen(); }}
+      disabled={regenLoading}
+      aria-label="섹션 재생성"
+    >
+      {regenLoading
+        ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />생성 중</>
+        : <><Sparkles size={12} /> 재생성</>}
+    </button>
+  );
 
   return (
     <>
       <div style={{ background: '#fff' }}>
         {hasBlocks ? (
           <>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} />
-            <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-              </button>
-            </div>
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} />
+            {!hasImageBlock && (
+              <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+                <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
+                  {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>

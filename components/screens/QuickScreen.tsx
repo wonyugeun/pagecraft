@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
+import { aspectRatioFor } from '@/lib/sectionAspect';
 
 interface ImgFile { url: string; }
 
@@ -268,6 +269,7 @@ export default function QuickScreen() {
         body: JSON.stringify({
           prompt,
           sectionNum: selectedSection.num,
+          aspectRatio: aspectRatioFor(selectedSection.name),
           ...(base64s.length > 0 ? { productImages: base64s } : {}),
         }),
         signal: AbortSignal.timeout(130_000),
