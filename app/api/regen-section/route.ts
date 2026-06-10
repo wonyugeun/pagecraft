@@ -1,42 +1,56 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
+import { getCategoryCopyGuard } from '@/lib/copyGuards';
+import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
+import { buildImagePromptRules, IMAGE_DESC_FIELD_SPEC } from '@/lib/imagePromptRules';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName } = await req.json();
 
-  const outputType = out === 'blog' ? '블로그형 (글+그림)' : out === 'slide' ? '이미지 슬라이드형' : 'HTML 섹션형';
+  const resolvedOut  = resolveOutputType(ch, out);
+  const isBlogOutput = resolvedOut === 'blog';
+  const outputType   = OUTPUT_TYPE_LABEL[resolvedOut];
+
+  // generate route와 같은 lib 소스를 공유 — 본 생성과 재생성의 가드·미감 규칙이 어긋나지 않게.
+  const { system } = getCategoryConfig(cat, ch);
+  const copyGuard = getCategoryCopyGuard(cat);
+  const imagePromptRules = buildImagePromptRules(cat, isBlogOutput);
+  console.log(`[regen-section] cat=${cat} copyGuard=${copyGuard ? `active(${copyGuard.length}chars)` : 'none'} imageRules=${imagePromptRules.length}chars`);
 
   const productDetailBlock = productExtra
-    ? `\n상품 상세 정보:\n${productExtra}\n`
+    ? `\n[상품 상세 정보 — 아래 내용을 카피에 반드시 반영하세요. 수치·인증·소재명이 있으면 헤드라인과 본문에 직접 녹이세요]\n${productExtra}\n`
     : '';
 
-  const prompt = `당신은 한국 이커머스 상세페이지 전문 카피라이터입니다.
-아래 조건으로 상세페이지 섹션 하나를 새롭게 작성해주세요. 이전과 다른 각도와 표현을 사용하세요.
+  const prompt = `아래 조건으로 상세페이지 섹션 하나를 새롭게 작성해주세요. 이전과 다른 각도와 표현을 사용하세요.
 
-조건:
+[생성 조건]
 - 카테고리: ${cat}
 - 판매 채널: ${ch}
 - 타입: ${type}
 - 출력 형태: ${outputType}
 - 상품명: ${productName || '(미입력)'}
 - 재생성할 섹션: ${sectionNum} — ${sectionName}
-${productDetailBlock}
-아래 JSON 형식으로 딱 하나의 섹션 객체만 반환하세요. 다른 텍스트 없이 JSON만:
+${productDetailBlock}${imagePromptRules}${copyGuard}
+${COPY_PRINCIPLES}
+
+[출력 형식] — 다른 텍스트 없이 아래 JSON 객체 하나만 반환하세요:
 {
   "num": "${sectionNum}",
   "name": "${sectionName}",
-  "headline": "새로운 헤드라인 카피 (이모지 포함, 구체적이고 설득력 있게)",
+  "headline": "새로운 헤드라인 카피 (이모지 포함, 업계 전문 용어·수치·차별점을 자연스럽게 반영, 구체적이고 설득력 있게)",
   "body": "새로운 본문 카피 (2~4문장, ${cat} 특성과 상품 정보 반영)",
-  "imageLabel": "이미지 슬롯 라벨",
-  "imageDesc": "이미지 설명 (촬영 방향, 분위기, 구도 등)"
+  "imageLabel": "이미지 슬롯 라벨 (예: 📸 메인 이미지 슬롯)",
+  "imageDesc": "${IMAGE_DESC_FIELD_SPEC}"
 }`;
 
   try {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 2048,
+      system,
       messages: [{ role: 'user', content: prompt }],
     });
 
