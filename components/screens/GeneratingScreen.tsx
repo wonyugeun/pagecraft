@@ -163,7 +163,8 @@ export default function GeneratingScreen() {
       timers.push(t);
     });
 
-    const TIMEOUT_MS = process.env.NODE_ENV === 'development' ? 300_000 : 280_000;
+    // TODO 로컬 임시 600초 — 배포는 Vercel 300초 천장이라 SSE/청크 근본해결 필요
+    const TIMEOUT_MS = process.env.NODE_ENV === 'development' ? 600_000 : 280_000;
     const timeoutId = setTimeout(() => {
       timedOut = true;
       abortRef.current?.abort();

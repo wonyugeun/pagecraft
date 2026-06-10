@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import BlockRenderer from '@/components/result/BlockRenderer';
+import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
   Type, Image as ImageIcon, ArrowUpDown, EyeOff,
@@ -103,7 +104,12 @@ export async function downloadMergedImage(
 }
 
 /* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
-function blocksToHtml(blocks: Block[], sectionNum: string, blockImageUrls: Record<string, string>): string {
+function blocksToHtml(
+  blocks: Block[],
+  sectionNum: string,
+  blockImageUrls: Record<string, string>,
+  blockAspects: Record<string, string> = {},
+): string {
   return blocks.map((b, i) => {
     switch (b.type) {
       case 'hero':
@@ -155,10 +161,13 @@ function blocksToHtml(blocks: Block[], sectionNum: string, blockImageUrls: Recor
         return `<dl class="faq">${b.items.map(f => `<dt>Q. ${escHtml(f.q)}</dt>
 <dd>${escHtml(f.a)}</dd>`).join('')}</dl>`;
       case 'image': {
-        const url = blockImageUrls[`${sectionNum}#${i}`];
+        const key = `${sectionNum}#${i}`;
+        const url = blockImageUrls[key];
+        const cssAspect = (blockAspects[key] ?? '1:1').replace(':', '/');
+        const imgStyle = `aspect-ratio:${cssAspect};object-fit:contain;`;
         return url
-          ? `<figure class="image"><img src="${url}" alt="${escHtml(b.label)}" /></figure>`
-          : `<div class="image-slot">📸 ${escHtml(b.label)}</div>`;
+          ? `<figure class="image" style="aspect-ratio:${cssAspect};"><img src="${url}" alt="${escHtml(b.label)}" style="${imgStyle}" /></figure>`
+          : `<div class="image-slot" style="aspect-ratio:${cssAspect};">📸 ${escHtml(b.label)}</div>`;
       }
       case 'cta':
         return `<div class="cta">
@@ -222,9 +231,9 @@ const HTML_BLOCKS_CSS = `
 .faq dd { padding: 0 20px 20px; font-size: 14px; line-height: 1.7; color: #666; border-bottom: 1px solid #ECECF2; }
 .faq dd:last-child { border-bottom: none; }
 
-.image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; }
-.image img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
-.image-slot { margin-bottom: 32px; width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg,#F4F0FF,#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #6D4CFF; }
+.image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; background: #FAFAFC; }
+.image img { width: 100%; height: 100%; display: block; }
+.image-slot { margin-bottom: 32px; width: 100%; background: linear-gradient(135deg,#F4F0FF,#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #6D4CFF; }
 
 .cta { border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; padding: 32px; text-align: center; margin-bottom: 32px; }
 .cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
@@ -247,9 +256,15 @@ export async function downloadHtml(
     }
     const compressedBlockUrls = await compressMap(rawBlockUrls);
 
+    // 블록 이미지 비율 맵 — 표시 시 비율 그대로 보존(잘림 0).
+    const blockAspectMap: Record<string, string> = {};
+    for (const [k, st] of Object.entries(blockImgMap)) {
+      if (st?.aspectRatio) blockAspectMap[k] = st.aspectRatio;
+    }
+
     const sectionsHtml = sections.map(sec => {
       if (sec.blocks?.length) {
-        return `\n    <section class="sec sec-blocks">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls)}\n    </section>`;
+        return `\n    <section class="sec sec-blocks">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n    </section>`;
       }
       // 기존 폴백 (blocks 없는 섹션)
       const imgUrl = imgMap[sec.num]?.url;
@@ -319,7 +334,7 @@ const THUMB_SIZES: Record<string, string> = {
 };
 
 /* ─── 이미지 상태 ─── */
-export type ImgState = { loading: boolean; url: string | null; error: boolean };
+export type ImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
 export const EMPTY_IMG: ImgState = { loading: false, url: null, error: false };
 
 /* ─── 향상된 라이트박스 (prev/next + keyboard) ─── */
@@ -908,7 +923,8 @@ export default function ResultScreen() {
   const isBlog  = !isSlide && !isHtml;
 
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
-    setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false } }));
+    const aspect = aspectRatioFor(sec.name);
+    setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
       const promptText = effectiveOut === 'blog'
@@ -922,6 +938,7 @@ export default function ResultScreen() {
           sectionNum: sec.num,
           productImages: images.length > 0 ? images : undefined,
           outputType: effectiveOut,
+          aspectRatio: aspect,
         }),
         signal,
       });
@@ -929,19 +946,21 @@ export default function ResultScreen() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
       }
     } catch (err) {
       if (signal.aborted) return;
-      setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
+      setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
   }, [effectiveOut]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;
-    setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false } }));
+    const blockType = sec.blocks?.[blockIdx]?.type;
+    const aspect = aspectRatioFor(sec.name, blockType);
+    setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
       const res = await fetch('/api/generate-image', {
@@ -952,6 +971,7 @@ export default function ResultScreen() {
           sectionNum: key,
           productImages: images.length > 0 ? images : undefined,
           outputType: 'blog',
+          aspectRatio: aspect,
         }),
         signal,
       });
@@ -959,13 +979,13 @@ export default function ResultScreen() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
       }
     } catch (err) {
       if (signal.aborted) return;
-      setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
+      setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
   }, []);
 

@@ -10,6 +10,7 @@ import {
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
+import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
   EnhancedLightbox, downloadHtml, downloadMergedImage,
@@ -81,7 +82,8 @@ export default function ResultMobile() {
 
   // 데스크탑과 동일한 이미지 생성 함수
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
-    setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false } }));
+    const aspect = aspectRatioFor(sec.name);
+    setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
       const promptText = effectiveOut === 'blog'
@@ -93,6 +95,7 @@ export default function ResultMobile() {
           prompt: promptText, sectionNum: sec.num,
           productImages: images.length > 0 ? images : undefined,
           outputType: effectiveOut,
+          aspectRatio: aspect,
         }),
         signal,
       });
@@ -100,19 +103,21 @@ export default function ResultMobile() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
       }
     } catch {
       if (signal.aborted) return;
-      setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true } }));
+      setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
   }, [effectiveOut]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;
-    setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false } }));
+    const blockType = sec.blocks?.[blockIdx]?.type;
+    const aspect = aspectRatioFor(sec.name, blockType);
+    setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
       const res = await fetch('/api/generate-image', {
@@ -121,6 +126,7 @@ export default function ResultMobile() {
           prompt: desc, sectionNum: key,
           productImages: images.length > 0 ? images : undefined,
           outputType: 'blog',
+          aspectRatio: aspect,
         }),
         signal,
       });
@@ -128,13 +134,13 @@ export default function ResultMobile() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false } }));
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
       }
     } catch {
       if (signal.aborted) return;
-      setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true } }));
+      setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
   }, []);
 

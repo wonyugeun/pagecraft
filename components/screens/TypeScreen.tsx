@@ -96,44 +96,42 @@ export default function TypeScreen() {
 
   const TYPES = [
     {
-      key: '기본형',
-      accent: '#6D4CFF',
+      key: '간결',
+      accent: '#9B8FD4',
       cardBg: '#F7F5FF',
-      iconBg: 'linear-gradient(135deg,#EDE8FF,#D8CFFF)',
+      iconBg: 'linear-gradient(135deg,#EDE8FF,#D8D0F0)',
       Icon: FileText,
-      topBadge: '가장 많이 선택',
-      topBadgeBg: '#6D4CFF',
-      tagLabel: '가장 많이 사용',
-      tagStyle: { background: '#F0ECFF', color: '#6D4CFF' },
-      desc: ch === '스마트스토어'
-        ? '카테고리에 맞게 설계된 10~12섹션 완성형.\n스마트스토어는 블로그형 글+그림 선택 가능'
-        : '카테고리에 맞게 설계된 10~12섹션 완성형.\n이미지 최적 구성으로 즉시 업로드 가능',
-      feats: ['10~12섹션', '누끼컷 3장', '컨셉컷 2장', '썸네일 2종'],
-      featStyle: { background: '#EDE8FF', color: '#6D4CFF' },
-      secLabel: '섹션 예시 (화장품 기준)',
-      secLabelColor: '#6D4CFF',
-      secs: ['히어로', '공감', '성분신뢰', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'],
-      btnLabel: '이 구성으로 선택하기',
-      btnStyle: { background: '#6D4CFF', color: '#fff' },
+      topBadge: null,
+      topBadgeBg: null,
+      tagLabel: '구매 전환 집중',
+      tagStyle: { background: '#EDE8FF', color: '#7B6FB4' },
+      desc: '핵심만 빠르게, 구매 전환에 집중해요.\n스크롤을 짧게 — 임팩트 있는 메시지로 바로 행동을 유도합니다.',
+      feats: ['핵심만 추림', '짧은 스크롤', '구매 전환 우선', '이미지 임팩트'],
+      featStyle: { background: '#F4F0FF', color: '#7B6FB4' },
+      secLabel: '예시 섹션 (화장품 기준)',
+      secLabelColor: '#9B8FD4',
+      secs: ['히어로', '핵심 효능', '성분 신뢰', '사용법', '비교표', '후기', 'CTA'],
+      btnLabel: '간결하게 만들기',
+      btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
     {
-      key: '프리미엄형',
+      key: '풍부',
       accent: '#B45309',
       cardBg: '#FFFBEB',
       iconBg: 'linear-gradient(135deg,#FEF3C7,#FDE68A)',
       Icon: Sparkles,
-      topBadge: null,
-      topBadgeBg: null,
-      tagLabel: '고급 브랜딩',
+      topBadge: 'AI 추천',
+      topBadgeBg: '#B45309',
+      tagLabel: '신뢰·브랜딩 강화',
       tagStyle: { background: '#FEF3C7', color: '#92400E' },
-      desc: '바이오더마·닥터지 수준 기획.\n브랜드 스토리부터 감성 카피까지 — 와디즈 50장+ 대응 포함',
-      feats: ['15~50장+', '누끼컷 5장', '컨셉컷 4장', '썸네일 3종', 'GIF 포함', '브랜드 스토리'],
+      desc: '정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.\n브랜드 세계관·감성 카피·시각 요소까지 풍부하게 구성합니다.',
+      feats: ['브랜드 스토리', '감성 카피', '성분/근거 풍부', '시각 요소 풍부'],
       featStyle: { background: '#FEF9EC', color: '#92400E' },
-      secLabel: '추가 포함',
+      secLabel: '예시 섹션 (화장품 기준)',
       secLabelColor: '#B45309',
-      secs: ['브랜드 세계관', '감성 카피', '성분 인포그래픽', 'SNS 공유컷', '와디즈 스토리'],
-      btnLabel: '이 구성으로 선택하기',
-      btnStyle: { background: '#fff', color: '#B45309', border: '1.5px solid #D97706' },
+      secs: ['히어로', '브랜드 세계관', '피부고민 공감', '성분 신뢰', '성분 인포그래픽', 'USP', '사용법', '비교표', '감성 카피', '후기', 'SNS 공유컷', 'FAQ', 'CTA'],
+      btnLabel: '풍부하게 만들기',
+      btnStyle: { background: '#B45309', color: '#fff' },
     },
   ];
 
@@ -152,11 +150,12 @@ export default function TypeScreen() {
             fontSize: '28px', fontWeight: 800, color: '#111',
             letterSpacing: '-0.04em', lineHeight: 1.3, marginBottom: '10px',
           }}>
-            어떤 <span style={{ color: '#6D4CFF' }}>형태로</span><br />
+            어떤 <span style={{ color: '#6D4CFF' }}>방향으로</span><br />
             상세페이지를 만들까요?
           </h1>
-          <p style={{ fontSize: '14px', color: '#9CA3AF' }}>
-            {ch || '선택한 채널'}에 가장 적합한 구성을 선택해보세요
+          <p style={{ fontSize: '14px', color: '#666', lineHeight: 1.6 }}>
+            AI가 카테고리·채널·상품을 분석해 적정 섹션 수를 자동 추천해요.<br />
+            <span style={{ color: '#6D4CFF', fontWeight: 600 }}>풍부 / 간결</span>로 방향만 정하면 됩니다.
           </p>
         </div>
 
@@ -211,9 +210,9 @@ export default function TypeScreen() {
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#6D4CFF', marginBottom: '3px', letterSpacing: '0.02em' }}>AI 추천</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em', marginBottom: '2px' }}>
-              대부분의 판매자가 <span style={{ color: '#6D4CFF' }}>'기본형'</span>으로 충분히 만족하고 있어요!
+              <span style={{ color: '#6D4CFF' }}>풍부하게</span>가 가장 많이 선택돼요!
             </div>
-            <div style={{ fontSize: '12px', color: '#9B8EC4' }}>빠르게 시작하고 성과를 만들어보세요.</div>
+            <div style={{ fontSize: '12px', color: '#9B8EC4' }}>섹션 수는 다음 단계에서 AI가 구성해드려요.</div>
           </div>
         </div>
         <div style={{
@@ -300,10 +299,11 @@ export default function TypeScreen() {
                 </div>
               </div>
 
-              {/* 선택 버튼 */}
+              {/* 선택 버튼 (카드 하단 고정) */}
               <button
                 onClick={e => { e.stopPropagation(); setType(t.key); }}
                 style={{
+                  marginTop: 'auto',
                   width: '100%', padding: '12px',
                   borderRadius: '10px', border: 'none',
                   fontSize: '13.5px', fontWeight: 700,
@@ -311,7 +311,7 @@ export default function TypeScreen() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   transition: 'all 150ms ease',
                   ...t.btnStyle,
-                  ...(selected && t.key === '프리미엄형' ? { background: '#D97706', color: '#fff', border: 'none' } : {}),
+                  ...(selected && t.key === '간결' ? { background: '#9B8FD4', color: '#fff', border: 'none' } : {}),
                 }}
               >
                 {selected && <Check size={14} />} {t.btnLabel}

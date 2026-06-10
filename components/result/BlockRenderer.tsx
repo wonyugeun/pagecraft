@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Block } from '@/store/AppContext';
 
-export type BlockImgState = { loading: boolean; url: string | null; error: boolean };
+export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
 
 const COLORS = {
   primary: '#6D4CFF',
@@ -298,6 +298,8 @@ function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
 
 /* ─── image ─── */
 function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?: BlockImgState; onLightbox?: () => void }) {
+  // imgState.aspectRatio는 Gemini 포맷("4:5"/"16:9"/"1:1"). CSS는 "4/5" 같은 슬래시.
+  const cssAspect = imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '1/1';
   if (imgState?.url) {
     return (
       <div style={{
@@ -310,7 +312,8 @@ function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?:
           alt={label}
           onClick={onLightbox}
           style={{
-            width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block',
+            width: '100%', aspectRatio: cssAspect, objectFit: 'contain', display: 'block',
+            background: COLORS.bg,
             cursor: onLightbox ? 'zoom-in' : 'default',
           }}
         />
@@ -321,7 +324,7 @@ function ImageBlock({ label, imgState, onLightbox }: { label: string; imgState?:
   const error = imgState?.error;
   return (
     <div style={{
-      marginBottom: 32, aspectRatio: '4/3', overflow: 'hidden',
+      marginBottom: 32, aspectRatio: cssAspect, overflow: 'hidden',
       borderRadius: 24, border: `1px solid ${COLORS.border}`,
       background: `linear-gradient(135deg, ${COLORS.lightPurple} 0%, ${COLORS.white} 50%, ${COLORS.bg} 100%)`,
     }}>

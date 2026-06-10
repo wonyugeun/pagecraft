@@ -30,16 +30,16 @@ function PowerRow({ icon, label, basicLevel, premiumLevel }: {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Zap key={i} size={14}
-            color={i < basicLevel ? '#6D4CFF' : '#E5E5EC'}
-            fill={i < basicLevel ? '#6D4CFF' : '#E5E5EC'}
+            color={i < basicLevel ? '#B45309' : '#E5E5EC'}
+            fill={i < basicLevel ? '#B45309' : '#E5E5EC'}
           />
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Zap key={i} size={14}
-            color={i < premiumLevel ? '#EC4899' : '#E5E5EC'}
-            fill={i < premiumLevel ? '#EC4899' : '#E5E5EC'}
+            color={i < premiumLevel ? '#9B8FD4' : '#E5E5EC'}
+            fill={i < premiumLevel ? '#9B8FD4' : '#E5E5EC'}
           />
         ))}
       </div>
@@ -71,10 +71,10 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
         <span style={{ fontSize: 13, color: '#111', fontWeight: 500 }}>{label}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-        {render(basicStars, '#6D4CFF')}
+        {render(basicStars, '#B45309')}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-        {render(premiumStars, '#EC4899')}
+        {render(premiumStars, '#9B8FD4')}
       </div>
     </div>
   );
@@ -83,10 +83,10 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
 export default function TypeMobile() {
   const { ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
   const channelLabel = ch ?? '스마트스토어';
-  const activeType = type ?? '기본형';
+  const activeType = type ?? '풍부';
 
-  const onPick = (key: '기본형' | '프리미엄형') => setType(key);
-  const onNext = () => { if (!type) setType('기본형'); goAfterType(); };
+  const onPick = (key: '풍부' | '간결') => setType(key);
+  const onNext = () => { if (!type) setType('풍부'); goAfterType(); };
 
   return (
     <div style={{
@@ -204,10 +204,10 @@ export default function TypeMobile() {
           </span>
           <div style={{ marginTop: 12, fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.45 }}>
             대부분 판매자는<br />
-            <span style={{ fontWeight: 800 }}>기본형으로 충분해요!</span>
+            <span style={{ fontWeight: 800 }}>풍부하게를 선택해요!</span>
           </div>
           <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#666' }}>
-            빠르게 시작하고 성과를 만들어보세요.
+            섹션 수는 AI가 카테고리·채널·상품을 보고 자동 추천해요.
           </p>
           <button style={{
             marginTop: 14,
@@ -231,13 +231,13 @@ export default function TypeMobile() {
         </div>
       </section>
 
-      {/* 5) 기본형 카드 */}
+      {/* 5) 풍부 카드 */}
       <section style={{ padding: '20px 20px 0' }}>
         <div
-          onClick={() => onPick('기본형')}
+          onClick={() => onPick('풍부')}
           style={{
             background: '#fff',
-            border: activeType === '기본형' ? '2px solid #6D4CFF' : '1.5px solid #ECECF2',
+            border: activeType === '풍부' ? '2px solid #B45309' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 16,
             cursor: 'pointer',
           }}
@@ -245,29 +245,84 @@ export default function TypeMobile() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: '#F4F0FF', flexShrink: 0,
+              background: '#FEF3C7', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <FileText size={26} color="#6D4CFF" />
+              <Sparkles size={26} color="#B45309" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>기본형</span>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>풍부하게</span>
                 <span style={{
-                  fontSize: 10, fontWeight: 700, color: '#6D4CFF',
-                  background: '#F4F0FF', borderRadius: 999, padding: '2px 8px',
-                }}>추천</span>
+                  fontSize: 10, fontWeight: 700, color: '#92400E',
+                  background: '#FEF3C7', borderRadius: 999, padding: '2px 8px',
+                }}>AI 추천</span>
               </div>
-              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>
-                10~12개 섹션
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#B45309' }}>
+                신뢰·브랜딩 강화
               </div>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
-                블로그형 구성으로 빠르게 제작하고<br />필수 내용에 집중할 수 있어요.
+                정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.<br />브랜드 세계관·감성 카피까지 풍부하게.
               </p>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {['빠른 제작', '필수 구성', '가성비'].map(c => (
+                {['브랜드 톤', '풍부한 정보', '감성 카피', '시각 요소'].map(c => (
                   <span key={c} style={{
-                    fontSize: 10.5, fontWeight: 600, color: '#6D4CFF',
+                    fontSize: 10.5, fontWeight: 600, color: '#92400E',
+                    background: '#FEF9EC', borderRadius: 999, padding: '3px 10px',
+                  }}>{c}</span>
+                ))}
+              </div>
+            </div>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: activeType === '풍부' ? '#B45309' : '#fff',
+              border: activeType === '풍부' ? 'none' : '1.5px solid #D9D9E3',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              {activeType === '풍부' && <Check size={14} color="#fff" strokeWidth={3} />}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6) 간결 카드 */}
+      <section style={{ padding: '12px 20px 0' }}>
+        <div
+          onClick={() => onPick('간결')}
+          style={{
+            background: '#fff',
+            border: activeType === '간결' ? '2px solid #9B8FD4' : '1.5px solid #ECECF2',
+            borderRadius: 18, padding: 16,
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#EDE8FF', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <FileText size={26} color="#9B8FD4" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>간결하게</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, color: '#7B6FB4',
+                  background: '#EDE8FF', borderRadius: 999, padding: '2px 8px',
+                }}>구매 전환</span>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#7B6FB4' }}>
+                구매 전환 집중
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
+                핵심만 빠르게, 구매 전환에 집중해요.<br />스크롤 짧고 임팩트 있게.
+              </p>
+              <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {['핵심만 추림', '짧은 스크롤', '빠른 전환', '이미지 임팩트'].map(c => (
+                  <span key={c} style={{
+                    fontSize: 10.5, fontWeight: 600, color: '#7B6FB4',
                     background: '#F4F0FF', borderRadius: 999, padding: '3px 10px',
                   }}>{c}</span>
                 ))}
@@ -275,75 +330,12 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '기본형' ? '#6D4CFF' : '#fff',
-              border: activeType === '기본형' ? 'none' : '1.5px solid #D9D9E3',
+              background: activeType === '간결' ? '#9B8FD4' : '#fff',
+              border: activeType === '간결' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              {activeType === '기본형' && <Check size={14} color="#fff" strokeWidth={3} />}
-            </div>
-          </div>
-          <div style={{
-            marginTop: 14, paddingTop: 12,
-            borderTop: '1px solid #F0EEFB',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontSize: 12.5, color: '#111', fontWeight: 600 }}>포함되는 섹션 보기</span>
-            <ChevronDown size={14} color="#999" />
-          </div>
-        </div>
-      </section>
-
-      {/* 6) 프리미엄형 카드 */}
-      <section style={{ padding: '12px 20px 0' }}>
-        <div
-          onClick={() => onPick('프리미엄형')}
-          style={{
-            background: '#fff',
-            border: activeType === '프리미엄형' ? '2px solid #EC4899' : '1.5px solid #ECECF2',
-            borderRadius: 18, padding: 16,
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: '#FCE7F3', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Sparkles size={26} color="#EC4899" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>프리미엄형</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, color: '#EC4899',
-                  background: '#FCE7F3', borderRadius: 999, padding: '2px 8px',
-                }}>브랜드 강화</span>
-              </div>
-              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#EC4899' }}>
-                15~50개+ 섹션
-              </div>
-              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
-                스토리텔링 기반으로 브랜드 가치를 높이고<br />감성 카피까지 완벽하게 담아내요.
-              </p>
-              <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {['스토리텔링', '감성 카피', '브랜드 강화', '긴 섹션 구성'].map(c => (
-                  <span key={c} style={{
-                    fontSize: 10.5, fontWeight: 600, color: '#EC4899',
-                    background: '#FCE7F3', borderRadius: 999, padding: '3px 10px',
-                  }}>{c}</span>
-                ))}
-              </div>
-            </div>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '프리미엄형' ? '#EC4899' : '#fff',
-              border: activeType === '프리미엄형' ? 'none' : '1.5px solid #D9D9E3',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              {activeType === '프리미엄형' && <Check size={14} color="#fff" strokeWidth={3} />}
+              {activeType === '간결' && <Check size={14} color="#fff" strokeWidth={3} />}
             </div>
           </div>
         </div>
@@ -362,28 +354,28 @@ export default function TypeMobile() {
             <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>한눈에 비교해보세요</div>
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontSize: 11, fontWeight: 700, color: '#6D4CFF',
-                background: '#F4F0FF', borderRadius: 6, padding: '3px 10px',
-              }}>기본형</span>
+                fontSize: 11, fontWeight: 700, color: '#92400E',
+                background: '#FEF3C7', borderRadius: 6, padding: '3px 10px',
+              }}>풍부</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontSize: 11, fontWeight: 700, color: '#EC4899',
-                background: '#FCE7F3', borderRadius: 6, padding: '3px 10px',
-              }}>프리미엄형</span>
+                fontSize: 11, fontWeight: 700, color: '#7B6FB4',
+                background: '#EDE8FF', borderRadius: 6, padding: '3px 10px',
+              }}>간결</span>
             </div>
           </div>
           <PowerRow
             icon={<Clock size={16} color="#666" />}
             label="제작 속도"
-            basicLevel={4}
-            premiumLevel={3}
+            basicLevel={3}
+            premiumLevel={4}
           />
           <StarRow
             icon={<BarChart3 size={16} color="#666" />}
             label="브랜딩 효과"
-            basicStars={3}
-            premiumStars={5}
+            basicStars={5}
+            premiumStars={3}
           />
           <StarRow
             icon={<TrendingUp size={16} color="#666" />}

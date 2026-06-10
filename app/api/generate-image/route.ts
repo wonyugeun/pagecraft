@@ -24,15 +24,19 @@ function errJson(msg: string, extra?: Record<string, unknown>, status = 500) {
   return NextResponse.json({ error: msg, ...extra }, { status });
 }
 
+// Gemini가 허용하는 비율 화이트리스트. 9:16(세로 긴 비율) 등 우리가 안 쓰는 것 차단.
+const ALLOWED_ASPECT = new Set(['1:1', '4:5', '5:4', '16:9', '9:16', '3:4', '4:3', '3:2', '2:3', '21:9']);
+
 export async function POST(req: NextRequest) {
   // ── 1. 요청 파싱 ──
-  let prompt: string, sectionNum: string, productImages: string[] | undefined, outputType: string | undefined;
+  let prompt: string, sectionNum: string, productImages: string[] | undefined, outputType: string | undefined, aspectRatio: string | undefined;
   try {
-    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[]; outputType?: string };
+    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[]; outputType?: string; aspectRatio?: string };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
     productImages = body.productImages;
     outputType    = body.outputType;
+    aspectRatio   = body.aspectRatio;
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
@@ -70,15 +74,18 @@ export async function POST(req: NextRequest) {
 
   const rulesTail = [PEOPLE_RULES, TEXT_RULES].filter(Boolean).join(' ');
 
-  const fullPrompt = hasRefImages
-    ? `Korean e-commerce product detail page image. ` +
-      `${PRODUCT_RULES} ` +
-      `${prompt}. ` +
-      `High quality commercial photography, professional studio lighting, clean composition. ` +
-      `${rulesTail}`
-    : `Korean e-commerce product detail page image. ${prompt}. ` +
-      `High quality commercial photography, professional studio lighting, clean composition. ` +
-      `${rulesTail}`;
+  // 끝부분 마침표/공백 정리 — Claude 출력이 '.'으로 끝나도 우리가 또 찍지 않도록
+  const cleanedPrompt = prompt.trim().replace(/[.\s]+$/, '');
+
+  // 순서: 컨텍스트 → positive 미적 지시(Claude의 영문 시각 키워드) → 제품 일관성 → negation
+  // generic 꼬리("High quality commercial photography, professional studio lighting, clean composition.")는
+  // Gemini 디폴트 룩을 호출해 결과가 밋밋해지므로 제거. 미감은 Claude의 imageDesc(영문 키워드)가 담당.
+  const fullPrompt = [
+    `Korean e-commerce product detail page image.`,
+    `${cleanedPrompt}.`,
+    PRODUCT_RULES,
+    rulesTail,
+  ].filter(Boolean).join(' ');
 
   const refImageParts = (productImages ?? []).slice(0, 3).map(dataUrl => {
     const [header, data] = dataUrl.split(',');
@@ -86,15 +93,20 @@ export async function POST(req: NextRequest) {
     return { inlineData: { mimeType, data } };
   });
 
+  const validAspect = aspectRatio && ALLOWED_ASPECT.has(aspectRatio) ? aspectRatio : undefined;
+
   const body = {
     contents: [{
       role: 'user',
       parts: [...refImageParts, { text: fullPrompt }],
     }],
-    generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+    generationConfig: {
+      responseModalities: ['IMAGE', 'TEXT'],
+      ...(validAspect ? { imageConfig: { aspectRatio: validAspect } } : {}),
+    },
   };
 
-  console.log(`[generate-image] START — ref images: ${refImageParts.length}, prompt length: ${fullPrompt.length}, sectionNum: ${sectionNum}`);
+  console.log(`[generate-image] START — ref images: ${refImageParts.length}, prompt length: ${fullPrompt.length}, sectionNum: ${sectionNum}, aspectRatio: ${validAspect ?? 'default'}`);
   console.log(`[generate-image] prompt preview: "${fullPrompt.slice(0, 150)}"`);
 
   let lastError = '';

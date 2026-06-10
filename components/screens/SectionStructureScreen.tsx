@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -74,22 +74,63 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { cat, type, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, sectionStructure } = useApp();
+  const { cat, ch, type, productName, productExtra, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, sectionStructure } = useApp();
 
+  // 우선순위 1~3 (저장된 거 / 레퍼런스 / 캡처). 통과 시 [] 반환 → useEffect에서 AI 추천 호출.
   const getInitial = (): string[] => {
-    // Restore previously confirmed structure (user navigated back from GeneratingScreen)
     if (sectionStructure.length) return [...sectionStructure];
     if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
     if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
-    return (
-      CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
-      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA']
-    );
+    return [];
   };
 
   const [secs, setSecs] = useState<string[]>(getInitial);
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const [recommendLoading, setRecommendLoading] = useState(false);
+  const recommendCalledRef = useRef(false);
+
+  // 4순위 진입: AI 추천 호출. 1~3순위 통과 시 secs가 이미 채워져 있어 skip.
+  useEffect(() => {
+    if (recommendCalledRef.current) return;
+    recommendCalledRef.current = true;
+    if (secs.length > 0) return; // 1~3순위 이미 적용된 상태
+    // 레퍼런스가 있으면 절대 호출하지 않음 (우선순위 유지)
+    if (referenceAnalysis?.sections?.length || captureAnalysis?.섹션목록?.length) return;
+
+    const depth: '간결' | '풍부' =
+      (type === '풍부' || type === '프리미엄형') ? '풍부' : '간결';
+    const fallback = (): string[] =>
+      CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
+      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
+
+    setRecommendLoading(true);
+    fetch('/api/recommend-sections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat: cat ?? '기타',
+        ch: ch ?? '스마트스토어',
+        productName: productName ?? '',
+        depth,
+        productExtra: productExtra ?? undefined,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    })
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok || !Array.isArray(data?.sections) || data.sections.length === 0) {
+          throw new Error(data?.error ?? '추천 실패');
+        }
+        setSecs(data.sections as string[]);
+      })
+      .catch(err => {
+        console.error('[recommend-sections]', err);
+        setSecs(fallback());
+      })
+      .finally(() => setRecommendLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (isMobile) return <SectionStructureMobile />;
 
@@ -142,6 +183,25 @@ export default function SectionStructureScreen() {
       {fromCapture && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#f5f3ff', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#5b21b6', fontWeight: 700, marginBottom: 14 }}>
           📸 캡처 분석 기반 추천
+        </div>
+      )}
+
+      {/* AI 추천 로딩 표시 */}
+      {recommendLoading && (
+        <div style={{
+          marginBottom: 12,
+          background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10,
+          padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          fontSize: 13, color: '#5b21b6', fontWeight: 600,
+        }}>
+          <span style={{
+            display: 'inline-block', width: 14, height: 14,
+            border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF',
+            borderRadius: '50%', animation: 'spin 0.7s linear infinite',
+            flexShrink: 0,
+          }} />
+          ✨ AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
         </div>
       )}
 
