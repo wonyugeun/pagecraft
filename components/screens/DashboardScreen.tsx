@@ -186,7 +186,7 @@ function RobotIllust() {
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
   const isMobile = useIsMobile();
-  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, sidebarCollapsed, setSidebarCollapsed } = useApp();
+  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, sidebarCollapsed, setSidebarCollapsed, deleteHistoryImages } = useApp();
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -226,6 +226,7 @@ export default function DashboardScreen() {
     const upd = history.filter(h => h.id !== id);
     setHistory(upd);
     try { localStorage.setItem(`pc_history_${email}`, JSON.stringify(upd)); } catch {}
+    deleteHistoryImages(id); // IndexedDB 이미지도 정리(고아 데이터 방지)
     setOpenMenu(null);
   };
 

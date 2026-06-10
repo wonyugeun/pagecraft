@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
+import { saveImages, getImages, deleteImages } from '@/lib/historyDB';
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
@@ -128,6 +129,7 @@ interface AppContextType extends AppState {
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
   updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => void;
+  deleteHistoryImages: (id: string) => void;
   setSidebarCollapsed: (v: boolean) => void;
   setRegularPrice: (v: string) => void;
   setSalePrice: (v: string) => void;
@@ -296,18 +298,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
       };
+      // 텍스트 메타만 — 이미지는 IndexedDB로 분리(updateLatestHistoryImages에서 처리)
       const updated = [newItem, ...existing].slice(0, 20);
-      const persist = (items: HistoryItem[]) => localStorage.setItem(key, JSON.stringify(items));
       try {
-        persist(updated);
+        localStorage.setItem(key, JSON.stringify(updated));
       } catch (e) {
-        if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-          let saved = false;
-          for (let trim = updated.length - 1; trim > 0; trim--) {
-            try { persist(updated.slice(0, trim)); saved = true; break; } catch { /* keep trimming */ }
-          }
-          if (!saved) console.warn('[saveHistory] localStorage 용량 부족 — 최신 기록 저장 실패');
-        }
+        console.warn('[saveHistory] localStorage 저장 실패:', e);
       }
     } catch {
       // JSON 파싱 실패 등 — 무시
@@ -319,32 +315,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const key = `pc_history_${email}`;
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
-      if (existing.length > 0) {
-        existing[0] = { ...existing[0], sectionImages, blockImages: blockImages ?? existing[0].blockImages };
-        try {
-          localStorage.setItem(key, JSON.stringify(existing));
-        } catch (e) {
-          if (e instanceof DOMException && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-            // 용량 초과 — 오래된 기록부터 삭제
-            for (let trim = existing.length - 1; trim > 0; trim--) {
-              try {
-                localStorage.setItem(key, JSON.stringify(existing.slice(0, trim)));
-                console.warn(`[updateLatestHistoryImages] 용량 초과 — ${existing.length - trim}건 삭제 후 저장 성공`);
-                return;
-              } catch { /* keep trimming */ }
-            }
-            console.warn('[updateLatestHistoryImages] localStorage 용량 부족 — 이미지 저장 실패');
-          } else {
-            throw e;
-          }
-        }
-      }
+      if (existing.length === 0) return;
+      const id = existing[0].id;
+      // 이미지는 IndexedDB로. 텍스트 메타는 localStorage 그대로 유지(이미지 필드는 박지 않음).
+      saveImages(id, { sectionImages, blockImages }).catch(e => {
+        console.warn('[updateLatestHistoryImages] IndexedDB 저장 실패(텍스트 기록은 살아있음):', e);
+      });
     } catch (e) {
-      console.warn('[updateLatestHistoryImages] localStorage 저장 실패:', e);
+      console.warn('[updateLatestHistoryImages] localStorage 읽기 실패:', e);
     }
   };
 
   const loadFromHistory = (item: HistoryItem) => {
+    // 동기 텍스트 메타 먼저 — 화면 전환 직후 ResultScreen이 sections를 바로 읽을 수 있게
     setCatState(item.cat);
     setChState(item.ch);
     setTypeState(item.type);
@@ -357,10 +340,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
     setSections(item.sections);
-    setRestoredImages(item.sectionImages ?? {});
-    setRestoredBlockImages(item.blockImages ?? {});
-    go('s8');
+
+    // 이미지는 IndexedDB 비동기 로드. 동시에 옛 localStorage 박힌 이미지도 폴백 사용(마이그 미완 케이스).
+    (async () => {
+      let secImgs = item.sectionImages ?? {};
+      let blkImgs = item.blockImages ?? {};
+      try {
+        const stored = await getImages(item.id);
+        if (stored?.sectionImages) secImgs = { ...secImgs, ...stored.sectionImages };
+        if (stored?.blockImages)   blkImgs = { ...blkImgs, ...stored.blockImages };
+      } catch (e) {
+        console.warn('[loadFromHistory] IndexedDB 읽기 실패 — 텍스트 기록만 복원:', e);
+      }
+      setRestoredImages(secImgs);
+      setRestoredBlockImages(blkImgs);
+      go('s8');
+    })();
   };
+
+  const deleteHistoryImages = (id: string) => {
+    deleteImages(id).catch(e => {
+      console.warn('[deleteHistoryImages] IndexedDB 삭제 실패:', e);
+    });
+  };
+
+  // 최초 1회 마이그레이션 — 옛 localStorage 박힌 이미지를 IndexedDB로 이전 후 localStorage에서 제거.
+  // session 변경(로그인/로그아웃) 시마다 해당 이메일 키에 대해 수행. IndexedDB 실패 시 그대로 둠(다음 기회).
+  useEffect(() => {
+    const email = session?.user?.email ?? 'guest';
+    const key = `pc_history_${email}`;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const arr: HistoryItem[] = JSON.parse(raw);
+      const dirty = arr.filter(h => h.sectionImages || h.blockImages);
+      if (dirty.length === 0) return;
+      (async () => {
+        let migrated = 0;
+        for (const h of dirty) {
+          try {
+            await saveImages(h.id, { sectionImages: h.sectionImages, blockImages: h.blockImages });
+            migrated++;
+          } catch (e) {
+            console.warn('[history migration] IndexedDB 저장 실패, 이번엔 건너뜀:', h.id, e);
+          }
+        }
+        if (migrated === 0) return;
+        const stripped = arr.map(h => {
+          const { sectionImages: _s, blockImages: _b, ...rest } = h;
+          void _s; void _b;
+          return rest as HistoryItem;
+        });
+        try {
+          localStorage.setItem(key, JSON.stringify(stripped));
+          console.log(`[history migration] ${migrated}건 IndexedDB로 이전 완료, localStorage 이미지 필드 제거`);
+        } catch (e) {
+          console.warn('[history migration] localStorage 재저장 실패:', e);
+        }
+      })();
+    } catch (e) {
+      console.warn('[history migration] 파싱 실패:', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.email]);
 
   const go = (id: ScreenId) => {
     window.history.pushState({ screen: id }, '');
@@ -473,6 +515,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveHistory,
       loadFromHistory,
       updateLatestHistoryImages,
+      deleteHistoryImages,
       setSidebarCollapsed,
       setRegularPrice,
       setSalePrice,
