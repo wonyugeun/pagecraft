@@ -103,6 +103,12 @@ interface AppState {
   salePrice: string;
   showPrice: boolean;
   productOptions: { name: string; values: string }[];
+  brand: string;
+  diff: string;
+  extraNote: string;
+  brandIntro: string;
+  answers: Record<string, string | string[]>;
+  aiSelections: string[];
 }
 
 interface AppContextType extends AppState {
@@ -135,6 +141,12 @@ interface AppContextType extends AppState {
   setSalePrice: (v: string) => void;
   setShowPrice: (v: boolean) => void;
   setProductOptions: (v: { name: string; values: string }[]) => void;
+  setBrand: (v: string) => void;
+  setDiff: (v: string) => void;
+  setExtraNote: (v: string) => void;
+  setBrandIntro: (v: string) => void;
+  setAnswers: React.Dispatch<React.SetStateAction<Record<string, string | string[]>>>;
+  setAiSelections: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -256,6 +268,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [salePrice, setSalePrice] = useState('');
   const [showPrice, setShowPrice] = useState(false);
   const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>([]);
+  const [brand, setBrand] = useState('');
+  const [diff, setDiff] = useState('');
+  const [extraNote, setExtraNote] = useState('');
+  const [brandIntro, setBrandIntro] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [aiSelections, setAiSelections] = useState<string[]>([]);
 
   /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
   useEffect(() => {
@@ -339,6 +357,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
+    setBrand('');
+    setDiff('');
+    setExtraNote('');
+    setBrandIntro('');
+    setAnswers({});
+    setAiSelections([]);
     setSections(item.sections);
 
     // 이미지는 IndexedDB 비동기 로드. 동시에 옛 localStorage 박힌 이미지도 폴백 사용(마이그 미완 케이스).
@@ -475,6 +499,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSalePrice('');
     setShowPrice(false);
     setProductOptions([]);
+    setBrand('');
+    setDiff('');
+    setExtraNote('');
+    setBrandIntro('');
+    setAnswers({});
+    setAiSelections([]);
     go('s1');
   };
 
@@ -492,6 +522,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
       credits, creditModalOpen, restoredImages, restoredBlockImages, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
+      brand, diff, extraNote, brandIntro, answers, aiSelections,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -521,6 +552,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSalePrice,
       setShowPrice,
       setProductOptions,
+      setBrand,
+      setDiff,
+      setExtraNote,
+      setBrandIntro,
+      setAnswers,
+      setAiSelections,
     }}>
       {children}
     </AppContext.Provider>

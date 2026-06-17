@@ -44,17 +44,14 @@ export default function ProductMobile() {
     productName, setProductName, setProductExtra,
     regularPrice, salePrice, showPrice,
     productOptions,
+    brand, setBrand, diff, setDiff, extraNote, setExtraNote,
+    brandIntro, setBrandIntro, answers, setAnswers, aiSelections,
     toggleChat, credits,
   } = useApp();
 
-  // 데스크탑과 동일 state
-  const [brand, setBrand] = useState('');
-  const [diff, setDiff] = useState('');
-  const [extraNote, setExtraNote] = useState('');
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  // 폼 입력값은 store로 승격(useApp) — 데스크탑과 같은 store 공유, 화면 전환 시에도 유지
+  // UI 일시 상태만 로컬 유지
   const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
-  const [brandIntro, setBrandIntro] = useState('');
-  const [aiSelections] = useState<string[]>([]);
   const [fastMode, setFastMode] = useState(false);
 
   // 데스크탑과 동일 헬퍼

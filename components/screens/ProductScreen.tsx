@@ -638,9 +638,21 @@ export function QuestionField({ q, answer, onAnswer }: {
   answer: string | string[];
   onAnswer: (v: string | string[]) => void;
 }) {
+  // 저장된 answer 문자열(store에 보존됨) — 재마운트 시 origin/legal 위젯 상태 복원에 사용
+  const initStr = Array.isArray(answer) ? '' : (answer as string);
+
   // origin 모드: 칩(단일)과 텍스트 입력을 로컬로 관리 후 합쳐서 상위에 전달
-  const [originChip, setOriginChip] = useState<string[]>([]);
-  const [originText, setOriginText] = useState('');
+  // 화면 전환 후 재마운트 시 answer("칩 / 텍스트")에서 역복원
+  const [originChip, setOriginChip] = useState<string[]>(() => {
+    if (q.mode !== 'origin' || !initStr) return [];
+    const first = initStr.split(' / ')[0];
+    return (q.opts ?? []).includes(first) ? [first] : [];
+  });
+  const [originText, setOriginText] = useState<string>(() => {
+    if (q.mode !== 'origin' || !initStr) return '';
+    const parts = initStr.split(' / ');
+    return (q.opts ?? []).includes(parts[0]) ? parts.slice(1).join(' / ') : initStr;
+  });
   const handleOriginChip = (chips: string[]) => {
     setOriginChip(chips);
     onAnswer([chips[0], originText].filter(Boolean).join(' / '));
@@ -651,7 +663,16 @@ export function QuestionField({ q, answer, onAnswer }: {
   };
 
   // legal 모드: 필드별 로컬 상태 → 합쳐서 상위에 전달
-  const [legalVals, setLegalVals] = useState<Record<string, string>>({});
+  // answer("필드: 값 / 필드: 값")에서 역복원
+  const [legalVals, setLegalVals] = useState<Record<string, string>>(() => {
+    if (q.mode !== 'legal' || !initStr) return {};
+    const result: Record<string, string> = {};
+    initStr.split(' / ').forEach(pair => {
+      const i = pair.indexOf(': ');
+      if (i > -1) result[pair.slice(0, i)] = pair.slice(i + 2);
+    });
+    return result;
+  });
   const handleLegal = (field: string, val: string) => {
     const next = { ...legalVals, [field]: val };
     setLegalVals(next);
@@ -937,26 +958,22 @@ export function AccordionSection({
 ───────────────────────────────────────────── */
 export default function ProductScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions } = useApp();
+  const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
+    brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, answers, setAnswers, aiSelections, setAiSelections } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
   const brandPlaceholder = BRAND_NAME_PLACEHOLDERS[cat ?? '']   ?? '예: 브랜드명을 입력해주세요';
   const diffPlaceholder  = DIFF_PLACEHOLDERS[cat ?? '']         ?? '예: 경쟁 제품 대비 차별점을 입력해주세요';
 
-  // 폼 전체 상태
-  const [brand,     setBrand]     = useState('');
-  const [diff,      setDiff]      = useState('');
-  const [extraNote, setExtraNote] = useState('');
-  const [answers,   setAnswers]   = useState<Record<string, string | string[]>>({});
+  // 폼 입력값(brand/diff/extraNote/brandIntro/answers/aiSelections)은 store로 승격됨
+  // → 화면 전환(s5↔s5-5 등)으로 컴포넌트가 unmount돼도 유지됨
   const setAnswer = (id: string, val: string | string[]) =>
     setAnswers(p => ({ ...p, [id]: val }));
 
-  // 새 상태
+  // UI 일시 상태만 로컬 유지
   const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
   const [quickMode, setQuickMode] = useState(false);
-  const [brandIntro, setBrandIntro] = useState('');
-  const [aiSelections, setAiSelections] = useState<string[]>([]);
   const [previewTab, setPreviewTab] = useState<'blog' | 'slide'>('blog');
 
   // 모바일 분기 — 모든 훅 호출 후
