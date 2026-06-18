@@ -36,13 +36,23 @@ const useBlockTheme = () => useContext(ThemeCtx);
 
 const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
-/* ─── hero ─── */
+/* ─── hero (GPT Design System V1) ─── */
+// 명세: gradient(soft→white) 컨테이너 + 중앙 대형 headline + subcopy.
+// KPI Row / Product Image Area는 hero 블록 데이터에 값이 없으면 생략(미입력 날조 금지).
+// 실제 KPI는 stats 블록, 제품 이미지는 image 블록/ImgSlot이 담당(이번 범위 외).
 function HeroBlock({ title, subtitle, isMobile }: { title: string; subtitle?: string; isMobile?: boolean }) {
+  const t = useBlockTheme();
   return (
-    <section style={{ marginBottom: 32, textAlign: 'left' }}>
+    <section style={{
+      maxWidth: 760, margin: '0 auto 32px',
+      padding: isMobile ? 32 : 48,
+      background: `linear-gradient(180deg, ${t.soft} 0%, ${COLORS.white} 100%)`,
+      border: `1px solid ${t.softBorder}`, borderRadius: 32,
+      textAlign: 'center',
+    }}>
       <h1 style={{
-        margin: 0,
-        fontSize: 34, fontWeight: 900, lineHeight: 1.35, letterSpacing: '-0.04em',
+        margin: '0 auto', maxWidth: 560,
+        fontSize: isMobile ? 34 : 48, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.04em',
         color: COLORS.text,
         whiteSpace: isMobile ? 'normal' : 'pre-line',
       }}>
@@ -50,8 +60,8 @@ function HeroBlock({ title, subtitle, isMobile }: { title: string; subtitle?: st
       </h1>
       {subtitle && (
         <p style={{
-          margin: '20px 0 0',
-          fontSize: 16, lineHeight: 1.9, color: COLORS.textSub,
+          margin: '16px auto 0', maxWidth: 560,
+          fontSize: isMobile ? 16 : 18, lineHeight: 1.7, color: COLORS.text, opacity: 0.7,
           whiteSpace: isMobile ? 'normal' : 'pre-line',
         }}>
           {subtitle}
@@ -206,51 +216,64 @@ function StatsBlock({ items, isMobile }: { items: { value: string; label: string
   );
 }
 
-/* ─── compare ─── */
+/* ─── compare (GPT Design System V1 — SaaS 표 금지, 2컬럼 카드) ─── */
+// 데이터: headers=[구분?, 제품A, 제품B], rows=[[항목명?, A값, B값]]. 마지막 컬럼=우리(추천), 그 앞=일반.
+// 모든 값은 compare 블록 데이터 그대로(임의 생성 없음). "추천"은 UI 강조 라벨.
 function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: string[][]; isMobile?: boolean }) {
   const t = useBlockTheme();
   const cols = headers.length;
+  const hasLabel = cols >= 3;                 // 첫 컬럼이 항목명인지
+  const genIdx = hasLabel ? 1 : 0;            // 일반(앞 제품)
+  const ourIdx = cols - 1;                    // 우리(마지막 제품, 추천)
+  const genName = headers[genIdx] ?? '일반 제품';
+  const ourName = headers[ourIdx] ?? '이 제품';
+  const items = rows.map(r => ({
+    label: hasLabel ? (r[0] ?? '') : '',
+    gen:   r[genIdx] ?? '',
+    our:   r[ourIdx] ?? '',
+  }));
+
+  const renderCard = (name: string, mine: boolean) => (
+    <div style={{
+      position: 'relative',
+      background: mine ? t.soft : COLORS.bg,
+      opacity: mine ? 1 : 0.75,
+      border: mine ? `2px solid ${t.primary}` : `1px solid ${COLORS.border}`,
+      borderRadius: 28, padding: 28,
+      transform: (!isMobile && mine) ? 'scale(1.03)' : 'none',
+      boxShadow: mine ? '0 16px 40px rgba(0,0,0,.06)' : 'none',
+    }}>
+      {mine && (
+        <div style={{
+          position: 'absolute', top: -14, left: 28,
+          background: t.primary, color: COLORS.white, borderRadius: 999,
+          padding: '8px 14px', fontSize: 13, fontWeight: 700,
+        }}>추천</div>
+      )}
+      <div style={{ fontSize: 16, fontWeight: 800, color: mine ? t.primary : COLORS.textSub, marginBottom: 6 }}>{name}</div>
+      {items.map((it, i) => (
+        <div key={i} style={{
+          height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          borderTop: i > 0 ? `1px solid ${mine ? t.softBorder : COLORS.border}` : 'none',
+        }}>
+          {it.label && <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{it.label}</span>}
+          <span style={{ fontSize: 15, fontWeight: mine ? 700 : 500, color: mine ? t.primary : COLORS.textSub, textAlign: 'right' }}>
+            {mine ? it.our : it.gen}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div style={{
       marginBottom: 32,
-      overflow: isMobile ? 'auto' : 'hidden',
-      borderRadius: 24, border: `1px solid ${COLORS.border}`,
+      display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+      gap: isMobile ? 28 : 20, alignItems: 'start',
+      paddingTop: 14,  // 추천 뱃지(top:-14) 여백
     }}>
-      <div style={{
-        display: 'grid', gridTemplateColumns: `repeat(${cols}, ${isMobile ? '120px' : '1fr'})`,
-        background: COLORS.bg, textAlign: 'center', fontSize: 14, fontWeight: 700,
-        minWidth: isMobile ? cols * 120 : undefined,
-      }}>
-        {headers.map((h, i) => (
-          <div key={i} style={{
-            padding: 16,
-            background: i === 1 ? t.primary : 'transparent',
-            color: i === 1 ? COLORS.white : COLORS.text,
-          }}>
-            {h}
-          </div>
-        ))}
-      </div>
-      {rows.map((row, ri) => (
-        <div key={ri} style={{
-          display: 'grid', gridTemplateColumns: `repeat(${row.length}, ${isMobile ? '120px' : '1fr'})`,
-          borderTop: `1px solid ${COLORS.border}`,
-          textAlign: 'center', fontSize: 14,
-          minWidth: isMobile ? row.length * 120 : undefined,
-        }}>
-          {row.map((cell, ci) => (
-            <div key={ci} style={{
-              padding: 16,
-              fontWeight: ci === 1 ? 700 : ci === 0 ? 500 : 400,
-              color: ci === 1 ? t.primary : ci === 0 ? COLORS.text : COLORS.textSub,
-              background: ci === 1 ? t.soft : 'transparent',
-            }}>
-              {ci === 1 && <Check size={16} style={{ display: 'block', margin: '0 auto 4px' }} />}
-              {cell}
-            </div>
-          ))}
-        </div>
-      ))}
+      {renderCard(genName, false)}
+      {renderCard(ourName, true)}
     </div>
   );
 }
@@ -371,35 +394,40 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
   );
 }
 
-/* ─── cta ─── */
+/* ─── cta (GPT Design System V1 — 배경 분리·종료감) ─── */
+// 명세: soft 배경 컨테이너 + 중앙 대형 headline + 버튼.
+// Subcopy는 cta 블록 데이터에 없어 생략. Trust Row(무료배송/안심포장/간편교환)는 셀러가 입력한
+// 약속이 아니면 표시광고법상 허위 → 데이터 없으면 생략(임의 생성 금지).
 function CtaBlock({ text, button, isMobile }: { text: string; button: string; isMobile?: boolean }) {
   const t = useBlockTheme();
   return (
     <div style={{
-      borderRadius: 24, border: `1px solid ${t.softBorder}`, background: t.soft,
-      padding: isMobile ? 20 : 32,
-      textAlign: isMobile ? 'left' : 'center',
+      maxWidth: 760, margin: '0 auto',
+      padding: isMobile ? 36 : 56,
+      borderRadius: 36, border: `1px solid ${t.softBorder}`, background: t.soft,
+      textAlign: 'center',
     }}>
       <h2 style={{
         margin: 0,
-        fontSize: 24, fontWeight: 900, lineHeight: 1.45, letterSpacing: '-0.04em',
+        fontSize: isMobile ? 30 : 42, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.04em',
         color: COLORS.text,
         whiteSpace: isMobile ? 'normal' : 'pre-line',
       }}>
         {text}
       </h2>
-      <button style={{
-        marginTop: 24,
-        display: isMobile ? 'flex' : 'inline-flex',
-        width: isMobile ? '100%' : 'auto',
-        height: 48, padding: '0 24px',
-        alignItems: 'center', justifyContent: 'center', gap: 8,
-        borderRadius: 16, background: t.primary, color: COLORS.white,
-        border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-        fontFamily: FONT_FAMILY,
-      }}>
+      <button
+        onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.95)'; }}
+        onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}
+        style={{
+          marginTop: 40, height: 60,
+          width: isMobile ? '100%' : 320,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          borderRadius: 18, background: t.primary, color: COLORS.white,
+          border: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer',
+          fontFamily: FONT_FAMILY,
+        }}>
         {button}
-        <ArrowRight size={16} />
+        <ArrowRight size={18} />
       </button>
     </div>
   );
