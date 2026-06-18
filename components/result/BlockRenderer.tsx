@@ -2,7 +2,7 @@
 
 import {
   Check, Star, Quote as QuoteIcon, ChevronDown, ArrowRight,
-  Leaf, Droplets, Sparkles, ShieldCheck,
+  Leaf, Droplets, Sparkles, ShieldCheck, Image as ImageIcon,
 } from 'lucide-react';
 import { createContext, useContext, type ReactNode } from 'react';
 import { Block } from '@/store/AppContext';
@@ -36,37 +36,69 @@ const useBlockTheme = () => useContext(ThemeCtx);
 
 const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
-/* ─── hero (GPT Design System V1) ─── */
-// 명세: gradient(soft→white) 컨테이너 + 중앙 대형 headline + subcopy.
-// KPI Row / Product Image Area는 hero 블록 데이터에 값이 없으면 생략(미입력 날조 금지).
-// 실제 KPI는 stats 블록, 제품 이미지는 image 블록/ImgSlot이 담당(이번 범위 외).
-function HeroBlock({ title, subtitle, isMobile }: { title: string; subtitle?: string; isMobile?: boolean }) {
-  const t = useBlockTheme();
+/* ─── hero (GPT Design System V2 — GPT 제공 완성 코드 그대로) ─── */
+// 색은 ThemeContext에서 받아 prop으로 주입(hex 하드코딩 금지). kpis/productImage는 hero 블록 데이터에
+// 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
+interface HeroKPI { value: string; label: string; }
+function HeroBlock({ headline, subcopy, kpis = [], productImage, primary, accent, soft, softBorder }: {
+  headline: string;
+  subcopy?: string;
+  kpis?: HeroKPI[];
+  productImage?: string | null;
+  primary: string;
+  accent: string;
+  soft: string;
+  softBorder: string;
+}) {
   return (
-    <section style={{
-      maxWidth: 760, margin: '0 auto 32px',
-      padding: isMobile ? 32 : 48,
-      background: `linear-gradient(180deg, ${t.soft} 0%, ${COLORS.white} 100%)`,
-      border: `1px solid ${t.softBorder}`, borderRadius: 32,
-      textAlign: 'center',
-    }}>
-      <h1 style={{
-        margin: '0 auto', maxWidth: 560,
-        fontSize: isMobile ? 34 : 48, fontWeight: 800, lineHeight: 1.15, letterSpacing: '-0.04em',
-        color: COLORS.text,
-        whiteSpace: isMobile ? 'normal' : 'pre-line',
-      }}>
-        {title}
-      </h1>
-      {subtitle && (
-        <p style={{
-          margin: '16px auto 0', maxWidth: 560,
-          fontSize: isMobile ? 16 : 18, lineHeight: 1.7, color: COLORS.text, opacity: 0.7,
-          whiteSpace: isMobile ? 'normal' : 'pre-line',
-        }}>
-          {subtitle}
-        </p>
-      )}
+    <section className="relative mx-auto max-w-[760px] overflow-hidden rounded-[36px] border">
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${soft} 0%, #ffffff 100%)`, borderColor: softBorder }} />
+      <div className="absolute left-1/2 top-[-100px] h-[280px] w-[280px] -translate-x-1/2 rounded-full blur-3xl opacity-20" style={{ background: primary }} />
+      <div className="relative px-8 py-12 md:px-12 md:py-16">
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium" style={{ background: soft, borderColor: softBorder, color: primary }}>
+            <Sparkles size={14} />
+            추천 상품
+          </div>
+        </div>
+        <h1 className="mx-auto mt-6 max-w-[620px] text-center text-[36px] font-extrabold leading-[1.15] tracking-[-0.04em] text-zinc-900 md:text-[58px]">
+          {headline}
+        </h1>
+        {subcopy && (
+          <p className="mx-auto mt-5 max-w-[560px] text-center text-[16px] leading-relaxed text-zinc-600 md:text-[18px]">
+            {subcopy}
+          </p>
+        )}
+        {kpis.length > 0 && (
+          <div className="mt-10 grid grid-cols-3 gap-3">
+            {kpis.map((item, idx) => (
+              <div key={idx} className="rounded-[22px] border bg-white p-4 text-center shadow-sm" style={{ borderColor: softBorder }}>
+                <div className="text-[22px] font-extrabold md:text-[30px]" style={{ color: primary }}>{item.value}</div>
+                <div className="mt-1 text-[12px] font-medium text-zinc-500 md:text-[13px]">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-12 overflow-hidden rounded-[30px] border bg-white" style={{ borderColor: softBorder }}>
+          {productImage ? (
+            <div className="flex items-center justify-center p-8 md:p-12">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={productImage} alt="" className="max-h-[420px] w-auto object-contain" />
+            </div>
+          ) : (
+            <div className="relative flex h-[260px] flex-col items-center justify-center md:h-[380px]">
+              <div className="absolute h-[220px] w-[220px] rounded-full opacity-10" style={{ background: primary }} />
+              <div className="absolute h-[140px] w-[140px] rounded-full opacity-20" style={{ background: accent }} />
+              <div className="relative flex flex-col items-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: soft, color: primary }}>
+                  <ImageIcon size={30} />
+                </div>
+                <p className="mt-4 text-sm text-zinc-500">제품 이미지가 생성되면 여기에 표시됩니다</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   );
 }
@@ -466,7 +498,7 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
     }}>
       {blocks.map((b, i) => {
         switch (b.type) {
-          case 'hero':      return <HeroBlock      key={i} title={b.title} subtitle={b.subtitle} isMobile={isMobile} />;
+          case 'hero':      return <HeroBlock      key={i} headline={b.title} subcopy={b.subtitle} primary={theme.primary} accent={theme.accent} soft={theme.soft} softBorder={theme.softBorder} />;
           case 'heading':   return <HeadingBlock   key={i} text={b.text} />;
           case 'paragraph': return <ParagraphBlock key={i} text={b.text} />;
           case 'checklist': return <ChecklistBlock key={i} items={b.items} />;
