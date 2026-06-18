@@ -1,102 +1,19 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { universalFactGuard } from '@/lib/copyGuards';
+import { runStrategy } from '@/lib/stages/strategy';
 
 /**
  * Stage1 (DNA + 전략) 프로토타입 — 검증 전용 라우트.
- *
- * Flik 엔진 재설계: 입력 → Stage1(DNA+전략) → 구조 → 카피 → 이미지.
- * 이 라우트는 그 중 Stage1만 독립적으로 떼어 "제품마다 다른 전략이 나오는가"를 검증한다.
- * 카피·구조·이미지는 일절 생성하지 않는다 (DNA+전략 JSON만 반환).
- *
- * 기존 generate/recommend-section 파이프라인과 완전 분리 — copyGuards에서 사실 금지
- * 원칙만 읽기 전용으로 재사용한다.
+ * 핵심 로직은 lib/stages/strategy.ts(runStrategy)로 추출됨(통합 파이프라인과 공유).
+ * 이 라우트는 입력 파싱 + 응답 래핑만 담당하며 외부 동작은 종전과 동일하다.
  */
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const SYSTEM = `당신은 이커머스 상품 분석가 겸 상세페이지 전략가입니다. 카피라이터가 아닙니다.
-당신의 임무는 셀러가 입력한 상품 정보를 분석해, 이 제품의 DNA(본질)와 상세페이지 설득 전략을 도출하는 것입니다.
-
-[절대 규칙]
-- 카피·헤드라인·섹션 문구·본문을 쓰지 마세요. 당신은 전략만 출력합니다. (다음 단계의 카피라이터가 이 전략을 받아 카피를 씁니다.)
-- main_weapon(가장 강력한 무기)은 입력 정보에 실재하는 것에서만 도출하세요. 셀러가 입력하지 않은 수치·성분·인증·이력을 무기로 만들어내지 마세요.
-- 같은 카테고리의 제품이라도 이 제품만의 차별점·성분·기타 요청사항을 최우선 재료로 삼아, 제품마다 분명히 다른 전략이 나오도록 분석하세요. 카테고리 일반론으로 뭉뚱그리지 마세요.
-- 입력에 "기타 요청사항"(셀러의 의도)이 있으면, 그것을 전략의 1순위 입력으로 반영하세요.
-
-${universalFactGuard}
-
-[출력 형식 — 아래 JSON 객체 하나만 출력. 다른 텍스트·설명·마크다운·코드펜스 금지]
-{
-  "dna": {
-    "main_weapon": "이 제품의 가장 강력한 무기 한 가지 (입력 정보에서 도출, 없는 사실 생성 금지)",
-    "target_customer": "누가 사는가",
-    "pain_point": "해결하려는 문제",
-    "buy_reason": "실제 구매 이유",
-    "objection": "구매 전 망설임",
-    "category_type": "카테고리"
-  },
-  "strategy": {
-    "concept": "상세페이지 전체 컨셉 한 줄",
-    "story_flow": "설득 흐름 (예: 문제→원인→진정→회복)",
-    "tone": "전문가형/신뢰형/감성형/데이터형 중",
-    "hero_angle": "첫 화면 핵심 전략",
-    "cta_angle": "마지막 구매 유도 전략"
-  }
-}`;
 
 export async function POST(req: NextRequest) {
   const { cat, ch, productName, productExtra } = await req.json() as {
     cat?: string; ch?: string; productName?: string; productExtra?: string;
   };
 
-  const userPrompt = `다음 상품 정보를 분석해 DNA와 전략 JSON을 출력하세요.
-
-[상품 정보]
-- 카테고리: ${cat || '(미입력)'}
-- 판매 채널: ${ch || '(미입력)'}
-- 상품명: ${productName || '(미입력)'}
-${productExtra ? `\n[상세 정보 — 차별점·성분·기타 요청사항 등이 포함됨. "기타 요청사항:" 라인이 있으면 전략의 1순위로 반영하세요]\n${productExtra}\n` : '\n(상세 정보 미입력 — 상품명·카테고리만으로 분석하되, 없는 사실을 지어내지 마세요)\n'}`;
-
-  console.log(`[strategy] cat=${cat} ch=${ch} name=${productName} extraLen=${productExtra?.length ?? 0}`);
-
   try {
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 1500,
-      system:     SYSTEM,
-      messages:   [{ role: 'user', content: userPrompt }],
-    });
-
-    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-    console.log(`[strategy] stop_reason=${message.stop_reason} input=${message.usage?.input_tokens} output=${message.usage?.output_tokens} raw_len=${raw.length}`);
-    if (message.stop_reason === 'max_tokens') {
-      throw new Error('응답이 max_tokens(1500)에 도달해 잘렸어요.');
-    }
-
-    // 객체 하나만 추출 — 첫 '{'부터 마지막 '}'까지
-    const first = raw.indexOf('{');
-    const last  = raw.lastIndexOf('}');
-    if (first === -1 || last === -1 || last < first) {
-      console.error(`[strategy] JSON 객체 미발견. raw head:\n${raw.slice(0, 500)}`);
-      throw new Error('응답에서 JSON 객체를 찾을 수 없음');
-    }
-
-    let result: unknown;
-    try {
-      result = JSON.parse(raw.slice(first, last + 1));
-    } catch (parseErr) {
-      const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      console.error(`[strategy] JSON.parse 실패: ${pmsg}\nraw:\n${raw.slice(0, 600)}`);
-      throw new Error(`JSON 파싱 실패: ${pmsg}`);
-    }
-
-    const r = result as { dna?: unknown; strategy?: unknown };
-    if (!r.dna || !r.strategy) {
-      console.error('[strategy] dna/strategy 필드 누락:', JSON.stringify(result).slice(0, 300));
-      throw new Error('출력에 dna 또는 strategy 필드가 없음');
-    }
-
+    const result = await runStrategy({ cat, ch, productName, productExtra });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Strategy error:', err);
