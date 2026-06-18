@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runCopy } from '@/lib/stages/copy';
+import { runCopy, runCopyChunk, type StrategySummary } from '@/lib/stages/copy';
 
 /**
  * Stage3 (카피 생성, v5) 프로토타입 — 검증 전용 라우트.
- * 핵심 로직은 lib/stages/copy.ts(runCopy)로 추출됨(통합 파이프라인과 공유).
- * 이 라우트는 입력 파싱·검증 + 응답 래핑만 담당하며 외부 동작은 종전과 동일하다.
+ * 핵심 로직은 lib/stages/copy.ts로 추출됨(통합 파이프라인과 공유).
+ *
+ * 두 가지 호출 모드:
+ *  ① 청크 모드 [통합 2단계] — strategySummary + startIndex + totalSections + sections(한 청크)
+ *     → runCopyChunk 1회. 각 호출이 독립적으로 300초 내에 끝나게 분할 호출하는 단위.
+ *  ② 전체 모드 (기존 호환) — dna + strategy + sections(전체) → runCopy(내부 청크 순차).
  */
 
 export const maxDuration = 300;
@@ -18,17 +22,40 @@ interface SectionPlan {
 }
 
 export async function POST(req: NextRequest) {
-  const { dna, strategy, sections, cat, ch, out, depth } = await req.json() as {
+  const body = await req.json() as {
+    // 청크 모드
+    strategySummary?: StrategySummary;
+    startIndex?: number;
+    totalSections?: number;
+    // 전체 모드
     dna?: Record<string, unknown>;
     strategy?: Strategy;
+    // 공통
     sections?: SectionPlan[];
     cat?: string; ch?: string; out?: string; depth?: string;
   };
 
+  const { strategySummary, startIndex, totalSections, dna, strategy, sections, cat, ch, out, depth } = body;
+
+  // ① 청크 모드
+  if (strategySummary && typeof startIndex === 'number' && typeof totalSections === 'number') {
+    if (!Array.isArray(sections) || sections.length === 0) {
+      return NextResponse.json({ error: '청크 모드: sections(이 청크 섹션들)는 필수입니다.' }, { status: 400 });
+    }
+    try {
+      const out_ = await runCopyChunk({ strategySummary, sections, startIndex, totalSections, cat, ch, out, depth });
+      return NextResponse.json({ sections: out_, chunk: { startIndex, count: out_.length } });
+    } catch (err) {
+      console.error('Copy(chunk) error:', err);
+      const msg = err instanceof Error ? err.message : '알 수 없는 오류';
+      return NextResponse.json({ sections: [], error: `카피 생성 중 오류가 발생했어요: ${msg}` }, { status: 500 });
+    }
+  }
+
+  // ② 전체 모드 (기존 호환)
   if (!strategy || !Array.isArray(sections) || sections.length === 0) {
     return NextResponse.json({ error: 'strategy와 sections(=Stage2 출력)는 필수입니다.' }, { status: 400 });
   }
-
   try {
     const result = await runCopy({ dna, strategy, sections, cat, ch, out, depth });
     return NextResponse.json(result);
