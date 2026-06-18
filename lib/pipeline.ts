@@ -24,6 +24,8 @@ export interface PipelineInput {
   productName?: string;
   productExtra?: string;
   sectionCount?: number;
+  /** 파이프라인 로직엔 쓰이지 않으나 job에 보관해 재개 시 작업기록 저장에 사용(타입 라벨) */
+  type?: string;
   /** Gemini 이미지 실제 생성 여부. 기본 false(무과금). 1단계에선 연결만 준비. */
   generateImages?: boolean;
 }

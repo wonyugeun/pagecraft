@@ -1,8 +1,13 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import LandingPage from '@/components/landing/LandingPage';
 import { AppProvider, useApp } from '@/store/AppContext';
+import { USE_NEW_ENGINE } from '@/lib/engineFlag';
+import { getActiveJobId, clearActiveJobId, markResumeIntent } from '@/lib/activeJob';
+import { getJob } from '@/lib/historyDB';
+import type { JobState } from '@/lib/pipelineJob';
 import TopBar from '@/components/layout/TopBar';
 import ProgressBar from '@/components/layout/ProgressBar';
 import ChatPanel from '@/components/layout/ChatPanel';
@@ -24,7 +29,25 @@ import OutputScreen from '@/components/screens/OutputScreen';
 import { STEP_MAP } from '@/store/AppContext';
 
 function App() {
-  const { screen, chatOpen } = useApp();
+  const { screen, chatOpen, go } = useApp();
+
+  // 재진입 복구: 새로고침/탭 이탈 후, IndexedDB에 미완료 파이프라인 job이 있으면 s7로 돌려 마지막 지점부터 재개.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || !USE_NEW_ENGINE) return;
+    const id = getActiveJobId();
+    if (!id || screen === 's7') return;
+    resumedRef.current = true;
+    (async () => {
+      try {
+        const job = await getJob<JobState>(id);
+        const incomplete = !!job && job.stages.imagebrief.status !== 'done';
+        if (incomplete) { markResumeIntent(); go('s7'); }
+        else { clearActiveJobId(); }   // 완료됐거나 사라진 job → 마커 정리(자동 재개 안 함)
+      } catch { clearActiveJobId(); }
+    })();
+  }, [screen, go]);
+
   const isDash = screen === 's-dash';
   const hasProgress = Boolean(STEP_MAP[screen]);
   const paddingTop = isDash ? 0 : screen === 's0' ? 56 : hasProgress ? 106 : 56;

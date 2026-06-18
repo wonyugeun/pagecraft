@@ -9,6 +9,9 @@ import {
   GEN_STEPS, STEP_PCTS, MIN_ANIM_MS, GENERATION_COST,
   UI_STEPS, TOTAL_UI_STEPS, StepCard, StepStatus,
 } from './GeneratingScreen';
+import { USE_NEW_ENGINE } from '@/lib/engineFlag';
+import { runClientPipeline } from '@/lib/runClientPipeline';
+import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -34,6 +37,7 @@ export default function GeneratingMobile() {
   // 데스크탑과 동일 state
   const [stepIdx, setStepIdx] = useState(-1);
   const [pct, setPct] = useState(0);
+  const [engineLabel, setEngineLabel] = useState('');
   const [apiError, setApiError] = useState('');
   const [retryKey, setRetryKey] = useState(0);
   const [creditInsufficient, setCreditInsufficient] = useState(false);
@@ -53,6 +57,48 @@ export default function GeneratingMobile() {
       return;
     }
     setCreditInsufficient(false);
+
+    // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
+    if (USE_NEW_ENGINE) {
+      cancelledRef.current = false;
+      const resume = consumeResumeIntent();
+      setPct(8);
+      setEngineLabel('전략 분석 중…');
+      runClientPipeline(
+        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, productName, productExtra, type: type ?? undefined, generateImages: false },
+        {
+          resume,
+          isCancelled: () => cancelledRef.current,
+          onProgress: ({ pct: p, label }) => { if (!cancelledRef.current) { setPct(p); setEngineLabel(label); } },
+        },
+      )
+        .then(({ sections, jobInput }) => {
+          if (cancelledRef.current) return;
+          if (sections.length) {
+            setSections(sections);
+            saveHistory({
+              productName: jobInput.productName ?? '',
+              cat: jobInput.cat ?? '',
+              ch: jobInput.ch ?? '',
+              type: jobInput.type ?? '',
+              out: jobInput.out ?? '',
+              secCnt: jobInput.sectionCount ?? secCnt,
+              sections,
+            });
+          }
+          if (!isDev) deductCredits(GENERATION_COST);
+          setPct(100);
+          go('s8');
+        })
+        .catch(err => {
+          if (cancelledRef.current) return;
+          console.error('[GeneratingMobile] 새 엔진 오류:', err);
+          setApiError(err?.message || '생성 중 오류가 발생했어요. 다시 시도해주세요.');
+        });
+
+      return () => { cancelledRef.current = true; };
+    }
+
     cancelledRef.current = false;
     abortRef.current = new AbortController();
     const start = Date.now();
@@ -143,6 +189,7 @@ export default function GeneratingMobile() {
     cancelledRef.current = true;
     timerRef.current.forEach(clearTimeout);
     abortRef.current?.abort();
+    if (USE_NEW_ENGINE) clearActiveJobId();
     go('s6');
   };
   const retry = () => {
@@ -319,6 +366,9 @@ export default function GeneratingMobile() {
           AI가 최적의 상세페이지를 만들고 있어요.<br />
           잠시만 기다려주세요!
         </p>
+        {USE_NEW_ENGINE && engineLabel && (
+          <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800, color: '#6D4CFF' }}>{engineLabel}</div>
+        )}
       </section>
 
       {/* 5) 진행률 바 */}

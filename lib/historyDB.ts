@@ -11,8 +11,9 @@
  */
 
 const DB_NAME = 'pagecraft_history';
-const DB_VERSION = 1;
+const DB_VERSION = 2;            // v2: 통합 파이프라인 job 상태 저장용 'jobs' 스토어 추가
 const STORE = 'images';
+const JOB_STORE = 'jobs';
 
 export interface HistoryImagesPayload {
   sectionImages?: Record<string, string>;
@@ -30,6 +31,9 @@ function openDB(): Promise<IDBDatabase> {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) {
         db.createObjectStore(STORE); // key = historyId
+      }
+      if (!db.objectStoreNames.contains(JOB_STORE)) {
+        db.createObjectStore(JOB_STORE); // key = jobId — 통합 파이프라인 중간상태
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -65,5 +69,38 @@ export async function deleteImages(historyId: string): Promise<void> {
     tx.objectStore(STORE).delete(historyId);
     tx.oncomplete = () => { db.close(); resolve(); };
     tx.onerror = () => { db.close(); reject(tx.error ?? new Error('IndexedDB delete failed')); };
+  });
+}
+
+/* ── 통합 파이프라인 job 중간상태(JobState) 저장 — 실패/재진입 시 마지막 지점부터 재개 ── */
+
+export async function saveJob<T>(job: T & { jobId: string }): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(JOB_STORE, 'readwrite');
+    tx.objectStore(JOB_STORE).put(job, job.jobId);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('IndexedDB saveJob failed')); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('IndexedDB saveJob aborted')); };
+  });
+}
+
+export async function getJob<T>(jobId: string): Promise<T | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(JOB_STORE, 'readonly');
+    const req = tx.objectStore(JOB_STORE).get(jobId);
+    req.onsuccess = () => { db.close(); resolve((req.result as T | undefined) ?? null); };
+    req.onerror = () => { db.close(); reject(req.error ?? new Error('IndexedDB getJob failed')); };
+  });
+}
+
+export async function deleteJob(jobId: string): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(JOB_STORE, 'readwrite');
+    tx.objectStore(JOB_STORE).delete(jobId);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('IndexedDB deleteJob failed')); };
   });
 }
