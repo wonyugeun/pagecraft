@@ -30,6 +30,8 @@ export interface Section {
   imageLabel: string;
   imageDesc: string;
   blocks?: Block[];
+  subcopy?: string;     // 새 엔진(v5) 서브카피 — 블로그형에서 headline 아래 부제로 렌더
+  bodyFlow?: boolean;   // 새 엔진 섹션: body(주 카피)와 blocks(보조)를 공존 렌더(기존 generate는 미설정)
 }
 
 export interface ReferenceAnalysis {

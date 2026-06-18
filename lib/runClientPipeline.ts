@@ -111,11 +111,12 @@ export async function runClientPipeline(
     num:        ps.num,
     name:       ps.name,
     headline:   ps.headline,
-    // ResultScreen은 subcopy 필드가 없으므로 본문 앞에 합쳐 보존
-    body:       [ps.subcopy, ps.body].filter(Boolean).join('\n\n'),
+    subcopy:    ps.subcopy || undefined,
+    body:       ps.body,                 // 주 카피 원문 그대로(절단·병합 없음)
     imageLabel: ps.imageBrief?.shot_type ? `📸 ${ps.imageBrief.shot_type}` : '📸 이미지 슬롯',
     imageDesc:  ps.imageBrief?.prompt || ps.imageBrief?.mood || '',
     blocks:     ps.blocks,
+    bodyFlow:   true,                    // body + blocks 공존 렌더 지시(ResultScreen 분기)
   }));
 
   return { sections, jobInput: job.input, jobId: job.jobId };

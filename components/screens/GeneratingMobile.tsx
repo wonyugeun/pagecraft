@@ -7,7 +7,7 @@ import {
 import { useApp, Section } from '@/store/AppContext';
 import {
   GEN_STEPS, STEP_PCTS, MIN_ANIM_MS, GENERATION_COST,
-  UI_STEPS, TOTAL_UI_STEPS, StepCard, StepStatus,
+  UI_STEPS, TOTAL_UI_STEPS, StepCard, StepStatus, EngineSteps,
 } from './GeneratingScreen';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
@@ -393,13 +393,17 @@ export default function GeneratingMobile() {
         </div>
       </section>
 
-      {/* 6) 7단계 진행 카드 — 데스크탑 StepCard 그대로 */}
+      {/* 6) 진행 카드 — 새 엔진은 실제 4스테이지, 기존 generate는 7단계 시안 */}
       <section style={{ padding: '36px 20px 0' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {UI_STEPS.map((step, idx) => (
-            <StepCard key={idx} step={step} status={getStatus(idx)} />
-          ))}
-        </div>
+        {USE_NEW_ENGINE ? (
+          <EngineSteps pct={pct} label={engineLabel} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {UI_STEPS.map((step, idx) => (
+              <StepCard key={idx} step={step} status={getStatus(idx)} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 7) 안내 박스 */}

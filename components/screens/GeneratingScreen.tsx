@@ -128,6 +128,50 @@ export function StepCard({ step, status }: { step: UIStep; status: StepStatus })
   );
 }
 
+// ── 새 엔진(분할 호출) 전용 진행표시 — 실제 4스테이지 기준, 가짜 고정시간 없음 ──
+const ENGINE_STAGES = [
+  { title: '전략 분석',          icon: Target,     start: 0,  done: 22 },
+  { title: '구조 설계',          icon: Layers,     start: 22, done: 35 },
+  { title: '카피 생성',          icon: LayoutGrid, start: 35, done: 92 },
+  { title: '이미지 브리프 생성', icon: CheckCircle, start: 92, done: 100 },
+];
+
+export function EngineSteps({ pct, label }: { pct: number; label: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {ENGINE_STAGES.map((s, i) => {
+        const status: StepStatus = pct >= s.done ? 'done' : pct >= s.start ? 'active' : 'wait';
+        const Icon = s.icon;
+        const isCopy = s.title === '카피 생성';
+        const bg = status === 'done' ? '#F0FAF4' : status === 'active' ? '#F4F0FF' : '#fff';
+        const bd = status === 'done' ? '#D9F0E3' : status === 'active' ? '#D8D2FF' : '#ECECF2';
+        const titleColor = status === 'done' ? '#15803D' : status === 'active' ? '#6D4CFF' : '#999';
+        const desc = status === 'done'
+          ? `${s.title} 완료`
+          : status === 'active'
+            ? (isCopy && label ? label : `${s.title} 중`)
+            : '대기 중';
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, borderRadius: 16, background: bg, border: `1px solid ${bd}`, padding: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: status === 'done' ? '#E0F5E9' : status === 'active' ? '#E8E2FF' : '#F4F4F8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {status === 'done'
+                ? <Check size={20} color="#22C55E" strokeWidth={3} />
+                : status === 'active'
+                  ? <Loader2 size={20} color="#6D4CFF" style={{ animation: 'spin 0.8s linear infinite' }} />
+                  : <Clock size={20} color="#999" />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: titleColor }}>{s.title}</div>
+              <div style={{ fontSize: 13, color: status === 'wait' ? '#BBB' : '#666', marginTop: 2 }}>{desc}</div>
+            </div>
+            <Icon size={20} color={status === 'active' ? '#6D4CFF' : status === 'done' ? '#22C55E' : '#BBB'} style={{ flexShrink: 0 }} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
   const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory } = useApp();
@@ -398,12 +442,16 @@ export default function GeneratingScreen() {
         }}>{pct}%</span>
       </div>
 
-      {/* 단계 카드 리스트 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {UI_STEPS.map((step, idx) => (
-          <StepCard key={idx} step={step} status={getStatus(idx)} />
-        ))}
-      </div>
+      {/* 단계 카드 리스트 — 새 엔진은 실제 4스테이지, 기존 generate는 7단계 시안 */}
+      {USE_NEW_ENGINE ? (
+        <EngineSteps pct={pct} label={engineLabel} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {UI_STEPS.map((step, idx) => (
+            <StepCard key={idx} step={step} status={getStatus(idx)} />
+          ))}
+        </div>
+      )}
 
       {/* 하단 안내 + 작업 취소 */}
       <div style={{

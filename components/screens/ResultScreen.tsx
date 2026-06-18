@@ -263,6 +263,13 @@ export async function downloadHtml(
     }
 
     const sectionsHtml = sections.map(sec => {
+      // 새 엔진(v5): headline + subcopy + body(주 카피) + blocks(보조) 모두 포함
+      if (sec.bodyFlow) {
+        const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
+        const bodyHtml = sec.body ? `\n      <p>${escHtml(sec.body).replace(/\n/g, '<br>')}</p>` : '';
+        const blocksHtml = sec.blocks?.length ? `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}` : '';
+        return `\n    <section class="sec">\n      <h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>${sub}${bodyHtml}${blocksHtml}\n    </section>`;
+      }
       if (sec.blocks?.length) {
         return `\n    <section class="sec sec-blocks">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n    </section>`;
       }
@@ -501,7 +508,38 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
   return (
     <>
       <div style={{ background: '#fff' }}>
-        {hasBlocks ? (
+        {sec.bodyFlow ? (
+          /* 새 엔진(v5) 블로그형 — headline → subcopy → body(주 카피) → blocks(보조) 공존 */
+          <>
+            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
+            {sec.subcopy && (
+              <div style={{ padding: '12px 36px 0', textAlign: 'left', fontSize: 15.5, fontWeight: 600, color: '#6b6b72', lineHeight: 1.6 }}>{sec.subcopy}</div>
+            )}
+            {sec.body && (
+              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 14.5, color: '#555', lineHeight: 2.1, whiteSpace: 'pre-line' }}>{sec.body}</div>
+            )}
+            {hasBlocks && (
+              <div style={{ paddingTop: 24 }}>
+                <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} />
+              </div>
+            )}
+            <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+              <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
+              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
+                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+              </button>
+            </div>
+            {editOpen && (
+              <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
+                <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
+                <div className="edit-actions">
+                  <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
+                  <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : hasBlocks ? (
           <>
             <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} />
             {!hasImageBlock && (
