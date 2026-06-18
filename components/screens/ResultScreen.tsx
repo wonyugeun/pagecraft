@@ -520,7 +520,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
             )}
             {hasBlocks && (
               <div style={{ paddingTop: 24 }}>
-                <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} />
+                <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
               </div>
             )}
             <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -541,7 +541,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </>
         ) : hasBlocks ? (
           <>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} />
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
             {!hasImageBlock && (
               <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
                 <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>

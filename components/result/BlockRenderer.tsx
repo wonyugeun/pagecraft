@@ -4,7 +4,7 @@ import {
   Check, Star, Quote as QuoteIcon, ChevronDown, ArrowRight,
   Leaf, Droplets, Sparkles, ShieldCheck,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { Block } from '@/store/AppContext';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
@@ -25,6 +25,14 @@ const COLORS = {
 const SHADOW = '0 8px 24px rgba(0,0,0,0.04)';
 const FONT_FAMILY = "var(--f), Pretendard, -apple-system, system-ui, sans-serif";
 const PAD = 48;
+
+/* ── 결과물 색상 테마 — 제품별 색(visual)을 Context로 주입. 미주입 시 브랜드 보라 폴백 ── */
+interface BlockTheme { primary: string; accent: string; soft: string; softBorder: string; }
+const DEFAULT_THEME: BlockTheme = {
+  primary: COLORS.primary, accent: COLORS.primary, soft: COLORS.lightPurple, softBorder: COLORS.lightPurpleBorder,
+};
+const ThemeCtx = createContext<BlockTheme>(DEFAULT_THEME);
+const useBlockTheme = () => useContext(ThemeCtx);
 
 const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
@@ -55,10 +63,11 @@ function HeroBlock({ title, subtitle, isMobile }: { title: string; subtitle?: st
 
 /* ─── heading ─── */
 function HeadingBlock({ text }: { text: string }) {
+  const t = useBlockTheme();
   return (
     <h2 style={{
       margin: '40px 0 16px',
-      borderLeft: `4px solid ${COLORS.primary}`,
+      borderLeft: `4px solid ${t.primary}`,
       paddingLeft: 12,
       fontSize: 21, fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.03em',
       color: COLORS.text, whiteSpace: 'pre-line',
@@ -82,6 +91,7 @@ function ParagraphBlock({ text }: { text: string }) {
 
 /* ─── checklist ─── */
 function ChecklistBlock({ items }: { items: string[] }) {
+  const t = useBlockTheme();
   return (
     <div style={{
       marginBottom: 32,
@@ -91,7 +101,7 @@ function ChecklistBlock({ items }: { items: string[] }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map((item, i) => (
           <div key={i} style={{ display: 'flex', gap: 12, fontSize: 15, lineHeight: 1.7, color: COLORS.text333 }}>
-            <Check size={18} strokeWidth={2.5} style={{ marginTop: 4, flexShrink: 0, color: COLORS.primary }} />
+            <Check size={18} strokeWidth={2.5} style={{ marginTop: 4, flexShrink: 0, color: t.primary }} />
             <span>{item}</span>
           </div>
         ))}
@@ -102,6 +112,7 @@ function ChecklistBlock({ items }: { items: string[] }) {
 
 /* ─── steps ─── */
 function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
+  const t = useBlockTheme();
   return (
     <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {items.map((step, i) => (
@@ -113,7 +124,7 @@ function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
           <div style={{
             width: 32, height: 32, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '50%', background: COLORS.primary,
+            borderRadius: '50%', background: t.primary,
             color: COLORS.white, fontSize: 14, fontWeight: 700,
           }}>
             {i + 1}
@@ -132,6 +143,7 @@ function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
 
 /* ─── iconcards ─── */
 function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: string }[]; isMobile?: boolean }) {
+  const t = useBlockTheme();
   const cols = isMobile ? 2 : (cards.length >= 4 ? 4 : Math.max(2, cards.length));
   return (
     <div style={{
@@ -149,7 +161,7 @@ function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: st
             <div style={{
               margin: '0 auto 12px', width: 48, height: 48,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', background: COLORS.lightPurple, color: COLORS.primary,
+              borderRadius: '50%', background: t.soft, color: t.primary,
             }}>
               <Icon size={24} />
             </div>
@@ -166,24 +178,25 @@ function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: st
 
 /* ─── stats ─── */
 function StatsBlock({ items, isMobile }: { items: { value: string; label: string }[]; isMobile?: boolean }) {
+  const t = useBlockTheme();
   const cols = isMobile ? 2 : items.length;
   return (
     <div style={{
       marginBottom: 32,
       display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
       overflow: 'hidden',
-      borderRadius: 24, border: `1px solid ${COLORS.lightPurpleBorder}`,
-      background: COLORS.lightPurple,
+      borderRadius: 24, border: `1px solid ${t.softBorder}`,
+      background: t.soft,
     }}>
       {items.map((s, i) => (
         <div key={i} style={{
           padding: 20, textAlign: 'center',
           borderRight: isMobile
-            ? (i % cols !== cols - 1 ? `1px solid ${COLORS.lightPurpleBorder}` : 'none')
-            : (i !== items.length - 1 ? `1px solid ${COLORS.lightPurpleBorder}` : 'none'),
-          borderTop: isMobile && i >= cols ? `1px solid ${COLORS.lightPurpleBorder}` : 'none',
+            ? (i % cols !== cols - 1 ? `1px solid ${t.softBorder}` : 'none')
+            : (i !== items.length - 1 ? `1px solid ${t.softBorder}` : 'none'),
+          borderTop: isMobile && i >= cols ? `1px solid ${t.softBorder}` : 'none',
         }}>
-          <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-0.04em', color: COLORS.primary }}>
+          <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-0.04em', color: t.primary }}>
             {s.value}
           </div>
           <div style={{ marginTop: 4, fontSize: 13, color: COLORS.textSub }}>{s.label}</div>
@@ -195,6 +208,7 @@ function StatsBlock({ items, isMobile }: { items: { value: string; label: string
 
 /* ─── compare ─── */
 function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: string[][]; isMobile?: boolean }) {
+  const t = useBlockTheme();
   const cols = headers.length;
   return (
     <div style={{
@@ -210,7 +224,7 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
         {headers.map((h, i) => (
           <div key={i} style={{
             padding: 16,
-            background: i === 1 ? COLORS.primary : 'transparent',
+            background: i === 1 ? t.primary : 'transparent',
             color: i === 1 ? COLORS.white : COLORS.text,
           }}>
             {h}
@@ -228,8 +242,8 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
             <div key={ci} style={{
               padding: 16,
               fontWeight: ci === 1 ? 700 : ci === 0 ? 500 : 400,
-              color: ci === 1 ? COLORS.primary : ci === 0 ? COLORS.text : COLORS.textSub,
-              background: ci === 1 ? COLORS.comparePurpleSoft : 'transparent',
+              color: ci === 1 ? t.primary : ci === 0 ? COLORS.text : COLORS.textSub,
+              background: ci === 1 ? t.soft : 'transparent',
             }}>
               {ci === 1 && <Check size={16} style={{ display: 'block', margin: '0 auto 4px' }} />}
               {cell}
@@ -243,14 +257,15 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
 
 /* ─── quote ─── */
 function QuoteBlock({ text, author, rating }: { text: string; author?: string; rating?: number }) {
+  const t = useBlockTheme();
   const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 5;
   return (
     <div style={{
       marginBottom: 32,
-      borderRadius: 24, border: `1px solid ${COLORS.lightPurpleBorder}`, background: COLORS.lightPurple,
+      borderRadius: 24, border: `1px solid ${t.softBorder}`, background: t.soft,
       padding: 24,
     }}>
-      <QuoteIcon size={30} style={{ marginBottom: 16, color: COLORS.primary }} />
+      <QuoteIcon size={30} style={{ marginBottom: 16, color: t.primary }} />
       <p style={{
         margin: 0,
         fontSize: 16, lineHeight: 1.85, color: COLORS.text333, whiteSpace: 'pre-line',
@@ -261,9 +276,9 @@ function QuoteBlock({ text, author, rating }: { text: string; author?: string; r
         marginTop: 16,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div style={{ display: 'flex', color: COLORS.primary }}>
+        <div style={{ display: 'flex', color: t.accent }}>
           {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} size={16} fill={i < stars ? COLORS.primary : 'none'} color={COLORS.primary} />
+            <Star key={i} size={16} fill={i < stars ? t.accent : 'none'} color={t.accent} />
           ))}
         </div>
         {author && (
@@ -299,6 +314,7 @@ function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
 
 /* ─── image ─── */
 function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; imgState?: BlockImgState; onLightbox?: () => void; overlay?: ReactNode }) {
+  const t = useBlockTheme();
   // imgState.aspectRatio는 Gemini 포맷("4:5"/"16:9"/"1:1"). CSS는 "4/5" 같은 슬래시.
   const cssAspect = imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '1/1';
   if (imgState?.url) {
@@ -328,7 +344,7 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
     <div className="img-regen-wrap" style={{
       marginBottom: 32, aspectRatio: cssAspect, overflow: 'hidden',
       borderRadius: 24, border: `1px solid ${COLORS.border}`,
-      background: `linear-gradient(135deg, ${COLORS.lightPurple} 0%, ${COLORS.white} 50%, ${COLORS.bg} 100%)`,
+      background: `linear-gradient(135deg, ${t.soft} 0%, ${COLORS.white} 50%, ${COLORS.bg} 100%)`,
     }}>
       {overlay}
       <div style={{
@@ -338,14 +354,14 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
         {loading && (
           <div style={{
             width: 28, height: 28, borderRadius: '50%',
-            border: '3px solid #cbd5e1', borderTopColor: COLORS.primary,
+            border: '3px solid #cbd5e1', borderTopColor: t.primary,
             animation: 'spin 0.8s linear infinite',
           }} />
         )}
         <div style={{
           padding: '8px 16px', borderRadius: 999,
           background: 'rgba(255,255,255,0.8)', boxShadow: SHADOW,
-          fontSize: 13, fontWeight: 700, color: COLORS.primary,
+          fontSize: 13, fontWeight: 700, color: t.primary,
         }}>
           {loading ? '이미지 생성 중...' : label}
         </div>
@@ -357,9 +373,10 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
 
 /* ─── cta ─── */
 function CtaBlock({ text, button, isMobile }: { text: string; button: string; isMobile?: boolean }) {
+  const t = useBlockTheme();
   return (
     <div style={{
-      borderRadius: 24, border: `1px solid ${COLORS.lightPurpleBorder}`, background: COLORS.lightPurple,
+      borderRadius: 24, border: `1px solid ${t.softBorder}`, background: t.soft,
       padding: isMobile ? 20 : 32,
       textAlign: isMobile ? 'left' : 'center',
     }}>
@@ -377,7 +394,7 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
         width: isMobile ? '100%' : 'auto',
         height: 48, padding: '0 24px',
         alignItems: 'center', justifyContent: 'center', gap: 8,
-        borderRadius: 16, background: COLORS.primary, color: COLORS.white,
+        borderRadius: 16, background: t.primary, color: COLORS.white,
         border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer',
         fontFamily: FONT_FAMILY,
       }}>
@@ -389,7 +406,7 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
 }
 
 /* ─── 메인 렌더러 ─── */
-export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay }: {
+export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay, primaryColor, accentColor, softColor, softBorder }: {
   blocks: Block[];
   sectionNum?: string;
   blockImages?: Record<string, BlockImgState>;
@@ -397,10 +414,22 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
   isMobile?: boolean;
   /** 섹션 재생성 버튼 — 첫 image 블록 우상단에 오버레이로 렌더 (없으면 미표시) */
   regenOverlay?: ReactNode;
+  /** 제품별 결과물 색(visual). 미지정 시 브랜드 보라 폴백 — Flik UI 색과 무관 */
+  primaryColor?: string;
+  accentColor?: string;
+  softColor?: string;
+  softBorder?: string;
 }) {
   const pad = isMobile ? 16 : PAD;
   const firstImageIdx = blocks.findIndex(b => b.type === 'image');
+  const theme: BlockTheme = {
+    primary:    primaryColor ?? DEFAULT_THEME.primary,
+    accent:     accentColor  ?? DEFAULT_THEME.accent,
+    soft:       softColor    ?? DEFAULT_THEME.soft,
+    softBorder: softBorder   ?? DEFAULT_THEME.softBorder,
+  };
   return (
+    <ThemeCtx.Provider value={theme}>
     <div style={{
       background: COLORS.white,
       padding: `${pad}px ${pad}px ${pad}px`,
@@ -430,5 +459,6 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
         }
       })}
     </div>
+    </ThemeCtx.Provider>
   );
 }

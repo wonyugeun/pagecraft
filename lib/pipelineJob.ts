@@ -233,6 +233,7 @@ export function getJobResult(job: JobState): {
   jobId: string;
   dna: Record<string, unknown>;
   strategy: Record<string, unknown>;
+  visual?: StrategyResult['visual'];
   sectionCount: number;
   sections: PipelineSection[];
 } | null {
@@ -267,6 +268,7 @@ export function getJobResult(job: JobState): {
     jobId: job.jobId,
     dna: strategyRes.dna,
     strategy: strategyRes.strategy,
+    visual: strategyRes.visual,
     sectionCount: (sg.structure.result as StructureResult).section_count ?? sections.length,
     sections,
   };

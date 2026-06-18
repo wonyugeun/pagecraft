@@ -32,6 +32,12 @@ export interface Section {
   blocks?: Block[];
   subcopy?: string;     // 새 엔진(v5) 서브카피 — 블로그형에서 headline 아래 부제로 렌더
   bodyFlow?: boolean;   // 새 엔진 섹션: body(주 카피)와 blocks(보조)를 공존 렌더(기존 generate는 미설정)
+  visual?: {            // 제품별 결과물 색상(큐레이션 팔레트). 없으면 BlockRenderer가 브랜드 보라 폴백
+    primary_color?: string;
+    accent_color?: string;
+    soft_color?: string;
+    soft_border?: string;
+  };
 }
 
 export interface ReferenceAnalysis {

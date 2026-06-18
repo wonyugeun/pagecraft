@@ -107,6 +107,12 @@ export async function runClientPipeline(
   const result = getJobResult(job);
   if (!result) throw new Error('생성 결과 조립에 실패했어요.');
 
+  const v = result.visual;
+  const visual = v ? {
+    primary_color: v.primary_color, accent_color: v.accent_color,
+    soft_color: v.soft_color, soft_border: v.soft_border,
+  } : undefined;
+
   const sections: Section[] = result.sections.map(ps => ({
     num:        ps.num,
     name:       ps.name,
@@ -117,6 +123,7 @@ export async function runClientPipeline(
     imageDesc:  ps.imageBrief?.prompt || ps.imageBrief?.mood || '',
     blocks:     ps.blocks,
     bodyFlow:   true,                    // body + blocks 공존 렌더 지시(ResultScreen 분기)
+    visual,                              // 제품별 색(전 섹션 동일) — history 저장/복원에도 보존
   }));
 
   return { sections, jobInput: job.input, jobId: job.jobId };
