@@ -28,7 +28,7 @@ const PAD = 48;
 
 /* ── 결과물 색상 테마 — 제품별 색(visual)을 Context로 주입. 미주입 시 브랜드 보라 폴백 ── */
 interface BlockTheme { primary: string; accent: string; soft: string; softBorder: string; }
-const DEFAULT_THEME: BlockTheme = {
+export const DEFAULT_THEME: BlockTheme = {
   primary: COLORS.primary, accent: COLORS.primary, soft: COLORS.lightPurple, softBorder: COLORS.lightPurpleBorder,
 };
 const ThemeCtx = createContext<BlockTheme>(DEFAULT_THEME);
@@ -40,7 +40,7 @@ const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 // 색은 ThemeContext에서 받아 prop으로 주입(hex 하드코딩 금지). kpis/productImage는 hero 블록 데이터에
 // 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
 interface HeroKPI { value: string; label: string; }
-function HeroBlock({ headline, subcopy, kpis = [], productImage, primary, accent, soft, softBorder }: {
+export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary, accent, soft, softBorder }: {
   headline: string;
   subcopy?: string;
   kpis?: HeroKPI[];

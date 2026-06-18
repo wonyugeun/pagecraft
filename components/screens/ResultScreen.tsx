@@ -6,7 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import BlockRenderer from '@/components/result/BlockRenderer';
+import BlockRenderer, { HeroBlock, DEFAULT_THEME } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
@@ -467,7 +467,7 @@ function ImgSlot({
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, onLightbox, blockImages, onLightboxBlock, isMobile }: {
+export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
@@ -475,6 +475,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
   imgState: ImgState;
   onGenerateImage: () => void;
   isLast: boolean;
+  isFirst?: boolean;
   onLightbox?: () => void;
   blockImages?: Record<string, ImgState>;
   onLightboxBlock?: (key: string) => void;
@@ -509,11 +510,27 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
     <>
       <div style={{ background: '#fff' }}>
         {sec.bodyFlow ? (
-          /* 새 엔진(v5) 블로그형 — headline → subcopy → body(주 카피) → blocks(보조) 공존 */
+          /* 새 엔진(v5) 블로그형 — 첫 섹션은 Hero, 이후 headline → subcopy → body(주 카피) → blocks(보조) 공존 */
           <>
-            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
-            {sec.subcopy && (
-              <div style={{ padding: '12px 36px 0', textAlign: 'left', fontSize: 15.5, fontWeight: 600, color: '#6b6b72', lineHeight: 1.6 }}>{sec.subcopy}</div>
+            {isFirst ? (
+              /* 첫 섹션 = Hero (hero를 블록 타입이 아니라 '첫 섹션 위치'로 판정). headline/subcopy는 HeroBlock이 담당 → 아래 중복 출력 안 함 */
+              <div style={{ padding: isMobile ? '16px 16px 0' : '24px 36px 0' }}>
+                <HeroBlock
+                  headline={sec.headline}
+                  subcopy={sec.subcopy}
+                  primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
+                  accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
+                  soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
+                  softBorder={sec.visual?.soft_border ?? DEFAULT_THEME.softBorder}
+                />
+              </div>
+            ) : (
+              <>
+                <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
+                {sec.subcopy && (
+                  <div style={{ padding: '12px 36px 0', textAlign: 'left', fontSize: 15.5, fontWeight: 600, color: '#6b6b72', lineHeight: 1.6 }}>{sec.subcopy}</div>
+                )}
+              </>
             )}
             {sec.body && (
               <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 14.5, color: '#555', lineHeight: 2.1, whiteSpace: 'pre-line' }}>{sec.body}</div>
@@ -1472,6 +1489,7 @@ export default function ResultScreen() {
                       imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                       onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                       isLast={displayIdx === orderedVisibleSections.length - 1}
+                      isFirst={displayIdx === 0}
                       onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                       blockImages={blockImages}
                       onLightboxBlock={(key: string) => setLightboxSecNum(key)}

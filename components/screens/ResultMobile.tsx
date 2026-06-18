@@ -535,6 +535,7 @@ export default function ResultMobile() {
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                     onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                     isLast={displayIdx === orderedVisibleSections.length - 1}
+                    isFirst={displayIdx === 0}
                     onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                     blockImages={blockImages}
                     onLightboxBlock={(key: string) => setLightboxSecNum(key)}
