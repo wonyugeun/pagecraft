@@ -21,7 +21,11 @@ import { buildV2ImageRules } from '@/lib/imagePromptRules';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const CHUNK_SIZE = 16;
+// V2는 image_mission 7필드를 섹션마다 길게 생성해 V1보다 출력이 훨씬 길다.
+// → 청크당 섹션 수를 줄이고(16→8) max_tokens를 넉넉히(8000→16000) 상향, 잘림 시 1회 자동 재시도.
+const CHUNK_SIZE = 8;
+const MAX_TOKENS = 16000;
+const MAX_ATTEMPTS = 2; // 최초 1 + 자동 재시도 1
 
 interface Strategy {
   concept?: string;
@@ -197,32 +201,49 @@ ${sectionList}
   }
 ]`;
 
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 8000,
-      messages:   [{ role: 'user', content: userPrompt }],
-    });
+    // 잘림(max_tokens) 또는 JSON 파싱 실패 시 1회 자동 재시도 (strategy 스테이지와 동일 패턴)
+    let parsed: unknown = null;
+    let lastErr = '';
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const message = await client.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: MAX_TOKENS,
+        messages:   [{ role: 'user', content: userPrompt }],
+      });
 
-    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-    console.log(`[imagebrief V2] chunk@${startIdx} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
-    if (message.stop_reason === 'max_tokens') {
-      throw new Error(`청크(${startIdx}~)가 max_tokens(8000)에 도달해 잘렸어요.`);
+      const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+      console.log(`[imagebrief V2] chunk@${startIdx} attempt=${attempt}/${MAX_ATTEMPTS} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
+
+      if (message.stop_reason === 'max_tokens') {
+        lastErr = `청크(${startIdx}~)가 max_tokens(${MAX_TOKENS})에 도달해 잘렸어요`;
+        console.warn(`[imagebrief V2] ${lastErr} — ${attempt < MAX_ATTEMPTS ? '자동 재시도' : '재시도 소진'}`);
+        continue;
+      }
+
+      const first = raw.indexOf('[');
+      const last  = raw.lastIndexOf(']');
+      if (first === -1 || last === -1 || last < first) {
+        lastErr = '응답에서 JSON 배열을 찾을 수 없음';
+        console.error(`[imagebrief V2] ${lastErr} chunk@${startIdx} (attempt ${attempt}). raw head:\n${raw.slice(0, 400)}`);
+        continue;
+      }
+
+      try {
+        const p = JSON.parse(raw.slice(first, last + 1));
+        if (!Array.isArray(p)) { lastErr = `JSON이 배열이 아님: ${typeof p}`; continue; }
+        parsed = p;
+        break;
+      } catch (parseErr) {
+        const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        lastErr = `JSON 파싱 실패: ${pmsg}`;
+        console.error(`[imagebrief V2] ${lastErr} chunk@${startIdx} (attempt ${attempt})\nraw tail:\n${raw.slice(-400)}`);
+        continue;
+      }
     }
-    const first = raw.indexOf('[');
-    const last  = raw.lastIndexOf(']');
-    if (first === -1 || last === -1 || last < first) {
-      console.error(`[imagebrief V2] JSON 배열 미발견 chunk@${startIdx}. raw head:\n${raw.slice(0, 400)}`);
-      throw new Error('응답에서 JSON 배열을 찾을 수 없음');
+
+    if (parsed === null) {
+      throw new Error(`이미지 브리프 생성 실패(청크 ${startIdx}~, ${MAX_ATTEMPTS}회 시도): ${lastErr}`);
     }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw.slice(first, last + 1));
-    } catch (parseErr) {
-      const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      console.error(`[imagebrief V2] JSON.parse 실패 chunk@${startIdx}: ${pmsg}\nraw tail:\n${raw.slice(-400)}`);
-      throw new Error(`JSON 파싱 실패: ${pmsg}`);
-    }
-    if (!Array.isArray(parsed)) throw new Error(`JSON이 배열이 아님: ${typeof parsed}`);
 
     // ratio·product_visibility는 코드에서 확정(가드) — 모델 응답을 신뢰하지 않음
     return (parsed as Record<string, unknown>[]).map((s, j) => {
