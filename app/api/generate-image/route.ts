@@ -69,17 +69,24 @@ export async function POST(req: NextRequest) {
       `Props must be non-product objects only (stones, plants, water, fabric, trays).`
     : '';
 
-  // 인물 금지 (피부 클로즈업은 허용) — 항상 적용. 매번 다른 얼굴이 나와 브랜드 일관성이 깨지는 것을 막기 위해.
+  // 인물 정책 (V2 정정) — 감정/상황 전달용 신체 일부·피부 클로즈업은 허용, 식별되는 동일 모델 얼굴·화보만 금지.
+  // (붉어진 볼·따가운 순간 등 공감/원인 컷을 막지 않도록. 일관된 얼굴 모델은 향후 가상모델 시스템 담당.)
   const PEOPLE_RULES =
-    `Do NOT show any human faces, identifiable people, full bodies, or models. ` +
-    `Skin close-ups WITHOUT a face are allowed (e.g. close-up of skin texture, cheek surface, back of hand skin) to show product effect — but never a recognizable face or full person.`;
+    `Skin and body-part close-ups WITHOUT a recognizable face are allowed for emotion/situation ` +
+    `(e.g. cheek with mild redness, jawline, neck, hands, back of hand skin, a fingertip touching skin). ` +
+    `Do NOT show a recognizable full face, a consistent brand model, or a fashion-style model wearing/holding the product as the focus.`;
+
+  // 미입력 사실 날조 금지 (코드 가드, 항상 적용) — 셀러가 입력하지 않은 인증·수치·시험결과를 이미지에 그리지 못하게.
+  const NO_FAKE_DATA_RULES =
+    `Do NOT render any certification marks, seals, badges, test/clinical results, EWG grades, percentages, ` +
+    `statistics, graphs, or invented packaging copy. Convey "tested/safe" only through clean clinical mood, never as data.`;
 
   // 텍스트 금지 — 블로그형에서만. 슬라이드형은 헤드라인 오버레이를 유지.
   const TEXT_RULES = isBlog
     ? `Do NOT render any text, letters, numbers, labels, or typography overlaid on the image (the product's own existing label and branding from the reference must remain as-is). Clean photographic image, no captions.`
     : '';
 
-  const rulesTail = [COMPONENT_RULES, PEOPLE_RULES, TEXT_RULES].filter(Boolean).join(' ');
+  const rulesTail = [COMPONENT_RULES, PEOPLE_RULES, NO_FAKE_DATA_RULES, TEXT_RULES].filter(Boolean).join(' ');
 
   // 끝부분 마침표/공백 정리 — Claude 출력이 '.'으로 끝나도 우리가 또 찍지 않도록
   const cleanedPrompt = prompt.trim().replace(/[.\s]+$/, '');

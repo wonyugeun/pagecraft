@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 .claude/
 *.html
+
+# 진단·프로토타입 생성물(이미지 바이너리 등)
+/_prototype_out/
