@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -266,9 +266,11 @@ export async function downloadHtml(
       // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
       const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
       const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
-      // body는 문단 단위로 분리해 <p>로 — 회색 벽 대신 읽히는 문단.
+      // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
       const bodyHtml = sec.body
-        ? '\n      ' + sec.body.split(/\n+/).map(p => p.trim()).filter(Boolean).map(p => `<p class="bodytext">${escHtml(p)}</p>`).join('\n      ')
+        ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+            .map(p => `<p class="bodytext">${p.split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`)
+            .join('\n      ')
         : '';
       // 미디어: 블록 있으면 블록, 없고 구 경로(!bodyFlow)면 섹션 이미지(있을 때만). 카피 아래에 공존.
       let media = '';
@@ -539,11 +541,16 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </>
         )}
 
-        {/* ── 본문(body) — 항상 렌더. 회색 벽 탈출: 문단 분리 + 본문다운 크기·대비 ── */}
+        {/* ── 본문(body) — v5 호흡 복원: 이중 줄바꿈(\n\n)=문단(띄움), 단일 줄바꿈(\n)=줄만 바꿈(<br>, 간격0).
+            짧은 문장은 붙어 흐르고, 장면 전환에서만 문단이 띄워진다. ── */}
         {sec.body && (
           <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
-            {sec.body.split(/\n+/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
-              <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 15 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>{para}</p>
+            {sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
+              <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
+                {para.split('\n').map((line, j, lines) => (
+                  <Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>
+                ))}
+              </p>
             ))}
           </div>
         )}
