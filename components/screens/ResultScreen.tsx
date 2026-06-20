@@ -263,34 +263,40 @@ export async function downloadHtml(
     }
 
     const sectionsHtml = sections.map((sec, idx) => {
-      // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
+      // 화면 렌더와 동일: 태그(텍스트, SEO)·v5 호흡 본문·공감 묶음(마무리는 체크리스트 아래)·soft 밴드.
       const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
       const tPrimary = sec.visual?.primary_color ?? '#6D4CFF';
       const tSoft = sec.visual?.soft_color ?? '#F4F0FF';
       const tBorder = sec.visual?.soft_border ?? '#E6DEFF';
       const tag = kind
-        ? `\n      <span class="sec-tag" style="background:${tSoft};border:1px solid ${tBorder};color:${tPrimary};">${kind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}</span>`
+        ? `\n      <span class="sec-tag" style="background:${kind === 'problem' ? '#fff' : tSoft};border:1px solid ${tBorder};color:${tPrimary};">${kind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}</span>`
         : '';
-      // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
       const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
       const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
-      // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
-      const bodyHtml = sec.body
-        ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-            .map(p => `<p class="bodytext">${p.split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`)
-            .join('\n      ')
-        : '';
-      // 미디어: 블록 있으면 블록, 없고 구 경로(!bodyFlow)면 섹션 이미지(있을 때만). 카피 아래에 공존.
-      let media = '';
-      if (sec.blocks?.length) {
-        media = `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`;
-      } else if (!sec.bodyFlow) {
-        const imgUrl = imgMap[sec.num]?.url;
-        media = imgUrl
-          ? `\n      <img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:20px 0 0;" />`
-          : `\n      <div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
+      const paras = (sec.body ?? '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+      const paraHtml = (arr: string[]) => arr.map(p => `<p class="bodytext">${p.split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`).join('\n      ');
+      const secImgUrl = imgMap[sec.num]?.url;
+      const imgTag = secImgUrl ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:20px 0 0;border-radius:16px;" />` : '';
+      const checklistBlock = sec.blocks?.find(b => b.type === 'checklist');
+      const otherBlocks = (sec.blocks ?? []).filter(b => b.type !== 'checklist');
+      const problemGrouped = kind === 'problem' && !!checklistBlock && paras.length >= 2;
+
+      if (problemGrouped) {
+        const main = paraHtml(paras.slice(0, -1));
+        const closing = `\n      <p class="bodytext closing">${paras[paras.length - 1].split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`;
+        const checklistHtml = `\n${blocksToHtml([checklistBlock!], sec.num, compressedBlockUrls, blockAspectMap)}`;
+        const otherHtml = otherBlocks.length ? `\n${blocksToHtml(otherBlocks, sec.num, compressedBlockUrls, blockAspectMap)}` : '';
+        return `\n    <section class="sec sec-problem" style="background:${tSoft};">${tag}\n      ${head}${sub}${imgTag}\n      ${main}${checklistHtml}${closing}${otherHtml}\n    </section>`;
       }
-      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${media}\n    </section>`;
+
+      const bodyHtml = paras.length ? '\n      ' + paraHtml(paras) : '';
+      let blocksHtml = '';
+      if (sec.blocks?.length) {
+        blocksHtml = `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`;
+      } else if (!sec.bodyFlow && !secImgUrl) {
+        blocksHtml = `\n      <div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
+      }
+      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${imgTag}${blocksHtml}\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -306,6 +312,8 @@ export async function downloadHtml(
     .sec { padding: 48px 48px 0; }
     .sec-blocks { padding-top: 0; padding-bottom: 0; }
     .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
+    .sec-problem { padding-bottom: 36px; }
+    .closing { font-weight: 600; color: #2c2c33; margin-top: 6px; }
     .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.4px; }
     .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
     .sec .bodytext { font-size: 16.5px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; }
@@ -531,6 +539,38 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
     softBorder: sec.visual?.soft_border  ?? DEFAULT_THEME.softBorder,
   };
 
+  // 공감(Problem) 묶음 — body를 문단 단위로 보고, 마지막 문단을 "마무리 한마디"로 분리(체크리스트 아래로).
+  // 식별 불확실 대비: 체크리스트 있고 문단 2개+ 일 때만 분리하고, 아니면 기존 순서 유지.
+  const isProblem = designKind === 'problem';
+  const bodyParas = (sec.body ?? '').split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const checklistBlock = sec.blocks?.find(b => b.type === 'checklist');
+  const otherBlocks = (sec.blocks ?? []).filter(b => b.type !== 'checklist');
+  const problemGrouped = isProblem && !!checklistBlock && bodyParas.length >= 2;
+
+  // 본문 문단 렌더(v5 호흡: \n\n=문단, \n=<br>). paras 배열을 받아 재사용(공감 묶음에서 본문/마무리 분리용).
+  const bodyBlock = (paras: string[]) => paras.length ? (
+    <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
+      {paras.map((para, i) => (
+        <p key={i} style={{ margin: 0, marginBottom: i < paras.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
+          {para.split('\n').map((line, j, lines) => (
+            <Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>
+          ))}
+        </p>
+      ))}
+    </div>
+  ) : null;
+
+  // 섹션 대표 이미지 슬롯(Hero 제외, imageDesc 있을 때). 미생성/실패 시 ImgSlot placeholder 폴백.
+  const imageSlotJsx = (!(isFirst && sec.bodyFlow) && sec.imageDesc) ? (
+    <div style={{ marginTop: 20, padding: '0 36px' }}>
+      <ImgSlot
+        sec={sec} imgState={imgState} onGenerate={onGenerateImage}
+        slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 16, overflow: 'hidden' }}
+        onLightbox={onLightbox}
+      />
+    </div>
+  ) : null;
+
   // 섹션 재생성 버튼 — 첫 image 블록 우상단 오버레이 (데스크탑 hover 표시, 모바일 항상 표시)
   const regenOverlayBtn = (
     <button
@@ -548,11 +588,8 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
   return (
     <>
       <div style={{ background: '#fff' }}>
-        {/* ── 카피 헤더(headline + subcopy) — 분기 무관 항상 렌더. 첫 섹션만 Hero가 담당(기존 유지) ──
-            기존엔 bodyFlow 미설정/블록 섹션에서 headline·subcopy·body가 통째로 사라졌음(분기② 블록만, 분기③ subcopy 누락).
-            이제 카피를 먼저 항상 렌더하고, 이미지/블록은 그 아래 공존시킨다. */}
         {isFirst && sec.bodyFlow ? (
-          /* 첫 섹션 = Hero (headline/subcopy는 HeroBlock 담당, 변경 없음) */
+          /* 첫 섹션 = Hero (박스 제거판) + 본문 + 블록 */
           <div style={{ padding: isMobile ? '16px 16px 0' : '24px 36px 0' }}>
             <HeroBlock
               headline={sec.headline}
@@ -563,59 +600,65 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
               softBorder={sec.visual?.soft_border ?? DEFAULT_THEME.softBorder}
             />
+            {bodyBlock(bodyParas)}
+            {hasBlocks && (
+              <div style={{ paddingTop: 24 }}>
+                <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+              </div>
+            )}
           </div>
         ) : (
-          <>
-            {/* 디자인 블록 태그(Problem/Feature) — soft 배경 pill, 색은 제품 테마 */}
+          /* 비-Hero. 공감(Problem)은 soft 밴드로 한 섹션으로 묶고, 순서: 라벨→헤드라인→subcopy→이미지→본문(상황)→체크리스트→마무리 */
+          <div style={isProblem ? { background: theme.soft, paddingBottom: 12 } : undefined}>
+            {/* 라벨 태그(Problem/Feature) — soft pill(밴드 위에선 흰 배경으로 대비), 색은 제품 테마 */}
             {designKind && (
               <div style={{ padding: '40px 36px 0' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 999, background: theme.soft, border: `1px solid ${theme.softBorder}`, fontSize: 13, fontWeight: 700, color: theme.primary, letterSpacing: '-0.2px' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 999, background: isProblem ? '#fff' : theme.soft, border: `1px solid ${theme.softBorder}`, fontSize: 13, fontWeight: 700, color: theme.primary, letterSpacing: '-0.2px' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: theme.primary, flexShrink: 0 }} />
                   {designKind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}
                 </span>
               </div>
             )}
             <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: 'left', fontSize: designKind ? 23 : 21, fontWeight: 700, color: '#111', lineHeight: 1.45, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
-              {designKind === 'problem'
-                ? <span style={{ background: `linear-gradient(transparent 58%, ${theme.soft} 58%)`, padding: '0 1px', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }}>{sec.headline}</span>
-                : sec.headline}
+              {sec.headline}
             </div>
             {sec.subcopy && (
               <div style={{ padding: '14px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
             )}
-          </>
-        )}
 
-        {/* ── 본문(body) — v5 호흡 복원: 이중 줄바꿈(\n\n)=문단(띄움), 단일 줄바꿈(\n)=줄만 바꿈(<br>, 간격0).
-            짧은 문장은 붙어 흐르고, 장면 전환에서만 문단이 띄워진다. ── */}
-        {sec.body && (
-          <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
-            {sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
-              <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
-                {para.split('\n').map((line, j, lines) => (
-                  <Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>
-                ))}
-              </p>
-            ))}
-          </div>
-        )}
-
-        {/* ── 섹션 대표 이미지(V2 image_mission 브리프 → Gemini) — 블록 유무 무관 항상 노출.
-            첫 섹션(Hero)은 HeroBlock 내부에 이미지가 들어가므로 여기선 제외. 실패/미생성 시 ImgSlot이 placeholder 폴백. ── */}
-        {!(isFirst && sec.bodyFlow) && sec.imageDesc && (
-          <div style={{ marginTop: 20 }}>
-            <ImgSlot
-              sec={sec} imgState={imgState} onGenerate={onGenerateImage}
-              slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
-              onLightbox={onLightbox}
-            />
-          </div>
-        )}
-
-        {/* ── 블록(보조) — 카피·이미지 아래 공존 ── */}
-        {hasBlocks && (
-          <div style={{ paddingTop: 24 }}>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+            {problemGrouped ? (
+              /* 공감 묶음: 이미지 → 본문(상황, 마지막 문단 제외) → 체크리스트 → 마무리 한마디(맨 아래) */
+              <>
+                {imageSlotJsx}
+                {bodyBlock(bodyParas.slice(0, -1))}
+                {checklistBlock && (
+                  <div style={{ paddingTop: 20, padding: '20px 36px 0' }}>
+                    <BlockRenderer blocks={[checklistBlock]} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+                  </div>
+                )}
+                <div style={{ padding: '4px 36px 0', textAlign: 'left', fontSize: 16.5, fontWeight: 600, color: '#2c2c33', lineHeight: 1.7, letterSpacing: '-0.2px' }}>
+                  {bodyParas[bodyParas.length - 1].split('\n').map((line, j, lines) => (
+                    <Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>
+                  ))}
+                </div>
+                {otherBlocks.length > 0 && (
+                  <div style={{ padding: '20px 36px 0' }}>
+                    <BlockRenderer blocks={otherBlocks} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+                  </div>
+                )}
+              </>
+            ) : (
+              /* 기존 순서: 본문 → 이미지 → 블록 */
+              <>
+                {bodyBlock(bodyParas)}
+                {imageSlotJsx}
+                {hasBlocks && (
+                  <div style={{ paddingTop: 24 }}>
+                    <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

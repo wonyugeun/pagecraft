@@ -60,10 +60,9 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary,
   softBorder: string;
 }) {
   return (
-    <section className="relative mx-auto max-w-[760px] overflow-hidden rounded-[36px] border">
-      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${soft} 0%, #ffffff 100%)`, borderColor: softBorder }} />
-      <div className="absolute left-1/2 top-[-100px] h-[280px] w-[280px] -translate-x-1/2 rounded-full blur-3xl opacity-20" style={{ background: primary }} />
-      <div className="relative px-8 py-12 md:px-12 md:py-16">
+    <section className="mx-auto max-w-[760px]">
+      {/* 박스 제거(A안) — 바깥 그라데이션 카드/테두리 없이 첫 섹션 콘텐츠로 흐름. 요소는 유지. */}
+      <div className="px-6 pb-10 pt-6 md:px-8 md:pb-12">
         <div className="flex justify-center">
           <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium" style={{ background: soft, borderColor: softBorder, color: primary }}>
             <Sparkles size={14} />
@@ -91,18 +90,18 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary,
             ))}
           </div>
         )}
-        <div className="mt-9 overflow-hidden rounded-[30px] border bg-white" style={{ borderColor: softBorder }}>
+        <div className="mt-9">
           {productImage ? (
-            <div className="flex items-center justify-center p-3 md:p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={productImage} alt="" className="mx-auto max-h-[360px] w-auto rounded-[22px] object-contain" />
-            </div>
+            /* 이미지 — 흰 박스에 가두지 않고 자연스럽게(라운드만) */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={productImage} alt="" className="mx-auto block max-h-[400px] w-auto rounded-[24px] object-contain" />
           ) : (
-            <div className="relative flex h-[260px] flex-col items-center justify-center md:h-[380px]">
-              <div className="absolute h-[220px] w-[220px] rounded-full opacity-10" style={{ background: primary }} />
-              <div className="absolute h-[140px] w-[140px] rounded-full opacity-20" style={{ background: accent }} />
+            /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
+            <div className="relative flex h-[240px] flex-col items-center justify-center overflow-hidden rounded-[24px] md:h-[320px]" style={{ background: soft }}>
+              <div className="absolute h-[200px] w-[200px] rounded-full opacity-10" style={{ background: primary }} />
+              <div className="absolute h-[130px] w-[130px] rounded-full opacity-20" style={{ background: accent }} />
               <div className="relative flex flex-col items-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: soft, color: primary }}>
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white" style={{ color: primary }}>
                   <ImageIcon size={30} />
                 </div>
                 <p className="mt-4 text-sm text-zinc-500">제품 이미지가 생성되면 여기에 표시됩니다</p>
