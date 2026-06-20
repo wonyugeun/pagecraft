@@ -3,6 +3,7 @@
 import {
   Check, Star, Quote as QuoteIcon, ChevronDown, ArrowRight,
   Leaf, Droplets, Sparkles, ShieldCheck, Image as ImageIcon,
+  Calendar, Coins, Package,
 } from 'lucide-react';
 import { createContext, useContext, type ReactNode } from 'react';
 import { Block } from '@/store/AppContext';
@@ -49,11 +50,12 @@ function heroHeadlineSize(headline: string): string {
   const mobMin  = len <= 13 ? 29 : len <= 20 ? 26 : len <= 28 ? 23 : 21;
   return `clamp(${mobMin}px, 6.2vw, ${deskMax}px)`;
 }
-export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary, accent, soft, softBorder }: {
+export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, primary, accent, soft, softBorder }: {
   headline: string;
   subcopy?: string;
   kpis?: HeroKPI[];
   productImage?: string | null;
+  onImageClick?: () => void;
   primary: string;
   accent: string;
   soft: string;
@@ -92,9 +94,14 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary,
         )}
         <div className="mt-9">
           {productImage ? (
-            /* 이미지 — 흰 박스에 가두지 않고 자연스럽게(라운드만) */
+            /* 이미지 — 흰 박스에 가두지 않고 자연스럽게(라운드만). 비율 유지(contain) + 반응형 크기. 클릭 시 확대. */
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={productImage} alt="" className="mx-auto block max-h-[400px] w-auto rounded-[24px] object-contain" />
+            <img
+              src={productImage} alt=""
+              onClick={onImageClick}
+              className="mx-auto block w-auto max-w-full rounded-[24px] object-contain"
+              style={{ maxHeight: 'clamp(240px, 52vw, 380px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
+            />
           ) : (
             /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
             <div className="relative flex h-[240px] flex-col items-center justify-center overflow-hidden rounded-[24px] md:h-[320px]" style={{ background: soft }}>
@@ -236,32 +243,46 @@ function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: st
   );
 }
 
-/* ─── stats ─── */
+/* ─── stats (KPI) — 참고 이미지 스타일: 아이콘 원 → 값 → 라벨, 가로 배열, 배경 카드 없이 깔끔.
+   값/라벨로 아이콘만 선택(데이터 생성 아님). 색은 ThemeContext. ─── */
+function statIcon(value: string, label: string) {
+  const s = `${value} ${label}`.toLowerCase();
+  if (/일|개월|주|기간|day|개월|회/.test(s)) return Calendar;
+  if (/원|가격|할인|₩|가성비|비용/.test(s)) return Coins;
+  if (/ml|용량|대용량|리터|\bl\b|kg|\bg\b|중량/.test(s)) return Package;
+  if (/등급|인증|안심|성분|ewg|무첨가|안전|테스트/.test(s)) return ShieldCheck;
+  if (/방울|수분|보습|워터|함량%?/.test(s)) return Droplets;
+  return Leaf;
+}
 function StatsBlock({ items, isMobile }: { items: { value: string; label: string }[]; isMobile?: boolean }) {
   const t = useBlockTheme();
-  const cols = isMobile ? 2 : items.length;
+  const cols = isMobile ? 2 : Math.min(items.length, 4);
   return (
     <div style={{
       marginBottom: 32,
       display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
-      overflow: 'hidden',
-      borderRadius: 24, border: `1px solid ${t.softBorder}`,
-      background: t.soft,
+      columnGap: isMobile ? 16 : 12, rowGap: isMobile ? 28 : 0,
     }}>
-      {items.map((s, i) => (
-        <div key={i} style={{
-          padding: 20, textAlign: 'center',
-          borderRight: isMobile
-            ? (i % cols !== cols - 1 ? `1px solid ${t.softBorder}` : 'none')
-            : (i !== items.length - 1 ? `1px solid ${t.softBorder}` : 'none'),
-          borderTop: isMobile && i >= cols ? `1px solid ${t.softBorder}` : 'none',
-        }}>
-          <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: '-0.04em', color: t.primary }}>
-            {s.value}
+      {items.map((s, i) => {
+        const Icon = statIcon(s.value, s.label);
+        return (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 6px' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: t.soft, color: t.primary,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+            }}>
+              <Icon size={26} strokeWidth={1.8} />
+            </div>
+            <div style={{ fontSize: isMobile ? 19 : 21, fontWeight: 800, letterSpacing: '-0.03em', color: t.primary, lineHeight: 1.2 }}>
+              {s.value}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: COLORS.text333, lineHeight: 1.45 }}>
+              {s.label}
+            </div>
           </div>
-          <div style={{ marginTop: 4, fontSize: 13, color: COLORS.textSub }}>{s.label}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

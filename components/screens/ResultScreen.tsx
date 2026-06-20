@@ -204,11 +204,10 @@ const HTML_BLOCKS_CSS = `
 .iconcard strong { display: block; font-size: 14px; font-weight: 700; color: #111; }
 .iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
 
-.stats { margin-bottom: 32px; display: grid; overflow: hidden; border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; }
-.stat { padding: 20px; text-align: center; border-right: 1px solid #E6DEFF; }
-.stat:last-child { border-right: none; }
-.stat strong { display: block; font-size: 30px; font-weight: 900; letter-spacing: -0.04em; color: #6D4CFF; }
-.stat small { margin-top: 4px; display: block; font-size: 13px; color: #666; }
+.stats { margin-bottom: 32px; display: grid; column-gap: 12px; }
+.stat { padding: 4px 6px; text-align: center; }
+.stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: #6D4CFF; line-height: 1.2; }
+.stat small { margin-top: 6px; display: block; font-size: 13px; font-weight: 600; color: #333; line-height: 1.45; }
 
 .compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
 .compare th, .compare td { padding: 16px; text-align: center; }
@@ -558,6 +557,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               headline={sec.headline}
               subcopy={sec.subcopy}
               productImage={imgState?.url ?? null}
+              onImageClick={imgState?.url ? onLightbox : undefined}
               primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
               accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
               soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
@@ -576,9 +576,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               </div>
             )}
             <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: 'left', fontSize: designKind ? 23 : 21, fontWeight: 700, color: '#111', lineHeight: 1.45, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
-              {designKind === 'problem'
-                ? <span style={{ background: `linear-gradient(transparent 58%, ${theme.soft} 58%)`, padding: '0 1px', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }}>{sec.headline}</span>
-                : sec.headline}
+              {sec.headline}
             </div>
             {sec.subcopy && (
               <div style={{ padding: '14px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
