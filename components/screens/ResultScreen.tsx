@@ -263,22 +263,24 @@ export async function downloadHtml(
     }
 
     const sectionsHtml = sections.map(sec => {
-      // 새 엔진(v5): headline + subcopy + body(주 카피) + blocks(보조) 모두 포함
-      if (sec.bodyFlow) {
-        const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
-        const bodyHtml = sec.body ? `\n      <p>${escHtml(sec.body).replace(/\n/g, '<br>')}</p>` : '';
-        const blocksHtml = sec.blocks?.length ? `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}` : '';
-        return `\n    <section class="sec">\n      <h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>${sub}${bodyHtml}${blocksHtml}\n    </section>`;
-      }
+      // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
+      const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
+      const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
+      // body는 문단 단위로 분리해 <p>로 — 회색 벽 대신 읽히는 문단.
+      const bodyHtml = sec.body
+        ? '\n      ' + sec.body.split(/\n+/).map(p => p.trim()).filter(Boolean).map(p => `<p class="bodytext">${escHtml(p)}</p>`).join('\n      ')
+        : '';
+      // 미디어: 블록 있으면 블록, 없고 구 경로(!bodyFlow)면 섹션 이미지(있을 때만). 카피 아래에 공존.
+      let media = '';
       if (sec.blocks?.length) {
-        return `\n    <section class="sec sec-blocks">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n    </section>`;
+        media = `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`;
+      } else if (!sec.bodyFlow) {
+        const imgUrl = imgMap[sec.num]?.url;
+        media = imgUrl
+          ? `\n      <img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:20px 0 0;" />`
+          : `\n      <div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
       }
-      // 기존 폴백 (blocks 없는 섹션)
-      const imgUrl = imgMap[sec.num]?.url;
-      const imgBlock = imgUrl
-        ? `<img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin-bottom:32px;" />`
-        : `<div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
-      return `\n    <section class="sec">\n      <h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>\n      ${imgBlock}\n      <p>${escHtml(sec.body)}</p>\n    </section>`;
+      return `\n    <section class="sec">\n      ${head}${sub}${bodyHtml}${media}\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -293,7 +295,10 @@ export async function downloadHtml(
     .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
     .sec { padding: 48px 48px 0; }
     .sec-blocks { padding-top: 0; padding-bottom: 0; }
-    .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.55; margin-bottom: 20px; letter-spacing: -0.4px; }
+    .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
+    .sec .bodytext { font-size: 16.5px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; }
+    .sec .bodytext:last-of-type { margin-bottom: 0; }
     .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
     .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
     .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
@@ -509,91 +514,69 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
   return (
     <>
       <div style={{ background: '#fff' }}>
-        {sec.bodyFlow ? (
-          /* 새 엔진(v5) 블로그형 — 첫 섹션은 Hero, 이후 headline → subcopy → body(주 카피) → blocks(보조) 공존 */
-          <>
-            {isFirst ? (
-              /* 첫 섹션 = Hero (hero를 블록 타입이 아니라 '첫 섹션 위치'로 판정). headline/subcopy는 HeroBlock이 담당 → 아래 중복 출력 안 함 */
-              <div style={{ padding: isMobile ? '16px 16px 0' : '24px 36px 0' }}>
-                <HeroBlock
-                  headline={sec.headline}
-                  subcopy={sec.subcopy}
-                  primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
-                  accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
-                  soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
-                  softBorder={sec.visual?.soft_border ?? DEFAULT_THEME.softBorder}
-                />
-              </div>
-            ) : (
-              <>
-                <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
-                {sec.subcopy && (
-                  <div style={{ padding: '12px 36px 0', textAlign: 'left', fontSize: 15.5, fontWeight: 600, color: '#6b6b72', lineHeight: 1.6 }}>{sec.subcopy}</div>
-                )}
-              </>
-            )}
-            {sec.body && (
-              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 14.5, color: '#555', lineHeight: 2.1, whiteSpace: 'pre-line' }}>{sec.body}</div>
-            )}
-            {hasBlocks && (
-              <div style={{ paddingTop: 24 }}>
-                <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
-              </div>
-            )}
-            <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
-              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-              </button>
-            </div>
-            {editOpen && (
-              <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
-                <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
-                <div className="edit-actions">
-                  <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
-                  <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
-                </div>
-              </div>
-            )}
-          </>
-        ) : hasBlocks ? (
-          <>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
-            {!hasImageBlock && (
-              <div style={{ padding: '0 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-                <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-                  {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-                </button>
-              </div>
-            )}
-          </>
+        {/* ── 카피 헤더(headline + subcopy) — 분기 무관 항상 렌더. 첫 섹션만 Hero가 담당(기존 유지) ──
+            기존엔 bodyFlow 미설정/블록 섹션에서 headline·subcopy·body가 통째로 사라졌음(분기② 블록만, 분기③ subcopy 누락).
+            이제 카피를 먼저 항상 렌더하고, 이미지/블록은 그 아래 공존시킨다. */}
+        {isFirst && sec.bodyFlow ? (
+          /* 첫 섹션 = Hero (headline/subcopy는 HeroBlock 담당, 변경 없음) */
+          <div style={{ padding: isMobile ? '16px 16px 0' : '24px 36px 0' }}>
+            <HeroBlock
+              headline={sec.headline}
+              subcopy={sec.subcopy}
+              primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
+              accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
+              soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
+              softBorder={sec.visual?.soft_border ?? DEFAULT_THEME.softBorder}
+            />
+          </div>
         ) : (
           <>
-            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.55, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
-            <div style={{ marginTop: 20 }}>
-              <ImgSlot
-                sec={sec} imgState={imgState} onGenerate={onGenerateImage}
-                slotStyle={{ width: '100%', aspectRatio: '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
-                onLightbox={onLightbox}
-              />
-            </div>
-            <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 14.5, color: '#555', lineHeight: 2.1, whiteSpace: 'pre-line' }}>{sec.body}</div>
-            <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-              <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
-              <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-                {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-              </button>
-            </div>
-            {editOpen && (
-              <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
-                <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
-                <div className="edit-actions">
-                  <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
-                  <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
-                </div>
-              </div>
+            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.5, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
+            {sec.subcopy && (
+              <div style={{ padding: '14px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
             )}
           </>
+        )}
+
+        {/* ── 본문(body) — 항상 렌더. 회색 벽 탈출: 문단 분리 + 본문다운 크기·대비 ── */}
+        {sec.body && (
+          <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
+            {sec.body.split(/\n+/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
+              <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 15 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>{para}</p>
+            ))}
+          </div>
+        )}
+
+        {/* ── 이미지/블록 — 기존 동작 보존: 블록 있으면 BlockRenderer, 없고 구 경로(!bodyFlow)면 섹션 대표 이미지 슬롯 ── */}
+        {hasBlocks ? (
+          <div style={{ paddingTop: 24 }}>
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+          </div>
+        ) : !sec.bodyFlow ? (
+          <div style={{ marginTop: 20 }}>
+            <ImgSlot
+              sec={sec} imgState={imgState} onGenerate={onGenerateImage}
+              slotStyle={{ width: '100%', aspectRatio: '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
+              onLightbox={onLightbox}
+            />
+          </div>
+        ) : null}
+
+        {/* ── 수정/재생성 버튼 + 편집 패널 — 공통(모든 분기 동일) ── */}
+        <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
+          <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
+            {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+          </button>
+        </div>
+        {editOpen && (
+          <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
+            <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
+            <div className="edit-actions">
+              <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
+              <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
+            </div>
+          </div>
         )}
       </div>
       {!isLast && <div style={{ height: 56 }} />}
