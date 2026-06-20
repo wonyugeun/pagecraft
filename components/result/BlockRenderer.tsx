@@ -42,9 +42,9 @@ const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 // 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
 interface HeroKPI { value: string; label: string; }
 
-// Hero 헤드라인 크기 — 다른 섹션 헤드라인(21~23px)과 같은 급으로 통일. 혼자 튀지 않게, 단 너무 작지 않게.
+// Hero 헤드라인 크기 — 공감(Problem) 헤드라인(23px)과 같은 급으로 통일.
 function heroHeadlineSize(): string {
-  return 'clamp(21px, 3vw, 25px)';
+  return 'clamp(21px, 2.8vw, 24px)';
 }
 export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, bodySlot, primary, accent, soft, softBorder }: {
   headline: string;
@@ -60,28 +60,28 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
 }) {
   return (
     <section className="mx-auto max-w-[760px]">
-      {/* 박스 제거(A안) — 바깥 그라데이션 카드/테두리 없이 첫 섹션 콘텐츠로 흐름. 요소는 유지. */}
-      <div className="px-6 pb-10 pt-6 md:px-8 md:pb-12">
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium" style={{ background: soft, borderColor: softBorder, color: primary }}>
-            <Sparkles size={14} />
-            추천 상품
-          </div>
+      {/* 박스 제거(A안) + 공감(Problem) 섹션과 동일 정렬: 태그·제목·설명 왼쪽 정렬, 이미지만 가운데.
+          가로 패딩은 BlogSection의 hero 래퍼(데스크탑 36px)가 제공 → 여기선 세로 패딩만. */}
+      <div className="pb-10 pt-6 md:pb-12">
+        {/* 추천 상품 태그 — 공감 태그처럼 왼쪽 pill(soft 배경 + 점) */}
+        <div className="inline-flex items-center gap-[7px] rounded-full border px-3.5 py-[7px] text-[13px] font-bold" style={{ background: soft, borderColor: softBorder, color: primary }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: primary, flexShrink: 0 }} />
+          추천 상품
         </div>
         <h1
-          className="mx-auto mt-6 max-w-[620px] text-center font-extrabold tracking-[-0.04em] text-zinc-900"
-          style={{ fontSize: heroHeadlineSize(), lineHeight: 1.3, textWrap: 'balance' }}
+          className="mt-3.5 text-left font-bold text-zinc-900"
+          style={{ fontSize: heroHeadlineSize(), fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.4px', wordBreak: 'keep-all', whiteSpace: 'pre-line' }}
         >
           {headline}
         </h1>
         {subcopy && (
-          <p className="mx-auto mt-5 max-w-[560px] text-center text-[16px] leading-relaxed text-zinc-600 md:text-[18px]">
+          <p className="mt-3.5 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
             {subcopy}
           </p>
         )}
-        {/* 설명 본문 — 이미지 위에(헤드라인 → 설명 → 이미지). 본문은 왼쪽 정렬, 가운데 축의 max-w 안에서 */}
+        {/* 설명 본문 — 헤드라인 → 설명 → 이미지. 왼쪽 정렬 */}
         {bodySlot && (
-          <div className="mx-auto mt-6 max-w-[600px] text-left">{bodySlot}</div>
+          <div className="mt-5 text-left">{bodySlot}</div>
         )}
         {kpis.length > 0 && (
           <div className="mt-10 grid grid-cols-3 gap-3">
