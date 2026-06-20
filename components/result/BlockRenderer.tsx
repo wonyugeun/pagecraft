@@ -40,6 +40,15 @@ const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 // 색은 ThemeContext에서 받아 prop으로 주입(hex 하드코딩 금지). kpis/productImage는 hero 블록 데이터에
 // 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
 interface HeroKPI { value: string; label: string; }
+
+// Hero 헤드라인 글자수 기반 반응형 크기 — 짧으면 크게, 길면 자동 축소(긴 한글에서 3줄 터짐 방지).
+// clamp(모바일 최소, 6.2vw, 데스크탑 최대): 폭에 따라 유동 + 길이로 상한 캡.
+function heroHeadlineSize(headline: string): string {
+  const len = (headline ?? '').replace(/\s/g, '').length; // 공백 제외 글자수
+  const deskMax = len <= 13 ? 48 : len <= 20 ? 42 : len <= 28 ? 36 : 31;
+  const mobMin  = len <= 13 ? 29 : len <= 20 ? 26 : len <= 28 ? 23 : 21;
+  return `clamp(${mobMin}px, 6.2vw, ${deskMax}px)`;
+}
 export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary, accent, soft, softBorder }: {
   headline: string;
   subcopy?: string;
@@ -61,7 +70,10 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary,
             추천 상품
           </div>
         </div>
-        <h1 className="mx-auto mt-6 max-w-[620px] text-center text-[36px] font-extrabold leading-[1.15] tracking-[-0.04em] text-zinc-900 md:text-[58px]">
+        <h1
+          className="mx-auto mt-6 max-w-[620px] text-center font-extrabold tracking-[-0.04em] text-zinc-900"
+          style={{ fontSize: heroHeadlineSize(headline), lineHeight: 1.22, textWrap: 'balance' }}
+        >
           {headline}
         </h1>
         {subcopy && (
@@ -79,11 +91,11 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, primary,
             ))}
           </div>
         )}
-        <div className="mt-12 overflow-hidden rounded-[30px] border bg-white" style={{ borderColor: softBorder }}>
+        <div className="mt-9 overflow-hidden rounded-[30px] border bg-white" style={{ borderColor: softBorder }}>
           {productImage ? (
-            <div className="flex items-center justify-center p-8 md:p-12">
+            <div className="flex items-center justify-center p-3 md:p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={productImage} alt="" className="max-h-[420px] w-auto object-contain" />
+              <img src={productImage} alt="" className="mx-auto max-h-[360px] w-auto rounded-[22px] object-contain" />
             </div>
           ) : (
             <div className="relative flex h-[260px] flex-col items-center justify-center md:h-[380px]">
