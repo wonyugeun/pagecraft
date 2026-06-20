@@ -85,6 +85,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   // 3) Stage3 — 카피(v5: emotion_goal 우선 + writing_style + Character + 블록)
   const copy = await runCopy({
     dna: strategy.dna, strategy: strategy.strategy, sections: plan, cat, ch, out, depth,
+    knownFacts: [productName, productExtra].filter(Boolean).join('\n'),   // 셀러 원입력 — 후처리 날조 그물 기준
   });
 
   // 4) Stage4 — 이미지 브리프(촬영 지시문, Gemini 미호출)

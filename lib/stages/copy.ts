@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
+import { scrubCopyItems } from '@/lib/factScrub';
 import type { Block } from '@/store/AppContext';
 
 /**
@@ -83,11 +84,12 @@ export interface CopyChunkInput {
   ch?: string;
   out?: string | null;
   depth?: string;
+  knownFacts?: string;       // 셀러 원입력(productName+productExtra) — 후처리 날조 그물의 허용 기준
 }
 
 /** 한 청크(≤16섹션)의 카피를 LLM 1회 호출로 생성 — 통합 분할 호출의 기본 단위 */
 export async function runCopyChunk(input: CopyChunkInput): Promise<CopyOut[]> {
-  const { strategySummary: ss, sections: items, startIndex, totalSections, cat, ch, out } = input;
+  const { strategySummary: ss, sections: items, startIndex, totalSections, cat, ch, out, knownFacts } = input;
 
   const category = cat || '화장품';
   const channel  = ch || '스마트스토어';
@@ -279,13 +281,15 @@ ${COPY_PRINCIPLES}
   if (parsed === null) {
     throw new Error(`카피 생성 실패(청크 ${startIndex}~, ${COPY_MAX_ATTEMPTS}회 시도): ${lastErr}`);
   }
-  return (parsed as Record<string, unknown>[]).map(s => ({
+  const mapped = (parsed as Record<string, unknown>[]).map(s => ({
     name:     typeof s.name === 'string' ? s.name : '',
     headline: typeof s.headline === 'string' ? s.headline : '',
     subcopy:  typeof s.subcopy === 'string' ? s.subcopy : '',
     body:     typeof s.body === 'string' ? s.body : '',
     blocks:   Array.isArray(s.blocks) ? (s.blocks as Block[]) : undefined,
   }));
+  // ⭐최후 그물: 셀러 원입력에 없는 위험 수치(약 OO Brix 등)·품종 주장 제거(표시광고법 안전망).
+  return scrubCopyItems(mapped, knownFacts ?? '');
 }
 
 export interface CopyInput {
@@ -296,6 +300,7 @@ export interface CopyInput {
   ch?: string;
   out?: string | null;
   depth?: string;
+  knownFacts?: string;       // 셀러 원입력 — 후처리 날조 그물의 허용 기준
 }
 
 export interface CopyResult {
@@ -316,7 +321,7 @@ export interface CopyResult {
  * runCopyChunk를 청크별로 직접 호출한다.
  */
 export async function runCopy(input: CopyInput): Promise<CopyResult> {
-  const { dna, strategy, sections, cat, ch, out, depth } = input;
+  const { dna, strategy, sections, cat, ch, out, depth, knownFacts } = input;
 
   const category = cat || '화장품';
   const channel  = ch || '스마트스토어';
@@ -335,7 +340,7 @@ export async function runCopy(input: CopyInput): Promise<CopyResult> {
       sections: sections.slice(i, i + COPY_CHUNK_SIZE),
       startIndex: i,
       totalSections: total,
-      cat, ch, out, depth,
+      cat, ch, out, depth, knownFacts,
     });
     results.push(...part);
   }

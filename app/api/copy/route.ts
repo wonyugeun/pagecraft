@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
     // 공통
     sections?: SectionPlan[];
     cat?: string; ch?: string; out?: string; depth?: string;
+    knownFacts?: string;   // 셀러 원입력(productName+productExtra) — 후처리 날조 그물 허용 기준
   };
 
-  const { strategySummary, startIndex, totalSections, dna, strategy, sections, cat, ch, out, depth } = body;
+  const { strategySummary, startIndex, totalSections, dna, strategy, sections, cat, ch, out, depth, knownFacts } = body;
 
   // ① 청크 모드
   if (strategySummary && typeof startIndex === 'number' && typeof totalSections === 'number') {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '청크 모드: sections(이 청크 섹션들)는 필수입니다.' }, { status: 400 });
     }
     try {
-      const out_ = await runCopyChunk({ strategySummary, sections, startIndex, totalSections, cat, ch, out, depth });
+      const out_ = await runCopyChunk({ strategySummary, sections, startIndex, totalSections, cat, ch, out, depth, knownFacts });
       return NextResponse.json({ sections: out_, chunk: { startIndex, count: out_.length } });
     } catch (err) {
       console.error('Copy(chunk) error:', err);
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'strategy와 sections(=Stage2 출력)는 필수입니다.' }, { status: 400 });
   }
   try {
-    const result = await runCopy({ dna, strategy, sections, cat, ch, out, depth });
+    const result = await runCopy({ dna, strategy, sections, cat, ch, out, depth, knownFacts });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Copy error:', err);

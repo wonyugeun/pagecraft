@@ -192,6 +192,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
         startIndex: chunk.startIndex,
         totalSections: total,
         cat, ch, out, depth,
+        knownFacts: [productName, productExtra].filter(Boolean).join('\n'),   // 셀러 원입력 — 후처리 날조 그물 기준
       });
       if (r?.error) throw new Error(r.error);
       chunk.status = 'done';
