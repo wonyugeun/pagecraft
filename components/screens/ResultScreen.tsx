@@ -262,7 +262,15 @@ export async function downloadHtml(
       if (st?.aspectRatio) blockAspectMap[k] = st.aspectRatio;
     }
 
-    const sectionsHtml = sections.map(sec => {
+    const sectionsHtml = sections.map((sec, idx) => {
+      // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
+      const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
+      const tPrimary = sec.visual?.primary_color ?? '#6D4CFF';
+      const tSoft = sec.visual?.soft_color ?? '#F4F0FF';
+      const tBorder = sec.visual?.soft_border ?? '#E6DEFF';
+      const tag = kind
+        ? `\n      <span class="sec-tag" style="background:${tSoft};border:1px solid ${tBorder};color:${tPrimary};">${kind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}</span>`
+        : '';
       // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
       const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
       const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
@@ -282,7 +290,7 @@ export async function downloadHtml(
           ? `\n      <img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:20px 0 0;" />`
           : `\n      <div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
       }
-      return `\n    <section class="sec">\n      ${head}${sub}${bodyHtml}${media}\n    </section>`;
+      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${media}\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -297,6 +305,7 @@ export async function downloadHtml(
     .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
     .sec { padding: 48px 48px 0; }
     .sec-blocks { padding-top: 0; padding-bottom: 0; }
+    .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
     .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.4px; }
     .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
     .sec .bodytext { font-size: 16.5px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; }
@@ -473,6 +482,21 @@ function ImgSlot({
   );
 }
 
+/* ─── 디자인 블록 판정 — 섹션 role 미보유라 name 키워드 + 블록 타입으로 Problem/Feature 분류.
+   Hero(첫)·CTA(끝)·Comparison(compare 블록)은 제외(이미 전용 디자인). 색은 BlogSection이 테마로 주입. ─── */
+const PROBLEM_KEYS = ['공감', '고민', '일상', '불편', '걱정', '망설'];
+const FEATURE_KEYS = ['솔루션', '해결', '성분', '제형', '특징', '효능', '원료'];
+function sectionDesignKind(sec: Section, isFirst: boolean, isLast: boolean): 'problem' | 'feature' | null {
+  if (isFirst || isLast) return null;
+  if (sec.blocks?.some(b => b.type === 'compare')) return null; // Comparison 영역
+  // ⚠️섹션 이름(역할)만으로 판정. 블록 타입 폴백은 원인/후기/신뢰를 오태깅하므로 쓰지 않음.
+  const name = (sec.name ?? '').toLowerCase();
+  const hit = (keys: string[]) => keys.some(k => name.includes(k.toLowerCase()));
+  if (hit(PROBLEM_KEYS)) return 'problem';
+  if (hit(FEATURE_KEYS)) return 'feature';
+  return null;
+}
+
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
 export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
   sec: Section;
@@ -498,6 +522,14 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
 
   const hasBlocks = !!sec.blocks?.length;
   const hasImageBlock = !!sec.blocks?.some(b => b.type === 'image');
+
+  // Problem/Feature 디자인 블록 판정 + 제품 테마(하드코딩 금지 — 전부 sec.visual)
+  const designKind = sectionDesignKind(sec, !!isFirst, isLast);
+  const theme = {
+    primary:    sec.visual?.primary_color ?? DEFAULT_THEME.primary,
+    soft:       sec.visual?.soft_color   ?? DEFAULT_THEME.soft,
+    softBorder: sec.visual?.soft_border  ?? DEFAULT_THEME.softBorder,
+  };
 
   // 섹션 재생성 버튼 — 첫 image 블록 우상단 오버레이 (데스크탑 hover 표시, 모바일 항상 표시)
   const regenOverlayBtn = (
@@ -534,7 +566,20 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </div>
         ) : (
           <>
-            <div style={{ padding: '48px 36px 0', textAlign: 'left', fontSize: 21, fontWeight: 700, color: '#111', lineHeight: 1.5, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>{sec.headline}</div>
+            {/* 디자인 블록 태그(Problem/Feature) — soft 배경 pill, 색은 제품 테마 */}
+            {designKind && (
+              <div style={{ padding: '40px 36px 0' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 999, background: theme.soft, border: `1px solid ${theme.softBorder}`, fontSize: 13, fontWeight: 700, color: theme.primary, letterSpacing: '-0.2px' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: theme.primary, flexShrink: 0 }} />
+                  {designKind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}
+                </span>
+              </div>
+            )}
+            <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: 'left', fontSize: designKind ? 23 : 21, fontWeight: 700, color: '#111', lineHeight: 1.45, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
+              {designKind === 'problem'
+                ? <span style={{ background: `linear-gradient(transparent 58%, ${theme.soft} 58%)`, padding: '0 1px', WebkitBoxDecorationBreak: 'clone', boxDecorationBreak: 'clone' }}>{sec.headline}</span>
+                : sec.headline}
+            </div>
             {sec.subcopy && (
               <div style={{ padding: '14px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
             )}

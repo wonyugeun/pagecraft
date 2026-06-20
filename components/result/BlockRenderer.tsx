@@ -132,22 +132,28 @@ function ParagraphBlock({ text }: { text: string }) {
 }
 
 /* ─── checklist ─── */
+// 공감(Problem) 섹션 체크리스트 — 항목별 soft 테마 카드 + 원형 체크아이콘. 색은 ThemeContext.
 function ChecklistBlock({ items }: { items: string[] }) {
   const t = useBlockTheme();
   return (
-    <div style={{
-      marginBottom: 32,
-      borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-      padding: 20,
-    }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {items.map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: 12, fontSize: 15, lineHeight: 1.7, color: COLORS.text333 }}>
-            <Check size={18} strokeWidth={2.5} style={{ marginTop: 4, flexShrink: 0, color: t.primary }} />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
+    <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {items.map((item, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+          background: t.soft, border: `1px solid ${t.softBorder}`,
+          borderRadius: 16, padding: '14px 16px',
+          fontSize: 15, lineHeight: 1.6, color: COLORS.text333,
+        }}>
+          <span style={{
+            flexShrink: 0, marginTop: 1, width: 22, height: 22, borderRadius: '50%',
+            background: t.primary, color: COLORS.white,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Check size={14} strokeWidth={3} />
+          </span>
+          <span>{item}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -184,9 +190,10 @@ function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
 }
 
 /* ─── iconcards ─── */
+// 솔루션(Feature) 성분/기능 카드 — 데스크탑 2x2(4개)·모바일 1열. 색은 ThemeContext.
 function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: string }[]; isMobile?: boolean }) {
   const t = useBlockTheme();
-  const cols = isMobile ? 2 : (cards.length >= 4 ? 4 : Math.max(2, cards.length));
+  const cols = isMobile ? 1 : (cards.length >= 4 ? 2 : Math.max(2, cards.length));
   return (
     <div style={{
       marginBottom: 32,
