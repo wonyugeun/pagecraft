@@ -21,6 +21,7 @@ import type { Block } from '@/store/AppContext';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export const COPY_CHUNK_SIZE = 16;
+const COPY_MAX_ATTEMPTS = 2; // 최초 1 + 자동 재시도 1 (strategy/imagebrief와 동일 패턴)
 
 interface Strategy {
   concept?: string;
@@ -222,33 +223,51 @@ ${COPY_PRINCIPLES}
   }
 ]`;
 
-  const message = await client.messages.create({
-    model:      'claude-sonnet-4-6',
-    max_tokens: 16000,
-    system:     composedSystem,
-    messages:   [{ role: 'user', content: userPrompt }],
-  });
+  // 잘림(max_tokens) 또는 JSON 파싱 실패 시 1회 자동 재시도 (strategy/imagebrief와 동일 패턴).
+  // userPrompt·composedSystem(strategy_summary 7필드 포함)은 동일 입력으로 그대로 재주입한다.
+  let parsed: unknown = null;
+  let lastErr = '';
+  for (let attempt = 1; attempt <= COPY_MAX_ATTEMPTS; attempt++) {
+    const message = await client.messages.create({
+      model:      'claude-sonnet-4-6',
+      max_tokens: 16000,
+      system:     composedSystem,
+      messages:   [{ role: 'user', content: userPrompt }],
+    });
 
-  const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-  console.log(`[copy] chunk@${startIndex} (${items.length}섹션) stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
-  if (message.stop_reason === 'max_tokens') {
-    throw new Error(`청크(${startIndex}~)가 max_tokens(16000)에 도달해 잘렸어요. 청크 크기를 줄여보세요.`);
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    console.log(`[copy] chunk@${startIndex} (${items.length}섹션) attempt=${attempt}/${COPY_MAX_ATTEMPTS} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
+
+    if (message.stop_reason === 'max_tokens') {
+      lastErr = `청크(${startIndex}~)가 max_tokens(16000)에 도달해 잘렸어요`;
+      console.warn(`[copy] ${lastErr} — ${attempt < COPY_MAX_ATTEMPTS ? '자동 재시도' : '재시도 소진'}`);
+      continue;
+    }
+
+    const first = raw.indexOf('[');
+    const last  = raw.lastIndexOf(']');
+    if (first === -1 || last === -1 || last < first) {
+      lastErr = '응답에서 JSON 배열을 찾을 수 없음';
+      console.error(`[copy] ${lastErr} chunk@${startIndex} (attempt ${attempt}). raw head:\n${raw.slice(0, 400)}`);
+      continue;
+    }
+
+    try {
+      const p = JSON.parse(raw.slice(first, last + 1));
+      if (!Array.isArray(p)) { lastErr = `JSON이 배열이 아님: ${typeof p}`; continue; }
+      parsed = p;
+      break;
+    } catch (parseErr) {
+      const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      lastErr = `JSON 파싱 실패: ${pmsg}`;
+      console.error(`[copy] ${lastErr} chunk@${startIndex} (attempt ${attempt})\nraw tail:\n${raw.slice(-400)}`);
+      continue;
+    }
   }
-  const first = raw.indexOf('[');
-  const last  = raw.lastIndexOf(']');
-  if (first === -1 || last === -1 || last < first) {
-    console.error(`[copy] JSON 배열 미발견 chunk@${startIndex}. raw head:\n${raw.slice(0, 400)}`);
-    throw new Error('응답에서 JSON 배열을 찾을 수 없음');
+
+  if (parsed === null) {
+    throw new Error(`카피 생성 실패(청크 ${startIndex}~, ${COPY_MAX_ATTEMPTS}회 시도): ${lastErr}`);
   }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw.slice(first, last + 1));
-  } catch (parseErr) {
-    const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-    console.error(`[copy] JSON.parse 실패 chunk@${startIndex}: ${pmsg}\nraw tail:\n${raw.slice(-400)}`);
-    throw new Error(`JSON 파싱 실패: ${pmsg}`);
-  }
-  if (!Array.isArray(parsed)) throw new Error(`JSON이 배열이 아님: ${typeof parsed}`);
   return (parsed as Record<string, unknown>[]).map(s => ({
     name:     typeof s.name === 'string' ? s.name : '',
     headline: typeof s.headline === 'string' ? s.headline : '',
