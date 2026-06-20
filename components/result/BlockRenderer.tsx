@@ -50,12 +50,13 @@ function heroHeadlineSize(headline: string): string {
   const mobMin  = len <= 13 ? 29 : len <= 20 ? 26 : len <= 28 ? 23 : 21;
   return `clamp(${mobMin}px, 6.2vw, ${deskMax}px)`;
 }
-export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, primary, accent, soft, softBorder }: {
+export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, bodySlot, primary, accent, soft, softBorder }: {
   headline: string;
   subcopy?: string;
   kpis?: HeroKPI[];
   productImage?: string | null;
   onImageClick?: () => void;
+  bodySlot?: ReactNode;     // 설명 본문 — 이미지 위(헤드라인→설명→이미지 순)에 렌더
   primary: string;
   accent: string;
   soft: string;
@@ -82,6 +83,10 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
             {subcopy}
           </p>
         )}
+        {/* 설명 본문 — 이미지 위에(헤드라인 → 설명 → 이미지). 본문은 왼쪽 정렬, 가운데 축의 max-w 안에서 */}
+        {bodySlot && (
+          <div className="mx-auto mt-6 max-w-[600px] text-left">{bodySlot}</div>
+        )}
         {kpis.length > 0 && (
           <div className="mt-10 grid grid-cols-3 gap-3">
             {kpis.map((item, idx) => (
@@ -99,8 +104,8 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
             <img
               src={productImage} alt=""
               onClick={onImageClick}
-              className="mx-auto block w-auto max-w-full rounded-[24px] object-contain"
-              style={{ maxHeight: 'clamp(240px, 52vw, 380px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
+              className="mx-auto block w-auto rounded-[24px] object-contain"
+              style={{ maxHeight: 'clamp(240px, 52vw, 380px)', maxWidth: 'min(100%, 460px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
             />
           ) : (
             /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
@@ -266,7 +271,10 @@ function StatsBlock({ items, isMobile }: { items: { value: string; label: string
       {items.map((s, i) => {
         const Icon = statIcon(s.value, s.label);
         return (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '4px 6px' }}>
+          <div key={i} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+            padding: '22px 12px', borderRadius: 18, border: `1px solid ${t.softBorder}`, background: COLORS.white,
+          }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
               background: t.soft, color: t.primary,

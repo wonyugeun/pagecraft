@@ -205,7 +205,7 @@ const HTML_BLOCKS_CSS = `
 .iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
 
 .stats { margin-bottom: 32px; display: grid; column-gap: 12px; }
-.stat { padding: 4px 6px; text-align: center; }
+.stat { padding: 22px 12px; text-align: center; border: 1px solid #E6DEFF; border-radius: 18px; background: #fff; }
 .stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: #6D4CFF; line-height: 1.2; }
 .stat small { margin-top: 6px; display: block; font-size: 13px; font-weight: 600; color: #333; line-height: 1.45; }
 
@@ -558,6 +558,13 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               subcopy={sec.subcopy}
               productImage={imgState?.url ?? null}
               onImageClick={imgState?.url ? onLightbox : undefined}
+              bodySlot={sec.body ? (
+                <>{sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
+                  <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
+                    {para.split('\n').map((line, j, lines) => (<Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>))}
+                  </p>
+                ))}</>
+              ) : undefined}
               primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
               accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
               soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
@@ -584,9 +591,8 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </>
         )}
 
-        {/* ── 본문(body) — v5 호흡 복원: 이중 줄바꿈(\n\n)=문단(띄움), 단일 줄바꿈(\n)=줄만 바꿈(<br>, 간격0).
-            짧은 문장은 붙어 흐르고, 장면 전환에서만 문단이 띄워진다. ── */}
-        {sec.body && (
+        {/* ── 본문(body) — v5 호흡: 이중 \n\n=문단, 단일 \n=<br>. Hero는 위 HeroBlock의 bodySlot에서 이미지 위로 렌더하므로 여기선 제외. ── */}
+        {!(isFirst && sec.bodyFlow) && sec.body && (
           <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
             {sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
               <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
