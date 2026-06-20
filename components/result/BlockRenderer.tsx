@@ -42,13 +42,9 @@ const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 // 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
 interface HeroKPI { value: string; label: string; }
 
-// Hero 헤드라인 글자수 기반 반응형 크기 — 짧으면 크게, 길면 자동 축소(긴 한글에서 3줄 터짐 방지).
-// clamp(모바일 최소, 6.2vw, 데스크탑 최대): 폭에 따라 유동 + 길이로 상한 캡.
-function heroHeadlineSize(headline: string): string {
-  const len = (headline ?? '').replace(/\s/g, '').length; // 공백 제외 글자수
-  const deskMax = len <= 13 ? 48 : len <= 20 ? 42 : len <= 28 ? 36 : 31;
-  const mobMin  = len <= 13 ? 29 : len <= 20 ? 26 : len <= 28 ? 23 : 21;
-  return `clamp(${mobMin}px, 6.2vw, ${deskMax}px)`;
+// Hero 헤드라인 크기 — 다른 섹션 헤드라인(21~23px)과 같은 급으로 통일. 혼자 튀지 않게, 단 너무 작지 않게.
+function heroHeadlineSize(): string {
+  return 'clamp(21px, 3vw, 25px)';
 }
 export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, bodySlot, primary, accent, soft, softBorder }: {
   headline: string;
@@ -74,7 +70,7 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
         </div>
         <h1
           className="mx-auto mt-6 max-w-[620px] text-center font-extrabold tracking-[-0.04em] text-zinc-900"
-          style={{ fontSize: heroHeadlineSize(headline), lineHeight: 1.22, textWrap: 'balance' }}
+          style={{ fontSize: heroHeadlineSize(), lineHeight: 1.3, textWrap: 'balance' }}
         >
           {headline}
         </h1>
@@ -105,7 +101,7 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
               src={productImage} alt=""
               onClick={onImageClick}
               className="mx-auto block w-auto rounded-[24px] object-contain"
-              style={{ maxHeight: 'clamp(240px, 52vw, 380px)', maxWidth: 'min(100%, 460px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
+              style={{ maxHeight: 'clamp(300px, 64vw, 480px)', maxWidth: 'min(100%, 600px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
             />
           ) : (
             /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
