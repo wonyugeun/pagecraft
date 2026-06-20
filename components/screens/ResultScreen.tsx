@@ -523,6 +523,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
             <HeroBlock
               headline={sec.headline}
               subcopy={sec.subcopy}
+              productImage={imgState?.url ?? null}
               primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
               accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
               soft={sec.visual?.soft_color ?? DEFAULT_THEME.soft}
@@ -547,20 +548,24 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </div>
         )}
 
-        {/* ── 이미지/블록 — 기존 동작 보존: 블록 있으면 BlockRenderer, 없고 구 경로(!bodyFlow)면 섹션 대표 이미지 슬롯 ── */}
-        {hasBlocks ? (
-          <div style={{ paddingTop: 24 }}>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
-          </div>
-        ) : !sec.bodyFlow ? (
+        {/* ── 섹션 대표 이미지(V2 image_mission 브리프 → Gemini) — 블록 유무 무관 항상 노출.
+            첫 섹션(Hero)은 HeroBlock 내부에 이미지가 들어가므로 여기선 제외. 실패/미생성 시 ImgSlot이 placeholder 폴백. ── */}
+        {!(isFirst && sec.bodyFlow) && sec.imageDesc && (
           <div style={{ marginTop: 20 }}>
             <ImgSlot
               sec={sec} imgState={imgState} onGenerate={onGenerateImage}
-              slotStyle={{ width: '100%', aspectRatio: '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
+              slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
               onLightbox={onLightbox}
             />
           </div>
-        ) : null}
+        )}
+
+        {/* ── 블록(보조) — 카피·이미지 아래 공존 ── */}
+        {hasBlocks && (
+          <div style={{ paddingTop: 24 }}>
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+          </div>
+        )}
 
         {/* ── 수정/재생성 버튼 + 편집 패널 — 공통(모든 분기 동일) ── */}
         <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
@@ -1080,27 +1085,27 @@ export default function ResultScreen() {
       for (let i = 0; i < displaySections.length; i++) {
         if (ctrl.signal.aborted) break;
         const sec = displaySections[i];
-        const hasBlocks = !!sec.blocks?.length;
 
-        if (hasBlocks) {
-          // 블록 모드: image 블록만 따로 생성 (섹션 대표 이미지 skip)
-          for (let bi = 0; bi < sec.blocks!.length; bi++) {
-            if (ctrl.signal.aborted) break;
-            const block = sec.blocks![bi];
-            if (block.type !== 'image') continue;
-            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
-            if (count > 0) await sleep(3_000);
-            if (ctrl.signal.aborted) break;
-            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
-            count++;
-          }
-        } else {
-          // 기존 경로: 섹션 대표 이미지
-          if (restoredImages[sec.num]) continue;
+        // 섹션 대표 이미지 — 블록 유무와 무관하게 V2 브리프(sec.imageDesc)로 생성.
+        // 이미 복원된(저장된) 이미지가 있으면 재생성하지 않는다(재방문 과금 방지).
+        if (sec.imageDesc && !restoredImages[sec.num]) {
           if (count > 0) await sleep(3_000);
           if (ctrl.signal.aborted) break;
           await generateImage(sec, ctrl.signal);
           count++;
+        }
+
+        // 이미지 타입 블록이 있으면 추가 생성(현재 Stage3는 image 블록을 만들지 않지만 호환 유지)
+        if (sec.blocks?.length) {
+          for (let bi = 0; bi < sec.blocks.length; bi++) {
+            if (ctrl.signal.aborted) break;
+            const block = sec.blocks[bi];
+            if (block.type !== 'image') continue;
+            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
+            if (count > 0) await sleep(3_000);
+            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
+            count++;
+          }
         }
       }
     })();
@@ -1112,15 +1117,14 @@ export default function ResultScreen() {
   useEffect(() => {
     if (!displaySections.length || savedImagesRef.current) return;
     const allDone = displaySections.every(sec => {
-      if (sec.blocks?.length) {
-        return sec.blocks.every((b, bi) => {
-          if (b.type !== 'image') return true;
-          const img = blockImages[`${sec.num}#${bi}`];
-          return img && !img.loading;
-        });
-      }
-      const img = sectionImages[sec.num];
-      return img && !img.loading;
+      const secImg = sectionImages[sec.num];
+      const secOk = !sec.imageDesc || (secImg && !secImg.loading);
+      const blockOk = !sec.blocks?.length || sec.blocks.every((b, bi) => {
+        if (b.type !== 'image') return true;
+        const img = blockImages[`${sec.num}#${bi}`];
+        return img && !img.loading;
+      });
+      return secOk && blockOk;
     });
     if (!allDone) return;
 

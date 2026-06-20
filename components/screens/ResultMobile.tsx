@@ -180,24 +180,26 @@ export default function ResultMobile() {
       for (let i = 0; i < displaySections.length; i++) {
         if (ctrl.signal.aborted) break;
         const sec = displaySections[i];
-        const hasBlocks = !!sec.blocks?.length;
-        if (hasBlocks) {
-          for (let bi = 0; bi < sec.blocks!.length; bi++) {
-            if (ctrl.signal.aborted) break;
-            const block = sec.blocks![bi];
-            if (block.type !== 'image') continue;
-            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
-            if (count > 0) await sleep(3_000);
-            if (ctrl.signal.aborted) break;
-            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
-            count++;
-          }
-        } else {
-          if (restoredImages[sec.num]) continue;
+
+        // 섹션 대표 이미지 — 블록 유무 무관 V2 브리프(sec.imageDesc)로 생성. 복원본 있으면 skip(과금 방지).
+        if (sec.imageDesc && !restoredImages[sec.num]) {
           if (count > 0) await sleep(3_000);
           if (ctrl.signal.aborted) break;
           await generateImage(sec, ctrl.signal);
           count++;
+        }
+
+        // 이미지 타입 블록(있으면) 추가 생성 — 현재 Stage3엔 없지만 호환 유지
+        if (sec.blocks?.length) {
+          for (let bi = 0; bi < sec.blocks.length; bi++) {
+            if (ctrl.signal.aborted) break;
+            const block = sec.blocks[bi];
+            if (block.type !== 'image') continue;
+            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
+            if (count > 0) await sleep(3_000);
+            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
+            count++;
+          }
         }
       }
     })();
@@ -210,15 +212,14 @@ export default function ResultMobile() {
   useEffect(() => {
     if (!displaySections.length || savedImagesRef.current) return;
     const allDone = displaySections.every(sec => {
-      if (sec.blocks?.length) {
-        return sec.blocks.every((b, bi) => {
-          if (b.type !== 'image') return true;
-          const img = blockImages[`${sec.num}#${bi}`];
-          return img && !img.loading;
-        });
-      }
-      const img = sectionImages[sec.num];
-      return img && !img.loading;
+      const secImg = sectionImages[sec.num];
+      const secOk = !sec.imageDesc || (secImg && !secImg.loading);
+      const blockOk = !sec.blocks?.length || sec.blocks.every((b, bi) => {
+        if (b.type !== 'image') return true;
+        const img = blockImages[`${sec.num}#${bi}`];
+        return img && !img.loading;
+      });
+      return secOk && blockOk;
     });
     if (!allDone) return;
 
