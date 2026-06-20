@@ -100,8 +100,8 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
             <img
               src={productImage} alt=""
               onClick={onImageClick}
-              className="mx-auto block w-auto rounded-[24px] object-contain"
-              style={{ maxHeight: 'clamp(300px, 64vw, 480px)', maxWidth: 'min(100%, 600px)', cursor: onImageClick ? 'zoom-in' : 'default' }}
+              className="mx-auto block w-full rounded-[24px]"
+              style={{ maxWidth: 600, height: 'auto', cursor: onImageClick ? 'zoom-in' : 'default' }}
             />
           ) : (
             /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
