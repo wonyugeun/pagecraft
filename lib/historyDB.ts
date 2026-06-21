@@ -53,11 +53,26 @@ export async function saveImages(historyId: string, payload: HistoryImagesPayloa
   });
 }
 
-/** 기존 레코드에 부분 병합 저장(다른 필드 보존) — 이미지/override를 서로 덮어쓰지 않게. */
+/** 기존 레코드에 부분 병합 저장(다른 필드 보존) — 이미지/override를 서로 덮어쓰지 않게.
+ *  ⚠️ top-level 얕은 병합: partial.sectionImages를 주면 기존 sectionImages 맵 전체를 '교체'한다.
+ *  (sectionOverrides 등 다른 top-level 키만 보존. 맵 내부 키 단위 누적이 필요하면 mergeImages를 쓸 것.) */
 export async function patchImages(historyId: string, partial: HistoryImagesPayload): Promise<void> {
   let existing: HistoryImagesPayload | null = null;
   try { existing = await getImages(historyId); } catch { /* 없으면 신규 */ }
   await saveImages(historyId, { ...(existing ?? {}), ...partial });
+}
+
+/** 이미지 맵을 '내부 키 단위'로 깊게 병합 저장 — 섹션별 증분 저장에서 이전 섹션이 날아가지 않게.
+ *  patchImages(얕은 병합)는 sectionImages 맵 전체를 교체하므로 1장씩 저장하면 앞 장이 유실된다.
+ *  이 함수는 sectionImages/blockImages 내부 키를 누적 병합하고, 그 외 top-level 키(sectionOverrides 등)는 보존한다. */
+export async function mergeImages(historyId: string, partial: HistoryImagesPayload): Promise<void> {
+  let existing: HistoryImagesPayload | null = null;
+  try { existing = await getImages(historyId); } catch { /* 없으면 신규 */ }
+  await saveImages(historyId, {
+    ...(existing ?? {}),
+    sectionImages: { ...(existing?.sectionImages ?? {}), ...(partial.sectionImages ?? {}) },
+    blockImages:   { ...(existing?.blockImages ?? {}),   ...(partial.blockImages ?? {}) },
+  });
 }
 
 export async function getImages(historyId: string): Promise<HistoryImagesPayload | null> {
