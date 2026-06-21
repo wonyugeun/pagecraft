@@ -1311,24 +1311,37 @@ export default function ResultScreen() {
     if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
     setCaptureLoading(true);
     try {
-      const html2canvas = (await import('html2canvas')).default;
+      // 캡처 엔진: modern-screenshot(getComputedStyle 기반) — Tailwind v4 oklch() 색도 처리(html2canvas 1.4.1은 throw).
+      const { domToCanvas } = await import('modern-screenshot');
       // 섹션 많으면(10+) scale 하향해 부담↓
       const scale = orderedVisibleSections.length >= 10 ? 1.5 : 2;
       const PART_MAX = 15000; // 분할 안전치(브라우저 캔버스 ~32767px 한계 아래)
       const opts = {
-        backgroundColor: '#ffffff', scale, useCORS: true, logging: false,
-        ignoreElements: (el: Element) => {
-          const c = (el as HTMLElement).className;
+        backgroundColor: '#ffffff', scale,
+        // 제외 대상(수정/재생성 버튼 행·이미지 재생성 오버레이·편집패널): filter는 false 반환 시 노드 제외
+        filter: (node: Node) => {
+          if (!(node instanceof Element)) return true;
+          const c = (node as HTMLElement).className;
           const cls = typeof c === 'string' ? c : '';
-          return cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel');
+          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel'));
         },
       };
 
       // 1) 섹션(직계 자식)별 캡처 → 조각 캔버스 배열(섹션 경계 = 조각 경계)
+      console.log('[통이미지] 시작 — units:', units.length, '| scale:', scale);
+      units.forEach((u, i) => console.log(`  unit ${i}: <${u.tagName}> class="${typeof u.className === 'string' ? u.className : '(non-string)'}" ${u.offsetWidth}x${u.offsetHeight}`));
       const pieces: HTMLCanvasElement[] = [];
-      for (const u of units) {
-        const c = await html2canvas(u, opts);
-        if (c.width && c.height) pieces.push(c);
+      for (let idx = 0; idx < units.length; idx++) {
+        const u = units[idx];
+        console.log(`[통이미지] 섹션 ${idx} 캡처 시작 (${u.offsetWidth}x${u.offsetHeight})`);
+        try {
+          const c = await domToCanvas(u, opts);
+          console.log(`[통이미지] 섹션 ${idx} 완료: ${c.width}x${c.height}`);
+          if (c.width && c.height) pieces.push(c);
+        } catch (e) {
+          console.error(`[통이미지] ⚠️섹션 ${idx} 캡처에서 실패 — 진짜 원인:`, e);
+          throw e;
+        }
       }
       if (pieces.length === 0) throw new Error('캡처 조각 없음');
       const outW = Math.max(...pieces.map(p => p.width));
@@ -1371,8 +1384,11 @@ export default function ResultScreen() {
         await new Promise(r => setTimeout(r, 350)); // 다중 다운로드 간 텀(브라우저 차단 완화)
       }
     } catch (err) {
-      console.error('[handleFullCapture]', err);
-      alert('통이미지 캡처 중 오류가 발생했어요. 다시 시도해 주세요.');
+      const e = err as Error;
+      console.error('[통이미지] ❌ 최종 에러 메시지:', e?.message);
+      console.error('[통이미지] ❌ 스택:', e?.stack);
+      console.error('[통이미지] ❌ 원본 객체:', err);
+      alert('통이미지 캡처 실패 (진짜 원인): ' + (e?.message || String(err)));
     } finally {
       setCaptureLoading(false);
     }
