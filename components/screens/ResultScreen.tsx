@@ -1300,40 +1300,79 @@ export default function ResultScreen() {
     }
   };
 
-  // 결과물 본문(BlogSection들)을 렌더 그대로 세로 한 장 PNG로 — 밴드/카페/인스타용(디자인·이미지·색 그대로).
-  // 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함. 수정/재생성 버튼·이미지 오버레이는 캡처 시 제외.
+  // 결과물 본문(BlogSection들)을 렌더 그대로 세로 PNG로 — 밴드/카페/인스타용(디자인·이미지·색 그대로).
+  // 섹션을 하나씩 캡처해 이어붙이고, 누적 높이가 한계(안전치 15000px)를 넘으면 섹션 경계에서 part로 자동 분할.
+  // 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함. 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처 시 제외. AI 재호출 0.
   const handleFullCapture = async () => {
     if (captureLoading) return;
-    const node = captureRef.current;
-    if (!node) { alert('캡처할 본문이 없습니다.'); return; }
+    const container = captureRef.current;
+    if (!container) { alert('캡처할 본문이 없습니다.'); return; }
+    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0);
+    if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
     setCaptureLoading(true);
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(node, {
-        backgroundColor: '#ffffff',
-        scale: Math.min(2, (typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1) >= 2 ? 2 : 1.8),
-        useCORS: true,            // 이미지가 base64 data URL이라 CORS 영향 없음(외부 URL 대비 안전망)
-        logging: false,
-        // UI 크롬 제외: 수정/재생성 버튼 행·이미지 위 재생성 오버레이·편집 패널
-        ignoreElements: (el) => {
+      // 섹션 많으면(10+) scale 하향해 부담↓
+      const scale = orderedVisibleSections.length >= 10 ? 1.5 : 2;
+      const PART_MAX = 15000; // 분할 안전치(브라우저 캔버스 ~32767px 한계 아래)
+      const opts = {
+        backgroundColor: '#ffffff', scale, useCORS: true, logging: false,
+        ignoreElements: (el: Element) => {
           const c = (el as HTMLElement).className;
           const cls = typeof c === 'string' ? c : '';
           return cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel');
         },
-      });
-      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
-      if (!blob) throw new Error('canvas toBlob 실패');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '')}_통이미지.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+
+      // 1) 섹션(직계 자식)별 캡처 → 조각 캔버스 배열(섹션 경계 = 조각 경계)
+      const pieces: HTMLCanvasElement[] = [];
+      for (const u of units) {
+        const c = await html2canvas(u, opts);
+        if (c.width && c.height) pieces.push(c);
+      }
+      if (pieces.length === 0) throw new Error('캡처 조각 없음');
+      const outW = Math.max(...pieces.map(p => p.width));
+
+      // 2) 조각을 part로 패킹 — 누적 높이가 PART_MAX 넘으면 새 part(섹션 중간 절대 안 자름)
+      const parts: HTMLCanvasElement[][] = [];
+      let curr: HTMLCanvasElement[] = [];
+      let currH = 0;
+      for (const p of pieces) {
+        if (currH > 0 && currH + p.height > PART_MAX) { parts.push(curr); curr = []; currH = 0; }
+        curr.push(p); currH += p.height;
+      }
+      if (curr.length) parts.push(curr);
+
+      if (parts.length > 1) {
+        alert(`긴 페이지라 ${parts.length}장으로 나뉘어 저장됩니다. (밴드/인스타엔 여러 장 업로드 가능)`);
+      }
+
+      // 3) 각 part를 캔버스에 세로로 그려 PNG 다운로드
+      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
+      for (let i = 0; i < parts.length; i++) {
+        const group = parts[i];
+        const h = group.reduce((s, p) => s + p.height, 0);
+        const cv = document.createElement('canvas');
+        cv.width = outW; cv.height = h;
+        const ctx = cv.getContext('2d')!;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, outW, h);
+        let y = 0;
+        for (const p of group) { ctx.drawImage(p, 0, y); y += p.height; }
+        const blob: Blob | null = await new Promise(res => cv.toBlob(b => res(b), 'image/png'));
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = parts.length > 1 ? `${safeName}_통이미지_${i + 1}.png` : `${safeName}_통이미지.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        await new Promise(r => setTimeout(r, 350)); // 다중 다운로드 간 텀(브라우저 차단 완화)
+      }
     } catch (err) {
       console.error('[handleFullCapture]', err);
-      alert('통이미지 캡처 중 오류가 발생했어요. 섹션이 너무 길면 일부 환경에서 실패할 수 있어요.');
+      alert('통이미지 캡처 중 오류가 발생했어요. 다시 시도해 주세요.');
     } finally {
       setCaptureLoading(false);
     }
