@@ -532,7 +532,7 @@ export default function ResultMobile() {
                     sec={sec}
                     onRegen={() => handleRegenSection(realIdx)}
                     regenLoading={regenLoadingSet.has(realIdx)}
-                    onSaveBody={body => updateSection(realIdx, { body })}
+                    onPatch={patch => updateSection(realIdx, patch)}
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                     onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                     isLast={displayIdx === orderedVisibleSections.length - 1}

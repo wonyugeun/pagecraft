@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -513,12 +513,11 @@ function sectionDesignKind(sec: Section, isFirst: boolean, isLast: boolean): 'pr
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
+export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
-  onSaveBody: (body: string) => void;
-  onPatch?: (patch: Partial<Section>) => void;   // headline/subcopy/blocks 등 인라인 편집 patch (AI 0)
+  onPatch?: (patch: Partial<Section>) => void;   // body/headline/subcopy/blocks 등 인라인 편집 patch (AI 0). body도 인라인으로 통일.
   imgState: ImgState;
   onGenerateImage: () => void;
   isLast: boolean;
@@ -528,14 +527,6 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, i
   onLightboxBlock?: (key: string) => void;
   isMobile?: boolean;
 }) {
-  const [editOpen, setEditOpen] = useState(false);
-  const [editVal, setEditVal] = useState(sec.body);
-
-  // 외부에서 sec.body가 바뀌면(재생성/override) 편집 중이 아닐 때만 동기화
-  useEffect(() => {
-    if (!editOpen) setEditVal(sec.body);
-  }, [sec.body, editOpen]);
-
   const hasBlocks = !!sec.blocks?.length;
   const hasImageBlock = !!sec.blocks?.some(b => b.type === 'image');
 
@@ -577,12 +568,9 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, i
               onSubcopyCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined}
               productImage={imgState?.url ?? null}
               onImageClick={imgState?.url ? onLightbox : undefined}
-              bodySlot={sec.body ? (
-                <>{sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
-                  <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
-                    {para.split('\n').map((line, j, lines) => (<Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>))}
-                  </p>
-                ))}</>
+              bodySlot={(sec.body || onPatch) ? (
+                <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
+                  style={{ fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }} />
               ) : undefined}
               primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
               accent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
@@ -612,16 +600,12 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, i
           </>
         )}
 
-        {/* ── 본문(body) — v5 호흡: 이중 \n\n=문단, 단일 \n=<br>. Hero는 위 HeroBlock의 bodySlot에서 이미지 위로 렌더하므로 여기선 제외. ── */}
-        {!(isFirst && sec.bodyFlow) && sec.body && (
+        {/* ── 본문(body) — 인라인 편집(멀티라인 contentEditable). pre-wrap이 v5 호흡 유지(단일 \n=줄바꿈, 이중 \n\n=문단 띄움).
+            Hero는 위 HeroBlock의 bodySlot에서 이미지 위로 렌더하므로 여기선 제외. ── */}
+        {!(isFirst && sec.bodyFlow) && (sec.body || onPatch) && (
           <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
-            {sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean).map((para, i, arr) => (
-              <p key={i} style={{ margin: 0, marginBottom: i < arr.length - 1 ? 16 : 0, fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }}>
-                {para.split('\n').map((line, j, lines) => (
-                  <Fragment key={j}>{line.trim()}{j < lines.length - 1 && <br />}</Fragment>
-                ))}
-              </p>
-            ))}
+            <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
+              style={{ fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }} />
           </div>
         )}
 
@@ -644,22 +628,12 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, i
           </div>
         )}
 
-        {/* ── 수정/재생성 버튼 + 편집 패널 — 공통(모든 분기 동일). bs-actions = 통이미지 캡처 시 제외 ── */}
+        {/* ── 재생성 버튼 — 텍스트는 전부 인라인 편집(클릭)이라 '수정' 패널/버튼 없음. bs-actions = 통이미지 캡처 시 제외 ── */}
         <div className="bs-actions" style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-          <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
           <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
             {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
           </button>
         </div>
-        {editOpen && (
-          <div className="edit-panel open" style={{ margin: '-24px 36px 32px', maxWidth: 580, marginLeft: 'auto', marginRight: 'auto' }}>
-            <textarea className="edit-inp" value={editVal} onChange={e => setEditVal(e.target.value)} />
-            <div className="edit-actions">
-              <button className="edit-save" onClick={() => { onSaveBody(editVal); setEditOpen(false); }}>저장</button>
-              <button className="edit-cancel" onClick={() => { setEditVal(sec.body); setEditOpen(false); }}>취소</button>
-            </div>
-          </div>
-        )}
       </div>
       {!isLast && <div style={{ height: 56 }} />}
     </>
@@ -1631,7 +1605,6 @@ export default function ResultScreen() {
                       sec={sec}
                       onRegen={() => handleRegenSection(realIdx)}
                       regenLoading={regenLoadingSet.has(realIdx)}
-                      onSaveBody={body => updateSection(realIdx, { body })}
                       onPatch={patch => updateSection(realIdx, patch)}
                       imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                       onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
