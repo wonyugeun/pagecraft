@@ -242,6 +242,20 @@ export default function ProductMobile() {
         }}>📝</div>
       </section>
 
+      {/* ⚠️ 법적 경고 — 입력 정보는 그대로 반영, 책임은 판매자 (안내 UI만, 입력 처리 불변) */}
+      <section style={{ padding: '16px 20px 0' }}>
+        <div style={{
+          display: 'flex', gap: 9, alignItems: 'flex-start',
+          background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '12px 13px',
+        }}>
+          <span style={{ fontSize: 14, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
+          <div style={{ fontSize: 12, lineHeight: 1.6, color: '#92400E' }}>
+            <b style={{ fontWeight: 700 }}>실측·검증된 정보만 입력해 주세요.</b><br />
+            입력하신 수치·효능·인증 정보는 그대로 상세페이지에 반영됩니다. 과장되거나 사실과 다른 정보 입력 시 표시광고법 위반이 될 수 있으며, 책임은 판매자에게 있습니다.
+          </div>
+        </div>
+      </section>
+
       {/* 4) 빠른 생성 모드 */}
       <section style={{ padding: '24px 20px 0' }}>
         <div style={{
