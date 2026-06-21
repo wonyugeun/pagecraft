@@ -59,7 +59,7 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
   softBorder: string;
 }) {
   return (
-    <section className="mx-auto max-w-[760px]">
+    <section>
       {/* 박스 제거(A안) + 공감(Problem) 섹션과 동일 정렬: 태그·제목·설명 왼쪽 정렬, 이미지만 가운데.
           가로 패딩은 BlogSection의 hero 래퍼(데스크탑 36px)가 제공 → 여기선 세로 패딩만. */}
       <div className="pb-10 pt-6 md:pb-12">
@@ -100,8 +100,8 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
             <img
               src={productImage} alt=""
               onClick={onImageClick}
-              className="mx-auto block w-full rounded-[24px]"
-              style={{ maxWidth: 600, height: 'auto', cursor: onImageClick ? 'zoom-in' : 'default' }}
+              className="mx-auto block rounded-[24px]"
+              style={{ width: '100%', maxWidth: 860, height: 'auto', objectFit: 'contain', cursor: onImageClick ? 'zoom-in' : 'default' }}
             />
           ) : (
             /* 미생성 placeholder — soft 톤의 가벼운 자리(흰 카드 아님) */
