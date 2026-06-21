@@ -37,22 +37,33 @@ const useBlockTheme = () => useContext(ThemeCtx);
 
 const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
-/** 인라인 편집(contentEditable) — onCommit 있으면 클릭 편집 가능, 없으면 일반 텍스트. AI 호출 0. */
+/** 인라인 편집(contentEditable) — onCommit 있으면 클릭 편집 가능, 없으면 일반 텍스트. AI 호출 0.
+ *  multiline: 줄바꿈 허용(white-space pre-wrap, Enter=줄바꿈). 읽기는 innerText로 \n 보존. 붙여넣기는 plain text. */
 export function Editable({ value, onCommit, style, multiline = false }: {
   value: string;
   onCommit?: (v: string) => void;
   style?: CSSProperties;
   multiline?: boolean;
 }) {
-  if (!onCommit) return <span style={style}>{value}</span>;
+  const baseStyle: CSSProperties = multiline ? { whiteSpace: 'pre-wrap', display: 'block', ...style } : (style ?? {});
+  if (!onCommit) return <span style={baseStyle}>{value}</span>;
   return (
     <span
       contentEditable
       suppressContentEditableWarning
       className="pc-editable"
       title="클릭해서 수정"
-      style={style}
-      onBlur={e => { const v = e.currentTarget.textContent ?? ''; if (v !== value) onCommit(v); }}
+      style={baseStyle}
+      onPaste={e => {
+        // 서식 따라오지 않게 plain text만 붙여넣기
+        e.preventDefault();
+        const t = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, t);
+      }}
+      onBlur={e => {
+        const v = multiline ? e.currentTarget.innerText : (e.currentTarget.textContent ?? '');
+        if (v !== value) onCommit(v);
+      }}
       onKeyDown={e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); } }}
     >{value}</span>
   );
