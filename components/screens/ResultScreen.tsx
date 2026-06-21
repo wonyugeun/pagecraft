@@ -1313,11 +1313,14 @@ export default function ResultScreen() {
     try {
       // 캡처 엔진: modern-screenshot(getComputedStyle 기반) — Tailwind v4 oklch() 색도 처리(html2canvas 1.4.1은 throw).
       const { domToCanvas } = await import('modern-screenshot');
-      // 섹션 많으면(10+) scale 하향해 부담↓
-      const scale = orderedVisibleSections.length >= 10 ? 1.5 : 2;
+      // 밴드용: 출력 폭을 1080px로 고정. 방법 A — 캡처 클론에만 width 1080 적용(라이브 DOM 미변경=깜빡임 0).
+      // 1080 기준으로 reflow되어 레이아웃이 1080폭으로 깔끔히 잡힘. scale 1 → PNG 폭 정확히 1080.
+      const TARGET_W = 1080;
+      const scale = 1;
       const PART_MAX = 15000; // 분할 안전치(브라우저 캔버스 ~32767px 한계 아래)
       const opts = {
         backgroundColor: '#ffffff', scale,
+        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },  // 캡처 클론 폭 = 1080
         // 제외 대상(수정/재생성 버튼 행·이미지 재생성 오버레이·편집패널): filter는 false 반환 시 노드 제외
         filter: (node: Node) => {
           if (!(node instanceof Element)) return true;
