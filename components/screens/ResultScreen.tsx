@@ -6,7 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns } from '@/components/result/BlockRenderer';
+import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
@@ -513,11 +513,12 @@ function sectionDesignKind(sec: Section, isFirst: boolean, isLast: boolean): 'pr
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
+export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
   onSaveBody: (body: string) => void;
+  onPatch?: (patch: Partial<Section>) => void;   // headline/subcopy/blocks 등 인라인 편집 patch (AI 0)
   imgState: ImgState;
   onGenerateImage: () => void;
   isLast: boolean;
@@ -572,6 +573,8 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
             <HeroBlock
               headline={sec.headline}
               subcopy={sec.subcopy}
+              onHeadlineCommit={onPatch ? v => onPatch({ headline: v }) : undefined}
+              onSubcopyCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined}
               productImage={imgState?.url ?? null}
               onImageClick={imgState?.url ? onLightbox : undefined}
               bodySlot={sec.body ? (
@@ -599,10 +602,12 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               </div>
             )}
             <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: 'left', fontSize: designKind ? 23 : 21, fontWeight: 700, color: '#111', lineHeight: 1.45, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
-              {sec.headline}
+              <Editable value={sec.headline} onCommit={onPatch ? v => onPatch({ headline: v }) : undefined} />
             </div>
-            {sec.subcopy && (
-              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
+            {(sec.subcopy || onPatch) && (
+              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>
+                <Editable value={sec.subcopy ?? ''} onCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined} />
+              </div>
             )}
           </>
         )}
@@ -635,7 +640,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
         {/* ── 블록(보조) — 카피·이미지 아래 공존. 이미지와 KPI/블록 사이 간격 ── */}
         {hasBlocks && (
           <div style={{ paddingTop: 36 }}>
-            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
+            <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} onBlocksChange={onPatch ? (blocks) => onPatch({ blocks }) : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
           </div>
         )}
 
@@ -1627,6 +1632,7 @@ export default function ResultScreen() {
                       onRegen={() => handleRegenSection(realIdx)}
                       regenLoading={regenLoadingSet.has(realIdx)}
                       onSaveBody={body => updateSection(realIdx, { body })}
+                      onPatch={patch => updateSection(realIdx, patch)}
                       imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                       onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                       isLast={displayIdx === orderedVisibleSections.length - 1}

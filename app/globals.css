@@ -353,6 +353,10 @@ textarea.finp{resize:vertical;min-height:72px;line-height:1.6}
 .edit-inp{width:100%;padding:9px 12px;background:var(--white);border:1.5px solid var(--bd);border-radius:var(--rs);font-size:13px;color:var(--tx);font-family:var(--f);outline:none;resize:vertical;min-height:60px;line-height:1.6;transition:border-color .18s}
 .edit-inp:focus{border-color:var(--ac)}
 .edit-actions{display:flex;gap:6px;margin-top:8px}
+/* 인라인 편집(contentEditable) — 클릭해서 텍스트 바로 수정. AI 호출 0 */
+.pc-editable{outline:none;border-radius:4px;cursor:text;transition:background .12s,box-shadow .12s}
+.pc-editable:hover{background:rgba(0,0,0,.04)}
+.pc-editable:focus{background:rgba(109,76,255,.07);box-shadow:0 0 0 2px var(--ac)}
 .edit-save{background:var(--ac);color:#fff;border:none;border-radius:var(--rs);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--f)}
 .edit-cancel{background:transparent;border:1.5px solid var(--bd);border-radius:var(--rs);padding:6px 12px;font-size:12px;color:var(--tx2);cursor:pointer;font-family:var(--f)}
 .slide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}

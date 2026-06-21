@@ -5,7 +5,7 @@ import {
   Leaf, Droplets, Sparkles, ShieldCheck, Image as ImageIcon,
   Calendar, Coins, Package,
 } from 'lucide-react';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode, type CSSProperties } from 'react';
 import { Block } from '@/store/AppContext';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
@@ -37,6 +37,27 @@ const useBlockTheme = () => useContext(ThemeCtx);
 
 const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
+/** 인라인 편집(contentEditable) — onCommit 있으면 클릭 편집 가능, 없으면 일반 텍스트. AI 호출 0. */
+export function Editable({ value, onCommit, style, multiline = false }: {
+  value: string;
+  onCommit?: (v: string) => void;
+  style?: CSSProperties;
+  multiline?: boolean;
+}) {
+  if (!onCommit) return <span style={style}>{value}</span>;
+  return (
+    <span
+      contentEditable
+      suppressContentEditableWarning
+      className="pc-editable"
+      title="클릭해서 수정"
+      style={style}
+      onBlur={e => { const v = e.currentTarget.textContent ?? ''; if (v !== value) onCommit(v); }}
+      onKeyDown={e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); } }}
+    >{value}</span>
+  );
+}
+
 /* ─── hero (GPT Design System V2 — GPT 제공 완성 코드 그대로) ─── */
 // 색은 ThemeContext에서 받아 prop으로 주입(hex 하드코딩 금지). kpis/productImage는 hero 블록 데이터에
 // 없으면 미전달 → KPI Row 생략, 이미지 placeholder(장식 원+아이콘) 표시. Confidence Line(headline 중복) 없음.
@@ -46,9 +67,11 @@ interface HeroKPI { value: string; label: string; }
 function heroHeadlineSize(): string {
   return 'clamp(21px, 2.8vw, 24px)';
 }
-export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, bodySlot, primary, accent, soft, softBorder }: {
+export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageClick, bodySlot, onHeadlineCommit, onSubcopyCommit, primary, accent, soft, softBorder }: {
   headline: string;
   subcopy?: string;
+  onHeadlineCommit?: (v: string) => void;   // 인라인 편집
+  onSubcopyCommit?: (v: string) => void;
   kpis?: HeroKPI[];
   productImage?: string | null;
   onImageClick?: () => void;
@@ -72,11 +95,11 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
           className="mt-3.5 text-left font-bold text-zinc-900"
           style={{ fontSize: heroHeadlineSize(), fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.4px', wordBreak: 'keep-all', whiteSpace: 'pre-line' }}
         >
-          {headline}
+          <Editable value={headline} onCommit={onHeadlineCommit} />
         </h1>
-        {subcopy && (
+        {(subcopy || onSubcopyCommit) && (
           <p className="mt-5 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
-            {subcopy}
+            <Editable value={subcopy ?? ''} onCommit={onSubcopyCommit} />
           </p>
         )}
         {/* 설명 본문 — 헤드라인 → 설명 → 이미지. 왼쪽 정렬 */}
@@ -123,7 +146,7 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
 }
 
 /* ─── heading ─── */
-function HeadingBlock({ text }: { text: string }) {
+function HeadingBlock({ text, onChange }: { text: string; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
     <h2 style={{
@@ -133,26 +156,26 @@ function HeadingBlock({ text }: { text: string }) {
       fontSize: 21, fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.03em',
       color: COLORS.text, whiteSpace: 'pre-line',
     }}>
-      {text}
+      <Editable value={text} onCommit={onChange ? v => onChange({ type: 'heading', text: v }) : undefined} />
     </h2>
   );
 }
 
 /* ─── paragraph ─── */
-function ParagraphBlock({ text }: { text: string }) {
+function ParagraphBlock({ text, onChange }: { text: string; onChange?: (b: Block) => void }) {
   return (
     <p style={{
       margin: '0 0 24px',
       fontSize: 16, lineHeight: 1.9, color: COLORS.textSub, whiteSpace: 'pre-line',
     }}>
-      {text}
+      <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'paragraph', text: v }) : undefined} />
     </p>
   );
 }
 
 /* ─── checklist ─── */
 // 공감(Problem) 섹션 체크리스트 — 항목별 soft 테마 카드 + 원형 체크아이콘. 색은 ThemeContext.
-function ChecklistBlock({ items }: { items: string[] }) {
+function ChecklistBlock({ items, onChange }: { items: string[]; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
     <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -170,7 +193,7 @@ function ChecklistBlock({ items }: { items: string[] }) {
           }}>
             <Check size={14} strokeWidth={3} />
           </span>
-          <span>{item}</span>
+          <Editable value={item} style={{ flex: 1 }} onCommit={onChange ? v => onChange({ type: 'checklist', items: items.map((it, j) => (j === i ? v : it)) }) : undefined} />
         </div>
       ))}
     </div>
@@ -178,8 +201,10 @@ function ChecklistBlock({ items }: { items: string[] }) {
 }
 
 /* ─── steps ─── */
-function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
+function StepsBlock({ items, onChange }: { items: { title: string; desc?: string }[]; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
+  const patch = (i: number, key: 'title' | 'desc', v: string) =>
+    onChange?.({ type: 'steps', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
   return (
     <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
       {items.map((step, i) => (
@@ -196,10 +221,14 @@ function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
           }}>
             {i + 1}
           </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>{step.title}</div>
-            {step.desc && (
-              <div style={{ marginTop: 4, fontSize: 14, lineHeight: 1.7, color: COLORS.textSub }}>{step.desc}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>
+              <Editable value={step.title} onCommit={onChange ? v => patch(i, 'title', v) : undefined} />
+            </div>
+            {(step.desc || onChange) && (
+              <div style={{ marginTop: 4, fontSize: 14, lineHeight: 1.7, color: COLORS.textSub }}>
+                <Editable value={step.desc ?? ''} multiline onCommit={onChange ? v => patch(i, 'desc', v) : undefined} />
+              </div>
             )}
           </div>
         </div>
@@ -210,9 +239,11 @@ function StepsBlock({ items }: { items: { title: string; desc?: string }[] }) {
 
 /* ─── iconcards ─── */
 // 솔루션(Feature) 성분/기능 카드 — 데스크탑 2x2(4개)·모바일 1열. 색은 ThemeContext.
-function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: string }[]; isMobile?: boolean }) {
+function IconCardsBlock({ cards, isMobile, onChange }: { cards: { title: string; desc?: string }[]; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   const cols = isMobile ? 1 : (cards.length >= 4 ? 2 : Math.max(2, cards.length));
+  const patch = (i: number, key: 'title' | 'desc', v: string) =>
+    onChange?.({ type: 'iconcards', cards: cards.map((c, j) => (j === i ? { ...c, [key]: v } : c)) });
   return (
     <div style={{
       marginBottom: 32,
@@ -233,9 +264,13 @@ function IconCardsBlock({ cards, isMobile }: { cards: { title: string; desc?: st
             }}>
               <Icon size={24} />
             </div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{card.title}</div>
-            {card.desc && (
-              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: COLORS.textSub }}>{card.desc}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>
+              <Editable value={card.title} onCommit={onChange ? v => patch(i, 'title', v) : undefined} />
+            </div>
+            {(card.desc || onChange) && (
+              <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: COLORS.textSub }}>
+                <Editable value={card.desc ?? ''} multiline onCommit={onChange ? v => patch(i, 'desc', v) : undefined} />
+              </div>
             )}
           </div>
         );
@@ -255,9 +290,11 @@ function statIcon(value: string, label: string) {
   if (/방울|수분|보습|워터|함량%?/.test(s)) return Droplets;
   return Leaf;
 }
-function StatsBlock({ items, isMobile }: { items: { value: string; label: string }[]; isMobile?: boolean }) {
+function StatsBlock({ items, isMobile, onChange }: { items: { value: string; label: string }[]; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   const cols = isMobile ? 2 : Math.min(items.length, 4);
+  const patch = (i: number, key: 'value' | 'label', v: string) =>
+    onChange?.({ type: 'stats', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
   return (
     <div style={{
       marginBottom: 32,
@@ -279,10 +316,10 @@ function StatsBlock({ items, isMobile }: { items: { value: string; label: string
               <Icon size={26} strokeWidth={1.8} />
             </div>
             <div style={{ fontSize: isMobile ? 19 : 21, fontWeight: 800, letterSpacing: '-0.03em', color: t.primary, lineHeight: 1.2 }}>
-              {s.value}
+              <Editable value={s.value} onCommit={onChange ? v => patch(i, 'value', v) : undefined} />
             </div>
             <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: COLORS.text333, lineHeight: 1.45 }}>
-              {s.label}
+              <Editable value={s.label} onCommit={onChange ? v => patch(i, 'label', v) : undefined} />
             </div>
           </div>
         );
@@ -314,9 +351,12 @@ export function compareColumns(headers: string[]): { hasLabel: boolean; leftIdx:
   const rightIdx = prodCols[prodCols.length - 1];
   return { hasLabel, leftIdx, rightIdx, ourIdx };
 }
-function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: string[][]; isMobile?: boolean }) {
+function CompareBlock({ headers, rows, isMobile, onChange }: { headers: string[]; rows: string[][]; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   const { hasLabel, leftIdx, rightIdx, ourIdx } = compareColumns(headers);
+  const patchHeader = (colIdx: number, v: string) => onChange?.({ type: 'compare', headers: headers.map((h, j) => (j === colIdx ? v : h)), rows });
+  const patchCell = (rowIdx: number, colIdx: number, v: string) =>
+    onChange?.({ type: 'compare', headers, rows: rows.map((rr, j) => (j === rowIdx ? rr.map((c, k) => (k === colIdx ? v : c)) : rr)) });
 
   const renderCard = (colIdx: number, mine: boolean) => (
     <div style={{
@@ -335,17 +375,24 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
           padding: '8px 14px', fontSize: 13, fontWeight: 700,
         }}>추천</div>
       )}
-      <div style={{ fontSize: 16, fontWeight: 800, color: mine ? t.primary : COLORS.textSub, marginBottom: 6 }}>{headers[colIdx] ?? (mine ? '이 제품' : '일반 제품')}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: mine ? t.primary : COLORS.textSub, marginBottom: 6 }}>
+        <Editable value={headers[colIdx] ?? (mine ? '이 제품' : '일반 제품')} onCommit={onChange ? v => patchHeader(colIdx, v) : undefined} />
+      </div>
       {rows.map((r, i) => {
         const label = hasLabel ? (r[0] ?? '') : '';
+        const labelEditable = onChange && colIdx === leftIdx;  // 라벨은 좌측 카드에서만 편집(중복 방지)
         return (
           <div key={i} style={{
             height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
             borderTop: i > 0 ? `1px solid ${mine ? t.softBorder : COLORS.border}` : 'none',
           }}>
-            {label && <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{label}</span>}
+            {(label || labelEditable) && (
+              <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>
+                <Editable value={label} onCommit={labelEditable ? v => patchCell(i, 0, v) : undefined} />
+              </span>
+            )}
             <span style={{ fontSize: 15, fontWeight: mine ? 700 : 500, color: mine ? t.primary : COLORS.textSub, textAlign: 'right' }}>
-              {r[colIdx] ?? ''}
+              <Editable value={r[colIdx] ?? ''} onCommit={onChange ? v => patchCell(i, colIdx, v) : undefined} />
             </span>
           </div>
         );
@@ -367,7 +414,7 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
 }
 
 /* ─── quote ─── */
-function QuoteBlock({ text, author, rating }: { text: string; author?: string; rating?: number }) {
+function QuoteBlock({ text, author, rating, onChange }: { text: string; author?: string; rating?: number; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 5;
   return (
@@ -381,7 +428,7 @@ function QuoteBlock({ text, author, rating }: { text: string; author?: string; r
         margin: 0,
         fontSize: 16, lineHeight: 1.85, color: COLORS.text333, whiteSpace: 'pre-line',
       }}>
-        {text}
+        <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'quote', text: v, author, rating }) : undefined} />
       </p>
       <div style={{
         marginTop: 16,
@@ -401,7 +448,9 @@ function QuoteBlock({ text, author, rating }: { text: string; author?: string; r
 }
 
 /* ─── faq ─── */
-function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
+function FaqBlock({ items, onChange }: { items: { q: string; a: string }[]; onChange?: (b: Block) => void }) {
+  const patch = (i: number, key: 'q' | 'a', v: string) =>
+    onChange?.({ type: 'faq', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
   return (
     <div style={{
       marginBottom: 32,
@@ -413,10 +462,12 @@ function FaqBlock({ items }: { items: { q: string; a: string }[] }) {
           borderBottom: i !== items.length - 1 ? `1px solid ${COLORS.border}` : 'none',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>Q. {f.q}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>Q. <Editable value={f.q} onCommit={onChange ? v => patch(i, 'q', v) : undefined} /></div>
             <ChevronDown size={18} style={{ flexShrink: 0, color: COLORS.textMute }} />
           </div>
-          <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.7, color: COLORS.textSub }}>{f.a}</div>
+          <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.7, color: COLORS.textSub }}>
+            <Editable value={f.a} multiline onCommit={onChange ? v => patch(i, 'a', v) : undefined} />
+          </div>
         </div>
       ))}
     </div>
@@ -486,7 +537,7 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
 // 명세: soft 배경 컨테이너 + 중앙 대형 headline + 버튼.
 // Subcopy는 cta 블록 데이터에 없어 생략. Trust Row(무료배송/안심포장/간편교환)는 셀러가 입력한
 // 약속이 아니면 표시광고법상 허위 → 데이터 없으면 생략(임의 생성 금지).
-function CtaBlock({ text, button, isMobile }: { text: string; button: string; isMobile?: boolean }) {
+function CtaBlock({ text, button, isMobile, onChange }: { text: string; button: string; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
     <div style={{
@@ -501,7 +552,7 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
         color: COLORS.text,
         whiteSpace: isMobile ? 'normal' : 'pre-line',
       }}>
-        {text}
+        <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'cta', text: v, button }) : undefined} />
       </h2>
       <button
         onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.95)'; }}
@@ -514,7 +565,7 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
           border: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer',
           fontFamily: FONT_FAMILY,
         }}>
-        {button}
+        <Editable value={button} onCommit={onChange ? v => onChange({ type: 'cta', text, button: v }) : undefined} />
         <ArrowRight size={18} />
       </button>
     </div>
@@ -522,7 +573,7 @@ function CtaBlock({ text, button, isMobile }: { text: string; button: string; is
 }
 
 /* ─── 메인 렌더러 ─── */
-export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay, primaryColor, accentColor, softColor, softBorder }: {
+export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay, onBlocksChange, primaryColor, accentColor, softColor, softBorder }: {
   blocks: Block[];
   sectionNum?: string;
   blockImages?: Record<string, BlockImgState>;
@@ -530,6 +581,8 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
   isMobile?: boolean;
   /** 섹션 재생성 버튼 — 첫 image 블록 우상단에 오버레이로 렌더 (없으면 미표시) */
   regenOverlay?: ReactNode;
+  /** 블록 텍스트 인라인 편집 결과 — 변경된 blocks 배열 전달(상위 updateSection으로 영속화). AI 호출 0 */
+  onBlocksChange?: (blocks: Block[]) => void;
   /** 제품별 결과물 색(visual). 미지정 시 브랜드 보라 폴백 — Flik UI 색과 무관 */
   primaryColor?: string;
   accentColor?: string;
@@ -553,17 +606,19 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
       color: COLORS.text,
     }}>
       {blocks.map((b, i) => {
+        // 이 블록을 새 블록으로 교체해 onBlocksChange로 올림(인라인 편집 영속화)
+        const oc = onBlocksChange ? (nb: Block) => onBlocksChange(blocks.map((bb, j) => (j === i ? nb : bb))) : undefined;
         switch (b.type) {
           case 'hero':      return <HeroBlock      key={i} headline={b.title} subcopy={b.subtitle} primary={theme.primary} accent={theme.accent} soft={theme.soft} softBorder={theme.softBorder} />;
-          case 'heading':   return <HeadingBlock   key={i} text={b.text} />;
-          case 'paragraph': return <ParagraphBlock key={i} text={b.text} />;
-          case 'checklist': return <ChecklistBlock key={i} items={b.items} />;
-          case 'steps':     return <StepsBlock     key={i} items={b.items} />;
-          case 'iconcards': return <IconCardsBlock key={i} cards={b.cards} isMobile={isMobile} />;
-          case 'stats':     return <StatsBlock     key={i} items={b.items} isMobile={isMobile} />;
-          case 'compare':   return <CompareBlock   key={i} headers={b.headers} rows={b.rows} isMobile={isMobile} />;
-          case 'quote':     return <QuoteBlock     key={i} text={b.text} author={b.author} rating={b.rating} />;
-          case 'faq':       return <FaqBlock       key={i} items={b.items} />;
+          case 'heading':   return <HeadingBlock   key={i} text={b.text} onChange={oc} />;
+          case 'paragraph': return <ParagraphBlock key={i} text={b.text} onChange={oc} />;
+          case 'checklist': return <ChecklistBlock key={i} items={b.items} onChange={oc} />;
+          case 'steps':     return <StepsBlock     key={i} items={b.items} onChange={oc} />;
+          case 'iconcards': return <IconCardsBlock key={i} cards={b.cards} isMobile={isMobile} onChange={oc} />;
+          case 'stats':     return <StatsBlock     key={i} items={b.items} isMobile={isMobile} onChange={oc} />;
+          case 'compare':   return <CompareBlock   key={i} headers={b.headers} rows={b.rows} isMobile={isMobile} onChange={oc} />;
+          case 'quote':     return <QuoteBlock     key={i} text={b.text} author={b.author} rating={b.rating} onChange={oc} />;
+          case 'faq':       return <FaqBlock       key={i} items={b.items} onChange={oc} />;
           case 'image': {
             const key = sectionNum ? `${sectionNum}#${i}` : '';
             const imgState = blockImages && key ? blockImages[key] : undefined;
