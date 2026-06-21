@@ -292,23 +292,33 @@ function StatsBlock({ items, isMobile }: { items: { value: string; label: string
 }
 
 /* ─── compare (GPT Design System V1 — SaaS 표 금지, 2컬럼 카드) ─── */
-// 데이터: headers=[구분?, 제품A, 제품B], rows=[[항목명?, A값, B값]]. 마지막 컬럼=우리(추천), 그 앞=일반.
-// 모든 값은 compare 블록 데이터 그대로(임의 생성 없음). "추천"은 UI 강조 라벨.
+// ⭐"우리 제품"을 데이터로 판정해 강조(추천 배지·primary·scale). 위치(좌/우)는 헤더 순서 유지.
+// 일반/타사/시중 등 키워드가 있는 컬럼=일반, 나머지=우리. 둘 다 없으면 마지막 컬럼을 우리로(폴백).
+const CMP_GEN_KW = ['일반', '타사', '타제품', '시중', '기존', '경쟁', '다른', '보통', '평범', '여타', '기타', '시판'];
+const CMP_OUR_KW = ['우리', '이 제품', '본 제품', '자사', '추천', '저희'];
+export function compareColumns(headers: string[]): { hasLabel: boolean; leftIdx: number; rightIdx: number; ourIdx: number } {
+  const cols = headers.length;
+  const hasLabel = cols >= 3;
+  const prodCols: number[] = [];
+  for (let i = hasLabel ? 1 : 0; i < cols; i++) prodCols.push(i);
+  const has = (h: string, kws: string[]) => kws.some(k => (h || '').includes(k));
+  let genIdx = -1, ourIdx = -1;
+  for (const i of prodCols) {
+    if (genIdx < 0 && has(headers[i], CMP_GEN_KW)) genIdx = i;
+    if (ourIdx < 0 && has(headers[i], CMP_OUR_KW)) ourIdx = i;
+  }
+  if (genIdx >= 0 && ourIdx < 0) ourIdx = prodCols.find(i => i !== genIdx) ?? prodCols[prodCols.length - 1];
+  if (ourIdx >= 0 && genIdx < 0) genIdx = prodCols.find(i => i !== ourIdx) ?? prodCols[0];
+  if (ourIdx < 0) ourIdx = prodCols[prodCols.length - 1]; // 폴백: 우리=마지막 컬럼
+  const leftIdx = prodCols[0];
+  const rightIdx = prodCols[prodCols.length - 1];
+  return { hasLabel, leftIdx, rightIdx, ourIdx };
+}
 function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: string[][]; isMobile?: boolean }) {
   const t = useBlockTheme();
-  const cols = headers.length;
-  const hasLabel = cols >= 3;                 // 첫 컬럼이 항목명인지
-  const genIdx = hasLabel ? 1 : 0;            // 일반(앞 제품)
-  const ourIdx = cols - 1;                    // 우리(마지막 제품, 추천)
-  const genName = headers[genIdx] ?? '일반 제품';
-  const ourName = headers[ourIdx] ?? '이 제품';
-  const items = rows.map(r => ({
-    label: hasLabel ? (r[0] ?? '') : '',
-    gen:   r[genIdx] ?? '',
-    our:   r[ourIdx] ?? '',
-  }));
+  const { hasLabel, leftIdx, rightIdx, ourIdx } = compareColumns(headers);
 
-  const renderCard = (name: string, mine: boolean) => (
+  const renderCard = (colIdx: number, mine: boolean) => (
     <div style={{
       position: 'relative',
       background: mine ? t.soft : COLORS.bg,
@@ -325,18 +335,21 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
           padding: '8px 14px', fontSize: 13, fontWeight: 700,
         }}>추천</div>
       )}
-      <div style={{ fontSize: 16, fontWeight: 800, color: mine ? t.primary : COLORS.textSub, marginBottom: 6 }}>{name}</div>
-      {items.map((it, i) => (
-        <div key={i} style={{
-          height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          borderTop: i > 0 ? `1px solid ${mine ? t.softBorder : COLORS.border}` : 'none',
-        }}>
-          {it.label && <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{it.label}</span>}
-          <span style={{ fontSize: 15, fontWeight: mine ? 700 : 500, color: mine ? t.primary : COLORS.textSub, textAlign: 'right' }}>
-            {mine ? it.our : it.gen}
-          </span>
-        </div>
-      ))}
+      <div style={{ fontSize: 16, fontWeight: 800, color: mine ? t.primary : COLORS.textSub, marginBottom: 6 }}>{headers[colIdx] ?? (mine ? '이 제품' : '일반 제품')}</div>
+      {rows.map((r, i) => {
+        const label = hasLabel ? (r[0] ?? '') : '';
+        return (
+          <div key={i} style={{
+            height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            borderTop: i > 0 ? `1px solid ${mine ? t.softBorder : COLORS.border}` : 'none',
+          }}>
+            {label && <span style={{ fontSize: 15, fontWeight: 600, color: COLORS.text }}>{label}</span>}
+            <span style={{ fontSize: 15, fontWeight: mine ? 700 : 500, color: mine ? t.primary : COLORS.textSub, textAlign: 'right' }}>
+              {r[colIdx] ?? ''}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 
@@ -347,8 +360,8 @@ function CompareBlock({ headers, rows, isMobile }: { headers: string[]; rows: st
       gap: isMobile ? 28 : 20, alignItems: 'start',
       paddingTop: 14,  // 추천 뱃지(top:-14) 여백
     }}>
-      {renderCard(genName, false)}
-      {renderCard(ourName, true)}
+      {renderCard(leftIdx, leftIdx === ourIdx)}
+      {renderCard(rightIdx, rightIdx === ourIdx)}
     </div>
   );
 }

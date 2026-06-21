@@ -6,7 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import BlockRenderer, { HeroBlock, DEFAULT_THEME } from '@/components/result/BlockRenderer';
+import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
@@ -141,11 +141,13 @@ function blocksToHtml(
   <strong>${escHtml(s.value)}</strong>
   <small>${escHtml(s.label)}</small>
 </div>`).join('')}</div>`;
-      case 'compare':
+      case 'compare': {
+        const { ourIdx } = compareColumns(b.headers);  // 우리 제품 컬럼을 데이터로 판정해 강조(화면과 동일)
         return `<table class="compare">
-  <thead><tr>${b.headers.map((h, idx) => `<th class="${idx === 1 ? 'hilite' : ''}">${escHtml(h)}</th>`).join('')}</tr></thead>
-  <tbody>${b.rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === 1 ? 'hilite' : idx === 0 ? 'firstcol' : ''}">${idx === 1 ? '<span class="check">✓</span>' : ''}${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+  <thead><tr>${b.headers.map((h, idx) => `<th class="${idx === ourIdx ? 'hilite' : ''}">${escHtml(h)}</th>`).join('')}</tr></thead>
+  <tbody>${b.rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === ourIdx ? 'hilite' : idx === 0 ? 'firstcol' : ''}">${idx === ourIdx ? '<span class="check">✓</span>' : ''}${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
 </table>`;
+      }
       case 'quote': {
         const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 5;
         return `<blockquote class="quote">
@@ -629,9 +631,9 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </div>
         )}
 
-        {/* ── 블록(보조) — 카피·이미지 아래 공존 ── */}
+        {/* ── 블록(보조) — 카피·이미지 아래 공존. 이미지와 KPI/블록 사이 간격 ── */}
         {hasBlocks && (
-          <div style={{ paddingTop: 24 }}>
+          <div style={{ paddingTop: 36 }}>
             <BlockRenderer blocks={sec.blocks!} sectionNum={sec.num} blockImages={blockImages} onLightboxBlock={onLightboxBlock} isMobile={isMobile} regenOverlay={hasImageBlock ? regenOverlayBtn : undefined} primaryColor={sec.visual?.primary_color} accentColor={sec.visual?.accent_color} softColor={sec.visual?.soft_color} softBorder={sec.visual?.soft_border} />
           </div>
         )}
