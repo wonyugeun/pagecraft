@@ -1300,14 +1300,15 @@ export default function ResultScreen() {
     }
   };
 
-  // 결과물 본문(BlogSection들)을 렌더 그대로 세로 PNG로 — 밴드/카페/인스타용(디자인·이미지·색 그대로).
-  // 섹션을 하나씩 캡처해 이어붙이고, 누적 높이가 한계(안전치 15000px)를 넘으면 섹션 경계에서 part로 자동 분할.
-  // 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함. 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처 시 제외. AI 재호출 0.
+  // 결과물 본문을 "섹션별 개별 PNG"로 다운로드 — 밴드/인스타용(섹션 단위라 각 장이 짧아 크게 보임 + 셀러가 원하는 섹션만 선택).
+  // 섹션 1개 = PNG 1장(섹션 중간 안 잘림 자동 보장). 폭 1080. 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함.
+  // 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처 시 제외. AI 재호출 0.
   const handleFullCapture = async () => {
     if (captureLoading) return;
     const container = captureRef.current;
     if (!container) { alert('캡처할 본문이 없습니다.'); return; }
-    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0);
+    // 직계 자식 중 실제 섹션 div만(자식 있는 것). 56px 빈 스페이서는 children 0이라 제외.
+    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
     if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
     setCaptureLoading(true);
     try {
@@ -1316,11 +1317,10 @@ export default function ResultScreen() {
       // 밴드용: 출력 폭을 1080px로 고정. 방법 A — 캡처 클론에만 width 1080 적용(라이브 DOM 미변경=깜빡임 0).
       // 1080 기준으로 reflow되어 레이아웃이 1080폭으로 깔끔히 잡힘. scale 1 → PNG 폭 정확히 1080.
       const TARGET_W = 1080;
-      const scale = 1;
-      const PART_MAX = 15000; // 분할 안전치(브라우저 캔버스 ~32767px 한계 아래)
+      const scale = 1;  // 폭 1080 × scale 1 = PNG 폭 정확히 1080
       const opts = {
         backgroundColor: '#ffffff', scale,
-        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },  // 캡처 클론 폭 = 1080
+        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },  // 캡처 클론 폭 = 1080(섹션이 1080폭으로 reflow)
         // 제외 대상(수정/재생성 버튼 행·이미지 재생성 오버레이·편집패널): filter는 false 반환 시 노드 제외
         filter: (node: Node) => {
           if (!(node instanceof Element)) return true;
@@ -1330,56 +1330,30 @@ export default function ResultScreen() {
         },
       };
 
-      // 1) 섹션(직계 자식)별 캡처 → 조각 캔버스 배열(섹션 경계 = 조각 경계)
-      console.log('[통이미지] 시작 — units:', units.length, '| scale:', scale);
-      units.forEach((u, i) => console.log(`  unit ${i}: <${u.tagName}> class="${typeof u.className === 'string' ? u.className : '(non-string)'}" ${u.offsetWidth}x${u.offsetHeight}`));
-      const pieces: HTMLCanvasElement[] = [];
+      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
+      console.log('[섹션이미지] 시작 — 섹션:', units.length);
+      if (units.length > 1) {
+        alert(`${units.length}장(섹션별)으로 저장됩니다. 밴드/인스타엔 원하는 섹션만 골라 올리세요.`);
+      }
+
+      // 섹션 하나씩 → PNG 1장 (섹션 중간 안 잘림 자동 보장)
       for (let idx = 0; idx < units.length; idx++) {
         const u = units[idx];
-        console.log(`[통이미지] 섹션 ${idx} 캡처 시작 (${u.offsetWidth}x${u.offsetHeight})`);
+        console.log(`[섹션이미지] ${idx + 1}/${units.length} 캡처 시작 (${u.offsetWidth}x${u.offsetHeight})`);
+        let canvas: HTMLCanvasElement;
         try {
-          const c = await domToCanvas(u, opts);
-          console.log(`[통이미지] 섹션 ${idx} 완료: ${c.width}x${c.height}`);
-          if (c.width && c.height) pieces.push(c);
+          canvas = await domToCanvas(u, opts);
+          console.log(`[섹션이미지] ${idx + 1} 완료: ${canvas.width}x${canvas.height}`);
         } catch (e) {
-          console.error(`[통이미지] ⚠️섹션 ${idx} 캡처에서 실패 — 진짜 원인:`, e);
+          console.error(`[섹션이미지] ⚠️섹션 ${idx + 1} 캡처 실패 — 진짜 원인:`, e);
           throw e;
         }
-      }
-      if (pieces.length === 0) throw new Error('캡처 조각 없음');
-      const outW = Math.max(...pieces.map(p => p.width));
-
-      // 2) 조각을 part로 패킹 — 누적 높이가 PART_MAX 넘으면 새 part(섹션 중간 절대 안 자름)
-      const parts: HTMLCanvasElement[][] = [];
-      let curr: HTMLCanvasElement[] = [];
-      let currH = 0;
-      for (const p of pieces) {
-        if (currH > 0 && currH + p.height > PART_MAX) { parts.push(curr); curr = []; currH = 0; }
-        curr.push(p); currH += p.height;
-      }
-      if (curr.length) parts.push(curr);
-
-      if (parts.length > 1) {
-        alert(`긴 페이지라 ${parts.length}장으로 나뉘어 저장됩니다. (밴드/인스타엔 여러 장 업로드 가능)`);
-      }
-
-      // 3) 각 part를 캔버스에 세로로 그려 PNG 다운로드
-      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
-      for (let i = 0; i < parts.length; i++) {
-        const group = parts[i];
-        const h = group.reduce((s, p) => s + p.height, 0);
-        const cv = document.createElement('canvas');
-        cv.width = outW; cv.height = h;
-        const ctx = cv.getContext('2d')!;
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, outW, h);
-        let y = 0;
-        for (const p of group) { ctx.drawImage(p, 0, y); y += p.height; }
-        const blob: Blob | null = await new Promise(res => cv.toBlob(b => res(b), 'image/png'));
+        const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
         if (!blob) continue;
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = parts.length > 1 ? `${safeName}_통이미지_${i + 1}.png` : `${safeName}_통이미지.png`;
+        a.download = `${safeName}_${String(idx + 1).padStart(2, '0')}.png`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -1898,7 +1872,7 @@ export default function ResultScreen() {
               </button>
             )}
 
-            {/* 통이미지(본문 캡처) — 블로그형: 렌더된 본문(텍스트·KPI·비교표·이미지·색)을 세로 한 장 PNG로. 밴드/카페/인스타용 */}
+            {/* 섹션별 이미지(본문 캡처) — 블로그형: 각 섹션을 1080폭 PNG 1장씩(밴드/인스타용, 원하는 섹션만 선택 업로드) */}
             {isBlog && (
               <button
                 onClick={handleFullCapture}
@@ -1911,7 +1885,7 @@ export default function ResultScreen() {
                   opacity: captureLoading ? 0.7 : 1,
                 }}
               >
-                <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '통이미지 다운로드 (밴드용)'}
+                <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '섹션별 이미지 다운로드 (밴드/인스타용)'}
               </button>
             )}
 
