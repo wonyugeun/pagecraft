@@ -955,7 +955,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, restoredBlockImages, updateLatestHistoryImages } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1021,11 +1021,20 @@ export default function ResultScreen() {
     ...sectionOverrides[realIdx],
   });
 
+  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override)을 state로 복원
+  useEffect(() => {
+    setSectionOverrides({ ...(restoredOverrides as Record<number, Partial<Section>>) });
+  }, [restoredOverrides]);
+
+  const overridesPersistTimer = useRef<NodeJS.Timeout | null>(null);
   const updateSection = (realIdx: number, patch: Partial<Section>) => {
-    setSectionOverrides(prev => ({
-      ...prev,
-      [realIdx]: { ...prev[realIdx], ...patch },
-    }));
+    setSectionOverrides(prev => {
+      const next = { ...prev, [realIdx]: { ...prev[realIdx], ...patch } };
+      // 편집값 IndexedDB 영속화(디바운스 600ms, AI 호출 0) — 새로고침/재방문에도 유지
+      if (overridesPersistTimer.current) clearTimeout(overridesPersistTimer.current);
+      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides(next as Record<string, unknown>), 600);
+      return next;
+    });
   };
 
   const productImagesRef = useRef(productImages);

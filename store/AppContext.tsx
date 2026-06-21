@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
-import { saveImages, getImages, deleteImages } from '@/lib/historyDB';
+import { saveImages, patchImages, getImages, deleteImages } from '@/lib/historyDB';
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
@@ -106,6 +106,7 @@ interface AppState {
   creditModalOpen: boolean;
   restoredImages: Record<string, string>;
   restoredBlockImages: Record<string, string>;
+  restoredOverrides: Record<string, unknown>;   // 인라인 편집(텍스트 override) 복원본
   sidebarCollapsed: boolean;
   regularPrice: string;
   salePrice: string;
@@ -143,6 +144,7 @@ interface AppContextType extends AppState {
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
   updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => void;
+  updateLatestHistoryOverrides: (sectionOverrides: Record<string, unknown>) => void;   // 인라인 편집 영속화
   deleteHistoryImages: (id: string) => void;
   setSidebarCollapsed: (v: boolean) => void;
   setRegularPrice: (v: string) => void;
@@ -259,6 +261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
   const [restoredBlockImages, setRestoredBlockImages] = useState<Record<string, string>>({});
+  const [restoredOverrides, setRestoredOverrides] = useState<Record<string, unknown>>({});
 
   /* ── NextAuth 세션 기반 로그인 상태 ── */
   const { data: session, status } = useSession();
@@ -343,12 +346,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       if (existing.length === 0) return;
       const id = existing[0].id;
-      // 이미지는 IndexedDB로. 텍스트 메타는 localStorage 그대로 유지(이미지 필드는 박지 않음).
-      saveImages(id, { sectionImages, blockImages }).catch(e => {
+      // 이미지는 IndexedDB로(병합 저장 — sectionOverrides 등 다른 필드 보존). 텍스트 메타는 localStorage 그대로.
+      patchImages(id, { sectionImages, blockImages }).catch(e => {
         console.warn('[updateLatestHistoryImages] IndexedDB 저장 실패(텍스트 기록은 살아있음):', e);
       });
     } catch (e) {
       console.warn('[updateLatestHistoryImages] localStorage 읽기 실패:', e);
+    }
+  };
+
+  // 인라인 편집(sectionOverrides) 영속화 — 이미지와 같은 IndexedDB 레코드에 병합 저장(이미지 안 깨짐). AI 호출 0.
+  const updateLatestHistoryOverrides = (sectionOverrides: Record<string, unknown>) => {
+    const email = session?.user?.email ?? 'guest';
+    const key = `pc_history_${email}`;
+    try {
+      const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
+      if (existing.length === 0) return;
+      const id = existing[0].id;
+      patchImages(id, { sectionOverrides }).catch(e => {
+        console.warn('[updateLatestHistoryOverrides] IndexedDB 저장 실패:', e);
+      });
+    } catch (e) {
+      console.warn('[updateLatestHistoryOverrides] localStorage 읽기 실패:', e);
     }
   };
 
@@ -377,15 +396,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (async () => {
       let secImgs = item.sectionImages ?? {};
       let blkImgs = item.blockImages ?? {};
+      let overrides: Record<string, unknown> = {};
       try {
         const stored = await getImages(item.id);
         if (stored?.sectionImages) secImgs = { ...secImgs, ...stored.sectionImages };
         if (stored?.blockImages)   blkImgs = { ...blkImgs, ...stored.blockImages };
+        if (stored?.sectionOverrides) overrides = stored.sectionOverrides;
       } catch (e) {
         console.warn('[loadFromHistory] IndexedDB 읽기 실패 — 텍스트 기록만 복원:', e);
       }
       setRestoredImages(secImgs);
       setRestoredBlockImages(blkImgs);
+      setRestoredOverrides(overrides);   // 편집한 텍스트 복원
       go('s8');
     })();
   };
@@ -503,6 +525,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSections([]);
     setRestoredImages({});
     setRestoredBlockImages({});
+    setRestoredOverrides({});
     setRegularPrice('');
     setSalePrice('');
     setShowPrice(false);
@@ -529,7 +552,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
-      credits, creditModalOpen, restoredImages, restoredBlockImages, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
+      credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, answers, aiSelections,
       go,
       setCat: setCatState,
@@ -554,6 +577,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveHistory,
       loadFromHistory,
       updateLatestHistoryImages,
+      updateLatestHistoryOverrides,
       deleteHistoryImages,
       setSidebarCollapsed,
       setRegularPrice,

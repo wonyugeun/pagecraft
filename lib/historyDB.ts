@@ -18,6 +18,7 @@ const JOB_STORE = 'jobs';
 export interface HistoryImagesPayload {
   sectionImages?: Record<string, string>;
   blockImages?: Record<string, string>;
+  sectionOverrides?: Record<string, unknown>;   // 인라인 편집(텍스트 override) 영속화 — 가벼움(압축 불필요)
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -50,6 +51,13 @@ export async function saveImages(historyId: string, payload: HistoryImagesPayloa
     tx.onerror = () => { db.close(); reject(tx.error ?? new Error('IndexedDB save failed')); };
     tx.onabort = () => { db.close(); reject(tx.error ?? new Error('IndexedDB save aborted')); };
   });
+}
+
+/** 기존 레코드에 부분 병합 저장(다른 필드 보존) — 이미지/override를 서로 덮어쓰지 않게. */
+export async function patchImages(historyId: string, partial: HistoryImagesPayload): Promise<void> {
+  let existing: HistoryImagesPayload | null = null;
+  try { existing = await getImages(historyId); } catch { /* 없으면 신규 */ }
+  await saveImages(historyId, { ...(existing ?? {}), ...partial });
 }
 
 export async function getImages(historyId: string): Promise<HistoryImagesPayload | null> {
