@@ -300,8 +300,9 @@ export async function downloadHtml(
       const imgTag = secImgUrl
         ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;max-width:860px;display:block;margin:20px auto 0;border-radius:16px;" />`
         : '';
+      // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
       const blocksHtml = sec.blocks?.length
-        ? `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`
+        ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n      </div>`
         : '';
       return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${imgTag}${blocksHtml}\n    </section>`;
     }).join('\n');
