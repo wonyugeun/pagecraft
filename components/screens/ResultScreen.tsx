@@ -180,49 +180,50 @@ function blocksToHtml(
   }).join('\n');
 }
 
+// 색은 CSS 변수(--p 제품 primary / --soft / --sb soft-border)로. 다운로드 시 제품 테마로 치환됨(보라 폴백).
 const HTML_BLOCKS_CSS = `
 :root { color-scheme: light; }
 .hero { margin-bottom: 32px; }
 .hero h1 { font-size: 34px; font-weight: 900; line-height: 1.35; letter-spacing: -0.04em; color: #111; }
 .hero-sub { margin-top: 20px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
-.heading { margin: 40px 0 16px; border-left: 4px solid #6D4CFF; padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
+.heading { margin: 40px 0 16px; border-left: 4px solid var(--p,#6D4CFF); padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
 .paragraph { margin-bottom: 24px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
 
 .checklist { list-style: none; margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
 .checklist li { display: flex; gap: 12px; font-size: 15px; line-height: 1.7; color: #333; padding: 6px 0; }
-.checklist li::before { content: '\\2713'; color: #6D4CFF; font-weight: 700; flex-shrink: 0; }
+.checklist li::before { content: '\\2713'; color: var(--p,#6D4CFF); font-weight: 700; flex-shrink: 0; }
 
 .steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
 .steps li { display: flex; gap: 16px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
-.step-num { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #6D4CFF; color: #fff; font-size: 14px; font-weight: 700; }
+.step-num { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--p,#6D4CFF); color: #fff; font-size: 14px; font-weight: 700; }
 .steps li strong { display: block; font-size: 16px; font-weight: 700; color: #111; }
 .steps li p { margin-top: 4px; font-size: 14px; line-height: 1.7; color: #666; }
 
 .iconcards { margin-bottom: 32px; display: grid; gap: 12px; }
 .iconcard { border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
-.iconcard-icon { margin: 0 auto 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #F4F0FF; color: #6D4CFF; font-size: 22px; }
+.iconcard-icon { margin: 0 auto 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--soft,#F4F0FF); color: var(--p,#6D4CFF); font-size: 22px; }
 .iconcard strong { display: block; font-size: 14px; font-weight: 700; color: #111; }
 .iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
 
 .stats { margin-bottom: 32px; display: grid; column-gap: 12px; }
-.stat { padding: 22px 12px; text-align: center; border: 1px solid #E6DEFF; border-radius: 18px; background: #fff; }
-.stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: #6D4CFF; line-height: 1.2; }
+.stat { padding: 22px 12px; text-align: center; border: 1px solid var(--sb,#E6DEFF); border-radius: 18px; background: #fff; }
+.stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: var(--p,#6D4CFF); line-height: 1.2; }
 .stat small { margin-top: 6px; display: block; font-size: 13px; font-weight: 600; color: #333; line-height: 1.45; }
 
 .compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
 .compare th, .compare td { padding: 16px; text-align: center; }
 .compare th { background: #FAFAFC; font-weight: 700; color: #111; }
-.compare th.hilite { background: #6D4CFF; color: #fff; }
+.compare th.hilite { background: var(--p,#6D4CFF); color: #fff; }
 .compare td { border-top: 1px solid #ECECF2; }
 .compare td.firstcol { font-weight: 500; color: #111; }
-.compare td.hilite { background: #FBFAFF; font-weight: 700; color: #6D4CFF; }
-.compare .check { display: block; margin: 0 auto 4px; color: #6D4CFF; font-weight: 900; }
+.compare td.hilite { background: var(--soft,#FBFAFF); font-weight: 700; color: var(--p,#6D4CFF); }
+.compare .check { display: block; margin: 0 auto 4px; color: var(--p,#6D4CFF); font-weight: 900; }
 
-.quote { margin-bottom: 32px; border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; padding: 24px; }
-.quote-icon { font-size: 36px; line-height: 1; color: #6D4CFF; font-family: Georgia, serif; margin-bottom: 8px; }
+.quote { margin-bottom: 32px; border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 24px; }
+.quote-icon { font-size: 36px; line-height: 1; color: var(--p,#6D4CFF); font-family: Georgia, serif; margin-bottom: 8px; }
 .quote p { font-size: 16px; line-height: 1.85; color: #333; white-space: pre-line; }
 .quote footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.quote .stars { color: #6D4CFF; font-size: 14px; letter-spacing: 2px; }
+.quote .stars { color: var(--p,#6D4CFF); font-size: 14px; letter-spacing: 2px; }
 .quote .author { font-size: 13px; color: #666; }
 
 .faq { margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; overflow: hidden; }
@@ -232,11 +233,11 @@ const HTML_BLOCKS_CSS = `
 
 .image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; background: #FAFAFC; }
 .image img { width: 100%; height: 100%; display: block; }
-.image-slot { margin-bottom: 32px; width: 100%; background: linear-gradient(135deg,#F4F0FF,#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #6D4CFF; }
+.image-slot { margin-bottom: 32px; width: 100%; background: linear-gradient(135deg,var(--soft,#F4F0FF),#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--p,#6D4CFF); }
 
-.cta { border-radius: 24px; border: 1px solid #E6DEFF; background: #F4F0FF; padding: 32px; text-align: center; margin-bottom: 32px; }
+.cta { border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 32px; text-align: center; margin-bottom: 32px; }
 .cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
-.cta-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 24px; height: 48px; padding: 0 24px; border-radius: 16px; background: #6D4CFF; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+.cta-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 24px; height: 48px; padding: 0 24px; border-radius: 16px; background: var(--p,#6D4CFF); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
 `;
 
 /* ─── HTML 다운로드 ─── */
@@ -261,6 +262,19 @@ export async function downloadHtml(
       if (st?.aspectRatio) blockAspectMap[k] = st.aspectRatio;
     }
 
+    // 섹션 대표 이미지도 압축본(base64 data URL)으로 임베드 — 파일 하나로 이미지까지 보이게.
+    const rawSectionUrls: Record<string, string> = {};
+    for (const [k, st] of Object.entries(imgMap)) {
+      if (st?.url) rawSectionUrls[k] = st.url;
+    }
+    const compressedSectionUrls = await compressMap(rawSectionUrls);
+
+    // 제품 테마색(visualPalette) — 다운로드도 화면과 같은 색. CSS 변수로 주입(보라 폴백).
+    const themeV = sections.find(s => s.visual)?.visual;
+    const cP = themeV?.primary_color ?? '#6D4CFF';
+    const cSoft = themeV?.soft_color ?? '#F4F0FF';
+    const cSB = themeV?.soft_border ?? '#E6DEFF';
+
     const sectionsHtml = sections.map((sec, idx) => {
       // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
       const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
@@ -279,17 +293,15 @@ export async function downloadHtml(
             .map(p => `<p class="bodytext">${p.split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`)
             .join('\n      ')
         : '';
-      // 미디어: 블록 있으면 블록, 없고 구 경로(!bodyFlow)면 섹션 이미지(있을 때만). 카피 아래에 공존.
-      let media = '';
-      if (sec.blocks?.length) {
-        media = `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`;
-      } else if (!sec.bodyFlow) {
-        const imgUrl = imgMap[sec.num]?.url;
-        media = imgUrl
-          ? `\n      <img src="${imgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:20px 0 0;" />`
-          : `\n      <div class="img-slot"><div class="img-icon">📸</div><div class="img-label">${escHtml(sec.imageLabel)}</div></div>`;
-      }
-      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${media}\n    </section>`;
+      // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
+      const secImgUrl = compressedSectionUrls[sec.num];
+      const imgTag = secImgUrl
+        ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;max-width:860px;display:block;margin:20px auto 0;border-radius:16px;" />`
+        : '';
+      const blocksHtml = sec.blocks?.length
+        ? `\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}`
+        : '';
+      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${imgTag}${blocksHtml}\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -299,6 +311,7 @@ export async function downloadHtml(
   <title>${escHtml(productName || '상세페이지')} — PageCraft</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <style>
+    :root { --p: ${cP}; --soft: ${cSoft}; --sb: ${cSB}; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, -apple-system, sans-serif; background: #fff; color: #111; max-width: 800px; margin: 0 auto; padding: 0 0 80px; }
     .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
@@ -586,7 +599,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
               {sec.headline}
             </div>
             {sec.subcopy && (
-              <div style={{ padding: '14px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
+              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>{sec.subcopy}</div>
             )}
           </>
         )}

@@ -12,10 +12,12 @@ import type { Block } from '@/store/AppContext';
 
 const VARIETY = ['강분질', '신품종', '개량품종', '분질질감', '분질', '점질'];
 
-/** 셀러 원입력에 그 Brix 수치가 (당도/brix와 함께) 있으면 허용 */
+/** 셀러 원입력에 그 Brix 수치가 (당도/brix와 함께) 있으면 허용 — 셀러 입력값은 절대 막지 않도록 넉넉히 판정 */
 function brixAllowed(num: string, allow: string): boolean {
   return new RegExp(`(?:당도[:\\s]*)?${num}\\s*(?:brix|브릭스)`, 'i').test(allow)
-      || new RegExp(`당도[:\\s]*(?:약|대략|최대|최소|평균)?\\s*${num}`).test(allow);
+      || new RegExp(`당도[:\\s]*(?:약|대략|최대|최소|평균)?\\s*${num}`).test(allow)
+      // 포맷이 달라도 셀러가 그 수치 + 당도/brix를 언급했으면 입력값으로 보고 허용(과차단 방지)
+      || (new RegExp(`(?<!\\d)${num}(?!\\d)`).test(allow) && /brix|브릭스|당도/i.test(allow));
 }
 
 export function scrubText(text: string | undefined, allow: string): string {

@@ -75,7 +75,7 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
           {headline}
         </h1>
         {subcopy && (
-          <p className="mt-3.5 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
+          <p className="mt-5 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
             {subcopy}
           </p>
         )}
