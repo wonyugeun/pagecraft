@@ -639,8 +639,8 @@ export function BlogSection({ sec, onRegen, regenLoading, onSaveBody, imgState, 
           </div>
         )}
 
-        {/* ── 수정/재생성 버튼 + 편집 패널 — 공통(모든 분기 동일) ── */}
-        <div style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
+        {/* ── 수정/재생성 버튼 + 편집 패널 — 공통(모든 분기 동일). bs-actions = 통이미지 캡처 시 제외 ── */}
+        <div className="bs-actions" style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
           <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
           <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
             {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
@@ -962,6 +962,8 @@ export default function ResultScreen() {
   const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
+  const [captureLoading, setCaptureLoading] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);   // 결과물 본문(BlogSection들) — 통이미지 캡처 대상
   const [createdAt] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -1298,6 +1300,45 @@ export default function ResultScreen() {
     }
   };
 
+  // 결과물 본문(BlogSection들)을 렌더 그대로 세로 한 장 PNG로 — 밴드/카페/인스타용(디자인·이미지·색 그대로).
+  // 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함. 수정/재생성 버튼·이미지 오버레이는 캡처 시 제외.
+  const handleFullCapture = async () => {
+    if (captureLoading) return;
+    const node = captureRef.current;
+    if (!node) { alert('캡처할 본문이 없습니다.'); return; }
+    setCaptureLoading(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(node, {
+        backgroundColor: '#ffffff',
+        scale: Math.min(2, (typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1) >= 2 ? 2 : 1.8),
+        useCORS: true,            // 이미지가 base64 data URL이라 CORS 영향 없음(외부 URL 대비 안전망)
+        logging: false,
+        // UI 크롬 제외: 수정/재생성 버튼 행·이미지 위 재생성 오버레이·편집 패널
+        ignoreElements: (el) => {
+          const c = (el as HTMLElement).className;
+          const cls = typeof c === 'string' ? c : '';
+          return cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel');
+        },
+      });
+      const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
+      if (!blob) throw new Error('canvas toBlob 실패');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '')}_통이미지.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error('[handleFullCapture]', err);
+      alert('통이미지 캡처 중 오류가 발생했어요. 섹션이 너무 길면 일부 환경에서 실패할 수 있어요.');
+    } finally {
+      setCaptureLoading(false);
+    }
+  };
+
   // ── 섹션 순서 + 숨김 적용 ──
   // sectionOrder가 비어있으면(초기 마운트 직후) sections 그대로 사용
   const effectiveOrder = sectionOrder.length === displaySections.length
@@ -1537,7 +1578,7 @@ export default function ResultScreen() {
               )}
 
               {isBlog && (
-                <div style={{ background: '#fff' }}>
+                <div ref={captureRef} style={{ background: '#fff' }}>
                   {orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
                     <BlogSection
                       key={realIdx}
@@ -1782,7 +1823,7 @@ export default function ResultScreen() {
               자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
             </p>
 
-            {/* 통이미지 다운로드 — 블로그형 제외 (텍스트가 빠지므로) */}
+            {/* 통이미지 다운로드 — 슬라이드/HTML형: AI 섹션 이미지 스택 */}
             {!isBlog && (
               <button
                 onClick={handleMergeDownload}
@@ -1796,6 +1837,23 @@ export default function ResultScreen() {
                 }}
               >
                 <ImageIcon size={16} /> {mergeLoading ? '합치는 중...' : '통이미지 다운로드'}
+              </button>
+            )}
+
+            {/* 통이미지(본문 캡처) — 블로그형: 렌더된 본문(텍스트·KPI·비교표·이미지·색)을 세로 한 장 PNG로. 밴드/카페/인스타용 */}
+            {isBlog && (
+              <button
+                onClick={handleFullCapture}
+                disabled={captureLoading}
+                style={{
+                  width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                  background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                  cursor: captureLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: captureLoading ? 0.7 : 1,
+                }}
+              >
+                <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '통이미지 다운로드 (밴드용)'}
               </button>
             )}
 
