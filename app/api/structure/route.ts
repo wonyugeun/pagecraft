@@ -8,9 +8,9 @@ import { runStructure, type Dna, type Strategy } from '@/lib/stages/structure';
  */
 
 export async function POST(req: NextRequest) {
-  const { dna, strategy, cat, ch, depth, sectionCount } = await req.json() as {
+  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure } = await req.json() as {
     dna?: Dna; strategy?: Strategy; cat?: string; ch?: string;
-    depth?: '간결' | '풍부'; sectionCount?: number;
+    depth?: '간결' | '풍부'; sectionCount?: number; sectionStructure?: string[];
   };
 
   if (!dna || !strategy) {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runStructure({ dna, strategy, cat, ch, depth, sectionCount });
+    const result = await runStructure({ dna, strategy, cat, ch, depth, sectionCount, sectionStructure });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Structure error:', err);

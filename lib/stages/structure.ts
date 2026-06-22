@@ -66,6 +66,8 @@ export interface StructureInput {
   ch?: string;
   depth?: '간결' | '풍부';
   sectionCount?: number;
+  /** 사용자가 s7에서 선택/편집한 섹션 이름 목록. 있으면 이 목록(순서·이름·개수)을 '정답지'로 강제. */
+  sectionStructure?: string[];
 }
 
 export interface SectionPlan {
@@ -83,12 +85,21 @@ export interface StructureResult {
 }
 
 export async function runStructure(input: StructureInput): Promise<StructureResult> {
-  const { dna, strategy, cat, ch, depth, sectionCount } = input;
+  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure } = input;
 
   const resolvedDepth: '간결' | '풍부' = depth === '풍부' ? '풍부' : '간결';
-  const targetCount = sectionCount && sectionCount > 0
-    ? Math.min(50, Math.max(6, Math.round(sectionCount)))
-    : computeTargetCount(cat ?? '', ch ?? '스마트스토어', resolvedDepth);
+  // 사용자가 s7에서 선택/편집한 섹션 목록이 있으면 그게 '정답지' = 개수·이름·순서 그대로(하한 6 없음, 최소 1).
+  const hasExplicitSections = Array.isArray(sectionStructure) && sectionStructure.length > 0;
+  const targetCount = hasExplicitSections
+    ? Math.min(50, Math.max(1, sectionStructure!.length))
+    : sectionCount && sectionCount > 0
+      ? Math.min(50, Math.max(1, Math.round(sectionCount)))   // 하한 6 제거 — 지정 개수 그대로(최소 1)
+      : computeTargetCount(cat ?? '', ch ?? '스마트스토어', resolvedDepth);
+
+  // 정답지(이름·순서·개수 강제) — 구 엔진 /api/generate 방식 이식. 선택이 있을 때만.
+  const sectionBlock = hasExplicitSections
+    ? `\n[섹션 구조 — 반드시 아래 순서·이름·개수 그대로 설계하세요. 임의로 변경·추가·삭제하지 마세요. 섹션은 정확히 ${targetCount}개(±0, 더하거나 빼지 말 것). 각 섹션의 name은 아래 이름을 그대로 쓰고, role·mission·emotion_goal·writing_style만 이 제품 전략에 맞게 채우세요]\n${sectionStructure!.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    : '';
 
   const system = `당신은 대한민국 이커머스 상세페이지 기획자입니다. 카피라이터가 아닙니다.
 당신의 임무는 주어진 전략(DNA + 전략)을 받아, 그 전략을 가장 잘 수행하는 섹션 구조를 설계하는 것입니다.
@@ -100,7 +111,7 @@ export async function runStructure(input: StructureInput): Promise<StructureResu
 - 각 섹션의 mission은 "이 섹션이 이 제품의 main_weapon을 어느 각도로 미는지"를 한 줄로 명시하세요. 같은 '성분 섹션'이어도 제품의 main_weapon이 다르면 mission이 달라야 합니다 (일반론 금지, 이 제품 고유의 각도로).
 - 각 섹션마다 emotion_goal을 정하세요: 그 섹션을 다 읽은 독자가 속으로 느껴야 할 감정·생각을 독자의 1인칭 속마음 한 문장으로 적습니다. mission(설계자 관점의 임무)과 달리 emotion_goal은 독자가 실제로 느낄 결과입니다. (예: 공감='아 맞아, 딱 내 얘기네' / 원인='아, 문제가 성분이었구나' / CTA='이 정도면 한번 써볼 만하겠다') 다음 단계 카피라이터가 이 emotion_goal을 "달성"하는 카피를 씁니다.
 - 각 섹션마다 writing_style을 정하세요: 그 섹션을 "어떤 말하는 방식"으로 쓸지 한 줄로 지정합니다. 섹션 역할에 가장 맞는 문체를 고르세요. 가이드(절대 규칙 아님, 역할 보고 선택): 공감→'친구가 말하듯(질문·대화체)', 원인→'원인 분석형(논리로 깨달음 유도)', 솔루션→'선언형(짧고 강한 문장)', 성분→'스토리텔링형(왜 넣었는지)', 비교→'비교 분석형', 후기→'실사용자 대화체', FAQ→'Q&A형', 가성비→'계산형(숫자 중심)', CTA→'결정 유도형(부담 제거)'. 섹션마다 문체가 변주되어 페이지에 리듬이 생기도록 하되, 모든 문체는 다음 단계에서 브랜드 톤(strategy.tone) 위에 얹힙니다.
-- 전략상 불필요한 섹션은 넣지 말고, 전략을 밀어붙이는 데 필요한 섹션에 집중하세요. 섹션 수는 ${targetCount}개 기준(±2 허용)이되, 채우기용 섹션으로 늘리지 마세요.
+- 전략상 불필요한 섹션은 넣지 말고, 전략을 밀어붙이는 데 필요한 섹션에 집중하세요. ${hasExplicitSections ? `섹션은 아래 사용자 지정 목록의 순서·이름·개수를 정확히 ${targetCount}개로 따르세요(±0, 임의 추가·삭제 금지).` : `섹션 수는 ${targetCount}개 기준(±2 허용)이되, 채우기용 섹션으로 늘리지 마세요.`}
 - 없는 사실(미입력 수치·성분·인증)을 전제로 한 섹션을 만들지 마세요.
 
 [출력 형식 — 아래 JSON 객체 하나만. 다른 텍스트·설명·마크다운·코드펜스 금지]
@@ -117,6 +128,7 @@ export async function runStructure(input: StructureInput): Promise<StructureResu
 - 카테고리: ${cat || '(미입력)'}
 - 판매 채널: ${ch || '스마트스토어'}
 - 깊이: ${resolvedDepth} (목표 섹션 수 ${targetCount}개)
+${sectionBlock}
 
 [DNA]
 - main_weapon(가장 강력한 무기): ${dna.main_weapon || '(없음)'}
@@ -169,6 +181,15 @@ export async function runStructure(input: StructureInput): Promise<StructureResu
   if (!Array.isArray(r.sections) || r.sections.length === 0) {
     console.error('[structure] sections 배열 누락:', JSON.stringify(result).slice(0, 300));
     throw new Error('출력에 유효한 sections 배열이 없음');
+  }
+
+  // 정답지가 있으면 과생성(=과금 방향) 안전망: 정확히 targetCount개로 자른다. 이름은 사용자 지정대로 강제.
+  if (hasExplicitSections) {
+    const sliced = (r.sections as SectionPlan[]).slice(0, targetCount).map((s, i) => ({
+      ...s,
+      name: sectionStructure![i] ?? s.name,   // 이름은 사용자 선택 그대로(AI가 바꿔도 교정)
+    }));
+    return { section_count: sliced.length, sections: sliced };
   }
 
   return result as StructureResult;

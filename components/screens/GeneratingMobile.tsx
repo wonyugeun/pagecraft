@@ -65,7 +65,7 @@ export default function GeneratingMobile() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, productName, productExtra, type: type ?? undefined, generateImages: false },
+        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false },
         {
           resume,
           isCancelled: () => cancelledRef.current,

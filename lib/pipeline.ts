@@ -24,6 +24,8 @@ export interface PipelineInput {
   productName?: string;
   productExtra?: string;
   sectionCount?: number;
+  /** 사용자가 s7에서 선택/편집한 섹션 이름 목록(순서·이름·개수). 있으면 structure가 이 목록을 '정답지'로 강제. */
+  sectionStructure?: string[];
   /** 파이프라인 로직엔 쓰이지 않으나 job에 보관해 재개 시 작업기록 저장에 사용(타입 라벨) */
   type?: string;
   /** Gemini 이미지 실제 생성 여부. 기본 false(무과금). 1단계에선 연결만 준비. */
@@ -76,9 +78,9 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   // 1) Stage1 — DNA + 전략
   const strategy = await runStrategy({ cat, ch, productName, productExtra });
 
-  // 2) Stage2 — 구조 설계(전략 종속)
+  // 2) Stage2 — 구조 설계(전략 종속). sectionStructure 있으면 그 목록을 정답지로 강제.
   const structure = await runStructure({
-    dna: strategy.dna, strategy: strategy.strategy, cat, ch, depth, sectionCount,
+    dna: strategy.dna, strategy: strategy.strategy, cat, ch, depth, sectionCount, sectionStructure: input.sectionStructure,
   });
   const plan: SectionPlan[] = structure.sections;
 

@@ -123,7 +123,7 @@ export function createJob(input: PipelineInput, jobId?: string): JobState {
  */
 export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobState> {
   const { call, persist, onProgress } = opts;
-  const { cat, ch, out, depth, productName, productExtra, sectionCount } = job.input;
+  const { cat, ch, out, depth, productName, productExtra, sectionCount, sectionStructure } = job.input;
 
   const save = async (ev: ProgressEvent) => {
     onProgress?.(job, ev);
@@ -152,7 +152,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
     await save({ stage: 'structure', status: 'done', skipped: true });
   } else {
     try {
-      const r = await call('/api/structure', { dna, strategy, cat, ch, depth, sectionCount });
+      const r = await call('/api/structure', { dna, strategy, cat, ch, depth, sectionCount, sectionStructure });
       if (r?.error) throw new Error(r.error);
       job.stages.structure = { status: 'done', result: r as unknown as StructureResult };
       await save({ stage: 'structure', status: 'done' });
