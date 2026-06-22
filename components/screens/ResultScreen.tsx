@@ -46,19 +46,44 @@ export async function downloadMergedImage(
   blockImgMap: Record<string, ImgState>,
   productName: string,
 ): Promise<void> {
+  // 슬라이드 Hero(overlay): 배경 위에 진짜 폰트 텍스트를 DOM 캡처로 '합성'해 1장 PNG로. (raw 배경엔 텍스트 없음)
+  // modern-screenshot = 블로그 통이미지와 동일 엔진(Tailwind v4 oklch 대응). bs-actions(재생성 버튼)는 캡처 제외.
+  let heroDataUrl: string | null = null;
+  const heroNode = typeof document !== 'undefined' ? (document.querySelector('[data-slide-hero-capture]') as HTMLElement | null) : null;
+  if (heroNode) {
+    try {
+      const { domToCanvas } = await import('modern-screenshot');
+      const c = await domToCanvas(heroNode, {
+        backgroundColor: '#ffffff', scale: 1,
+        style: { width: '1080px', maxWidth: '1080px' },
+        filter: (node: Node) => {
+          if (!(node instanceof Element)) return true;
+          const cls = typeof (node as HTMLElement).className === 'string' ? (node as HTMLElement).className : '';
+          return !cls.includes('bs-actions');
+        },
+      });
+      heroDataUrl = c.toDataURL('image/png');
+    } catch (e) {
+      console.warn('[downloadMergedImage] Hero overlay 캡처 실패 — raw 배경으로 폴백', e);
+    }
+  }
+
   const urls: string[] = [];
-  for (const sec of sections) {
+  sections.forEach((sec, secIdx) => {
     if (sec.blocks?.length) {
       sec.blocks.forEach((b, i) => {
         if (b.type !== 'image') return;
         const url = blockImgMap[`${sec.num}#${i}`]?.url;
         if (url) urls.push(url);
       });
+    } else if (secIdx === 0 && heroDataUrl) {
+      // 첫 섹션 = 슬라이드 Hero → 텍스트 합성된 캡처본 사용
+      urls.push(heroDataUrl);
     } else {
       const url = imgMap[sec.num]?.url;
       if (url) urls.push(url);
     }
-  }
+  });
   if (urls.length === 0) {
     alert('다운로드할 이미지가 없습니다. 섹션 이미지를 먼저 생성해주세요.');
     return;
@@ -728,6 +753,75 @@ export function ImageSection({ sec, imgState, onGenerateImage, index, accent, on
   );
 }
 
+/* ─── 슬라이드 Hero (overlay 방식) ───
+   배경 = Gemini(텍스트 0, 상단 ~40% 여백). 텍스트 = 진짜 폰트(Pretendard)로 상단 여백존에 얹음 → 한글 안 깨짐.
+   헤드라인/서브카피 클릭 인라인 편집(onPatch→updateSection→IndexedDB D-3). 다운로드는 DOM 캡처로 배경+텍스트 합성. */
+export function SlideHero({ sec, imgState, onGenerateImage, onPatch, onLightbox }: {
+  sec: Section;
+  imgState: ImgState;
+  onGenerateImage: () => void;
+  onPatch?: (patch: Partial<Section>) => void;
+  onLightbox?: () => void;
+}) {
+  const primary    = sec.visual?.primary_color ?? DEFAULT_THEME.primary;
+  const soft       = sec.visual?.soft_color    ?? DEFAULT_THEME.soft;
+  const softBorder = sec.visual?.soft_border   ?? DEFAULT_THEME.softBorder;
+  const { loading, url, error } = imgState;
+
+  return (
+    <div data-slide-hero style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+      <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: primary, background: soft, padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
+        <span style={{ fontSize: 12, color: '#888' }}>{sec.name} · Hero</span>
+      </div>
+
+      {/* 캡처 대상: 배경 + 텍스트존(상단 헤더·재생성 버튼은 제외) */}
+      <div data-slide-hero-capture style={{ position: 'relative', margin: '10px 0 0', background: soft, overflow: 'hidden' }}>
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="" onClick={onLightbox}
+            style={{ display: 'block', width: '100%', aspectRatio: '4 / 5', objectFit: 'cover', cursor: onLightbox ? 'zoom-in' : 'default' }} />
+        ) : (
+          <div onClick={loading ? undefined : onGenerateImage}
+            style={{ aspectRatio: '4 / 5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: loading ? 'default' : 'pointer' }}>
+            {loading
+              ? <div style={{ width: 32, height: 32, border: '3px solid #cbd5e1', borderTopColor: primary, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              : <span style={{ fontSize: 13, color: primary, fontWeight: 700 }}>{error ? '재생성하려면 클릭' : '클릭해서 배경 생성'}</span>}
+          </div>
+        )}
+
+        {/* 상단 텍스트존 — 좌측 정렬 + 가독성 스크림(상단→투명). Gemini가 비운 상단 ~40%에 어우러짐 */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, padding: '26px 30px 52px', textAlign: 'left',
+          background: 'linear-gradient(180deg, rgba(255,255,255,.94) 0%, rgba(255,255,255,.80) 50%, rgba(255,255,255,0) 100%)',
+          pointerEvents: 'none',
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: primary, background: soft, border: `1px solid ${softBorder}`, padding: '4px 12px', borderRadius: 20, pointerEvents: 'auto' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: primary }} /> 추천 상품
+          </span>
+          <div style={{ marginTop: 12, pointerEvents: 'auto' }}>
+            <Editable value={sec.headline} onCommit={onPatch ? v => onPatch({ headline: v }) : undefined}
+              style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 800, color: '#1a1a22', lineHeight: 1.32, letterSpacing: '-0.4px', display: 'block', wordBreak: 'keep-all', whiteSpace: 'pre-line' }} />
+          </div>
+          {(sec.subcopy || onPatch) && (
+            <div style={{ marginTop: 10, pointerEvents: 'auto' }}>
+              <Editable value={sec.subcopy ?? ''} onCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined}
+                style={{ fontSize: 14, fontWeight: 600, color: '#4a4a55', lineHeight: 1.5, letterSpacing: '-0.2px', display: 'block', wordBreak: 'keep-all' }} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 재생성 버튼 — 캡처 제외(bs-actions) */}
+      <div className="bs-actions" style={{ padding: '12px 16px 14px', display: 'flex', justifyContent: 'center' }}>
+        <button className="bs-regen-btn" onClick={onGenerateImage} disabled={loading}>
+          {loading ? '생성 중…' : url ? '✦ 배경 재생성' : '✦ 배경 생성'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── 섹션별 텍스트 모달 ─── */
 function TextModal({ sections, onClose }: { sections: Section[]; onClose: () => void }) {
   const copyOne = async (sec: Section) => {
@@ -1045,12 +1139,14 @@ export default function ResultScreen() {
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
 
-  const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
+  const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { slideHero?: boolean }) => {
     const aspect = aspectRatioFor(sec.name);
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      const promptText = effectiveOut === 'blog'
+      // 슬라이드 Hero(overlay 방식): 텍스트를 이미지에 굽지 않음(프론트가 진짜 폰트로 얹음) + 상단 여백존 확보.
+      // 그 외 슬라이드: 기존대로 헤드라인을 이미지에 합성(baked). 블로그: 텍스트 0 깨끗한 사진.
+      const promptText = (effectiveOut === 'blog' || opts?.slideHero)
         ? sec.imageDesc
         : `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`;
       const res = await fetch('/api/generate-image', {
@@ -1062,6 +1158,7 @@ export default function ResultScreen() {
           productImages: images.length > 0 ? images : undefined,
           outputType: effectiveOut,
           aspectRatio: aspect,
+          ...(opts?.slideHero ? { textZone: 'top' as const } : {}),
         }),
         signal,
       });
@@ -1157,7 +1254,8 @@ export default function ResultScreen() {
         if (sec.imageDesc && !restoredImages[sec.num]) {
           if (count > 0) await sleep(3_000);
           if (ctrl.signal.aborted) break;
-          await generateImage(sec, ctrl.signal);
+          // 슬라이드 첫 섹션(Hero)만 overlay 방식(텍스트 안 굽고 상단 여백 확보). 나머지는 기존 baked.
+          await generateImage(sec, ctrl.signal, { slideHero: isSlide && i === 0 });
           count++;
         }
 
@@ -1632,14 +1730,26 @@ export default function ResultScreen() {
               ))}
 
               {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
-                <ImageSection
-                  key={realIdx}
-                  sec={sec}
-                  imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                  onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
-                  index={displayIdx} accent="purple"
-                  onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
-                />
+                displayIdx === 0 ? (
+                  /* Hero 1장만 overlay 방식(배경 Gemini + 진짜폰트 텍스트). 나머지 슬라이드 섹션은 기존 baked. */
+                  <SlideHero
+                    key={realIdx}
+                    sec={sec}
+                    imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                    onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: true })}
+                    onPatch={patch => updateSection(realIdx, patch)}
+                    onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                  />
+                ) : (
+                  <ImageSection
+                    key={realIdx}
+                    sec={sec}
+                    imgState={sectionImages[sec.num] ?? EMPTY_IMG}
+                    onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                    index={displayIdx} accent="purple"
+                    onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
+                  />
+                )
               ))}
             </div>
             </div>

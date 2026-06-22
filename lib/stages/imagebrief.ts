@@ -141,7 +141,7 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
 
   const formNote = isBlogOutput
     ? '이 페이지는 블로그형입니다 — 이미지는 텍스트 오버레이가 없는 깨끗한 사진/연출이어야 합니다. prompt에 카피 문구·타이포그래피·숫자 오버레이를 절대 묘사하지 마세요(제품 자체 라벨은 reference 그대로).'
-    : '이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성이 허용됩니다. 단 카피 원문을 그대로 넣지 말고, 합성 가능한 영역(negative space)을 prompt에 확보하세요.';
+    : '이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성이 허용됩니다. 단 카피 원문을 그대로 넣지 말고, 합성 가능한 영역(negative space)을 prompt에 확보하세요. ★단 첫 섹션(Hero)은 프론트에서 진짜 폰트로 텍스트를 얹는 overlay 방식이므로 prompt에 글자·타이포를 넣지 말고, 상단 ~40%를 "깨끗하고 단순한 여백(soft gradient/plain background, 제품·피사체 없음)"으로 비우라고 명시하세요(위치 고정). 제품·주요 피사체는 하단 ~60%에 배치.';
 
   console.log(`[imagebrief V2] cat=${category} ch=${channel} out=${resolvedOut} sections=${plan.length} desire="${targetDesire.slice(0, 24)}"`);
 

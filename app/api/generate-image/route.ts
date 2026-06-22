@@ -29,14 +29,15 @@ const ALLOWED_ASPECT = new Set(['1:1', '4:5', '5:4', '16:9', '9:16', '3:4', '4:3
 
 export async function POST(req: NextRequest) {
   // ── 1. 요청 파싱 ──
-  let prompt: string, sectionNum: string, productImages: string[] | undefined, outputType: string | undefined, aspectRatio: string | undefined;
+  let prompt: string, sectionNum: string, productImages: string[] | undefined, outputType: string | undefined, aspectRatio: string | undefined, textZone: 'top' | 'bottom' | undefined;
   try {
-    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[]; outputType?: string; aspectRatio?: string };
+    const body = await req.json() as { prompt: string; sectionNum: string; productImages?: string[]; outputType?: string; aspectRatio?: string; textZone?: 'top' | 'bottom' };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
     productImages = body.productImages;
     outputType    = body.outputType;
     aspectRatio   = body.aspectRatio;
+    textZone      = body.textZone;   // 'top'|'bottom' = 오버레이 텍스트존 확보(여백) + 텍스트 굽기 금지. 슬라이드 Hero 전용.
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
@@ -81,12 +82,21 @@ export async function POST(req: NextRequest) {
     `Do NOT render any certification marks, seals, badges, test/clinical results, EWG grades, percentages, ` +
     `statistics, graphs, or invented packaging copy. Convey "tested/safe" only through clean clinical mood, never as data.`;
 
-  // 텍스트 금지 — 블로그형에서만. 슬라이드형은 헤드라인 오버레이를 유지.
-  const TEXT_RULES = isBlog
+  // 텍스트 금지 — 블로그형 전체 + (슬라이드라도) textZone 지정 시. textZone은 프론트가 진짜 폰트로
+  // 텍스트를 얹는 overlay 방식 → Gemini가 글자를 구워 넣으면(한글 깨짐) 안 되므로 동일하게 금지.
+  const TEXT_RULES = (isBlog || textZone)
     ? `Do NOT render any text, letters, numbers, labels, or typography overlaid on the image (the product's own existing label and branding from the reference must remain as-is). Clean photographic image, no captions.`
     : '';
 
-  const rulesTail = [COMPONENT_RULES, PEOPLE_RULES, NO_FAKE_DATA_RULES, TEXT_RULES].filter(Boolean).join(' ');
+  // 텍스트존 확보(여백) — 슬라이드 Hero overlay 전용. 정해진 영역(상단/하단)을 '깨끗하고 단순한 여백'으로
+  // 비워, 프론트 텍스트가 제품/주요 피사체 위에 겹치지 않게 한다. 위치 고정 = AI가 매번 다른 데 비우지 않게.
+  const TEXTZONE_RULES = textZone === 'top'
+    ? `Composition: keep the TOP ~40% of the frame as clean, simple, uncluttered negative space (a soft, smooth gradient or plain out-of-focus background) with NO product, NO main subject, and NO busy detail in that top area — it is reserved for a text overlay added later. Place the product and main subject in the LOWER ~60% of the frame.`
+    : textZone === 'bottom'
+    ? `Composition: keep the BOTTOM ~30% of the frame as clean, simple, uncluttered negative space reserved for a text overlay added later. Place the product and main subject in the UPPER portion.`
+    : '';
+
+  const rulesTail = [COMPONENT_RULES, PEOPLE_RULES, NO_FAKE_DATA_RULES, TEXT_RULES, TEXTZONE_RULES].filter(Boolean).join(' ');
 
   // 끝부분 마침표/공백 정리 — Claude 출력이 '.'으로 끝나도 우리가 또 찍지 않도록
   const cleanedPrompt = prompt.trim().replace(/[.\s]+$/, '');
