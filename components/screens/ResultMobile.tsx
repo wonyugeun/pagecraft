@@ -13,7 +13,7 @@ import { compressMap } from '@/lib/imageCompress';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
-  EnhancedLightbox, downloadHtml, downloadMergedImage,
+  EnhancedLightbox, downloadHtml, downloadMergedImage, buildBakedText,
 } from './ResultScreen';
 
 const STEPS = [
@@ -86,9 +86,10 @@ export default function ResultMobile() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
+      // 슬라이드 = baked: 헤드라인을 한글 텍스트로 이미지에 합성(GPT Image 2). 블로그는 텍스트 0.
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`;
+        : `${sec.imageDesc}. ${buildBakedText(sec.headline, sec.subcopy)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

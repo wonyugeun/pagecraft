@@ -39,6 +39,22 @@ function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
 }
 
+/* 슬라이드 Hero 텍스트 방식 — false=baked(이미지에 합성, 현재 채택) / true=overlay(SlideHero 진짜폰트, 롤백용). */
+const SLIDE_HERO_OVERLAY = false;
+
+/* ─── 슬라이드 baked 텍스트 지시 — 헤드라인(+서브카피)을 이미지에 한글로 합성. GPT Image 2 한글 정확 활용.
+   (overlay 보류: 텍스트를 진짜 폰트로 얹는 방식은 buildBakedText 대신 textZone 전송으로 롤백.) ─── */
+export function buildBakedText(headline: string, subcopy?: string): string {
+  const head = (headline ?? '').replace(/\n/g, ' ').trim();
+  const sub = (subcopy ?? '').replace(/\n/g, ' ').trim();
+  return [
+    `Render the following Korean marketing copy as crisp, accurate, correctly-spelled text integrated naturally into the ad layout`,
+    `(clean modern Korean sans-serif like Pretendard, perfectly legible, no garbled or broken glyphs).`,
+    `Headline: "${head}"${sub ? `. Subcopy (smaller, lighter): "${sub}"` : ''}.`,
+    `Only this copy as text — no other text, no logos, no numbers, no fabricated data.`,
+  ].join(' ');
+}
+
 /* ─── 통이미지 다운로드 ─── */
 export async function downloadMergedImage(
   sections: Section[],
@@ -1144,11 +1160,11 @@ export default function ResultScreen() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 Hero(overlay 방식): 텍스트를 이미지에 굽지 않음(프론트가 진짜 폰트로 얹음) + 상단 여백존 확보.
-      // 그 외 슬라이드: 기존대로 헤드라인을 이미지에 합성(baked). 블로그: 텍스트 0 깨끗한 사진.
-      const promptText = (effectiveOut === 'blog' || opts?.slideHero)
+      // 슬라이드 = baked(채택): 헤드라인(+Hero는 서브카피)을 한글 텍스트로 이미지에 합성(GPT Image 2 한글 정확).
+      // 블로그: 텍스트 0 깨끗한 사진. (overlay 보류 — textZone 미전송. 롤백 시 buildBakedText 끄고 textZone 재전송.)
+      const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. 텍스트 오버레이: "${sec.headline.replace(/\n/g, ' ')}"`;
+        : `${sec.imageDesc}. ${buildBakedText(sec.headline, opts?.slideHero ? sec.subcopy : undefined)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1158,7 +1174,6 @@ export default function ResultScreen() {
           productImages: images.length > 0 ? images : undefined,
           outputType: effectiveOut,
           aspectRatio: aspect,
-          ...(opts?.slideHero ? { textZone: 'top' as const } : {}),
         }),
         signal,
       });
@@ -1729,9 +1744,10 @@ export default function ResultScreen() {
                 />
               ))}
 
+              {/* baked 채택: Hero도 텍스트가 이미지에 합성되므로 ImageSection(이미지만)으로 렌더.
+                  overlay 보류 — SLIDE_HERO_OVERLAY=true로 롤백하면 Hero가 SlideHero(진짜폰트 overlay)로 돌아감. */}
               {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
-                displayIdx === 0 ? (
-                  /* Hero 1장만 overlay 방식(배경 Gemini + 진짜폰트 텍스트). 나머지 슬라이드 섹션은 기존 baked. */
+                SLIDE_HERO_OVERLAY && displayIdx === 0 ? (
                   <SlideHero
                     key={realIdx}
                     sec={sec}
@@ -1745,7 +1761,7 @@ export default function ResultScreen() {
                     key={realIdx}
                     sec={sec}
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
-                    onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                    onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: displayIdx === 0 })}
                     index={displayIdx} accent="purple"
                     onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                   />
