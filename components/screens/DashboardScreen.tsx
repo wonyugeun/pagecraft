@@ -501,7 +501,7 @@ export default function DashboardScreen() {
                       key={item.id}
                       onClick={() => !isSample && loadFromHistory(item)}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px',
+                        display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px',
                         borderBottom: idx < displayHistory.length - 1 ? '1px solid #F4F4F6' : 'none',
                         cursor: isSample ? 'default' : 'pointer',
                         transition: 'background 100ms', position: 'relative',
@@ -511,7 +511,7 @@ export default function DashboardScreen() {
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       {/* 썸네일 — 실제 생성 hero 이미지 있으면 그걸로, 없으면 카테고리 아이콘 */}
-                      <div style={{ width: 80, height: 64, flexShrink: 0, background: bg, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, overflow: 'hidden' }}>
+                      <div style={{ width: 110, height: 66, flexShrink: 0, background: bg, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, overflow: 'hidden' }}>
                         {!isSample && thumbs[item.id] ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={thumbs[item.id]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
