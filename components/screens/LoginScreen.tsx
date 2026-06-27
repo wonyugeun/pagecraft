@@ -56,7 +56,7 @@ export default function LoginScreen() {
         </button>
 
         <div className="l-terms">
-          시작하면 <a href="#">이용약관</a> 및 <a href="#">개인정보처리방침</a>에 동의합니다
+          시작하면 <a href="/terms" target="_blank" rel="noopener noreferrer">이용약관</a> 및 <a href="/privacy" target="_blank" rel="noopener noreferrer">개인정보처리방침</a>에 동의합니다
         </div>
       </div>
     </div>
