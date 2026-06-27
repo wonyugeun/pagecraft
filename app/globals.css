@@ -63,8 +63,9 @@ body{background:var(--bg);color:var(--tx);font-family:var(--f);min-height:100vh;
 .pl{flex:1;height:2px;background:#E8ECF0;border-radius:1px;margin:0 8px;min-width:12px;transition:background 250ms}
 .pl.done{background:#3182F6}
 
-.main{padding-top:106px;min-height:100vh;transition:margin-right .3s}
-.main.chat-open{margin-right:360px}
+.main{padding-top:106px;min-height:100vh}
+/* AI 도우미 패널은 position:fixed 플로팅 오버레이 — 본문을 밀어내지 않는다(밀면 ResultScreen 미리보기가 360px 줄어 글자가 세로로 찌그러짐). */
+.main.chat-open{margin-right:0}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .scr{animation:fadeUp .2s ease}
 .inner{max-width:720px;margin:0 auto;padding:44px 24px 100px}

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import {
-  Zap, ArrowRight, Sparkles, TrendingUp, TrendingDown, Trash2, Ellipsis,
+  Zap, ArrowRight, Sparkles, Trash2, Ellipsis,
   LogOut, User, Settings,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
@@ -614,14 +614,10 @@ export default function DashboardScreen() {
                   <div style={{ fontSize: 32, fontWeight: 800, color: stats.tw === 0 ? '#CCC' : '#111', letterSpacing: '-0.04em', lineHeight: 1 }}>
                     {stats.tw}개
                   </div>
-                  {stats.tw === 0 ? (
+                  {/* 지난주 대비 증감률(↓58% 등) 제거 — 생성 개수만 표시. tw===0일 때만 안내 문구. */}
+                  {stats.tw === 0 && (
                     <div style={{ fontSize: 11, color: '#BBB', marginTop: 6, lineHeight: 1.5 }}>
                       이번 주 첫 상세페이지를<br />만들어보세요!
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, fontSize: 12, fontWeight: 600, color: stats.pct >= 0 ? '#16A34A' : '#DC2626' }}>
-                      {stats.pct >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                      지난 주 대비 {stats.pct >= 0 ? '↑' : '↓'} {Math.abs(stats.pct)}%
                     </div>
                   )}
                 </div>

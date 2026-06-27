@@ -6,9 +6,9 @@ import { useApp, ScreenId } from '@/store/AppContext';
 import { useState } from 'react';
 
 const MENUS = [
-  { icon: Home,     label: '홈',    screenId: 's-dash' as ScreenId, path: null },
-  { icon: FileText, label: '내 작업', screenId: null,               path: '/my-works' },
-  { icon: BookOpen, label: '가이드', screenId: null,               path: '/guide' },
+  { icon: Home,     label: '홈',    screenId: 's-dash' as ScreenId, path: null,        soon: false },
+  { icon: FileText, label: '내 작업', screenId: null,               path: '/my-works', soon: false },
+  { icon: BookOpen, label: '가이드', screenId: null,               path: '/guide',    soon: true },
 ];
 
 interface SidebarProps {
@@ -84,6 +84,12 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
             >
               <Icon size={16} style={{ flexShrink: 0 }} />
               {!collapsed && <span style={{ whiteSpace: 'nowrap' }}>{m.label}</span>}
+              {!collapsed && m.soon && (
+                <span style={{
+                  marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#9B8CFF',
+                  background: '#F4F0FF', borderRadius: 6, padding: '2px 6px', whiteSpace: 'nowrap',
+                }}>준비중</span>
+              )}
             </div>
           );
         })}
@@ -103,13 +109,18 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
             <p style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.65, marginBottom: 14 }}>
               더 많은 AI 기능과<br />프리미엄 템플릿을<br />무제한으로 이용하세요.
             </p>
-            <button style={{
-              width: '100%', background: '#fff', border: 'none',
-              borderRadius: 10, padding: '9px 0',
-              fontSize: 12, fontWeight: 700, color: '#6D4CFF',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              업그레이드 하기 →
+            {/* 결제 미연동 — 죽은 버튼 대신 '출시 예정' 비활성(클릭 무반응 방지). 결제 연동 시 활성화. */}
+            <button
+              disabled
+              title="유료 플랜은 준비 중이에요"
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.4)', border: 'none',
+                borderRadius: 10, padding: '9px 0',
+                fontSize: 12, fontWeight: 700, color: '#fff',
+                cursor: 'default', fontFamily: 'inherit',
+              }}
+            >
+              출시 예정
             </button>
           </div>
         </div>
