@@ -5,9 +5,10 @@ import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import {
   Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
-  LogOut, User, Settings,
+  LogOut,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
+import { getImages } from '@/lib/historyDB';
 import Sidebar from '@/components/layout/Sidebar';
 import DashboardMobile from './DashboardMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -192,6 +193,7 @@ export default function DashboardScreen() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hov, setHov] = useState<string | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});   // 최근작업 hero 썸네일(historyId → dataURL)
   const menuRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -217,6 +219,28 @@ export default function DashboardScreen() {
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
+
+  // 최근작업 썸네일 로드 — IndexedDB(historyId)에서 hero 이미지. 없거나 깨졌으면 카테고리 아이콘 폴백.
+  // ★롤백 안전: 옛 슬라이드 엔진 이미지는 'slide:N' 키라 블로그 hero(sec.num)와 구분 → 자연 제외(개판 컷 안 띄움).
+  useEffect(() => {
+    if (history.length === 0) { setThumbs({}); return; }
+    let cancelled = false;
+    (async () => {
+      const map: Record<string, string> = {};
+      for (const item of history.slice(0, 4)) {
+        try {
+          const si = (await getImages(item.id))?.sectionImages;
+          if (!si) continue;
+          const heroKey = item.sections?.[0]?.num != null ? String(item.sections[0].num) : null;
+          let url = heroKey ? si[heroKey] : undefined;
+          if (!url) url = Object.entries(si).find(([k, v]) => !k.startsWith('slide') && typeof v === 'string' && v.startsWith('data:'))?.[1];
+          if (typeof url === 'string' && url.startsWith('data:')) map[item.id] = url;
+        } catch { /* 이 항목은 아이콘 폴백 */ }
+      }
+      if (!cancelled) setThumbs(map);
+    })();
+    return () => { cancelled = true; };
+  }, [history]);
 
   // 모바일 분기 — 모든 훅 호출 후
   if (isMobile) return <DashboardMobile />;
@@ -345,30 +369,7 @@ export default function DashboardScreen() {
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>{rawName || '사용자'}</div>
                     <div style={{ fontSize: 11, color: '#AAA', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{email}</div>
                   </div>
-                  {[
-                    { icon: User, label: '프로필', action: () => {} },
-                    { icon: Settings, label: '설정', action: () => {} },
-                  ].map(item => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => { setProfileOpen(false); item.action(); }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8,
-                          width: '100%', background: 'none', border: 'none',
-                          padding: '9px 12px', fontSize: 13, color: '#333',
-                          cursor: 'pointer', borderRadius: 8, fontFamily: 'inherit',
-                          textAlign: 'left',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFC')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                      >
-                        <Icon size={14} color="#888" /> {item.label}
-                      </button>
-                    );
-                  })}
-                  <div style={{ height: 1, background: '#F4F4F6', margin: '4px 0' }} />
+                  {/* 프로필/설정 = 연결 페이지·설정 항목 없는 베타 → 죽은 버튼 제거(이름·이메일은 위 헤더에 이미 표시). 로그아웃만 유지. */}
                   <button
                     onClick={() => { setProfileOpen(false); signOut({ callbackUrl: '/' }); }}
                     style={{
@@ -509,9 +510,12 @@ export default function DashboardScreen() {
                       onMouseEnter={e => { if (!isSample) e.currentTarget.style.background = '#FAFAFC'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      {/* 썸네일 */}
-                      <div style={{ width: 52, height: 52, flexShrink: 0, background: bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
-                        {emoji}
+                      {/* 썸네일 — 실제 생성 hero 이미지 있으면 그걸로, 없으면 카테고리 아이콘 */}
+                      <div style={{ width: 52, height: 52, flexShrink: 0, background: bg, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, overflow: 'hidden' }}>
+                        {!isSample && thumbs[item.id] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={thumbs[item.id]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                        ) : emoji}
                       </div>
 
                       {/* 제목 */}
