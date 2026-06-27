@@ -11,6 +11,7 @@ import {
 } from './GeneratingScreen';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
+import { deductCreditsOnServer } from '@/lib/clientCredits';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 
 const STEPS = [
@@ -30,7 +31,7 @@ export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
     referenceAnalysis, captureAnalysis, sectionStructure,
-    go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory,
+    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory,
     toggleChat,
   } = useApp();
 
@@ -44,6 +45,7 @@ export default function GeneratingMobile() {
   const timerRef = useRef<NodeJS.Timeout[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
+  const jobKeyRef = useRef<string>('');   // ★멱등키 — 생성 1회당 1개(이중차감 방지)
 
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -57,6 +59,7 @@ export default function GeneratingMobile() {
       return;
     }
     setCreditInsufficient(false);
+    jobKeyRef.current = crypto.randomUUID();   // 이 생성 시도의 멱등키(성공 시 서버 차감에 사용)
 
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
@@ -86,7 +89,7 @@ export default function GeneratingMobile() {
               sections,
             });
           }
-          if (!isDev) deductCredits(GENERATION_COST);
+          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
           setPct(100);
           go('s8');
         })
@@ -153,7 +156,7 @@ export default function GeneratingMobile() {
         const wait = Math.max(0, MIN_ANIM_MS - elapsed);
         const done = setTimeout(() => {
           if (!cancelledRef.current) {
-            if (!isDev) deductCredits(GENERATION_COST);
+            if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
             go('s8');
           }
         }, wait);

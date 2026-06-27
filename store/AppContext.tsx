@@ -139,7 +139,7 @@ interface AppContextType extends AppState {
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
   setCaptureAnalysis: (a: CaptureAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
-  deductCredits: (amount?: number) => void;
+  setCredits: (balance: number) => void;
   setCreditModalOpen: (v: boolean) => void;
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
@@ -307,14 +307,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session?.user?.email]);
 
-  const deductCredits = (amount = 10) => {
-    const email = session?.user?.email ?? 'guest';
-    const key = `pc_cr_${email}`;
-    setCreditsState(prev => {
-      const next = Math.max(0, prev - amount);
-      try { localStorage.setItem(key, String(next)); } catch { /* no-op */ }
-      return next;
-    });
+  /* ★3단계: 클라 차감(localStorage) 제거. 차감은 서버(/api/credits/deduct)가 원자적으로 함.
+   * 화면 잔액은 서버가 돌려준 새 잔액으로만 갱신 — setCredits. (조작 방지: 진짜 잔액은 서버에만.) */
+  const setCredits = (balance: number) => {
+    setCreditsState(Math.max(0, Math.floor(balance)));
   };
 
   const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => {
@@ -573,7 +569,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setReferenceAnalysis: setReferenceAnalysisState,
       setCaptureAnalysis: setCaptureAnalysisState,
       setSectionStructure: setSectionStructureState,
-      deductCredits,
+      setCredits,
       setCreditModalOpen: setCreditModalOpenState,
       saveHistory,
       loadFromHistory,

@@ -6,6 +6,7 @@ import GeneratingMobile from './GeneratingMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
+import { deductCreditsOnServer } from '@/lib/clientCredits';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 import {
   Sparkles, Check, Loader2, Clock, Lightbulb,
@@ -174,7 +175,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, deductCredits, setCreditModalOpen, saveHistory } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -184,6 +185,7 @@ export default function GeneratingScreen() {
   const timerRef    = useRef<NodeJS.Timeout[]>([]);
   const abortRef    = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
+  const jobKeyRef   = useRef<string>('');   // ★멱등키 — 생성 1회당 1개(이중차감 방지)
 
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -197,6 +199,7 @@ export default function GeneratingScreen() {
       return;
     }
     setCreditInsufficient(false);
+    jobKeyRef.current = crypto.randomUUID();   // 이 생성 시도의 멱등키(성공 시 서버 차감에 사용)
 
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
@@ -226,7 +229,8 @@ export default function GeneratingScreen() {
               sections,
             });
           }
-          if (!isDev) deductCredits(GENERATION_COST);
+          // ★서버 원자적 차감(생성 성공 후 1회). 잔액은 서버 반환값으로 갱신. 실패해도 화면 진행은 막지 않음.
+          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
           setPct(100);
           go('s8');
         })
@@ -293,7 +297,8 @@ export default function GeneratingScreen() {
         const wait    = Math.max(0, MIN_ANIM_MS - elapsed);
         const done    = setTimeout(() => {
           if (!cancelledRef.current) {
-            if (!isDev) deductCredits(GENERATION_COST);
+            // ★서버 원자적 차감(생성 성공 후 1회). 잔액은 서버 반환값으로 갱신. 실패해도 화면 진행은 막지 않음.
+          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
             go('s8');
           }
         }, wait);

@@ -22,7 +22,10 @@ export const sql = neon(connectionString ?? '');
 /** 신규 가입 기본 지급량 — 기존 로직(30)과 동일. */
 export const SIGNUP_GRANT = 30;
 
-/** 테이블 생성(IF NOT EXISTS) — 마이그레이션. db-init 스크립트에서 1회 실행. */
+/** 상세페이지 1회 생성 비용 — ★서버 권위값(클라가 보내는 금액을 신뢰하지 않는다 = 조작 방지). */
+export const GENERATION_COST = 10;
+
+/** 테이블 생성/마이그레이션(IF NOT EXISTS) — db-init 스크립트에서 1회 실행. 재실행 안전(멱등). */
 export async function ensureCreditTables(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS credits (
@@ -40,6 +43,53 @@ export async function ensureCreditTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
   await sql`CREATE INDEX IF NOT EXISTS credit_ledger_email_idx ON credit_ledger (user_email)`;
+  // ★3단계 차감: 멱등키 컬럼 + UNIQUE(이중차감 방지의 하드 가드). deduct에만 채워짐(grant는 NULL 허용).
+  await sql`ALTER TABLE credit_ledger ADD COLUMN IF NOT EXISTS idempotency_key TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS credit_ledger_idem_idx ON credit_ledger (idempotency_key)`;
+}
+
+export interface DeductResult {
+  status: 'deducted' | 'duplicate' | 'insufficient';
+  balance: number;
+}
+
+/**
+ * ★원자적 차감 (3단계 핵심). 단일 SQL문(data-modifying CTE)으로:
+ *  - 이중차감 방지: idempotency_key가 이미 있으면 차감 안 함(NOT EXISTS) → 'duplicate'.
+ *  - 마이너스/동시 방지: UPDATE ... WHERE balance >= amount (credits 행 잠금으로 동시 요청 직렬화).
+ *  - 실패시차감 방지: 호출 자체를 생성 성공 후에만(클라 타이밍) — 서버는 호출되면 차감 시도만.
+ *  - 차감과 ledger 기록이 같은 문장 = 원자적(중간에 끊겨 한쪽만 반영되는 일 없음).
+ *
+ * @returns deducted(새 잔액) | duplicate(이미 차감됨, 현재 잔액) | insufficient(부족, 차감 안 함)
+ */
+export async function deductCreditsAtomic(
+  email: string, amount: number, idempotencyKey: string, reason = 'generation',
+): Promise<DeductResult> {
+  const rows = await sql`
+    WITH d AS (
+      UPDATE credits SET balance = balance - ${amount}, updated_at = now()
+      WHERE user_email = ${email}
+        AND balance >= ${amount}
+        AND NOT EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${idempotencyKey})
+      RETURNING balance
+    ),
+    l AS (
+      INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+      SELECT ${email}, ${-amount}, 'deduct', ${reason}, ${idempotencyKey}
+      WHERE EXISTS (SELECT 1 FROM d)
+      RETURNING id
+    )
+    SELECT
+      (SELECT balance FROM d)                                                      AS deducted_balance,
+      (SELECT balance FROM credits WHERE user_email = ${email})                    AS current_balance,
+      EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${idempotencyKey}) AS key_exists`;
+  const r = rows[0] as { deducted_balance: number | null; current_balance: number | null; key_exists: boolean };
+  const current = r.current_balance ?? 0;
+  if (r.deducted_balance !== null && r.deducted_balance !== undefined) {
+    return { status: 'deducted', balance: r.deducted_balance };
+  }
+  if (r.key_exists) return { status: 'duplicate', balance: current };   // 이미 차감(멱등) — 재차감 안 함
+  return { status: 'insufficient', balance: current };                  // 잔액 부족 — 차감 안 함
 }
 
 /**
