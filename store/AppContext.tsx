@@ -286,24 +286,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [aiSelections, setAiSelections] = useState<string[]>([]);
 
-  /* 크레딧 localStorage 초기화 — 신규 유저 30 지급 */
+  /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴(2단계). 신규 30 지급은 서버가 처리.
+   * (이전: localStorage pc_cr_{email} 읽기 → 서버 조회로 교체. ★차감 deductCredits는 미접촉 = 3단계.)
+   * 주의(과도기): 차감은 아직 클라(localStorage)라, 새로고침하면 서버 잔액으로 다시 동기화된다.
+   *   서버 차감 이전(3단계) 전까지는 차감이 영구 반영되지 않음 — 의도된 중간 상태. */
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status !== 'authenticated') return;
+    let cancelled = false;
+    (async () => {
       try {
-        const email = session?.user?.email ?? 'guest';
-        const key = `pc_cr_${email}`;
-        const stored = localStorage.getItem(key);
-        if (stored === null) {
-          localStorage.setItem(key, '30');
-          setCreditsState(30);
-        } else {
-          const parsed = parseInt(stored, 10);
-          setCreditsState(Number.isFinite(parsed) ? parsed : 0);
-        }
+        const res = await fetch('/api/credits');
+        if (!res.ok) return; // 실패 시 기본값 유지(표시만)
+        const data = await res.json() as { balance?: number };
+        if (!cancelled && typeof data.balance === 'number') setCreditsState(data.balance);
       } catch {
-        // Safari private mode 등 localStorage 접근 불가 시 기본값 유지
+        // 네트워크 실패 등 — 기본값 유지
       }
-    }
+    })();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session?.user?.email]);
 
