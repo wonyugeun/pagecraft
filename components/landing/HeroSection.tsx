@@ -92,11 +92,12 @@ export default function HeroSection() {
                 borderRadius: '10px', padding: '14px 24px',
                 fontSize: '15px', fontWeight: 600,
                 color: hoverSample ? '#6E5BFB' : '#4E5968',
-                cursor: 'pointer', transition: 'all 150ms',
+                cursor: 'default', transition: 'all 150ms',
                 fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: '8px',
                 whiteSpace: 'nowrap',
               }}
+              title="샘플 페이지는 준비 중이에요"
             >
               <span style={{
                 width: '20px', height: '20px',
@@ -106,7 +107,7 @@ export default function HeroSection() {
                 fontSize: '9px', color: hoverSample ? '#fff' : '#6E5BFB',
                 transition: 'all 150ms', flexShrink: 0,
               }}>▶</span>
-              샘플 상세페이지 보기
+              샘플 준비 중
             </button>
           </div>
 

@@ -185,7 +185,7 @@ export default function ImageScreen() {
                 whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--f)',
               }}
             >
-              누끼컷 만들기
+              누끼컷 만들기 (준비 중)
             </button>
             <input
               ref={nukkiRef}

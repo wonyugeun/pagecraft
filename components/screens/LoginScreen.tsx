@@ -20,7 +20,7 @@ export default function LoginScreen() {
           카테고리별 전문 AI 상세페이지<br />
           3분 완성으로 매출을 바꿉니다
         </div>
-        <span className="l-free">🎁 신규 가입 시 3크레딧 무료 지급</span>
+        <span className="l-free">🎁 신규 가입 시 30크레딧 무료 지급</span>
 
         {/* 카카오 로그인 */}
         <button

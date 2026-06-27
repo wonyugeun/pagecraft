@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { IconBrandKakoTalk } from '@tabler/icons-react';
 
@@ -32,7 +31,6 @@ const FOOTER_COLS = [
 ];
 
 export default function LandingFooter() {
-  const [kakaoHov, setKakaoHov] = useState(false);
 
   return (
     <footer style={{
@@ -103,23 +101,21 @@ export default function LandingFooter() {
             <p style={{ fontSize: '12px', color: '#8B95A1', lineHeight: 1.6, marginBottom: '14px' }}>
               업데이트 소식과 셀러 인사이트를<br />받아보세요
             </p>
-            <a
-              href="#"
-              onMouseEnter={() => setKakaoHov(true)}
-              onMouseLeave={() => setKakaoHov(false)}
+            {/* 실제 카카오 채널 미개설 — 죽은 '#' 링크 대신 '준비 중' 비활성 표기. 채널 개설 시 href 연결. */}
+            <span
+              title="카카오톡 채널은 준비 중이에요"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                background: kakaoHov ? '#F4D900' : '#FEE500',
+                background: '#F2F4F6',
                 border: 'none', borderRadius: '8px',
                 padding: '10px 16px', fontSize: '13px', fontWeight: 700,
-                color: '#191F28', cursor: 'pointer', textDecoration: 'none',
-                transition: 'background 150ms',
+                color: '#8B95A1', cursor: 'default', textDecoration: 'none',
                 fontFamily: 'inherit',
               }}
             >
-              <IconBrandKakoTalk size={18} color="#191F28" stroke={1.8} />
-              채널 추가하기
-            </a>
+              <IconBrandKakoTalk size={18} color="#8B95A1" stroke={1.8} />
+              채널 준비 중
+            </span>
           </div>
         </div>
 
