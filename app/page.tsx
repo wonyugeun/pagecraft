@@ -29,7 +29,7 @@ import OutputScreen from '@/components/screens/OutputScreen';
 import { STEP_MAP } from '@/store/AppContext';
 
 function App() {
-  const { screen, chatOpen, go } = useApp();
+  const { screen, go } = useApp();
 
   // 재진입 복구: 새로고침/탭 이탈 후, IndexedDB에 미완료 파이프라인 job이 있으면 s7로 돌려 마지막 지점부터 재개.
   const resumedRef = useRef(false);
@@ -73,7 +73,9 @@ function App() {
     <>
       {!isDash && <TopBar />}
       {hasProgress && <ProgressBar />}
-      <div className={`main${chatOpen ? ' chat-open' : ''}`} style={{ paddingTop }}>
+      {/* ★도우미는 본문에 영향 0인 순수 오버레이. .main에 chat-open 클래스를 붙이지 않는다 →
+          도우미를 열어도 본문(미리보기·카드)의 width/margin이 전혀 바뀌지 않음. 도우미는 fixed로 본문 위에 뜸. */}
+      <div className="main" style={{ paddingTop }}>
         <div className="scr">
           {screenMap[screen] || <LoginScreen />}
         </div>
