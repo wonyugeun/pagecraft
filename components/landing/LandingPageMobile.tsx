@@ -25,13 +25,8 @@ export default function LandingPageMobile() {
       }}>
         <Menu size={24} color="#111" />
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '10px',
-            background: '#6D4CFF', color: '#fff',
-            fontSize: '18px', fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>F</div>
-          <span style={{ fontSize: '20px', fontWeight: 700, color: '#111' }}>Flik</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/logo-flik.png" alt="Flik" style={{ height: '32px', width: 'auto', objectFit: 'contain', display: 'block' }} />
         </div>
         <button style={{
           border: '1px solid #ECECF2', borderRadius: '12px',

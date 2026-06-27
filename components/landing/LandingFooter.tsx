@@ -49,16 +49,8 @@ export default function LandingFooter() {
           {/* 로고 + 설명 */}
           <div>
             <Link href="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <div style={{
-                width: '28px', height: '28px', background: '#6E5BFB',
-                borderRadius: '7px', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff',
-              }}>
-                F
-              </div>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
-                Flik
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/logo-flik.png" alt="Flik" style={{ height: '26px', width: 'auto', objectFit: 'contain', display: 'block' }} />
             </Link>
             <p style={{ fontSize: '13px', color: '#8B95A1', lineHeight: 1.7 }}>
               AI가 만드는 카테고리 맞춤<br />

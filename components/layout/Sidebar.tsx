@@ -42,16 +42,11 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
         borderBottom: '1px solid #F4F4F6',
         transition: 'padding 200ms ease',
       }}>
-        <div style={{
-          width: 32, height: 32, background: '#6D4CFF', borderRadius: 8, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 800, color: '#fff',
-        }}>F</div>
-        {!collapsed && (
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-            Flik
-          </span>
-        )}
+        {/* 접힘: 폭 34로 자르면 로고 왼쪽 심볼(막대)만 보임 / 펼침: 전체 워드마크. */}
+        <div style={{ height: 28, width: collapsed ? 30 : 'auto', overflow: 'hidden', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/logo-flik.png" alt="Flik" style={{ height: 24, width: 'auto', maxWidth: 'none', display: 'block' }} />
+        </div>
       </div>
 
       {/* 메뉴 */}

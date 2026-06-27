@@ -27,8 +27,8 @@ export default function TopBar() {
   return (
     <div className="tb">
       <div className="tb-logo" onClick={() => session && go('s-dash')} style={{ cursor: session ? 'pointer' : 'default' }}>
-        <div className="tb-dot" />
-        Flik
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo-flik.png" alt="Flik" style={{ height: 28, width: 'auto', objectFit: 'contain', display: 'block' }} />
       </div>
       <div className="tb-right">
         <button className="ai-help-btn" onClick={toggleChat}>

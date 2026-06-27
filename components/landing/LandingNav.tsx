@@ -33,16 +33,8 @@ export default function LandingNav() {
     }}>
       {/* 로고 */}
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-        <div style={{
-          width: '32px', height: '32px', background: '#6E5BFB',
-          borderRadius: '8px', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: '#fff',
-        }}>
-          F
-        </div>
-        <span style={{ fontSize: '17px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
-          Flik
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo-flik.png" alt="Flik" style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'block' }} />
       </Link>
 
       {/* 데스크탑 메뉴 */}

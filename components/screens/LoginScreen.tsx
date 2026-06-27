@@ -15,7 +15,8 @@ export default function LoginScreen() {
   return (
     <div className="login-shell">
       <div className="login-card">
-        <div className="l-logo">Flik ✦</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div className="l-logo"><img src="/images/logo-flik.png" alt="Flik" style={{ height: 34, width: 'auto', objectFit: 'contain', display: 'inline-block' }} /></div>
         <div className="l-tag">
           카테고리별 전문 AI 상세페이지<br />
           3분 완성으로 매출을 바꿉니다

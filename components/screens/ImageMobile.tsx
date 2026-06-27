@@ -111,13 +111,7 @@ export default function ImageMobile() {
         padding: '16px 20px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: '#6D4CFF', color: '#fff',
-            fontSize: 18, fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>F</div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Flik</span>
+          <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{
