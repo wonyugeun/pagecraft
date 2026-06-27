@@ -46,10 +46,10 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
           width: 32, height: 32, background: '#6D4CFF', borderRadius: 8, flexShrink: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 16, fontWeight: 800, color: '#fff',
-        }}>P</div>
+        }}>F</div>
         {!collapsed && (
           <span style={{ fontSize: 16, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-            PageCraft
+            Flik
           </span>
         )}
       </div>

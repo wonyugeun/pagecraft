@@ -151,8 +151,8 @@ export default function ProductMobile() {
             background: '#6D4CFF', color: '#fff',
             fontSize: 18, fontWeight: 800,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>P</div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>PageCraft</span>
+          }}>F</div>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#111' }}>Flik</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

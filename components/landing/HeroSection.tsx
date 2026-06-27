@@ -129,7 +129,7 @@ export default function HeroSection() {
         <div className="hero-card-wrap" style={{ lineHeight: 0, width: '100%' }}>
           <Image
             src="/images/landing/hero-preview.png"
-            alt="PageCraft AI 상세페이지 미리보기"
+            alt="Flik AI 상세페이지 미리보기"
             width={1536}
             height={1024}
             quality={95}

@@ -38,10 +38,10 @@ export default function LandingNav() {
           borderRadius: '8px', display: 'flex', alignItems: 'center',
           justifyContent: 'center', fontSize: '16px', fontWeight: 800, color: '#fff',
         }}>
-          P
+          F
         </div>
         <span style={{ fontSize: '17px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
-          PageCraft
+          Flik
         </span>
       </Link>
 

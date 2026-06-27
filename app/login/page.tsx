@@ -43,7 +43,7 @@ export default function LoginPage() {
               P
             </div>
             <span style={{ fontSize: '18px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
-              PageCraft
+              Flik
             </span>
           </Link>
         </div>
@@ -53,7 +53,7 @@ export default function LoginPage() {
           fontSize: '24px', fontWeight: 700, color: '#111111',
           textAlign: 'center', marginBottom: '8px', letterSpacing: '-0.02em',
         }}>
-          PageCraft 시작하기
+          Flik 시작하기
         </h1>
 
         {/* 부제 */}

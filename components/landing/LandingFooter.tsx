@@ -54,10 +54,10 @@ export default function LandingFooter() {
                 borderRadius: '7px', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff',
               }}>
-                P
+                F
               </div>
               <span style={{ fontSize: '16px', fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em' }}>
-                PageCraft
+                Flik
               </span>
             </Link>
             <p style={{ fontSize: '13px', color: '#8B95A1', lineHeight: 1.7 }}>
@@ -96,7 +96,7 @@ export default function LandingFooter() {
             <div style={{
               fontSize: '13px', fontWeight: 700, color: '#191F28', marginBottom: '10px',
             }}>
-              PageCraft 카카오톡 채널
+              Flik 카카오톡 채널
             </div>
             <p style={{ fontSize: '12px', color: '#8B95A1', lineHeight: 1.6, marginBottom: '14px' }}>
               업데이트 소식과 셀러 인사이트를<br />받아보세요
@@ -126,7 +126,7 @@ export default function LandingFooter() {
           flexWrap: 'wrap', gap: '12px',
         }}>
           <span style={{ fontSize: '12px', color: '#B0B8C1' }}>
-            © 2026 PageCraft. All rights reserved.
+            © 2026 Flik. All rights reserved.
           </span>
           <div style={{ display: 'flex', gap: '20px' }}>
             {[

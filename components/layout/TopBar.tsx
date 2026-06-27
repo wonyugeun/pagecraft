@@ -28,7 +28,7 @@ export default function TopBar() {
     <div className="tb">
       <div className="tb-logo" onClick={() => session && go('s-dash')} style={{ cursor: session ? 'pointer' : 'default' }}>
         <div className="tb-dot" />
-        PageCraft
+        Flik
       </div>
       <div className="tb-right">
         <button className="ai-help-btn" onClick={toggleChat}>

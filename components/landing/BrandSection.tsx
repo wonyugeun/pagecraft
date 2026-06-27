@@ -15,7 +15,7 @@ export default function BrandSection() {
           textAlign: 'center', fontSize: '14px',
           color: '#B0B8C1', marginBottom: '36px', letterSpacing: '-0.01em',
         }}>
-          이미 많은 브랜드가 PageCraft와 함께하고 있습니다
+          이미 많은 브랜드가 Flik와 함께하고 있습니다
         </p>
         <div style={{
           display: 'flex',

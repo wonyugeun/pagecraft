@@ -352,7 +352,7 @@ export async function downloadHtml(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escHtml(productName || '상세페이지')} — PageCraft</title>
+  <title>${escHtml(productName || '상세페이지')} — Flik</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
   <style>
     :root { --p: ${cP}; --soft: ${cSoft}; --sb: ${cSB}; }
@@ -375,7 +375,7 @@ export async function downloadHtml(
   </style>
 </head>
 <body>
-  <div class="meta">PageCraft 생성 · ${escHtml(meta)}</div>
+  <div class="meta">Flik 생성 · ${escHtml(meta)}</div>
 ${sectionsHtml}
 </body>
 </html>`;

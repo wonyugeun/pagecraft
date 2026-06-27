@@ -30,8 +30,8 @@ export default function LandingPageMobile() {
             background: '#6D4CFF', color: '#fff',
             fontSize: '18px', fontWeight: 800,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>P</div>
-          <span style={{ fontSize: '20px', fontWeight: 700, color: '#111' }}>PageCraft</span>
+          }}>F</div>
+          <span style={{ fontSize: '20px', fontWeight: 700, color: '#111' }}>Flik</span>
         </div>
         <button style={{
           border: '1px solid #ECECF2', borderRadius: '12px',

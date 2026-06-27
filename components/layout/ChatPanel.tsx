@@ -39,7 +39,7 @@ export default function ChatPanel() {
       <div className="cp-hd">
         <div className="cp-av">✦</div>
         <div>
-          <div className="cp-name">PageCraft AI 도우미</div>
+          <div className="cp-name">Flik AI 도우미</div>
           <div className="cp-status"><span className="cp-dot" /> 온라인</div>
         </div>
         <button className="cp-close" onClick={toggleChat}>✕</button>

@@ -23,7 +23,7 @@ const FEATURES = [
     icon: IconPhotoSearch,
     title: '캡처 분석',
     desc: '경쟁사 상세페이지를 캡처해서 올리면 AI가 구조를 분석해 더 나은 버전을 제안합니다.',
-    badge: 'PageCraft만의 기능',
+    badge: 'Flik만의 기능',
   },
   {
     icon: IconDownload,
@@ -53,7 +53,7 @@ export default function FeaturesSection() {
             fontSize: '36px', fontWeight: 700, color: '#191F28',
             letterSpacing: '-0.03em', lineHeight: 1.2, marginBottom: '14px',
           }}>
-            PageCraft의 핵심 기능
+            Flik의 핵심 기능
           </h2>
           <p style={{ fontSize: '16px', color: '#4E5968', lineHeight: 1.6 }}>
             상세페이지 제작에 필요한 모든 기능을 제공해요

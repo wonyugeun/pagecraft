@@ -91,7 +91,7 @@ export default function HowItWorksSection() {
           }}>
             <Image
               src="/images/landing/samples-grid.png"
-              alt="PageCraft 결과물 예시"
+              alt="Flik 결과물 예시"
               width={600}
               height={480}
               style={{ width: '100%', height: 'auto', display: 'block' }}
