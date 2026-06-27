@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// vision 이해용 모델 (이미지 생성이 아닌 이미지 분석/설명)
-const VISION_MODEL = 'gemini-3.5-flash';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${VISION_MODEL}:generateContent`;
+// vision 이해용 모델 (이미지 분석/설명) — ★Gemini → GPT Vision(OpenAI)으로 통일. 프롬프트 텍스트는 불변.
+// 이미지 생성(generate-image)과 동일하게 raw fetch 사용(openai SDK 미추가).
+const VISION_MODEL = 'gpt-4o';
+const API_URL = 'https://api.openai.com/v1/chat/completions';
 
 function parseFirstJson(text: string): Record<string, unknown> | null {
   const match = text.match(/\{[\s\S]*\}/);
@@ -12,36 +13,42 @@ function parseFirstJson(text: string): Record<string, unknown> | null {
   try { return JSON.parse(match[0]); } catch { return null; }
 }
 
-async function geminiVision(
+async function gptVision(
   apiKey: string,
   imageBase64: string,
   prompt: string,
   retry = true,
 ): Promise<Record<string, unknown>> {
   const callOnce = async (p: string): Promise<string> => {
-    const res = await fetch(`${API_URL}?key=${apiKey}`, {
+    const res = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        contents: [{
+        model: VISION_MODEL,
+        messages: [{
           role: 'user',
-          parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } },
-            { text: p },
+          content: [
+            { type: 'text', text: p },
+            // Gemini parts:[{inlineData}] → OpenAI image_url(data URL). 기존과 동일하게 jpeg로 취급.
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
           ],
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 4096 },
+        max_completion_tokens: 8192,   // 섹션구조 JSON 잘리지 않게 충분히(Gemini 4096 → 상향)
       }),
       signal: AbortSignal.timeout(55_000),
     });
 
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
-      throw new Error(`Gemini ${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`OpenAI ${res.status}: ${errText.slice(0, 200)}`);
     }
 
-    const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const data = await res.json() as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }> };
+    const choice = data.choices?.[0];
+    const content = choice?.message?.content ?? '';
+    // ★빈 출력 과금 가드 — 과금됐는데 내용이 없으면 로그로 드러내고(파싱 단계에서 retry/throw로 이어짐).
+    if (!content.trim()) console.warn(`[capture] OpenAI 빈 출력(과금됨) finish_reason=${choice?.finish_reason ?? '?'}`);
+    return content;
   };
 
   const text = await callOnce(prompt);
@@ -56,7 +63,7 @@ async function geminiVision(
     if (retryParsed) return retryParsed;
   }
 
-  throw new Error('JSON 파싱 실패 — Gemini 응답에서 JSON을 찾지 못했어요.');
+  throw new Error('JSON 파싱 실패 — OpenAI 응답에서 JSON을 찾지 못했어요.');
 }
 
 const STAGE1_PROMPT = `이 이미지는 한국 이커머스 상세페이지 캡처입니다.
@@ -137,9 +144,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'step은 1 또는 2여야 해요.' }, { status: 400 });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY가 설정되지 않았어요.' }, { status: 500 });
+    return NextResponse.json({ error: 'OPENAI_API_KEY가 설정되지 않았어요.' }, { status: 500 });
   }
 
   // ── Stage 1: 구조 분석 ──
@@ -149,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     let parsed: Record<string, unknown>;
     try {
-      parsed = await geminiVision(apiKey, body.image, STAGE1_PROMPT);
+      parsed = await gptVision(apiKey, body.image, STAGE1_PROMPT);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('[capture/stage1]', msg);
@@ -182,7 +189,7 @@ export async function POST(req: NextRequest) {
   const stage1Json = JSON.stringify(body.stage1, null, 2);
   let parsed: Record<string, unknown>;
   try {
-    parsed = await geminiVision(apiKey, body.image, buildStage2Prompt(stage1Json));
+    parsed = await gptVision(apiKey, body.image, buildStage2Prompt(stage1Json));
   } catch (err) {
     console.warn('[capture/stage2] 실패, 기본값 사용:', err);
     parsed = { 섹션상세: [], 전체톤: '직설', 브랜드무드: '실용적' };
