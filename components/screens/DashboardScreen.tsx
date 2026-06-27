@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import {
-  Zap, ArrowRight, Sparkles, Trash2, Ellipsis,
+  Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
   LogOut, User, Settings,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
@@ -409,8 +409,10 @@ export default function DashboardScreen() {
               onMouseLeave={() => setHov(null)}
               onClick={startDetail}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                <div style={{ flex: 1 }}>
+              {/* 도우미 오버레이라 폭이 줄 일은 없지만, 한국어는 글자 단위로 줄바꿈돼 폭이 조금만 눌려도
+                  제목이 1글자 세로로 무너진다 → 텍스트 컬럼에 minWidth로 방어(미리보기 옆에서 절대 세로 안 됨). */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 240 }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#EDE8FF', borderRadius: 999, padding: '5px 14px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', marginBottom: 14 }}>
                     AI가 구성해드려요
                     <span style={{ background: '#6D4CFF', borderRadius: '50%', width: 14, height: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, marginLeft: 2 }}>+</span>
@@ -450,7 +452,9 @@ export default function DashboardScreen() {
                 onMouseLeave={() => setHov(null)}
                 onClick={() => go('s-quick')}
               >
-                <div style={{ width: 44, height: 44, background: '#FEF3C7', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>⚡</div>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(245,158,11,0.28)' }}>
+                  <Zap size={22} color="#fff" fill="#fff" strokeWidth={1.6} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>빠른 제작</div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>원하는 섹션 1장만 골라<br />카피+이미지를 즉시 생성</div>
@@ -465,13 +469,15 @@ export default function DashboardScreen() {
                 onMouseLeave={() => setHov(null)}
                 onClick={() => go('s-thumb')}
               >
-                <div style={{ width: 44, height: 44, background: '#FCE7F3', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🖼️</div>
+                <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #A78BFA 0%, #6D4CFF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(109,76,255,0.28)' }}>
+                  <ImageIcon size={22} color="#fff" strokeWidth={1.8} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기</div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>채널 규격 자동 적용·<br />4가지 타입 썸네일 즉시 생성</div>
                 </div>
-                <div style={{ width: 34, height: 34, background: '#FBCFE8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <ArrowRight size={15} color="#9D174D" />
+                <div style={{ width: 34, height: 34, background: '#EDE8FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ArrowRight size={15} color="#6D4CFF" />
                 </div>
               </div>
             </div>
