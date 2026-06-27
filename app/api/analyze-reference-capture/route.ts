@@ -4,7 +4,7 @@ export const maxDuration = 60;
 
 // vision 이해용 모델 (이미지 분석/설명) — ★Gemini → GPT Vision(OpenAI)으로 통일. 프롬프트 텍스트는 불변.
 // 이미지 생성(generate-image)과 동일하게 raw fetch 사용(openai SDK 미추가).
-const VISION_MODEL = 'gpt-4o';
+const VISION_MODEL = 'gpt-5.5';
 const API_URL = 'https://api.openai.com/v1/chat/completions';
 
 function parseFirstJson(text: string): Record<string, unknown> | null {

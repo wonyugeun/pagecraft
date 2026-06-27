@@ -77,7 +77,7 @@ async function gpt(): Promise<{ raw: string; sections: Record<string, unknown>[]
   const key = process.env.OPENAI_API_KEY!;
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: 'gpt-4o', messages: [{ role: 'user', content: [{ type: 'text', text: STAGE1_PROMPT }, { type: 'image_url', image_url: { url: `data:${MIME};base64,${b64}` } }] }], max_completion_tokens: 8192 }),
+    body: JSON.stringify({ model: 'gpt-5.5', messages: [{ role: 'user', content: [{ type: 'text', text: STAGE1_PROMPT }, { type: 'image_url', image_url: { url: `data:${MIME};base64,${b64}` } }] }], max_completion_tokens: 8192 }),
     signal: AbortSignal.timeout(55_000),
   });
   const d = await res.json() as { choices?: Array<{ message?: { content?: string }; finish_reason?: string }> };
@@ -98,7 +98,7 @@ const show = (label: string, r: { raw: string; sections: Record<string, unknown>
 console.log(`이미지: ${IMG_PATH} (Flik 랜딩 섹션 — 기능그리드/3단계/CTA)`);
 const [g, o] = await Promise.all([gemini(), gpt()]);
 show('Gemini gemini-3.5-flash', g);
-show('GPT gpt-4o', o);
+show('GPT gpt-5.5', o);
 
 console.log('\n──── 비교 ────');
 console.log(`  섹션 개수: Gemini ${g.sections.length} vs GPT ${o.sections.length}`);
