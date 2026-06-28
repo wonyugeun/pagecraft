@@ -317,24 +317,32 @@ export default function TypeScreen() {
                 ))}
               </div>
 
-              {/* 섹션: 실제 개수(DEPTH_BASE) 크게 + 대표 칩 + 외 N개 */}
+              {/* 섹션: 대표 칩(맛보기) + 외 N개 + ★분량 막대(프리미엄형이 기본형 ~2배인 게 한눈에) */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, letterSpacing: '-0.01em' }}>
-                    {t.secLabel}
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    실제 <span style={{ fontSize: '19px', fontWeight: 800, color: t.accent, letterSpacing: '-0.03em' }}>약 {t.secCount}개</span> 섹션
-                  </span>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, marginBottom: '10px', letterSpacing: '-0.01em' }}>
+                  {t.secLabel}
                 </div>
                 <div className="cards-5col">
                   {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} />)}
                 </div>
                 {t.secCount > t.secs.length && (
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 600, color: t.accent, opacity: 0.85 }}>
-                    + 외 {t.secCount - t.secs.length}개 섹션이 더 구성돼요
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 600, color: '#9CA3AF' }}>
+                    + 외 {t.secCount - t.secs.length}개 더
                   </div>
                 )}
+                {/* 분량 막대 — 폭 = 개수/최대(프리미엄형). 기본형 ~50%, 프리미엄형 100% → 2배 시각화 */}
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '7px' }}>
+                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#6B7280' }}>실제 구성 분량</span>
+                    <span style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+                      <span style={{ fontSize: '28px', fontWeight: 800, color: t.accent, lineHeight: 1, letterSpacing: '-0.03em' }}>{t.secCount}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: t.accent }}>개 섹션</span>
+                    </span>
+                  </div>
+                  <div style={{ height: '10px', borderRadius: '999px', background: '#F1F0F5', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.round((t.secCount / premiumCount) * 100)}%`, height: '100%', borderRadius: '999px', background: t.accent, transition: 'width 300ms ease' }} />
+                  </div>
+                </div>
               </div>
 
               {/* 선택 버튼 (카드 하단 고정) */}
