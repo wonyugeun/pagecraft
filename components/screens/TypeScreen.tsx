@@ -268,9 +268,9 @@ export default function TypeScreen() {
                 </div>
               </div>
 
-              {/* 선택 버튼 (카드 하단 고정) */}
+              {/* '만들기' 버튼 = 해당 타입 선택 + 바로 다음 단계(중복 클릭 제거). 카드 클릭은 선택만 유지. */}
               <button
-                onClick={e => { e.stopPropagation(); setType(t.key); }}
+                onClick={e => { e.stopPropagation(); setType(t.key); goAfterType(); }}
                 style={{
                   marginTop: 'auto',
                   width: '100%', padding: '12px',
@@ -290,31 +290,36 @@ export default function TypeScreen() {
         })}
       </div>
 
-      {/* 하단 안내 바 */}
+      {/* 하단 안내 바 — 마법사 퍼플 톤 틴트 + 아이콘 강조(기존 radius·톤 유지) */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#FAFAFA', border: '1px solid #EBEBEB', borderRadius: '12px',
-        padding: '14px 20px', marginBottom: '32px', gap: '16px',
+        background: '#F8F7FF', border: '1px solid #E4DCFF', borderRadius: '12px',
+        padding: '16px 20px', marginBottom: '32px', gap: '16px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <RefreshCw size={18} color="#9CA3AF" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '13px' }}>
+          <div style={{
+            width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
+            background: '#EDE8FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <RefreshCw size={18} color="#6D4CFF" />
+          </div>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#333', letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.01em' }}>
               어떤 구성이든 언제든 변경할 수 있어요
             </div>
-            <div style={{ fontSize: '11.5px', color: '#9CA3AF', marginTop: '1px' }}>
+            <div style={{ fontSize: '11.5px', color: '#7B6EA8', marginTop: '2px' }}>
               선택 후에도 자유롭게 변경 가능하니 부담없이 시작하세요.
             </div>
           </div>
         </div>
         <div style={{
-          flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px',
-          background: '#fff', border: '1px solid #EBEBEB', borderRadius: '8px', padding: '8px 14px',
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: '7px',
+          background: '#fff', border: '1px solid #E4DCFF', borderRadius: '8px', padding: '8px 14px',
         }}>
-          <Clock size={14} color="#9CA3AF" />
+          <Clock size={14} color="#6D4CFF" />
           <div>
-            <div style={{ fontSize: '10px', color: '#9CA3AF', fontWeight: 500 }}>예상 소요 시간</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#333', letterSpacing: '-0.02em' }}>약 2~5분</div>
+            <div style={{ fontSize: '10px', color: '#9B8EC4', fontWeight: 600 }}>예상 소요 시간</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em' }}>약 2~5분</div>
           </div>
         </div>
       </div>
