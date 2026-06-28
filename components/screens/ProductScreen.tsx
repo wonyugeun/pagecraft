@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
-import { CatBlogPreview, CatSlidePreview } from './CategoryPreview';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
 
@@ -1519,11 +1518,49 @@ export default function ProductScreen() {
 
           {/* Preview card */}
           <div style={{ padding: '14px 14px 0' }}>
-            {/* ★카테고리별 미리보기 — 출력형태 화면(s3b)과 같은 공통 컴포넌트. 탭(블로그/슬라이드)에 따라 전환, 상품명 실시간 반영 */}
-            <div style={{ marginBottom: 14 }}>
-              {previewTab === 'blog'
-                ? <CatBlogPreview cat={cat} productName={productName} />
-                : <CatSlidePreview cat={cat} productName={productName} />}
+            <div style={{
+              border: '1px solid #E5E7EB', borderRadius: 8,
+              overflow: 'hidden', marginBottom: 14,
+            }}>
+              {/* Product image */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=280&h=160&fit=crop"
+                alt="상품 미리보기"
+                style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+              />
+              <div style={{ padding: '10px 12px' }}>
+                {/* Product name */}
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: productName.trim() ? '#111' : '#D1D5DB',
+                  marginBottom: 5, lineHeight: 1.4,
+                }}>
+                  {productName.trim() || '상품명을 입력해주세요'}
+                </div>
+                {/* Tags */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {[`#${cat ?? '카테고리'}`, '#AI상세페이지'].map(tag => (
+                    <span key={tag} style={{
+                      fontSize: 10, color: '#6D4CFF',
+                      background: '#EDE9FE', borderRadius: 20, padding: '2px 8px',
+                    }}>{tag}</span>
+                  ))}
+                </div>
+                {/* Feature rows */}
+                {[
+                  '핵심 성분 · 효능 자동 분석',
+                  '타겟 맞춤 카피 생성',
+                  '법적 고지 자동 포함',
+                ].map(feat => (
+                  <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: '#22C55E', flexShrink: 0, display: 'inline-block',
+                    }} />
+                    <span style={{ fontSize: 11, color: '#374151' }}>{feat}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* 입력 정보 요약 */}

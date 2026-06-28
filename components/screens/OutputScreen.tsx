@@ -1,12 +1,141 @@
 'use client';
 
-import { Star, Zap, ArrowLeft, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Zap, Check, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
-import { CatBlogPreview, CatSlidePreview } from './CategoryPreview';
+
+/* ── 블로그형 미리보기 ── */
+function BlogPreview() {
+  return (
+    <div style={{
+      background: '#fff', border: '1px solid #E8E4F4', borderRadius: '12px',
+      overflow: 'hidden', userSelect: 'none', maxHeight: '500px', overflowY: 'auto',
+    }}>
+      <div style={{
+        background: '#fff', padding: '8px 12px', borderBottom: '1px solid #F0F0F0',
+        display: 'flex', alignItems: 'center', gap: '6px', position: 'sticky', top: 0, zIndex: 1,
+      }}>
+        <span style={{ fontSize: '15px', fontWeight: 900, color: '#03C75A', fontFamily: 'sans-serif', lineHeight: 1 }}>N</span>
+        <span style={{ fontSize: '10px', color: '#999' }}>블로그</span>
+      </div>
+
+      <div style={{ padding: '14px 14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.4, marginBottom: '6px' }}>
+            프리미엄 키친세트로<br />우리 집 주방을 특별하게 ✨
+          </div>
+          <div style={{ fontSize: '10px', color: '#888', lineHeight: 1.7 }}>
+            매일 사용하는 주방용품, 소재와 디자인 하나하나에<br />
+            정성을 담았습니다. 좋은 도구가 일상을 바꿔요.
+          </div>
+        </div>
+
+        <img
+          src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=200&fit=crop&auto=format"
+          alt="kitchen1"
+          style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+        />
+
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#111', marginBottom: '5px' }}>🍳 왜 소재가 중요할까요?</div>
+          <div style={{ fontSize: '10px', color: '#555', lineHeight: 1.75 }}>
+            저렴한 소재는 열을 받으면 유해물질이 나올 수 있어요.<br />
+            스테인리스 18-8 규격은 안전하고 오래 쓸 수 있죠.<br />
+            한 번 잘 구입하면 10년은 쓸 수 있습니다.
+          </div>
+        </div>
+
+        <img
+          src="https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=400&h=160&fit=crop&auto=format"
+          alt="kitchen2"
+          style={{ width: '100%', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+        />
+
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#111', marginBottom: '5px' }}>✅ 제품 주요 특징</div>
+          {['고급 스테인리스 18-8 소재', '인체공학적 손잡이 설계', '식기세척기 사용 가능', '세련된 무광 마감'].map(f => (
+            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
+              <Check size={9} color="#6D4CFF" strokeWidth={3} />
+              <span style={{ fontSize: '9.5px', color: '#444' }}>{f}</span>
+            </div>
+          ))}
+        </div>
+
+        <img
+          src="https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=400&h=160&fit=crop&auto=format"
+          alt="kitchen3"
+          style={{ width: '100%', height: '90px', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+        />
+
+        <div style={{
+          background: '#F7F5FF', borderRadius: '8px', padding: '10px 12px',
+          fontSize: '10px', color: '#6D4CFF', lineHeight: 1.7, fontWeight: 500,
+        }}>
+          💜 지금 구매하시면 전용 수세미 증정!<br />
+          오늘 하루만 10% 할인 + 무료배송 제공합니다.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SLIDE_SRCS = [
+  '/images/slide1.png',
+  '/images/slide2.png',
+  '/images/slide3.png',
+];
+
+function SlidePreview() {
+  const [idx, setIdx] = useState(0);
+  const total = SLIDE_SRCS.length;
+
+  return (
+    <div style={{
+      border: '1px solid #E8E4F4', borderRadius: '12px',
+      overflow: 'hidden', userSelect: 'none', position: 'relative',
+    }}>
+      <img
+        src={SLIDE_SRCS[idx]}
+        alt={`slide${idx + 1}`}
+        style={{ width: '100%', display: 'block' }}
+      />
+
+      {[
+        { side: 'left', icon: ChevronLeft, action: () => setIdx(i => (i - 1 + total) % total) },
+        { side: 'right', icon: ChevronRight, action: () => setIdx(i => (i + 1) % total) },
+      ].map(({ side, icon: Icon, action }) => (
+        <button key={side}
+          onClick={e => { e.stopPropagation(); action(); }}
+          style={{
+            position: 'absolute', [side]: '8px', top: '50%', transform: 'translateY(-50%)',
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: 'rgba(255,255,255,0.92)', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 6px rgba(0,0,0,0.18)', zIndex: 2,
+          }}
+        ><Icon size={13} color="#333" /></button>
+      ))}
+
+      <div style={{
+        position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+        display: 'flex', gap: '4px', zIndex: 2,
+      }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }} style={{
+            width: i === idx ? '16px' : '6px', height: '6px', borderRadius: '3px',
+            background: i === idx ? '#6D4CFF' : 'rgba(255,255,255,0.7)',
+            cursor: 'pointer', transition: 'all 200ms ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ── 메인 ── */
 export default function OutputScreen() {
-  const { cat, ch, type, out, setOut, go, productName } = useApp();
+  const { ch, type, out, setOut, go } = useApp();
 
   const OUTPUTS = [
     {
@@ -17,7 +146,7 @@ export default function OutputScreen() {
       tagStyle: { background: '#D1FAE5', color: '#065F46' },
       aiRec: ch === '스마트스토어',
       desc: '텍스트와 이미지를 조합해\n스토리처럼 자연스럽게 전달해요.\n네이버 블로그 스타일로 신뢰도가 높아요.',
-      Preview: CatBlogPreview,
+      Preview: BlogPreview,
       feats: ['텍스트 중심', '이미지 + 본문 조합', '스토리텔링 최적화'],
     },
     {
@@ -28,7 +157,7 @@ export default function OutputScreen() {
       tagStyle: { background: '#F3F4F6', color: '#374151' },
       aiRec: false,
       desc: '이미지 위로 핵심 내용을\n슬라이드 형태로 보여줘요.\n빠르게 정보를 전달하고 쿠팡에 적합해요.',
-      Preview: CatSlidePreview,
+      Preview: SlidePreview,
       feats: ['+ 이미지 중심', '+ 슬라이드 구성', '+ 빠른 정보 전달'],
     },
   ];
@@ -103,7 +232,7 @@ export default function OutputScreen() {
                 {o.desc}
               </p>
 
-              <o.Preview cat={cat} productName={productName} />
+              <o.Preview />
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {o.feats.map(f => (
