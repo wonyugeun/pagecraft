@@ -682,11 +682,14 @@ export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, sti
 function AIFlowPanel() {
   return (
     <div style={{ position: 'sticky', top: 110 }}>
-      <img
-        src="/images/reference-flow-v2.png"
-        alt="AI 분석 흐름"
-        style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 16 }}
-      />
+      {/* ①'입력한 레퍼런스'(좌측 1/3) 제거 — 우측 2/3(②AI 분석 결과 + ③섹션 설명)만 노출. 1023px 폭에서 좌측 33.3% 클립. */}
+      <div style={{ width: '100%', overflow: 'hidden', borderRadius: 16 }}>
+        <img
+          src="/images/reference-flow-v2.png"
+          alt="AI 분석 흐름"
+          style={{ width: '150%', marginLeft: '-50%', display: 'block' }}
+        />
+      </div>
     </div>
   );
 }
