@@ -852,48 +852,35 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
   );
 }
 
-/* ── s5 미리보기: 슬라이드형 — public/images/slide1.png "구조"를 코드로 재현(이미지 박는 게 아님).
-   slide1 구조: ①큰 제목 + 서브카피(상단) → ②특징 KPI 세로 리스트(아이콘+제목+설명) → ③큰 제품 사진(하단). 1장. ── */
+/* ── s5 미리보기: 슬라이드형 — slide1.png 레이아웃을 코드로 재현(이미지 박는 게 아님, 데이터 동적).
+   구조: ①상단 카피(tagline+sub+큰 제목+badge) → ②중앙 제품 사진(CAT_IMG) → ③하단 특징 KPI 3분할. 1장. ── */
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
   const conf = SLIDE_CONF[cat ?? ''] ?? SLIDE_CONF['기타'];
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
   const ICONS = [Sparkles, Check, Star];
   return (
-    // 샘플.png 구조: ①톤 헤더밴드(브랜드·서브·큰 제목#·배지) → ②히어로 이미지 → ③제품명 밴드 → ④KPI 3컬럼
     <div style={{ border: '1px solid #ECECF2', borderRadius: 14, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
-      {/* ① 톤 헤더 밴드 */}
-      <div style={{ background: `${conf.accent}12`, padding: '11px 16px 17px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 }}>
-          <span style={{ fontSize: 7.5, fontWeight: 800, color: conf.accent, letterSpacing: '0.12em' }}>{conf.tagline}</span>
-          <span style={{ fontSize: 7.5, color: '#B0B0B0', letterSpacing: '0.08em' }}>PREVIEW</span>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5, marginBottom: 7 }}>{conf.sub}</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.045em', lineHeight: 1.22, marginBottom: 10 }}>
-            <span style={{ color: conf.accent }}>#</span>{title}
-          </div>
-          <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 600, color: '#fff', background: conf.accent, borderRadius: 20, padding: '4px 12px', letterSpacing: '-0.01em' }}>{conf.badge}</span>
-        </div>
+      {/* ① 상단 카피: tagline + 서브 + 큰 제목 + 배지 */}
+      <div style={{ padding: '20px 16px 17px', textAlign: 'center' }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: conf.accent, letterSpacing: '0.16em', marginBottom: 8 }}>{conf.tagline}</div>
+        <div style={{ fontSize: 11, color: '#8A8A8A', lineHeight: 1.5, marginBottom: 7 }}>{conf.sub}</div>
+        <div style={{ fontSize: 19, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.04em', lineHeight: 1.25, marginBottom: 11 }}>{title}</div>
+        <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 600, color: conf.accent, background: `${conf.accent}14`, border: `1px solid ${conf.accent}33`, borderRadius: 20, padding: '4px 12px' }}>{conf.badge}</span>
       </div>
-      {/* ② 히어로 이미지 */}
+      {/* ② 중앙 제품 사진 (카테고리별) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 170, objectFit: 'cover', display: 'block' }} />
-      {/* ③ 제품명 밴드 (한글 + 영문) */}
-      <div style={{ textAlign: 'center', padding: '14px 16px 2px' }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.02em', lineHeight: 1.3 }}>{title}</div>
-        <div style={{ fontSize: 8, fontWeight: 700, color: '#BDBDBD', letterSpacing: '0.16em', marginTop: 4 }}>{conf.tagline}</div>
-      </div>
-      {/* ④ KPI 3컬럼 (아이콘 원 + 제목 + 설명) */}
-      <div style={{ display: 'flex', padding: '12px 10px 17px', gap: 6 }}>
+      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 175, objectFit: 'cover', display: 'block' }} />
+      {/* ③ 하단 특징 KPI 3분할 (아이콘 원 + 제목 + 설명) */}
+      <div style={{ display: 'flex', padding: '16px 10px 18px', gap: 6 }}>
         {conf.feats.map((f, i) => {
           const Ic = ICONS[i % ICONS.length];
           return (
-            <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center', padding: '0 1px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${conf.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ic size={15} color={conf.accent} strokeWidth={2} />
+            <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, textAlign: 'center', padding: '0 1px' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: `${conf.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Ic size={16} color={conf.accent} strokeWidth={2} />
               </div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#1A1A1A', lineHeight: 1.2 }}>{f.t}</div>
-              <div style={{ fontSize: 8, color: '#9A9A9A', lineHeight: 1.35 }}>{f.d}</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#1A1A1A', lineHeight: 1.25 }}>{f.t}</div>
+              <div style={{ fontSize: 8.5, color: '#9A9A9A', lineHeight: 1.4 }}>{f.d}</div>
             </div>
           );
         })}
