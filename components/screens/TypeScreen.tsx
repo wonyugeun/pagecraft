@@ -8,37 +8,51 @@ import {
   Check, ArrowLeft, ArrowRight, ThumbsUp,
 } from 'lucide-react';
 import { useApp, CH_CFG } from '@/store/AppContext';
+import { CAT_DEFAULTS } from './SectionStructureScreen';
 import TypeMobile from './TypeMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const SEC_TIPS: Record<string, { desc: string; eg: string }> = {
-  '히어로':          { desc: '첫 화면, 시선 잡는 메인 카피',      eg: '민감한 피부, 이제 걱정 끝' },
-  '공감':            { desc: '고객 고민에 공감하는 섹션',          eg: '혹시 이런 피부 고민 있으신가요?' },
-  '성분신뢰':        { desc: '성분으로 신뢰 쌓기',                 eg: 'EWG 그린등급, 피부과 테스트 완료' },
-  'USP':             { desc: '우리 제품만의 특별한 점',             eg: '병풀 52%, 타사 대비 2배 농도' },
-  '사용법':          { desc: '어떻게 쓰는지 보여주기',             eg: '1단계: 세안 후 적당량 덜어' },
-  '비교표':          { desc: '경쟁사 대비 우위 보여주기',          eg: '일반 토너 vs 우리 토너 비교' },
-  '후기':            { desc: '실제 사용자 리뷰',                   eg: '피부과 다니던 분이 이걸로 해결' },
-  'FAQ':             { desc: '자주 묻는 질문',                     eg: '임산부도 사용 가능한가요?' },
-  'CTA':             { desc: '구매 유도 마무리',                   eg: '지금 바로 경험해보세요' },
-  '브랜드 세계관':   { desc: '브랜드 스토리와 철학',              eg: '10년 연구, 성분 하나의 고집' },
-  '감성 카피':       { desc: '감성을 자극하는 카피',              eg: '당신의 피부가 쉬는 시간' },
-  '성분 인포그래픽': { desc: '성분 정보를 시각적으로 표현',       eg: '히알루론산 5중 복합체 도식' },
-  'SNS 공유컷':      { desc: '소셜 공유용 임팩트 이미지',         eg: 'Before/After 공유 포맷' },
-  '와디즈 스토리':   { desc: '와디즈 전용 긴 서사 구조',          eg: '창업 스토리부터 제품 탄생까지' },
-};
-
-const SEC_ICONS: Record<string, React.ElementType> = {
-  '히어로': Star, '공감': Heart, '성분신뢰': ShieldCheck,
-  'USP': Zap, '사용법': BookOpen, '비교표': LayoutGrid,
-  '후기': MessageSquare, 'FAQ': HelpCircle, 'CTA': MousePointer,
-  '브랜드 세계관': Globe, '감성 카피': Feather,
-  '성분 인포그래픽': BarChart2, 'SNS 공유컷': Share2, '와디즈 스토리': ScrollText,
-};
+// 섹션 이름(카테고리 무관)을 키워드로 해석 — 화장품 고정 아이콘/팁 제거, 모든 카테고리에 맞는 일반 표현.
+function iconFor(label: string): React.ElementType {
+  if (/히어로/.test(label)) return Star;
+  if (/공감|고민/.test(label)) return Heart;
+  if (/세계관|스토리|비전/.test(label)) return Globe;
+  if (/안전|인증|보증|GMP/.test(label)) return ShieldCheck;
+  if (/성분|영양|원료|함량|임상|인포그래픽/.test(label)) return BarChart2;
+  if (/효능|효과|기능|성능|스펙|기술|퍼포먼스/.test(label)) return Zap;
+  if (/소재|원단|품질|내구|핏|착용/.test(label)) return Feather;
+  if (/사용|설치|복용|레시피|관리|세탁|코디|사이즈|적합|연령|발달|호환|차종/.test(label)) return BookOpen;
+  if (/비교|차별/.test(label)) return LayoutGrid;
+  if (/후기|리뷰|전문가|추천/.test(label)) return MessageSquare;
+  if (/FAQ/.test(label)) return HelpCircle;
+  if (/CTA/.test(label)) return MousePointer;
+  if (/감성/.test(label)) return Feather;
+  if (/SNS|공유/.test(label)) return Share2;
+  if (/와디즈/.test(label)) return ScrollText;
+  return Sparkles;
+}
+function tipFor(label: string): string {
+  if (/히어로/.test(label)) return '첫 화면 — 시선을 잡는 핵심 메시지';
+  if (/공감|고민/.test(label)) return '고객의 고민에 공감하는 도입부';
+  if (/세계관|스토리|비전/.test(label)) return '브랜드·제품의 배경 이야기';
+  if (/안전|인증|보증|GMP/.test(label)) return '안전·인증·보증으로 신뢰 강화';
+  if (/성분|영양|원료|함량|임상|인포그래픽/.test(label)) return '구성·원료·근거 정보 제공';
+  if (/효능|효과|기능|성능|스펙|기술|퍼포먼스/.test(label)) return '핵심 기능·성능·효과 소개';
+  if (/소재|원단|품질|내구/.test(label)) return '소재·품질·내구성 정보';
+  if (/사용|설치|복용|레시피|관리|세탁|핏|착용|코디|사이즈|적합|연령|발달|호환|차종/.test(label)) return '사용·착용·관리 방법 안내';
+  if (/비교|차별/.test(label)) return '경쟁 제품 대비 우위 비교';
+  if (/후기|리뷰/.test(label)) return '실제 사용자 후기';
+  if (/전문가|추천/.test(label)) return '전문가·전문 기관의 추천';
+  if (/FAQ/.test(label)) return '자주 묻는 질문';
+  if (/CTA/.test(label)) return '구매 유도 마무리';
+  if (/감성/.test(label)) return '감성을 자극하는 카피';
+  if (/SNS|공유/.test(label)) return '소셜 공유용 임팩트 컷';
+  return '상세페이지 구성 섹션';
+}
 
 function SecIcon({ label, accent }: { label: string; accent: string }) {
-  const Icon = SEC_ICONS[label] ?? HelpCircle;
-  const tip = SEC_TIPS[label];
+  const Icon = iconFor(label);
+  const tip = tipFor(label);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -72,8 +86,7 @@ function SecIcon({ label, accent }: { label: string; accent: string }) {
           whiteSpace: 'nowrap', zIndex: 300,
           boxShadow: '0 6px 20px rgba(0,0,0,.28)', pointerEvents: 'none',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: '2px' }}>{tip.desc}</div>
-          <div style={{ color: '#94a3b8' }}>예: "{tip.eg}"</div>
+          <div style={{ fontWeight: 700 }}>{tip}</div>
           <div style={{
             position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
             width: 0, height: 0,
@@ -88,11 +101,20 @@ function SecIcon({ label, accent }: { label: string; accent: string }) {
 
 export default function TypeScreen() {
   const isMobile = useIsMobile();
-  const { ch, type, setType, go, goAfterType } = useApp();
+  const { cat, ch, type, setType, go, goAfterType } = useApp();
 
   if (isMobile) return <TypeMobile />;
 
   const cfg = CH_CFG[ch || '스마트스토어'] || CH_CFG['스마트스토어'];
+
+  // ★예시 섹션 = 실제 생성에 쓰는 카테고리 템플릿(CAT_DEFAULTS[cat])에서 가져옴 → 화장품 고정 해제.
+  //   선택 카테고리가 템플릿에 있으면 그 카테고리, 없으면(기타 등) 범용 폴백. 예시 = 실제 나올 섹션과 일치.
+  const catKey = cat && CAT_DEFAULTS[cat] ? cat : null;
+  const catLabel = cat || '추천';
+  const FB_BASIC = ['히어로', '핵심 강점', '상세 정보', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
+  const FB_PREMIUM = ['히어로', '브랜드 세계관', '핵심 강점', '상세 정보', '근거/신뢰', '사용법', '비교표', '감성 카피', '후기', 'FAQ', 'CTA'];
+  const basicSecs = catKey ? CAT_DEFAULTS[catKey]['기본형'] : FB_BASIC;
+  const premiumSecs = catKey ? CAT_DEFAULTS[catKey]['프리미엄형'] : FB_PREMIUM;
 
   const TYPES = [
     {
@@ -108,9 +130,9 @@ export default function TypeScreen() {
       desc: '핵심만 빠르게, 구매 전환에 집중해요.\n스크롤을 짧게 — 임팩트 있는 메시지로 바로 행동을 유도합니다.',
       feats: ['핵심만 추림', '짧은 스크롤', '구매 전환 우선', '이미지 임팩트'],
       featStyle: { background: '#F4F0FF', color: '#7B6FB4' },
-      secLabel: '예시 섹션 (화장품 기준)',
+      secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#9B8FD4',
-      secs: ['히어로', '핵심 효능', '성분 신뢰', '사용법', '비교표', '후기', 'CTA'],
+      secs: basicSecs,
       btnLabel: '기본형으로 만들기',
       btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
@@ -127,16 +149,16 @@ export default function TypeScreen() {
       desc: '정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.\n브랜드 세계관·감성 카피·시각 요소까지 풍부하게 구성합니다.',
       feats: ['브랜드 스토리', '감성 카피', '성분/근거 풍부', '시각 요소 풍부'],
       featStyle: { background: '#FEF9EC', color: '#92400E' },
-      secLabel: '예시 섹션 (화장품 기준)',
+      secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#B45309',
-      secs: ['히어로', '브랜드 세계관', '피부고민 공감', '성분 신뢰', '성분 인포그래픽', 'USP', '사용법', '비교표', '감성 카피', '후기', 'SNS 공유컷', 'FAQ', 'CTA'],
+      secs: premiumSecs,
       btnLabel: '프리미엄형으로 만들기',
       btnStyle: { background: '#B45309', color: '#fff' },
     },
   ];
 
   return (
-    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '880px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       {/* 상단 헤더 — 텍스트 + 일러스트 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', gap: '24px' }}>
@@ -210,7 +232,7 @@ export default function TypeScreen() {
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#6D4CFF', marginBottom: '3px', letterSpacing: '0.02em' }}>AI 추천</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em', marginBottom: '2px' }}>
-              <span style={{ color: '#6D4CFF' }}>풍부하게</span>가 가장 많이 선택돼요!
+              <span style={{ color: '#6D4CFF' }}>프리미엄형</span>이 가장 많이 선택돼요!
             </div>
             <div style={{ fontSize: '12px', color: '#9B8EC4' }}>섹션 수는 다음 단계에서 AI가 구성해드려요.</div>
           </div>
@@ -237,10 +259,10 @@ export default function TypeScreen() {
                 position: 'relative', cursor: 'pointer',
                 background: selected ? t.cardBg : '#fff',
                 border: `${selected ? 2 : 1.5}px solid ${selected ? t.accent : '#E5E7EB'}`,
-                borderRadius: '16px', padding: '20px',
+                borderRadius: '16px', padding: '28px 26px',
                 boxShadow: selected ? `0 0 0 3px ${t.accent}14` : '0 1px 4px rgba(0,0,0,0.05)',
                 transition: 'all 150ms ease',
-                display: 'flex', flexDirection: 'column', gap: '14px',
+                display: 'flex', flexDirection: 'column', gap: '18px',
               }}
             >
               {/* 상단 뱃지 + 선택 마크 */}
@@ -268,14 +290,14 @@ export default function TypeScreen() {
               {/* 아이콘 + 이름 */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
                 <div style={{
-                  width: '54px', height: '54px', borderRadius: '50%',
+                  width: '62px', height: '62px', borderRadius: '50%',
                   background: t.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <t.Icon size={24} color={t.accent} strokeWidth={1.8} />
+                  <t.Icon size={28} color={t.accent} strokeWidth={1.8} />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '17px', fontWeight: 800, color: '#111', letterSpacing: '-0.03em' }}>{t.key}</span>
+                    <span style={{ fontSize: '19px', fontWeight: 800, color: '#111', letterSpacing: '-0.03em' }}>{t.key}</span>
                     <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '100px', ...t.tagStyle }}>{t.tagLabel}</span>
                   </div>
                   <p style={{ fontSize: '12.5px', color: '#555', lineHeight: 1.65, whiteSpace: 'pre-line', letterSpacing: '-0.01em' }}>{t.desc}</p>

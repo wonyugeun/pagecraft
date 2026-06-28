@@ -199,7 +199,7 @@ export default function TypeMobile() {
           </span>
           <div style={{ marginTop: 12, fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.45 }}>
             대부분 판매자는<br />
-            <span style={{ fontWeight: 800 }}>풍부하게를 선택해요!</span>
+            <span style={{ fontWeight: 800 }}>프리미엄형을 선택해요!</span>
           </div>
           <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#666' }}>
             섹션 수는 AI가 카테고리·채널·상품을 보고 자동 추천해요.
@@ -233,7 +233,7 @@ export default function TypeMobile() {
           style={{
             background: '#fff',
             border: activeType === '프리미엄형' ? '2px solid #B45309' : '1.5px solid #ECECF2',
-            borderRadius: 18, padding: 16,
+            borderRadius: 18, padding: 20,
             cursor: 'pointer',
           }}
         >
@@ -288,7 +288,7 @@ export default function TypeMobile() {
           style={{
             background: '#fff',
             border: activeType === '기본형' ? '2px solid #9B8FD4' : '1.5px solid #ECECF2',
-            borderRadius: 18, padding: 16,
+            borderRadius: 18, padding: 20,
             cursor: 'pointer',
           }}
         >
