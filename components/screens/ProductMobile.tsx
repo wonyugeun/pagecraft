@@ -88,6 +88,8 @@ export default function ProductMobile() {
   const pct = requiredQs.length > 0
     ? Math.round(((filledReq.length + (productName.trim() ? 1 : 0)) / (requiredQs.length + 1)) * 100)
     : productName.trim() ? 100 : 0;
+  const pctColor = pct >= 80 ? '#16A34A' : pct >= 40 ? '#6D4CFF' : '#9CA3AF';
+  const pctMsg = pct >= 80 ? '거의 다 됐어요!' : pct >= 40 ? '잘 하고 있어요!' : '조금 더 입력해 주세요';
 
   // visibleSections — s4는 항상 표시, 나머지는 질문이 있을 때만
   const visibleSections = SECTION_DEFS.filter(sec => {
@@ -255,8 +257,8 @@ export default function ProductMobile() {
 
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
-      {/* 5) 완성도 카드 */}
-      <section style={{ padding: '14px 20px 0' }}>
+      {/* 5) 완성도 카드 — 원형 + 가로 진행바(진행에 따라 색 변화). 경고와 간격 확보(top 24) */}
+      <section style={{ padding: '24px 20px 0' }}>
         <div style={{
           background: '#fff', border: '1.5px solid #ECECF2',
           borderRadius: 18, padding: 16,
@@ -264,12 +266,13 @@ export default function ProductMobile() {
         }}>
           <CompletionRing pct={pct} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: '#666' }}>상세페이지 완성도</div>
-            <div style={{ marginTop: 2, fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>
-              {pct >= 80 ? '매우 좋아요!' : pct >= 50 ? '좋아요!' : '조금 더 입력해 주세요'}
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: '#111' }}>상세페이지 완성도</span>
+              <span style={{ fontSize: 17, fontWeight: 800, color: pctColor, letterSpacing: '-0.02em' }}>{pct}%</span>
             </div>
-            <div style={{ marginTop: 5, fontSize: 11.5, color: '#666' }}>
-              필수 항목을 채울수록 완성도가 올라가요. 현재 {pct}%
+            <div style={{ marginTop: 3, fontSize: 11.5, color: '#9CA3AF' }}>{pctMsg}</div>
+            <div style={{ marginTop: 9, height: 7, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: pctColor, transition: 'width .3s ease, background .3s ease' }} />
             </div>
           </div>
         </div>

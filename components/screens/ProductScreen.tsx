@@ -1017,6 +1017,9 @@ export default function ProductScreen() {
   const pct = requiredQs.length > 0
     ? Math.round(((filledReq.length + (productName.trim() ? 1 : 0)) / (requiredQs.length + 1)) * 100)
     : productName.trim() ? 100 : 0;
+  // 완성도 진행에 따른 색·문구(낮음 회색 → 중간 퍼플 → 높음 초록)
+  const pctColor = pct >= 80 ? '#16A34A' : pct >= 40 ? '#6D4CFF' : '#9CA3AF';
+  const pctMsg = pct >= 80 ? '거의 다 됐어요! 완성도가 높아요' : pct >= 40 ? '잘 하고 있어요 — 조금만 더!' : '필수 항목을 채울수록 완성도가 올라가요';
 
   // 섹션 토글
   const toggleSec = (id: string) => {
@@ -1093,7 +1096,7 @@ export default function ProductScreen() {
       <div style={{
         display: 'flex', gap: 10, alignItems: 'flex-start',
         background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
-        padding: '12px 14px', marginTop: 14,
+        padding: '12px 14px', marginTop: 14, marginBottom: 28,
       }}>
         <span style={{ fontSize: 15, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
         <div style={{ fontSize: 12.5, lineHeight: 1.6, color: '#92400E' }}>
@@ -1110,11 +1113,23 @@ export default function ProductScreen() {
         {/* ── Left: Form ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* Progress row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <ProgressCircle pct={pct} />
-            <div style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.5 }}>
-              필수 항목을 채울수록 완성도가 올라가요.<br />현재 완성도 <b style={{ color: '#6D4CFF' }}>{pct}%</b>
+          {/* 완성도 카드 — 원형 % + 가로 진행바(진행에 따라 색 변화) */}
+          <div style={{
+            marginBottom: 24, padding: '15px 16px',
+            border: '1px solid #ECEAF6', borderRadius: 14, background: '#FBFAFE',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+              <ProgressCircle pct={pct} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>상세페이지 완성도</span>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: pctColor, letterSpacing: '-0.02em' }}>{pct}%</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 3 }}>{pctMsg}</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 13, height: 8, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
+              <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: pctColor, transition: 'width .3s ease, background .3s ease' }} />
             </div>
           </div>
 
