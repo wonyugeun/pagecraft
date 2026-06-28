@@ -852,36 +852,35 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
   );
 }
 
-/* ── s5 미리보기: 슬라이드형 — 완성된 상세페이지 축소판(제목영역 → 제품사진 → 특징 3분할). 1장, 흰 자막·순환 없음 ── */
+/* ── s5 미리보기: 슬라이드형 — public/images/slide1.png "구조"를 코드로 재현(이미지 박는 게 아님).
+   slide1 구조: ①큰 제목 + 서브카피(상단) → ②특징 KPI 세로 리스트(아이콘+제목+설명) → ③큰 제품 사진(하단). 1장. ── */
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
   const conf = SLIDE_CONF[cat ?? ''] ?? SLIDE_CONF['기타'];
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
   return (
     <div style={{ border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
-      {/* 1) 제목 영역 — 카테고리 톤. 서브카피 + 큰 메인 제목 + 핵심 배지로 풍부하게 */}
-      <div style={{ background: `linear-gradient(160deg, ${conf.accent}14 0%, ${conf.accent}06 100%)`, borderBottom: `1px solid ${conf.accent}22`, padding: '16px 14px 15px', textAlign: 'center' }}>
-        {/* 서브 카피 */}
-        <div style={{ fontSize: 10, fontWeight: 600, color: conf.accent, letterSpacing: '-0.01em', marginBottom: 6 }}>{conf.sub}</div>
-        {/* 큰 메인 제목(상품명) */}
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.3, marginBottom: 9 }}>{title}</div>
-        {/* 핵심 배지 */}
-        <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 700, color: conf.accent, background: '#fff', border: `1px solid ${conf.accent}33`, borderRadius: 20, padding: '4px 11px' }}>{conf.badge}</span>
+      {/* ① 제목 영역 (slide1: 큰 제목 + 서브카피, 가운데) */}
+      <div style={{ padding: '17px 16px 13px', textAlign: 'center' }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.3, marginBottom: 5 }}>{title}</div>
+        <div style={{ fontSize: 11, color: '#8A8A8A', lineHeight: 1.5 }}>{conf.sub}</div>
       </div>
-      {/* 2) 제품 사진 */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 132, objectFit: 'cover', display: 'block' }} />
-      {/* 3) 특징 3분할 (아이콘 원 + 제목 + 한 줄 설명) */}
-      <div style={{ display: 'flex', padding: '13px 8px 15px', gap: 4 }}>
+      {/* ② 특징 KPI — 세로 리스트 (slide1: 아이콘 원 + 제목 + 설명) */}
+      <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 11 }}>
         {conf.feats.map(f => (
-          <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textAlign: 'center', padding: '0 2px' }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${conf.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Check size={13} color={conf.accent} strokeWidth={2.5} />
+          <div key={f.t} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: `${conf.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+              <Check size={14} color={conf.accent} strokeWidth={2.5} />
             </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#111', lineHeight: 1.2 }}>{f.t}</div>
-            <div style={{ fontSize: 8.5, color: '#8A8A8A', lineHeight: 1.3 }}>{f.d}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: '#111', marginBottom: 2 }}>{f.t}</div>
+              <div style={{ fontSize: 9.5, color: '#9A9A9A', lineHeight: 1.4 }}>{f.d}</div>
+            </div>
           </div>
         ))}
       </div>
+      {/* ③ 제품 사진 (slide1: 하단 큰 제품 이미지) */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
     </div>
   );
 }
