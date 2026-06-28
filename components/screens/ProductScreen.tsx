@@ -788,6 +788,21 @@ const DIFF_PLACEHOLDERS: Record<string, string> = {
   기타:     '예: 경쟁 제품 대비 차별점을 입력해주세요',
 };
 
+// 카테고리별 미리보기 실제 사진 — ★전부 unsplash <img>로 HTTP 200 검증 완료(CSP 없음, next/image 무관). 이모지 금지.
+const CAT_IMG: Record<string, string> = {
+  화장품:   'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=240&fit=crop',
+  식품:     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=240&fit=crop',
+  패션:     'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=240&fit=crop',
+  생활:     'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=240&fit=crop',
+  가전:     'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=240&fit=crop',
+  반려동물: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=240&fit=crop',
+  스포츠:   'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=240&fit=crop',
+  유아:     'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&h=240&fit=crop',
+  건강:     'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&h=240&fit=crop',
+  자동차:   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&h=240&fit=crop',
+  기타:     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=240&fit=crop',
+};
+
 const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
   화장품:   '예: 이니스프리, 자체브랜드, 무브랜드',
   식품:     '예: 제주농협, 자체브랜드, 무브랜드',
@@ -1137,8 +1152,7 @@ export default function ProductScreen() {
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
       {/* 2-column layout */}
-      {/* ★우측 미리보기 높이를 좌측 폼과 맞춤(stretch) */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'stretch' }}>
+      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
 
         {/* ── Left: Form ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1470,9 +1484,10 @@ export default function ProductScreen() {
           </div>
         </div>
 
-        {/* ── Right: 실시간 미리보기 panel — 좌측 폼과 높이 맞춤(stretch) ── */}
+        {/* ── Right: 실시간 미리보기 panel — sticky로 스크롤 따라옴. 내용(이미지+요약+팁) 자연 높이가 기본정보 카드와 균형 ── */}
         <div style={{
-          width: 290, flexShrink: 0, alignSelf: 'stretch',
+          width: 290, flexShrink: 0,
+          position: 'sticky', top: 24,
           border: '1.5px solid #E5E7EB',
           borderRadius: 12, overflow: 'hidden',
           background: '#fff',
@@ -1522,11 +1537,11 @@ export default function ProductScreen() {
               border: '1px solid #E5E7EB', borderRadius: 8,
               overflow: 'hidden', marginBottom: 14,
             }}>
-              {/* Product image */}
+              {/* Product image — 선택 카테고리별 실제 사진(검증된 unsplash). 이모지 아님. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=280&h=160&fit=crop"
-                alt="상품 미리보기"
+                src={CAT_IMG[cat ?? ''] ?? CAT_IMG['기타']}
+                alt={`${cat ?? '상품'} 미리보기`}
                 style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
               />
               <div style={{ padding: '10px 12px' }}>
