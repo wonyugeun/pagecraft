@@ -163,7 +163,7 @@ export default function OutputScreen() {
   ];
 
   return (
-    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '880px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <span style={{
