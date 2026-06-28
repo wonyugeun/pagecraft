@@ -277,23 +277,33 @@ export default function DashboardScreen() {
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
 
-      {/* ★사이드바 제거 — 본문 전체폭 사용 + maxWidth 중앙 정렬로 좌우 여백 균형(휑하지 않게). 로고는 헤더 좌측으로. */}
-      <div style={{ maxWidth: 1200, margin: '0 auto', wordBreak: 'keep-all', padding: '24px 40px 48px' }}>
+      {/* ★좌측 정렬 + 가로 확장(중앙정렬 제거). 전체 폭 활용하되 초광폭은 1520에서 캡. 좌측 정렬선 통일. */}
+      <div style={{ maxWidth: 1520, margin: 0, wordBreak: 'keep-all', padding: '24px 40px 48px' }}>
 
-        {/* ── 헤더 바: 로고(좌) + AI도우미·크레딧·프로필(우) ── */}
+        {/* ── 헤더 바: 로고+인사말(좌측 그룹) / AI도우미·크레딧·프로필(우) — 한 줄, 우측 안 벌어지게 ── */}
         <div style={{
           display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', marginBottom: 28,
+          justifyContent: 'space-between', marginBottom: 26, gap: 16,
         }}>
-          {/* 로고 = 홈(대시보드). eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/logo-flik.png"
-            alt="Flik"
-            onClick={() => go('s-dash')}
-            style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block', cursor: 'pointer' }}
-          />
+          {/* 좌측: 로고 + 구분선 + 인사말 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+            {/* 로고 = 홈(대시보드). eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/logo-flik.png"
+              alt="Flik"
+              onClick={() => go('s-dash')}
+              style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block', cursor: 'pointer', flexShrink: 0 }}
+            />
+            <div style={{ width: 1, height: 28, background: '#E5E7EB', flexShrink: 0 }} />
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+                안녕하세요, {displayName} 👋
+              </div>
+              <div style={{ fontSize: 12.5, color: '#888', whiteSpace: 'nowrap' }}>오늘은 어떤 상세페이지를 만들어볼까요?</div>
+            </div>
+          </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             {/* AI 도우미 배지 - 클릭 시 챗봇 열기 */}
             <button
               onClick={toggleChat}
@@ -383,14 +393,6 @@ export default function DashboardScreen() {
               )}
             </div>
           </div>
-        </div>
-
-        {/* ── 인사말 (헤더와 같은 좌측 정렬선) ── */}
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.03em', marginBottom: 4 }}>
-            안녕하세요, {displayName} 👋
-          </div>
-          <div style={{ fontSize: 14, color: '#888' }}>오늘은 어떤 상세페이지를 만들어볼까요?</div>
         </div>
 
         {/* ── 2열 그리드 (모바일 1단) ── */}
