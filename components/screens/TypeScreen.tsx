@@ -96,7 +96,7 @@ export default function TypeScreen() {
 
   const TYPES = [
     {
-      key: '간결',
+      key: '기본형',
       accent: '#9B8FD4',
       cardBg: '#F7F5FF',
       iconBg: 'linear-gradient(135deg,#EDE8FF,#D8D0F0)',
@@ -111,11 +111,11 @@ export default function TypeScreen() {
       secLabel: '예시 섹션 (화장품 기준)',
       secLabelColor: '#9B8FD4',
       secs: ['히어로', '핵심 효능', '성분 신뢰', '사용법', '비교표', '후기', 'CTA'],
-      btnLabel: '간결하게 만들기',
+      btnLabel: '기본형으로 만들기',
       btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
     {
-      key: '풍부',
+      key: '프리미엄형',
       accent: '#B45309',
       cardBg: '#FFFBEB',
       iconBg: 'linear-gradient(135deg,#FEF3C7,#FDE68A)',
@@ -130,7 +130,7 @@ export default function TypeScreen() {
       secLabel: '예시 섹션 (화장품 기준)',
       secLabelColor: '#B45309',
       secs: ['히어로', '브랜드 세계관', '피부고민 공감', '성분 신뢰', '성분 인포그래픽', 'USP', '사용법', '비교표', '감성 카피', '후기', 'SNS 공유컷', 'FAQ', 'CTA'],
-      btnLabel: '풍부하게 만들기',
+      btnLabel: '프리미엄형으로 만들기',
       btnStyle: { background: '#B45309', color: '#fff' },
     },
   ];
@@ -155,7 +155,7 @@ export default function TypeScreen() {
           </h1>
           <p style={{ fontSize: '14px', color: '#666', lineHeight: 1.6 }}>
             AI가 카테고리·채널·상품을 분석해 적정 섹션 수를 자동 추천해요.<br />
-            <span style={{ color: '#6D4CFF', fontWeight: 600 }}>풍부 / 간결</span>로 방향만 정하면 됩니다.
+            <span style={{ color: '#6D4CFF', fontWeight: 600 }}>기본형 / 프리미엄형</span>으로 방향만 정하면 됩니다.
           </p>
         </div>
 
@@ -311,7 +311,7 @@ export default function TypeScreen() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   transition: 'all 150ms ease',
                   ...t.btnStyle,
-                  ...(selected && t.key === '간결' ? { background: '#9B8FD4', color: '#fff', border: 'none' } : {}),
+                  ...(selected && t.key === '기본형' ? { background: '#9B8FD4', color: '#fff', border: 'none' } : {}),
                 }}
               >
                 {selected && <Check size={14} />} {t.btnLabel}

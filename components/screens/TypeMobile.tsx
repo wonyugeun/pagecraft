@@ -83,10 +83,11 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
 export default function TypeMobile() {
   const { ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
   const channelLabel = ch ?? '스마트스토어';
-  const activeType = type ?? '풍부';
+  const activeType = type;   // ★실제 선택만 강조(미선택 시 null) — 풍부 자동 강조 제거(데스크탑 일치)
 
-  const onPick = (key: '풍부' | '간결') => setType(key);
-  const onNext = () => { if (!type) setType('풍부'); goAfterType(); };
+  const onPick = (key: '프리미엄형' | '기본형') => setType(key);
+  // ★데스크탑과 일치: 미선택 시 자동 기본값 금지 — 선택해야만 진행.
+  const onNext = () => { if (type) goAfterType(); };
 
   return (
     <div style={{
@@ -225,13 +226,13 @@ export default function TypeMobile() {
         </div>
       </section>
 
-      {/* 5) 풍부 카드 */}
+      {/* 5) 프리미엄형 카드 */}
       <section style={{ padding: '20px 20px 0' }}>
         <div
-          onClick={() => onPick('풍부')}
+          onClick={() => onPick('프리미엄형')}
           style={{
             background: '#fff',
-            border: activeType === '풍부' ? '2px solid #B45309' : '1.5px solid #ECECF2',
+            border: activeType === '프리미엄형' ? '2px solid #B45309' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 16,
             cursor: 'pointer',
           }}
@@ -246,7 +247,7 @@ export default function TypeMobile() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>풍부하게</span>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>프리미엄형</span>
                 <span style={{
                   fontSize: 10, fontWeight: 700, color: '#92400E',
                   background: '#FEF3C7', borderRadius: 999, padding: '2px 8px',
@@ -269,24 +270,24 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '풍부' ? '#B45309' : '#fff',
-              border: activeType === '풍부' ? 'none' : '1.5px solid #D9D9E3',
+              background: activeType === '프리미엄형' ? '#B45309' : '#fff',
+              border: activeType === '프리미엄형' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              {activeType === '풍부' && <Check size={14} color="#fff" strokeWidth={3} />}
+              {activeType === '프리미엄형' && <Check size={14} color="#fff" strokeWidth={3} />}
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6) 간결 카드 */}
+      {/* 6) 기본형 카드 */}
       <section style={{ padding: '12px 20px 0' }}>
         <div
-          onClick={() => onPick('간결')}
+          onClick={() => onPick('기본형')}
           style={{
             background: '#fff',
-            border: activeType === '간결' ? '2px solid #9B8FD4' : '1.5px solid #ECECF2',
+            border: activeType === '기본형' ? '2px solid #9B8FD4' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 16,
             cursor: 'pointer',
           }}
@@ -301,7 +302,7 @@ export default function TypeMobile() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>간결하게</span>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>기본형</span>
                 <span style={{
                   fontSize: 10, fontWeight: 700, color: '#7B6FB4',
                   background: '#EDE8FF', borderRadius: 999, padding: '2px 8px',
@@ -324,12 +325,12 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '간결' ? '#9B8FD4' : '#fff',
-              border: activeType === '간결' ? 'none' : '1.5px solid #D9D9E3',
+              background: activeType === '기본형' ? '#9B8FD4' : '#fff',
+              border: activeType === '기본형' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
-              {activeType === '간결' && <Check size={14} color="#fff" strokeWidth={3} />}
+              {activeType === '기본형' && <Check size={14} color="#fff" strokeWidth={3} />}
             </div>
           </div>
         </div>
@@ -350,13 +351,13 @@ export default function TypeMobile() {
               <span style={{
                 fontSize: 11, fontWeight: 700, color: '#92400E',
                 background: '#FEF3C7', borderRadius: 6, padding: '3px 10px',
-              }}>풍부</span>
+              }}>프리미엄형</span>
             </div>
             <div style={{ textAlign: 'center' }}>
               <span style={{
                 fontSize: 11, fontWeight: 700, color: '#7B6FB4',
                 background: '#EDE8FF', borderRadius: 6, padding: '3px 10px',
-              }}>간결</span>
+              }}>기본형</span>
             </div>
           </div>
           <PowerRow
@@ -399,15 +400,15 @@ export default function TypeMobile() {
         }}>
           <ArrowLeft size={16} /> 이전 단계
         </button>
-        <button onClick={onNext} style={{
+        <button onClick={onNext} disabled={!type} style={{
           flex: 1,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: '#6D4CFF', color: '#fff',
+          background: type ? '#6D4CFF' : '#EDE8FF', color: type ? '#fff' : '#B0A0E8',
           border: 'none',
           fontSize: 15, fontWeight: 700,
           borderRadius: 14, padding: '14px',
-          cursor: 'pointer', fontFamily: 'inherit',
-          boxShadow: '0 8px 20px rgba(109,76,255,0.3)',
+          cursor: type ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+          boxShadow: type ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
         }}>
           다음 단계로 <ArrowRight size={16} />
         </button>
