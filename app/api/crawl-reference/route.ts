@@ -87,7 +87,12 @@ ${pageText}
 - tone: 카피의 전반적인 문체와 감성 방향
 - headlinePattern: 헤드라인/타이틀 작성 패턴
 - emphasisPoints: 이 페이지가 가장 강조하는 3가지 핵심 포인트
-- summary: 이 스타일로 생성 시 참고할 핵심 특징`;
+- summary: 이 스타일로 생성 시 참고할 핵심 특징
+
+★★ 복제 금지 (절대 규칙): 위 항목은 모두 "구조·레이아웃·디자인 톤"만 추출하는 것입니다.
+- 레퍼런스의 상품 주장·수치·효능·성분·브랜드명·구체 문구·전략은 절대 그대로 가져오지 마세요.
+- emphasisPoints/headlinePattern도 "메시지의 형식·패턴"만 적고, 레퍼런스 제품의 구체적 주장·문구를 복제하지 마세요.
+- 실제 카피 내용은 이후 단계에서 입력된 셀러 상품 정보로만 작성됩니다. 여기서는 'how(어떻게 구성·표현하는지)'만 분석하세요.`;
 
   const message = await client.messages.create({
     model:      'claude-sonnet-4-6',
