@@ -682,11 +682,11 @@ export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, sti
 function AIFlowPanel() {
   return (
     <div style={{ position: 'sticky', top: 110 }}>
-      {/* ①'입력한 레퍼런스' 제거본 — 원본을 ①/② 사이 갭(x300)에서 잘라 ②분석결과+③섹션설명만 남긴 파일 사용 */}
+      {/* ①'입력한 레퍼런스' 빠지고 제목·②분석결과·③섹션설명 온전한 완성본 이미지. crop/clip 없이 그대로 표시(비율 유지). */}
       <img
         src="/images/reference-flow-v3.png"
         alt="AI 분석 흐름"
-        style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 16 }}
+        style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 16 }}
       />
     </div>
   );
