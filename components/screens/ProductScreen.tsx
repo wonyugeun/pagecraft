@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -802,6 +802,71 @@ const CAT_IMG: Record<string, string> = {
   자동차:   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&h=240&fit=crop',
   기타:     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=240&fit=crop',
 };
+const catImg = (cat: string | null) => CAT_IMG[cat ?? ''] ?? CAT_IMG['기타'];
+
+/* ── s5 미리보기: 블로그형(네이버 블로그 카드) — 글+그림 흐름. s3b 디자인 형태를 카테고리 실제사진으로 ── */
+function S5BlogPreview({ cat, productName }: { cat: string | null; productName?: string }) {
+  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지 미리보기`;
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', maxHeight: 380, overflowY: 'auto' }}>
+      <div style={{ background: '#fff', padding: '8px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 6, position: 'sticky', top: 0, zIndex: 1 }}>
+        <span style={{ fontSize: 15, fontWeight: 900, color: '#03C75A', fontFamily: 'sans-serif', lineHeight: 1 }}>N</span>
+        <span style={{ fontSize: 10, color: '#999' }}>블로그</span>
+      </div>
+      <div style={{ padding: '14px 14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.4, marginBottom: 6 }}>{title}</div>
+          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.7 }}>핵심 정보를 글과 사진으로 자연스럽게 담아<br />고객이 신뢰하고 구매하도록 구성해요.</div>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={catImg(cat)} alt={`${cat ?? '상품'} 미리보기`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, display: 'block' }} />
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#111', marginBottom: 5 }}>✅ 이렇게 구성돼요</div>
+          {['핵심 정보·강점 정리', '신뢰 요소(인증·후기) 강조', '구매 유도 마무리(CTA)'].map(f => (
+            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+              <Check size={9} color="#6D4CFF" strokeWidth={3} />
+              <span style={{ fontSize: 9.5, color: '#444' }}>{f}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: '#F7F5FF', borderRadius: 8, padding: '10px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.7, fontWeight: 500 }}>
+          💜 입력하신 정보로 이런 상세페이지가 만들어져요.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── s5 미리보기: 슬라이드형 — 사진 위 텍스트 오버레이 + 화살표·점. s3b 슬라이드 형태를 카테고리 실제사진으로 ── */
+function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
+  const overlays = [productName?.trim() || `${cat ?? '상품'} 상세페이지`, '핵심 포인트를 한눈에', '지금 바로 확인해보세요'];
+  const [idx, setIdx] = useState(0);
+  const total = overlays.length;
+  return (
+    <div style={{ border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', position: 'relative' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={catImg(cat)} alt={`${cat ?? '상품'} 슬라이드`} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.08) 45%, transparent 72%)', display: 'flex', alignItems: 'flex-end', padding: 16 }}>
+        <div style={{ color: '#fff', fontSize: 14, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4, textShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>{overlays[idx]}</div>
+      </div>
+      {[
+        { side: 'left' as const, icon: ChevronLeft, action: () => setIdx(i => (i - 1 + total) % total) },
+        { side: 'right' as const, icon: ChevronRight, action: () => setIdx(i => (i + 1) % total) },
+      ].map(({ side, icon: Icon, action }) => (
+        <button key={side} onClick={e => { e.stopPropagation(); action(); }}
+          style={{ position: 'absolute', [side]: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.18)', zIndex: 2 }}>
+          <Icon size={13} color="#333" />
+        </button>
+      ))}
+      <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4, zIndex: 2 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
+            style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, background: i === idx ? '#6D4CFF' : 'rgba(255,255,255,0.85)', cursor: 'pointer', transition: 'all 200ms ease', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
   화장품:   '예: 이니스프리, 자체브랜드, 무브랜드',
@@ -1533,49 +1598,11 @@ export default function ProductScreen() {
 
           {/* Preview card */}
           <div style={{ padding: '14px 14px 0' }}>
-            <div style={{
-              border: '1px solid #E5E7EB', borderRadius: 8,
-              overflow: 'hidden', marginBottom: 14,
-            }}>
-              {/* Product image — 선택 카테고리별 실제 사진(검증된 unsplash). 이모지 아님. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={CAT_IMG[cat ?? ''] ?? CAT_IMG['기타']}
-                alt={`${cat ?? '상품'} 미리보기`}
-                style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
-              />
-              <div style={{ padding: '10px 12px' }}>
-                {/* Product name */}
-                <div style={{
-                  fontSize: 13, fontWeight: 700, color: productName.trim() ? '#111' : '#D1D5DB',
-                  marginBottom: 5, lineHeight: 1.4,
-                }}>
-                  {productName.trim() || '상품명을 입력해주세요'}
-                </div>
-                {/* Tags */}
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-                  {[`#${cat ?? '카테고리'}`, '#AI상세페이지'].map(tag => (
-                    <span key={tag} style={{
-                      fontSize: 10, color: '#6D4CFF',
-                      background: '#EDE9FE', borderRadius: 20, padding: '2px 8px',
-                    }}>{tag}</span>
-                  ))}
-                </div>
-                {/* Feature rows */}
-                {[
-                  '핵심 성분 · 효능 자동 분석',
-                  '타겟 맞춤 카피 생성',
-                  '법적 고지 자동 포함',
-                ].map(feat => (
-                  <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%',
-                      background: '#22C55E', flexShrink: 0, display: 'inline-block',
-                    }} />
-                    <span style={{ fontSize: 11, color: '#374151' }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
+            {/* ★탭에 따라 블로그형/슬라이드형 형태가 다름(출력형태 s3b와 같은 방식). 카테고리 실제사진·상품명 실시간. */}
+            <div style={{ marginBottom: 14 }}>
+              {previewTab === 'blog'
+                ? <S5BlogPreview cat={cat} productName={productName} />
+                : <S5SlidePreview cat={cat} productName={productName} />}
             </div>
 
             {/* 입력 정보 요약 */}
