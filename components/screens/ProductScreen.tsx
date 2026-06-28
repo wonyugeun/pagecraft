@@ -1138,7 +1138,8 @@ export default function ProductScreen() {
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
       {/* 2-column layout */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      {/* ★우측 미리보기 높이를 좌측 폼과 맞춤(stretch) */}
+      <div style={{ display: 'flex', gap: 24, alignItems: 'stretch' }}>
 
         {/* ── Left: Form ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1470,10 +1471,9 @@ export default function ProductScreen() {
           </div>
         </div>
 
-        {/* ── Right: 실시간 미리보기 panel ── */}
+        {/* ── Right: 실시간 미리보기 panel — 좌측 폼과 높이 맞춤(stretch) ── */}
         <div style={{
-          width: 290, flexShrink: 0,
-          position: 'sticky', top: 24,
+          width: 290, flexShrink: 0, alignSelf: 'stretch',
           border: '1.5px solid #E5E7EB',
           borderRadius: 12, overflow: 'hidden',
           background: '#fff',
