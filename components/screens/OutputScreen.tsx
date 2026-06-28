@@ -163,7 +163,7 @@ export default function OutputScreen() {
   ];
 
   return (
-    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '940px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <span style={{
@@ -266,12 +266,7 @@ export default function OutputScreen() {
             <div style={{ fontSize: '11.5px', color: '#9CA3AF' }}>선택하신 출력 형태는 상품 정보 입력 후에도 자유롭게 변경 가능합니다.</div>
           </div>
         </div>
-        <button style={{
-          background: 'none', border: 'none', fontSize: '12.5px', fontWeight: 600,
-          color: '#6D4CFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0,
-        }}>
-          자세히 보기 <ChevronRight size={13} />
-        </button>
+        {/* '자세히 보기'(onClick 없는 죽은 버튼) 제거 — 안내 텍스트·아이콘만 유지 */}
       </div>
 
       <div style={{
