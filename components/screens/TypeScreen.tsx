@@ -248,18 +248,21 @@ export default function TypeScreen() {
                     <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                {/* 원래 스타일: 박스(소프트 배경) 안 큰 아이콘 + 아래 섹션명, 5열 격자. 박스 개수=실제 섹션수. */}
+                <div className="cards-5col">
                   {t.chips.map((s, i) => {
                     const Ic = iconFor(s);
                     return (
-                      <span key={`${s}-${i}`} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '4px',
-                        fontSize: '11px', fontWeight: 500, lineHeight: 1.3,
-                        padding: '4px 8px', borderRadius: '6px',
-                        background: `${t.accent}14`, color: t.accent,
-                      }}>
-                        <Ic size={11} color={t.accent} strokeWidth={2} />{s}
-                      </span>
+                      <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                        <div style={{
+                          width: '40px', height: '40px', borderRadius: '10px',
+                          background: `${t.accent}18`, border: `1px solid ${t.accent}30`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Ic size={16} color={t.accent} strokeWidth={1.8} />
+                        </div>
+                        <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>{s}</span>
+                      </div>
                     );
                   })}
                 </div>

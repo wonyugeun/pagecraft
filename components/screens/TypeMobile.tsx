@@ -284,13 +284,16 @@ export default function TypeMobile() {
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#B45309' }}>{premiumCount}</span>개 · 기본형의 약 2배
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                   {premiumChips.map((s, i) => {
                     const Ic = iconFor(s);
                     return (
-                      <span key={`${s}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 500, lineHeight: 1.3, padding: '3px 7px', borderRadius: 5, background: '#FEF3C7', color: '#92400E' }}>
-                        <Ic size={10} color="#B45309" strokeWidth={2} />{s}
-                      </span>
+                      <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#FEF3C7', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Ic size={15} color="#B45309" strokeWidth={1.8} />
+                        </div>
+                        <span style={{ fontSize: 9.5, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.15 }}>{s}</span>
+                      </div>
                     );
                   })}
                 </div>
@@ -358,13 +361,16 @@ export default function TypeMobile() {
                     <span style={{ fontSize: 16, fontWeight: 800, color: '#9B8FD4' }}>{basicCount}</span>개
                   </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
                   {basicChips.map((s, i) => {
                     const Ic = iconFor(s);
                     return (
-                      <span key={`${s}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 500, lineHeight: 1.3, padding: '3px 7px', borderRadius: 5, background: '#EDE8FF', color: '#7B6FB4' }}>
-                        <Ic size={10} color="#9B8FD4" strokeWidth={2} />{s}
-                      </span>
+                      <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EDE8FF', border: '1px solid #DDD4FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Ic size={15} color="#9B8FD4" strokeWidth={1.8} />
+                        </div>
+                        <span style={{ fontSize: 9.5, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.15 }}>{s}</span>
+                      </div>
                     );
                   })}
                 </div>
