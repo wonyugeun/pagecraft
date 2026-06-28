@@ -330,17 +330,19 @@ export default function TypeScreen() {
                     + 외 {t.secCount - t.secs.length}개 더
                   </div>
                 )}
-                {/* 분량 막대 — 폭 = 개수/최대(프리미엄형). 기본형 ~50%, 프리미엄형 100% → 2배 시각화 */}
+                {/* 분량 블록 — 섹션 1개 = 블록 1개. 프리미엄형이 블록 ~2배(행이 2배) → 차이가 한눈에 */}
                 <div style={{ marginTop: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '7px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#6B7280' }}>실제 구성 분량</span>
                     <span style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
                       <span style={{ fontSize: '28px', fontWeight: 800, color: t.accent, lineHeight: 1, letterSpacing: '-0.03em' }}>{t.secCount}</span>
                       <span style={{ fontSize: '13px', fontWeight: 700, color: t.accent }}>개 섹션</span>
                     </span>
                   </div>
-                  <div style={{ height: '10px', borderRadius: '999px', background: '#F1F0F5', overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.round((t.secCount / premiumCount) * 100)}%`, height: '100%', borderRadius: '999px', background: t.accent, transition: 'width 300ms ease' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '4px' }}>
+                    {Array.from({ length: t.secCount }).map((_, i) => (
+                      <div key={i} style={{ height: '11px', borderRadius: '3px', background: t.accent, opacity: i < t.secs.length ? 1 : 0.35 }} />
+                    ))}
                   </div>
                 </div>
               </div>

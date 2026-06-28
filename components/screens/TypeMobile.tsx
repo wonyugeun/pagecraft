@@ -263,17 +263,19 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.<br />브랜드 세계관·감성 카피까지 풍부하게.
               </p>
-              {/* 분량 막대 — 프리미엄형 100% 기준 */}
+              {/* 분량 블록 — 섹션 1개 = 블록 1개 */}
               <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 7 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B8B8B' }}>실제 구성 분량</span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
                     <span style={{ fontSize: 24, fontWeight: 800, color: '#B45309', lineHeight: 1, letterSpacing: '-0.03em' }}>{premiumCount}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>개 섹션</span>
                   </span>
                 </div>
-                <div style={{ height: 9, borderRadius: 999, background: '#F1F0F5', overflow: 'hidden' }}>
-                  <div style={{ width: '100%', height: '100%', borderRadius: 999, background: '#B45309' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
+                  {Array.from({ length: premiumCount }).map((_, i) => (
+                    <div key={i} style={{ height: 10, borderRadius: 3, background: '#B45309' }} />
+                  ))}
                 </div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -331,17 +333,19 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 핵심만 빠르게, 구매 전환에 집중해요.<br />스크롤 짧고 임팩트 있게.
               </p>
-              {/* 분량 막대 — 프리미엄형(최대) 대비. 기본형은 ~50%라 한눈에 절반 */}
+              {/* 분량 블록 — 섹션 1개 = 블록 1개. 프리미엄형 대비 블록이 ~절반 */}
               <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 7 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B8B8B' }}>실제 구성 분량</span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
                     <span style={{ fontSize: 24, fontWeight: 800, color: '#9B8FD4', lineHeight: 1, letterSpacing: '-0.03em' }}>{basicCount}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#9B8FD4' }}>개 섹션</span>
                   </span>
                 </div>
-                <div style={{ height: 9, borderRadius: 999, background: '#F1F0F5', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.round((basicCount / premiumCount) * 100)}%`, height: '100%', borderRadius: 999, background: '#9B8FD4' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
+                  {Array.from({ length: basicCount }).map((_, i) => (
+                    <div key={i} style={{ height: 10, borderRadius: 3, background: '#9B8FD4' }} />
+                  ))}
                 </div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
