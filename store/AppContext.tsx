@@ -470,9 +470,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0);
   };
 
+  // ★복원이 끝나기 전엔 저장 금지 — 안 그러면 mount 시 저장 effect가 '기본값(빈값)'으로 먼저 덮어써서 복원이 무력화됨.
+  const didRestoreRef = useRef(false);
+
   // ★새로고침 복원: 단계+입력값을 sessionStorage에 저장(변경 시마다). 크레딧·생성결과·이미지 제외.
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!didRestoreRef.current) return;   // 복원 완료 전 저장 차단
     try {
       sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
         screen, cat, ch, type, out, imgMode, secCnt,
@@ -487,6 +491,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
   useEffect(() => {
     const p = loadPersist();
+    didRestoreRef.current = true;   // 이 시점 이후부터 저장 허용(복원 먼저, 그 다음 저장)
     if (!p) return;
     const scr = p.screen as ScreenId | undefined;
     if (scr && RESTORE_SCREENS.includes(scr)) {

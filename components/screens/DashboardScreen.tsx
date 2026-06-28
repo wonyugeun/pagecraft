@@ -284,8 +284,9 @@ export default function DashboardScreen() {
       />
 
       {/* ══════════ 메인 콘텐츠 ══════════ */}
-      {/* ★사이드바와 공존(flex). minWidth:0 = 사이드바 펼치면 본문이 자연스럽게 줄되 내용 반응형 reflow(찌그러짐/오버플로 방지). transition으로 부드럽게. */}
-      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '28px 32px 40px', transition: 'width 200ms ease' }}>
+      {/* ★사이드바와 공존(flex push). minWidth:0 제거 → 본문이 내용 최소폭 아래로 안 줄어듦.
+          wordBreak:keep-all → 한국어를 단어 단위로만 줄바꿈(글자단위 깨짐 방지). 데스크탑 폭이면 사이드바 240 빼도 안 깨짐. */}
+      <div style={{ flex: 1, wordBreak: 'keep-all', overflowY: 'auto', padding: '28px 32px 40px' }}>
 
         {/* ── 수정 2: 헤더 기능 활성화 ── */}
         <div style={{
