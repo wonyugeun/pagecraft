@@ -107,6 +107,24 @@ export default function ProductMobile() {
       alert('입력 정보가 실측·검증된 사실임을 확인(동의)해 주세요.');
       return;
     }
+    // ★법적/안전 게이트(데스크탑과 동일): block=하드 차단, warn=확인 후 진행
+    const gateFilled = (q: typeof qs[number]) => {
+      const v = answers[q.id];
+      if (q.mode === 'legal') {
+        return typeof v === 'string' && v.split(' / ').some(p => (p.split(': ')[1] ?? '').trim().length > 0);
+      }
+      return Array.isArray(v) ? v.length > 0 : !!(v && String(v).trim());
+    };
+    const missBlock = qs.filter(q => q.gate === 'block' && !gateFilled(q));
+    if (missBlock.length) {
+      alert(`법적 필수 정보를 입력해 주세요(미입력 시 진행 불가):\n· ${missBlock.map(q => q.label).join('\n· ')}`);
+      return;
+    }
+    const missWarn = qs.filter(q => q.gate === 'warn' && !gateFilled(q));
+    if (missWarn.length) {
+      const ok = window.confirm(`다음 안전·법적 관련 정보를 입력하지 않았습니다:\n· ${missWarn.map(q => q.label).join('\n· ')}\n\n표시광고법·안전 관련 정보입니다. 그래도 진행할까요?`);
+      if (!ok) return;
+    }
     const lines: string[] = [];
     if (brand.trim()) lines.push(`브랜드명: ${brand.trim()}`);
     if (regularPrice || salePrice) {

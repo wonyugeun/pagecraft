@@ -24,6 +24,10 @@ export interface Question {
   sectionTitle?: string;
   legalTitle?: string;   // legal mode 박스 제목(없으면 화장품 기본 문구)
   legalDesc?: string;    // legal mode 박스 설명(없으면 화장품 기본 문구)
+  // ★필수 정책(D안): 'block'=법적/안전 직결 → 미입력 시 진행 하드 차단(별표 '*'),
+  //   'warn'=안전·법적 관련 권장 → 미입력 시 확인창 후 진행 가능(별표 '*'),
+  //   미지정 + req:true = 마케팅/기획 '권장'(안 막음). req만으로는 더 이상 차단하지 않음.
+  gate?: 'block' | 'warn';
 }
 
 /* ─────────────────────────────────────────────
@@ -66,7 +70,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['가성비 (합리적 가격 강조)','중간 (가성비+품질 균형)','프리미엄 (품질/브랜드 강조)','더마/전문가 브랜드 (임상·전문성 강조)','자연주의/에코 브랜드'],
     },
     {
-      id: 'c9', label: '⚠️ 법적 고지 (화장품 필수 표시)', req: true, mode: 'legal',
+      id: 'c9', label: '⚠️ 법적 고지 (화장품 필수 표시)', req: true, mode: 'legal', gate: 'block',
       fields: ['제조사명','제조국','사용기한 또는 개봉 후 사용기간'],
       hint: '화장품법에 의거 상세페이지 하단에 자동 법적 고지 섹션이 생성됩니다',
     },
@@ -99,22 +103,22 @@ export const CQ: Record<string, Question[]> = {
       opts: ['산지직송','당일배송','새벽배송','정기구독 가능','선물세트 구성','소용량 판매','대용량/업소용','산지직거래','당일도축/당일수확'],
     },
     {
-      id: 'f5', label: '원산지 정보', req: true, mode: 'origin',
+      id: 'f5', label: '원산지 정보', req: true, mode: 'origin', gate: 'warn',
       hint: '원산지는 상세페이지에 법적으로 반드시 표시됩니다',
       opts: ['국내산','수입산','국내산+수입산 혼합'],
     },
     {
-      id: 'f5b', label: '보관 방법', req: true, mode: 'multi',
+      id: 'f5b', label: '보관 방법', req: true, mode: 'multi', gate: 'warn',
       hint: '보관 방법 → 제품 안내 섹션 + 구매 안심 카피에 반영',
       opts: ['냉장보관(0~10℃)','냉동보관(-18℃ 이하)','실온보관','직사광선 피해 서늘한 곳','개봉 후 냉장 보관','개봉 후 밀봉 보관','진공포장 유지'],
     },
     {
-      id: 'f6', label: '알레르기 유발 원료', req: true, mode: 'multi',
+      id: 'f6', label: '알레르기 유발 원료', req: true, mode: 'multi', gate: 'warn',
       hint: '법적 의무 표시 — 하단 법적 고지 섹션에 자동 생성',
       opts: ['밀/글루텐','대두(콩)','우유','달걀','갑각류(새우/게)','견과류','땅콩','복숭아','토마토','해산물','메밀','해당 없음'],
     },
     {
-      id: 'f6b', label: '유통기한 표시 방식', req: true, mode: 'single',
+      id: 'f6b', label: '유통기한 표시 방식', req: true, mode: 'single', gate: 'warn',
       hint: '유통기한 형태 → 법적 고지 섹션 문구에 반영',
       opts: ['제조일로부터 기간 표시','소비기한(날짜) 표시','개봉 후 사용기한 별도','유통기한+개봉 후 기한 병기'],
     },
@@ -256,7 +260,7 @@ export const CQ: Record<string, Question[]> = {
     },
     // ── 신뢰/인증 ──
     {
-      id: 'dg5', label: '안전/인증', req: true, mode: 'multi',
+      id: 'dg5', label: '안전/인증', req: true, mode: 'multi', gate: 'warn',
       sectionTitle: '신뢰/인증',
       hint: '인증 → 신뢰 배지 섹션에 자동 삽입',
       opts: ['KC안전인증','에너지효율 1등급','전기용품안전법 준수','방수/방진(IP67)','방수(IPX4)','RoHS(유해물질 제한)','CE인증(유럽)','FCC인증(미국)','정품보증 QR'],
@@ -404,7 +408,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['임산부/태아','신생아(0~3개월)','영아(3~6개월)','영아(6~12개월)','걸음마기(12~24개월)','유아(2~4세)','유아(4~7세)','전 연령 가능'],
     },
     {
-      id: 'ba3', label: '안전 인증', req: true, mode: 'multi',
+      id: 'ba3', label: '안전 인증', req: true, mode: 'multi', gate: 'warn',
       hint: '유아 제품은 안전 인증이 구매 결정에 결정적 — 신뢰 배지 최상단 배치',
       opts: ['KC안전인증(필수)','친환경 인증','무형광·무독성','BPA프리','오가닉 코튼(GOTS)','OEKO-TEX Standard 100','유럽 CE인증','FDA 승인','EN71 완구 안전기준','소아과/의사 추천'],
     },
@@ -441,7 +445,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['면역력 강화','눈 건강(루테인/지아잔틴)','관절/뼈 건강','다이어트/체지방 감소','피부 미용/항산화','소화/장 건강','수면의 질 개선','혈행/혈압 개선','혈당 관리','두뇌/집중력 향상','에너지/피로 회복','탈모/모발 건강'],
     },
     {
-      id: 'ht3', label: '인증/임상', req: true, mode: 'multi',
+      id: 'ht3', label: '인증/임상', req: true, mode: 'multi', gate: 'warn',
       hint: '건강 제품은 전문성과 인증이 핵심 신뢰 요소 — 신뢰 섹션 최우선 배치',
       opts: ['식약처 기능성 인증','GMP 인증(우수제조기준)','의료기기 허가','임상시험 완료','특허 성분 보유','HACCP','ISO 인증','비건 인증','Non-GMO','CGMP(미국)'],
     },
@@ -460,7 +464,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['20~30대','40~50대','시니어(60대+)','남성','여성','수험생/직장인','임산부/수유부(주의)','어린이(주니어 전용)'],
     },
     {
-      id: 'ht5', label: '⚠️ 법적 고지 / 주의사항 (건강기능식품 표시)', req: true, mode: 'legal',
+      id: 'ht5', label: '⚠️ 법적 고지 / 주의사항 (건강기능식품 표시)', req: true, mode: 'legal', gate: 'block',
       legalTitle: '⚠️ 건강기능식품 법적 필수 표시',
       legalDesc: '건강기능식품법에 의거한 의무 표시 사항입니다. 건강기능식품에 해당하면 아래를 정확히 기재해 주세요. (일반식품·의료기기는 각 표시 기준에 맞게 기재) 하단에 법적 고지 섹션이 자동 생성됩니다.',
       fields: ['제조사 / 판매원 (영업소 명칭·소재지)', '원료명 및 함량', '섭취량·섭취방법', '유통기한 및 보관방법', '섭취 시 주의사항 (이상사례 시 섭취 중단·전문가 상담)'],
@@ -709,7 +713,10 @@ export function QuestionField({ q, answer, onAnswer }: {
       <div className="fg">
         <div className="fl">
           {q.label}
-          {q.req && <span className="freq">*</span>}
+          {/* ★별표는 진짜 차단되는 법적/안전(gate) 필드만. 그 외 req는 '권장'(별표 거짓말 해소) */}
+          {q.gate
+            ? <span className="freq">*</span>
+            : q.req && <span style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginLeft: 5 }}>권장</span>}
           {q.mode === 'multi'  && <span className="fopt">복수 선택</span>}
           {q.mode === 'single' && <span className="fopt">단일 선택</span>}
         </div>
@@ -1052,6 +1059,24 @@ export default function ProductScreen() {
       alert('입력 정보가 실측·검증된 사실임을 확인(동의)해 주세요.');
       return;
     }
+    // ★법적/안전 게이트: 입력 여부 판정(legal은 값 부분에 내용이 있어야 채운 것)
+    const gateFilled = (q: typeof qs[number]) => {
+      const v = answers[q.id];
+      if (q.mode === 'legal') {
+        return typeof v === 'string' && v.split(' / ').some(p => (p.split(': ')[1] ?? '').trim().length > 0);
+      }
+      return Array.isArray(v) ? v.length > 0 : !!(v && String(v).trim());
+    };
+    const missBlock = qs.filter(q => q.gate === 'block' && !gateFilled(q));
+    if (missBlock.length) {
+      alert(`법적 필수 정보를 입력해 주세요(미입력 시 진행 불가):\n· ${missBlock.map(q => q.label).join('\n· ')}`);
+      return;
+    }
+    const missWarn = qs.filter(q => q.gate === 'warn' && !gateFilled(q));
+    if (missWarn.length) {
+      const ok = window.confirm(`다음 안전·법적 관련 정보를 입력하지 않았습니다:\n· ${missWarn.map(q => q.label).join('\n· ')}\n\n표시광고법·안전 관련 정보입니다. 그래도 진행할까요?`);
+      if (!ok) return;
+    }
     const lines: string[] = [];
     if (brand.trim()) lines.push(`브랜드명: ${brand.trim()}`);
     if (regularPrice || salePrice) {
@@ -1292,7 +1317,7 @@ export default function ProductScreen() {
 
             {!isGaejeon && (
               <div className="fg">
-                <div className="fl">경쟁 제품 대비 차별점 <span className="freq">*</span></div>
+                <div className="fl">경쟁 제품 대비 차별점 <span style={{ fontSize: 11, fontWeight: 600, color: '#9CA3AF', marginLeft: 5 }}>권장</span></div>
                 <textarea className="finp" placeholder={diffPlaceholder}
                   value={diff} onChange={e => setDiff(e.target.value)} />
                 <div style={{ fontSize: 11, color: '#B45309', marginTop: 5 }}>⚠️ 실측·검증된 수치만 입력하세요 (과장 수치는 표시광고법 위반 위험)</div>
