@@ -19,27 +19,16 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { DEPTH_BASE } from '@/lib/sectionDepth';
 
 export const maxDuration = 60;
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 /* ─────────────────────────────────────────────
-   카테고리별 섹션 수 기준 (간결 / 풍부)
+   카테고리별 섹션 수 기준(간결/풍부)은 lib/sectionDepth.ts로 단일 소스화 → import.
+   (타입 화면 예시 개수도 같은 DEPTH_BASE를 사용 = 미리보기 = 실제 생성 개수)
 ───────────────────────────────────────────── */
-const DEPTH_BASE: Record<string, { 간결: number; 풍부: number }> = {
-  화장품:   { 간결: 16, 풍부: 32 },
-  식품:     { 간결: 14, 풍부: 28 },
-  패션:     { 간결: 14, 풍부: 26 },
-  생활:     { 간결: 12, 풍부: 24 },
-  가전:     { 간결: 16, 풍부: 30 },
-  반려동물: { 간결: 14, 풍부: 26 },
-  스포츠:   { 간결: 14, 풍부: 26 },
-  유아:     { 간결: 16, 풍부: 30 },
-  자동차:   { 간결: 12, 풍부: 22 },
-  건강:     { 간결: 16, 풍부: 32 },
-  기타:     { 간결: 12, 풍부: 24 },
-};
 
 /* ─────────────────────────────────────────────
    채널 가중치 (섹션 수에 곱)

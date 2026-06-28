@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useApp, CH_CFG } from '@/store/AppContext';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
+import { baseSectionCount } from '@/lib/sectionDepth';
 import TypeMobile from './TypeMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -115,6 +116,9 @@ export default function TypeScreen() {
   const FB_PREMIUM = ['히어로', '브랜드 세계관', '핵심 강점', '상세 정보', '근거/신뢰', '사용법', '비교표', '감성 카피', '후기', 'FAQ', 'CTA'];
   const basicSecs = catKey ? CAT_DEFAULTS[catKey]['기본형'] : FB_BASIC;
   const premiumSecs = catKey ? CAT_DEFAULTS[catKey]['프리미엄형'] : FB_PREMIUM;
+  // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스). 칩은 대표 맛보기, 개수는 이 값 기준 → 기본형 vs 프리미엄형 ~2배가 한눈에.
+  const basicCount = baseSectionCount(cat, false);
+  const premiumCount = baseSectionCount(cat, true);
 
   const TYPES = [
     {
@@ -132,7 +136,8 @@ export default function TypeScreen() {
       featStyle: { background: '#F4F0FF', color: '#7B6FB4' },
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#9B8FD4',
-      secs: basicSecs,
+      secCount: basicCount,
+      secs: basicSecs.slice(0, 6),
       btnLabel: '기본형으로 만들기',
       btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
@@ -151,7 +156,8 @@ export default function TypeScreen() {
       featStyle: { background: '#FEF9EC', color: '#92400E' },
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#B45309',
-      secs: premiumSecs,
+      secCount: premiumCount,
+      secs: premiumSecs.slice(0, 8),
       btnLabel: '프리미엄형으로 만들기',
       btnStyle: { background: '#B45309', color: '#fff' },
     },
@@ -311,14 +317,24 @@ export default function TypeScreen() {
                 ))}
               </div>
 
-              {/* 섹션 아이콘 그리드 */}
+              {/* 섹션: 실제 개수(DEPTH_BASE) 크게 + 대표 칩 + 외 N개 */}
               <div>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, marginBottom: '10px', letterSpacing: '-0.01em' }}>
-                  {t.secLabel}
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, letterSpacing: '-0.01em' }}>
+                    {t.secLabel}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    실제 <span style={{ fontSize: '19px', fontWeight: 800, color: t.accent, letterSpacing: '-0.03em' }}>약 {t.secCount}개</span> 섹션
+                  </span>
                 </div>
                 <div className="cards-5col">
                   {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} />)}
                 </div>
+                {t.secCount > t.secs.length && (
+                  <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 600, color: t.accent, opacity: 0.85 }}>
+                    + 외 {t.secCount - t.secs.length}개 섹션이 더 구성돼요
+                  </div>
+                )}
               </div>
 
               {/* 선택 버튼 (카드 하단 고정) */}

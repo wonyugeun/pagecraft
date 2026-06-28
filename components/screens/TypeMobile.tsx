@@ -6,6 +6,7 @@ import {
   Zap, Clock, BarChart3, TrendingUp, Star,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { baseSectionCount } from '@/lib/sectionDepth';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -81,8 +82,11 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
 }
 
 export default function TypeMobile() {
-  const { ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
+  const { cat, ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
   const channelLabel = ch ?? '스마트스토어';
+  // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스) — 기본형 vs 프리미엄형 ~2배 차이를 숫자로.
+  const basicCount = baseSectionCount(cat, false);
+  const premiumCount = baseSectionCount(cat, true);
   const activeType = type;   // ★실제 선택만 강조(미선택 시 null) — 풍부 자동 강조 제거(데스크탑 일치)
 
   const onPick = (key: '프리미엄형' | '기본형') => setType(key);
@@ -259,6 +263,9 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.<br />브랜드 세계관·감성 카피까지 풍부하게.
               </p>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#92400E', fontWeight: 600 }}>
+                실제 <span style={{ fontSize: 18, fontWeight: 800, color: '#B45309', letterSpacing: '-0.03em' }}>약 {premiumCount}개</span> 섹션
+              </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['브랜드 톤', '풍부한 정보', '감성 카피', '시각 요소'].map(c => (
                   <span key={c} style={{
@@ -314,6 +321,9 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 핵심만 빠르게, 구매 전환에 집중해요.<br />스크롤 짧고 임팩트 있게.
               </p>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#7B6FB4', fontWeight: 600 }}>
+                실제 <span style={{ fontSize: 18, fontWeight: 800, color: '#9B8FD4', letterSpacing: '-0.03em' }}>약 {basicCount}개</span> 섹션
+              </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['핵심만 추림', '짧은 스크롤', '빠른 전환', '이미지 임팩트'].map(c => (
                   <span key={c} style={{
