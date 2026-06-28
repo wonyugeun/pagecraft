@@ -804,6 +804,21 @@ const CAT_IMG: Record<string, string> = {
 };
 const catImg = (cat: string | null) => CAT_IMG[cat ?? ''] ?? CAT_IMG['기타'];
 
+// 슬라이드형 미리보기용 카테고리별 톤·특징(완성 상세페이지 축소판). 이모지 없음.
+const SLIDE_CONF: Record<string, { accent: string; tagline: string; feats: { t: string; d: string }[] }> = {
+  화장품:   { accent: '#EC4899', tagline: 'SKINCARE',     feats: [{ t: '수분 충전', d: '속건조까지 촉촉하게' }, { t: '진정 케어', d: '민감한 피부 진정' }, { t: '순한 성분', d: '매일 안심 사용' }] },
+  식품:     { accent: '#F59E0B', tagline: 'FRESH FOOD',   feats: [{ t: '신선함', d: '산지직송 새벽배송' }, { t: '엄선 원산지', d: '믿을 수 있는 원료' }, { t: '안심 먹거리', d: '인증·안전 관리' }] },
+  패션:     { accent: '#6366F1', tagline: 'DAILY LOOK',   feats: [{ t: '좋은 소재', d: '편안한 착용감' }, { t: '데일리 핏', d: '어디에나 잘 어울림' }, { t: '사이즈 가이드', d: '실측 치수 제공' }] },
+  생활:     { accent: '#10B981', tagline: 'HOME LIVING',  feats: [{ t: '좋은 품질', d: '오래 쓰는 내구성' }, { t: '공간 활용', d: '어디든 잘 어울림' }, { t: '설치 간편', d: '누구나 쉽게' }] },
+  가전:     { accent: '#3B82F6', tagline: 'SMART LIFE',   feats: [{ t: '핵심 성능', d: '강력한 기능' }, { t: '안전 인증', d: '믿을 수 있는 품질' }, { t: 'A/S 보증', d: '오래 안심' }] },
+  반려동물: { accent: '#CA8A04', tagline: 'FOR MY PET',   feats: [{ t: '안전 원료', d: '우리 아이 안심' }, { t: '영양 균형', d: '건강한 한 끼' }, { t: '전문가 신뢰', d: '수의사 추천' }] },
+  스포츠:   { accent: '#F97316', tagline: 'PERFORMANCE',  feats: [{ t: '기능성 소재', d: '땀 걱정 끝' }, { t: '편안한 착용', d: '자유로운 움직임' }, { t: '가벼움', d: '부담 없는 무게' }] },
+  유아:     { accent: '#8B5CF6', tagline: 'FOR BABY',     feats: [{ t: '안전 인증', d: '까다로운 기준' }, { t: '순한 소재', d: '아이 피부 안심' }, { t: '발달 도움', d: '성장 단계 맞춤' }] },
+  건강:     { accent: '#EF4444', tagline: 'HEALTH CARE',  feats: [{ t: '검증 성분', d: '믿을 수 있는 함량' }, { t: '임상·인증', d: '과학적 근거' }, { t: '간편 섭취', d: '매일 꾸준히' }] },
+  자동차:   { accent: '#2563EB', tagline: 'CAR LIFE',     feats: [{ t: '차종 호환', d: '내 차에 딱' }, { t: '간편 설치', d: '누구나 쉽게' }, { t: '내구성', d: '오래 쓰는 품질' }] },
+  기타:     { accent: '#6D4CFF', tagline: 'PRODUCT',      feats: [{ t: '핵심 강점', d: '돋보이는 장점' }, { t: '신뢰 요소', d: '안심하고 구매' }, { t: '합리적 가치', d: '만족스러운 선택' }] },
+};
+
 /* ── s5 미리보기: 블로그형(네이버 블로그 카드) — 글+그림 흐름. s3b 디자인 형태를 카테고리 실제사진으로 ── */
 function S5BlogPreview({ cat, productName }: { cat: string | null; productName?: string }) {
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지 미리보기`;
@@ -837,29 +852,31 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
   );
 }
 
-/* ── s5 미리보기: 슬라이드형 — 디자인된 상세페이지 슬라이드 1장(사진 hero + 제목 + 번호 특징 리스트). 흰 자막·화살표·점·순환 없음 ── */
+/* ── s5 미리보기: 슬라이드형 — 완성된 상세페이지 축소판(제목영역 → 제품사진 → 특징 3분할). 1장, 흰 자막·순환 없음 ── */
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
+  const conf = SLIDE_CONF[cat ?? ''] ?? SLIDE_CONF['기타'];
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
-  const points = ['핵심 강점을 한눈에', '신뢰 요소(인증·후기) 강조', '구매 포인트 정리'];
   return (
     <div style={{ border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
-      {/* 사진 hero + 카테고리 칩 */}
-      <div style={{ position: 'relative' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={catImg(cat)} alt={`${cat ?? '상품'} 슬라이드`} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
-        <span style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, fontWeight: 700, color: '#6D4CFF', background: 'rgba(255,255,255,0.92)', padding: '3px 8px', borderRadius: 20 }}>{cat ?? '추천'} 슬라이드</span>
+      {/* 1) 제목 영역 — 카테고리 톤 컬러 */}
+      <div style={{ background: `${conf.accent}12`, borderBottom: `1px solid ${conf.accent}22`, padding: '14px 14px 12px', textAlign: 'center' }}>
+        <div style={{ fontSize: 9, fontWeight: 800, color: conf.accent, letterSpacing: '0.08em', marginBottom: 4 }}>{conf.tagline}</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.35 }}>{title}</div>
       </div>
-      {/* 디자인된 콘텐츠 — 제목 + 번호 특징 리스트 */}
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.35 }}>{title}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {points.map((t, i) => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#6D4CFF', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</div>
-              <span style={{ fontSize: 11.5, color: '#374151', fontWeight: 500 }}>{t}</span>
+      {/* 2) 제품 사진 */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 132, objectFit: 'cover', display: 'block' }} />
+      {/* 3) 특징 3분할 (아이콘 원 + 제목 + 한 줄 설명) */}
+      <div style={{ display: 'flex', padding: '13px 8px 15px', gap: 4 }}>
+        {conf.feats.map(f => (
+          <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textAlign: 'center', padding: '0 2px' }}>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${conf.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Check size={13} color={conf.accent} strokeWidth={2.5} />
             </div>
-          ))}
-        </div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#111', lineHeight: 1.2 }}>{f.t}</div>
+            <div style={{ fontSize: 8.5, color: '#8A8A8A', lineHeight: 1.3 }}>{f.d}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
