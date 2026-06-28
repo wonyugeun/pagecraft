@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -837,32 +837,29 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
   );
 }
 
-/* ── s5 미리보기: 슬라이드형 — 사진 위 텍스트 오버레이 + 화살표·점. s3b 슬라이드 형태를 카테고리 실제사진으로 ── */
+/* ── s5 미리보기: 슬라이드형 — 디자인된 상세페이지 슬라이드 1장(사진 hero + 제목 + 번호 특징 리스트). 흰 자막·화살표·점·순환 없음 ── */
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
-  const overlays = [productName?.trim() || `${cat ?? '상품'} 상세페이지`, '핵심 포인트를 한눈에', '지금 바로 확인해보세요'];
-  const [idx, setIdx] = useState(0);
-  const total = overlays.length;
+  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
+  const points = ['핵심 강점을 한눈에', '신뢰 요소(인증·후기) 강조', '구매 포인트 정리'];
   return (
-    <div style={{ border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', position: 'relative' }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={catImg(cat)} alt={`${cat ?? '상품'} 슬라이드`} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.08) 45%, transparent 72%)', display: 'flex', alignItems: 'flex-end', padding: 16 }}>
-        <div style={{ color: '#fff', fontSize: 14, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.4, textShadow: '0 1px 5px rgba(0,0,0,0.5)' }}>{overlays[idx]}</div>
+    <div style={{ border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
+      {/* 사진 hero + 카테고리 칩 */}
+      <div style={{ position: 'relative' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={catImg(cat)} alt={`${cat ?? '상품'} 슬라이드`} style={{ width: '100%', height: 150, objectFit: 'cover', display: 'block' }} />
+        <span style={{ position: 'absolute', top: 10, left: 12, fontSize: 9, fontWeight: 700, color: '#6D4CFF', background: 'rgba(255,255,255,0.92)', padding: '3px 8px', borderRadius: 20 }}>{cat ?? '추천'} 슬라이드</span>
       </div>
-      {[
-        { side: 'left' as const, icon: ChevronLeft, action: () => setIdx(i => (i - 1 + total) % total) },
-        { side: 'right' as const, icon: ChevronRight, action: () => setIdx(i => (i + 1) % total) },
-      ].map(({ side, icon: Icon, action }) => (
-        <button key={side} onClick={e => { e.stopPropagation(); action(); }}
-          style={{ position: 'absolute', [side]: 8, top: '50%', transform: 'translateY(-50%)', width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 6px rgba(0,0,0,0.18)', zIndex: 2 }}>
-          <Icon size={13} color="#333" />
-        </button>
-      ))}
-      <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4, zIndex: 2 }}>
-        {Array.from({ length: total }).map((_, i) => (
-          <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }}
-            style={{ width: i === idx ? 16 : 6, height: 6, borderRadius: 3, background: i === idx ? '#6D4CFF' : 'rgba(255,255,255,0.85)', cursor: 'pointer', transition: 'all 200ms ease', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
-        ))}
+      {/* 디자인된 콘텐츠 — 제목 + 번호 특징 리스트 */}
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.35 }}>{title}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {points.map((t, i) => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#6D4CFF', color: '#fff', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</div>
+              <span style={{ fontSize: 11.5, color: '#374151', fontWeight: 500 }}>{t}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
