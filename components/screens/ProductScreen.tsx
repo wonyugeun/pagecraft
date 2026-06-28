@@ -22,6 +22,8 @@ export interface Question {
   fields?: string[];
   placeholder?: string;
   sectionTitle?: string;
+  legalTitle?: string;   // legal mode 박스 제목(없으면 화장품 기본 문구)
+  legalDesc?: string;    // legal mode 박스 설명(없으면 화장품 기본 문구)
 }
 
 /* ─────────────────────────────────────────────
@@ -453,6 +455,13 @@ export const CQ: Record<string, Question[]> = {
       opts: ['20~30대','40~50대','시니어(60대+)','남성','여성','수험생/직장인','임산부/수유부(주의)','어린이(주니어 전용)'],
     },
     {
+      id: 'ht5', label: '⚠️ 법적 고지 / 주의사항 (건강기능식품 표시)', req: true, mode: 'legal',
+      legalTitle: '⚠️ 건강기능식품 법적 필수 표시',
+      legalDesc: '건강기능식품법에 의거한 의무 표시 사항입니다. 건강기능식품에 해당하면 아래를 정확히 기재해 주세요. (일반식품·의료기기는 각 표시 기준에 맞게 기재) 하단에 법적 고지 섹션이 자동 생성됩니다.',
+      fields: ['제조사 / 판매원 (영업소 명칭·소재지)', '원료명 및 함량', '섭취량·섭취방법', '유통기한 및 보관방법', '섭취 시 주의사항 (이상사례 시 섭취 중단·전문가 상담)'],
+      hint: '★건강기능식품은 "질병의 예방·치료를 위한 의약품이 아닙니다" 표시가 필수입니다. 의약품으로 오인될 효능·효과 표현은 표시광고법 위반이 될 수 있어요(해당 시 기재).',
+    },
+    {
       id: 'ht6', label: '기타 추가 정보', req: false, mode: 'textarea',
       placeholder: '예: 1일 1회 1정 식후 복용, 냉암소 보관, 임산부 복용 전 의사 상담 권장, 주요 원료 함량...',
       hint: '복용법·금기사항·원료 상세 등 AI에게 전달할 추가 정보를 입력하세요',
@@ -721,8 +730,8 @@ export function QuestionField({ q, answer, onAnswer }: {
         {q.mode === 'legal' && q.fields && (
           <>
             <div className="legal-box">
-              <div className="legal-title">⚠️ 화장품 법적 필수 표시</div>
-              <div className="legal-desc">화장품법에 의거 상세페이지에 반드시 포함되어야 합니다. 하단에 법적 고지 섹션이 자동 생성됩니다.</div>
+              <div className="legal-title">{q.legalTitle ?? '⚠️ 화장품 법적 필수 표시'}</div>
+              <div className="legal-desc">{q.legalDesc ?? '화장품법에 의거 상세페이지에 반드시 포함되어야 합니다. 하단에 법적 고지 섹션이 자동 생성됩니다.'}</div>
             </div>
             {q.fields.map(f => (
               <input key={f} className="finp" style={{ marginBottom: 8 }} placeholder={f}
