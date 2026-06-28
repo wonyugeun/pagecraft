@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, Star } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -857,35 +857,46 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
   const conf = SLIDE_CONF[cat ?? ''] ?? SLIDE_CONF['기타'];
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
+  const ICONS = [Sparkles, Check, Star];
   return (
-    // ★한 장: 제품 사진을 배경으로 깔고 그 위에 제목·특징을 얹음(slide1처럼 텍스트가 이미지 안에).
-    <div style={{ position: 'relative', height: 380, border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
-      {/* 배경 = 카테고리 제품 사진 */}
+    // 샘플.png 구조: ①톤 헤더밴드(브랜드·서브·큰 제목#·배지) → ②히어로 이미지 → ③제품명 밴드 → ④KPI 3컬럼
+    <div style={{ border: '1px solid #ECECF2', borderRadius: 14, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
+      {/* ① 톤 헤더 밴드 */}
+      <div style={{ background: `${conf.accent}12`, padding: '11px 16px 17px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 11 }}>
+          <span style={{ fontSize: 7.5, fontWeight: 800, color: conf.accent, letterSpacing: '0.12em' }}>{conf.tagline}</span>
+          <span style={{ fontSize: 7.5, color: '#B0B0B0', letterSpacing: '0.08em' }}>PREVIEW</span>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5, marginBottom: 7 }}>{conf.sub}</div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.045em', lineHeight: 1.22, marginBottom: 10 }}>
+            <span style={{ color: conf.accent }}>#</span>{title}
+          </div>
+          <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 600, color: '#fff', background: conf.accent, borderRadius: 20, padding: '4px 12px', letterSpacing: '-0.01em' }}>{conf.badge}</span>
+        </div>
+      </div>
+      {/* ② 히어로 이미지 */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-      {/* 가독성 오버레이: 위 흰색 → 아래 투명(아래쪽은 제품 사진이 그대로 보임) */}
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.93) 48%, rgba(255,255,255,0.5) 63%, rgba(255,255,255,0) 82%)' }} />
-      {/* 콘텐츠 = 이미지 위에 얹힌 텍스트 */}
-      <div style={{ position: 'relative', padding: '18px 16px 0' }}>
-        {/* 제목 + 서브 (가운데) */}
-        <div style={{ textAlign: 'center', marginBottom: 15 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.3, marginBottom: 5 }}>{title}</div>
-          <div style={{ fontSize: 11, color: '#777', lineHeight: 1.5 }}>{conf.sub}</div>
-        </div>
-        {/* 특징 KPI 세로 리스트 (아이콘 원 + 제목 + 설명) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-          {conf.feats.map(f => (
-            <div key={f.t} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#fff', border: `1.5px solid ${conf.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                <Check size={14} color={conf.accent} strokeWidth={2.6} />
+      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 170, objectFit: 'cover', display: 'block' }} />
+      {/* ③ 제품명 밴드 (한글 + 영문) */}
+      <div style={{ textAlign: 'center', padding: '14px 16px 2px' }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.02em', lineHeight: 1.3 }}>{title}</div>
+        <div style={{ fontSize: 8, fontWeight: 700, color: '#BDBDBD', letterSpacing: '0.16em', marginTop: 4 }}>{conf.tagline}</div>
+      </div>
+      {/* ④ KPI 3컬럼 (아이콘 원 + 제목 + 설명) */}
+      <div style={{ display: 'flex', padding: '12px 10px 17px', gap: 6 }}>
+        {conf.feats.map((f, i) => {
+          const Ic = ICONS[i % ICONS.length];
+          return (
+            <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center', padding: '0 1px' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${conf.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Ic size={15} color={conf.accent} strokeWidth={2} />
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#111', marginBottom: 2 }}>{f.t}</div>
-                <div style={{ fontSize: 9.5, color: '#666', lineHeight: 1.4 }}>{f.d}</div>
-              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#1A1A1A', lineHeight: 1.2 }}>{f.t}</div>
+              <div style={{ fontSize: 8, color: '#9A9A9A', lineHeight: 1.35 }}>{f.d}</div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
