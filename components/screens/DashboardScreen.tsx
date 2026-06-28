@@ -7,9 +7,9 @@ import {
   Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
   LogOut,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useApp, HistoryItem } from '@/store/AppContext';
 import { getImages } from '@/lib/historyDB';
-import Sidebar from '@/components/layout/Sidebar';
 import DashboardMobile from './DashboardMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -187,7 +187,8 @@ function RobotIllust() {
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
   const isMobile = useIsMobile();
-  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, sidebarCollapsed, setSidebarCollapsed, deleteHistoryImages } = useApp();
+  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
+  const router = useRouter();
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -271,34 +272,26 @@ export default function DashboardScreen() {
 
   return (
     <div style={{
-      display: 'flex', height: '100vh',
-      background: '#FAFAFC', overflow: 'hidden',
+      minHeight: '100vh', overflowY: 'auto',
+      background: '#FAFAFC',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
 
-      {/* ══════════ 사이드바 ══════════ */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        activeScreen="s-dash"
-      />
+      {/* ★사이드바 제거 — 본문 전체폭 사용 + maxWidth 중앙 정렬로 좌우 여백 균형(휑하지 않게). 로고는 헤더 좌측으로. */}
+      <div style={{ maxWidth: 1200, margin: '0 auto', wordBreak: 'keep-all', padding: '24px 40px 48px' }}>
 
-      {/* ══════════ 메인 콘텐츠 ══════════ */}
-      {/* ★사이드바와 공존(flex push). minWidth:0 제거 → 본문이 내용 최소폭 아래로 안 줄어듦.
-          wordBreak:keep-all → 한국어를 단어 단위로만 줄바꿈(글자단위 깨짐 방지). 데스크탑 폭이면 사이드바 240 빼도 안 깨짐. */}
-      <div style={{ flex: 1, wordBreak: 'keep-all', overflowY: 'auto', padding: '28px 32px 40px' }}>
-
-        {/* ── 수정 2: 헤더 기능 활성화 ── */}
+        {/* ── 헤더 바: 로고(좌) + AI도우미·크레딧·프로필(우) ── */}
         <div style={{
-          display: 'flex', alignItems: 'flex-start',
-          justifyContent: 'space-between', marginBottom: 24,
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', marginBottom: 28,
         }}>
-          <div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.03em', marginBottom: 4 }}>
-              안녕하세요, {displayName} 👋
-            </div>
-            <div style={{ fontSize: 14, color: '#888' }}>오늘은 어떤 상세페이지를 만들어볼까요?</div>
-          </div>
+          {/* 로고 = 홈(대시보드). eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo-flik.png"
+            alt="Flik"
+            onClick={() => go('s-dash')}
+            style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block', cursor: 'pointer' }}
+          />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* AI 도우미 배지 - 클릭 시 챗봇 열기 */}
@@ -390,6 +383,14 @@ export default function DashboardScreen() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* ── 인사말 (헤더와 같은 좌측 정렬선) ── */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#111', letterSpacing: '-0.03em', marginBottom: 4 }}>
+            안녕하세요, {displayName} 👋
+          </div>
+          <div style={{ fontSize: 14, color: '#888' }}>오늘은 어떤 상세페이지를 만들어볼까요?</div>
         </div>
 
         {/* ── 2열 그리드 (모바일 1단) ── */}
@@ -489,7 +490,7 @@ export default function DashboardScreen() {
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #F4F4F6' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</span>
-                <button style={{ background: 'none', border: 'none', fontSize: 12, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
+                <button onClick={() => router.push('/my-works')} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
                   전체 보기 →
                 </button>
               </div>
