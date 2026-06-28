@@ -9,7 +9,7 @@ function BlogPreview() {
   return (
     <div style={{
       background: '#fff', border: '1px solid #E8E4F4', borderRadius: '12px',
-      overflow: 'hidden', userSelect: 'none', maxHeight: '240px', overflowY: 'auto',
+      overflow: 'hidden', userSelect: 'none', maxHeight: '500px', overflowY: 'auto',
     }}>
       <div style={{
         background: '#fff', padding: '8px 12px', borderBottom: '1px solid #F0F0F0',
@@ -97,7 +97,7 @@ function SlidePreview() {
       <img
         src={SLIDE_SRCS[idx]}
         alt={`slide${idx + 1}`}
-        style={{ width: '100%', height: '240px', objectFit: 'cover', objectPosition: 'top', display: 'block' }}
+        style={{ width: '100%', display: 'block' }}
       />
 
       {[
@@ -163,7 +163,7 @@ export default function OutputScreen() {
   ];
 
   return (
-    <div style={{ maxWidth: '940px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <span style={{
