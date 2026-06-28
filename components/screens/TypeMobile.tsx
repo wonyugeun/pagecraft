@@ -263,20 +263,11 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.<br />브랜드 세계관·감성 카피까지 풍부하게.
               </p>
-              {/* 분량 블록 — 섹션 1개 = 블록 1개 */}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 7 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B8B8B' }}>실제 구성 분량</span>
-                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-                    <span style={{ fontSize: 24, fontWeight: 800, color: '#B45309', lineHeight: 1, letterSpacing: '-0.03em' }}>{premiumCount}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>개 섹션</span>
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
-                  {Array.from({ length: premiumCount }).map((_, i) => (
-                    <div key={i} style={{ height: 10, borderRadius: 3, background: '#B45309' }} />
-                  ))}
-                </div>
+              {/* 실제 개수 + 기본형 대비 강조 */}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 5 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E' }}>실제 약</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#B45309', lineHeight: 1, letterSpacing: '-0.03em' }}>{premiumCount}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E' }}>개 섹션 · 기본형의 약 2배</span>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['브랜드 톤', '풍부한 정보', '감성 카피', '시각 요소'].map(c => (
@@ -333,20 +324,11 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 핵심만 빠르게, 구매 전환에 집중해요.<br />스크롤 짧고 임팩트 있게.
               </p>
-              {/* 분량 블록 — 섹션 1개 = 블록 1개. 프리미엄형 대비 블록이 ~절반 */}
-              <div style={{ marginTop: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 7 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#8B8B8B' }}>실제 구성 분량</span>
-                  <span style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
-                    <span style={{ fontSize: 24, fontWeight: 800, color: '#9B8FD4', lineHeight: 1, letterSpacing: '-0.03em' }}>{basicCount}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#9B8FD4' }}>개 섹션</span>
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
-                  {Array.from({ length: basicCount }).map((_, i) => (
-                    <div key={i} style={{ height: 10, borderRadius: 3, background: '#9B8FD4' }} />
-                  ))}
-                </div>
+              {/* 실제 개수 */}
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 5 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7B6FB4' }}>실제 약</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#9B8FD4', lineHeight: 1, letterSpacing: '-0.03em' }}>{basicCount}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7B6FB4' }}>개 섹션</span>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['핵심만 추림', '짧은 스크롤', '빠른 전환', '이미지 임팩트'].map(c => (

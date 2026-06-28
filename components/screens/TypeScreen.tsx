@@ -51,7 +51,7 @@ function tipFor(label: string): string {
   return '상세페이지 구성 섹션';
 }
 
-function SecIcon({ label, accent }: { label: string; accent: string }) {
+function SecIcon({ label, accent, highlight = false }: { label: string; accent: string; highlight?: boolean }) {
   const Icon = iconFor(label);
   const tip = tipFor(label);
   const [show, setShow] = useState(false);
@@ -69,14 +69,16 @@ function SecIcon({ label, accent }: { label: string; accent: string }) {
         onClick={e => { e.stopPropagation(); setShow(p => !p); }}
         style={{
           width: '40px', height: '40px', borderRadius: '10px',
-          background: `${accent}18`, border: `1px solid ${accent}30`,
+          // 강조(highlight) = 프리미엄형 추가 섹션: 액센트로 꽉 채워 '더해지는' 게 보이게
+          background: highlight ? accent : `${accent}18`,
+          border: `1px solid ${highlight ? accent : `${accent}30`}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 120ms ease',
         }}
       >
-        <Icon size={16} color={accent} strokeWidth={1.8} />
+        <Icon size={16} color={highlight ? '#fff' : accent} strokeWidth={1.8} />
       </button>
-      <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>
+      <span style={{ fontSize: '10px', color: highlight ? accent : '#6B7280', fontWeight: highlight ? 700 : 500, textAlign: 'center', lineHeight: 1.2 }}>
         {label}
       </span>
       {show && tip && (
@@ -119,6 +121,8 @@ export default function TypeScreen() {
   // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스). 칩은 대표 맛보기, 개수는 이 값 기준 → 기본형 vs 프리미엄형 ~2배가 한눈에.
   const basicCount = baseSectionCount(cat, false);
   const premiumCount = baseSectionCount(cat, true);
+  // ★프리미엄형에만 추가되는 섹션(기본형에 없는 것) — 예시 칩에서 강조해 '기본형 + 이만큼 더'를 직관적으로.
+  const extraSet = new Set(premiumSecs.filter(s => !basicSecs.includes(s)));
 
   const TYPES = [
     {
@@ -137,7 +141,8 @@ export default function TypeScreen() {
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#9B8FD4',
       secCount: basicCount,
-      secs: basicSecs.slice(0, 6),
+      secs: basicSecs,
+      highlightSet: new Set<string>(),
       btnLabel: '기본형으로 만들기',
       btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
@@ -157,7 +162,8 @@ export default function TypeScreen() {
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#B45309',
       secCount: premiumCount,
-      secs: premiumSecs.slice(0, 8),
+      secs: premiumSecs,
+      highlightSet: extraSet,
       btnLabel: '프리미엄형으로 만들기',
       btnStyle: { background: '#B45309', color: '#fff' },
     },
@@ -317,34 +323,25 @@ export default function TypeScreen() {
                 ))}
               </div>
 
-              {/* 섹션: 대표 칩(맛보기) + 외 N개 + ★분량 막대(프리미엄형이 기본형 ~2배인 게 한눈에) */}
+              {/* 예시 섹션: 전체 칩 표시 + 프리미엄형 추가 섹션 강조 → 차이를 칩 안에서 직관적으로. 우측에 실제 개수. */}
               <div>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, marginBottom: '10px', letterSpacing: '-0.01em' }}>
-                  {t.secLabel}
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, letterSpacing: '-0.01em' }}>
+                    {t.secLabel}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    실제 <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>약 {t.secCount}개</span>
+                  </span>
                 </div>
                 <div className="cards-5col">
-                  {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} />)}
+                  {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} highlight={t.highlightSet.has(s)} />)}
                 </div>
-                {t.secCount > t.secs.length && (
-                  <div style={{ marginTop: '10px', fontSize: '12px', fontWeight: 600, color: '#9CA3AF' }}>
-                    + 외 {t.secCount - t.secs.length}개 더
+                {t.highlightSet.size > 0 && (
+                  <div style={{ marginTop: '12px', fontSize: '12px', fontWeight: 700, color: t.accent, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: t.accent, flexShrink: 0 }} />
+                    기본형 + <span style={{ fontSize: '14px' }}>{t.highlightSet.size}개 섹션</span> 더 (분량 약 2배)
                   </div>
                 )}
-                {/* 분량 블록 — 섹션 1개 = 블록 1개. 프리미엄형이 블록 ~2배(행이 2배) → 차이가 한눈에 */}
-                <div style={{ marginTop: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#6B7280' }}>실제 구성 분량</span>
-                    <span style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-                      <span style={{ fontSize: '28px', fontWeight: 800, color: t.accent, lineHeight: 1, letterSpacing: '-0.03em' }}>{t.secCount}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: t.accent }}>개 섹션</span>
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '4px' }}>
-                    {Array.from({ length: t.secCount }).map((_, i) => (
-                      <div key={i} style={{ height: '11px', borderRadius: '3px', background: t.accent, opacity: i < t.secs.length ? 1 : 0.35 }} />
-                    ))}
-                  </div>
-                </div>
               </div>
 
               {/* 선택 버튼 (카드 하단 고정) */}
