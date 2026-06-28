@@ -104,7 +104,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['국내산','수입산','국내산+수입산 혼합'],
     },
     {
-      id: 'f5b', label: '보관 방법', req: false, mode: 'multi',
+      id: 'f5b', label: '보관 방법', req: true, mode: 'multi',
       hint: '보관 방법 → 제품 안내 섹션 + 구매 안심 카피에 반영',
       opts: ['냉장보관(0~10℃)','냉동보관(-18℃ 이하)','실온보관','직사광선 피해 서늘한 곳','개봉 후 냉장 보관','개봉 후 밀봉 보관','진공포장 유지'],
     },
@@ -114,7 +114,7 @@ export const CQ: Record<string, Question[]> = {
       opts: ['밀/글루텐','대두(콩)','우유','달걀','갑각류(새우/게)','견과류','땅콩','복숭아','토마토','해산물','메밀','해당 없음'],
     },
     {
-      id: 'f6b', label: '유통기한 표시 방식', req: false, mode: 'single',
+      id: 'f6b', label: '유통기한 표시 방식', req: true, mode: 'single',
       hint: '유통기한 형태 → 법적 고지 섹션 문구에 반영',
       opts: ['제조일로부터 기간 표시','소비기한(날짜) 표시','개봉 후 사용기한 별도','유통기한+개봉 후 기한 병기'],
     },
@@ -149,6 +149,11 @@ export const CQ: Record<string, Question[]> = {
     {
       id: 'fa3c', label: '시즌', req: false, mode: 'multi',
       opts: ['봄/여름(SS)','가을/겨울(FW)','사계절(시즌리스)'],
+    },
+    {
+      id: 'fa3d', label: '사이즈/치수 (실측표)', req: false, mode: 'textarea',
+      placeholder: '예: S 가슴90/어깨43/총장65, M 가슴95/어깨45/총장68, L 가슴100/어깨47/총장71 (cm)',
+      hint: '실측 사이즈 → 사이즈 안내 섹션에 표로 반영(치수 제공 시 반품률↓)',
     },
     {
       id: 'fa4', label: '타겟 성별/연령', req: true, mode: 'multi',
@@ -1421,7 +1426,7 @@ export default function ProductScreen() {
               style={{ width: 16, height: 16, marginTop: 1, accentColor: '#6D4CFF', flexShrink: 0, cursor: 'pointer' }}
             />
             <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#92400E' }}>
-              입력한 정보는 <b>실측·검증된 사실</b>이며, 과장·허위 정보로 인한 <b>표시광고법상 책임이 본인에게 있음</b>을 확인합니다. <span style={{ color: '#DC2626', fontWeight: 700 }}>(필수)</span>
+              입력한 정보가 <b>실제 제품과 일치하는 정확한 정보</b>임을 확인합니다. <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(필수)</span>
             </span>
           </label>
 

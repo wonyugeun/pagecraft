@@ -467,7 +467,7 @@ export default function ProductMobile() {
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
             style={{ width: 18, height: 18, marginTop: 1, accentColor: '#6D4CFF', flexShrink: 0 }} />
           <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#92400E' }}>
-            입력한 정보는 <b>실측·검증된 사실</b>이며, 과장·허위 정보로 인한 <b>표시광고법상 책임이 본인에게 있음</b>을 확인합니다. <span style={{ color: '#DC2626', fontWeight: 700 }}>(필수)</span>
+            입력한 정보가 <b>실제 제품과 일치하는 정확한 정보</b>임을 확인합니다. <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(필수)</span>
           </span>
         </label>
       </section>
