@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import {
   Menu, Zap, Sparkles, ChevronUp, ChevronDown,
-  ShieldCheck, TrendingUp, Search,
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
@@ -52,7 +51,7 @@ export default function ProductMobile() {
   // 폼 입력값은 store로 승격(useApp) — 데스크탑과 같은 store 공유, 화면 전환 시에도 유지
   // UI 일시 상태만 로컬 유지
   const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
-  const [fastMode, setFastMode] = useState(false);
+  const [agreed, setAgreed] = useState(false);   // ①실측·검증 동의(생성 전 법적 방어선)
 
   // 데스크탑과 동일 헬퍼
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
@@ -100,6 +99,10 @@ export default function ProductMobile() {
   const handleNext = () => {
     if (!productName.trim()) {
       alert('상품명을 입력해주세요.');
+      return;
+    }
+    if (!agreed) {
+      alert('입력 정보가 실측·검증된 사실임을 확인(동의)해 주세요.');
       return;
     }
     const lines: string[] = [];
@@ -250,49 +253,7 @@ export default function ProductMobile() {
         </div>
       </section>
 
-      {/* 4) 빠른 생성 모드 */}
-      <section style={{ padding: '24px 20px 0' }}>
-        <div style={{
-          background: '#FFFBEB',
-          borderRadius: 16, padding: 16,
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: '#FEF3C7', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Zap size={18} color="#F59E0B" fill="#F59E0B" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>빠른 생성 모드</div>
-            <div style={{ marginTop: 2, fontSize: 11.5, color: '#666' }}>
-              상품명만 입력하면 AI가 추천 정보를 채워드려요.
-            </div>
-          </div>
-          <button onClick={() => setFastMode(p => !p)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: '#fff', border: '1px solid #ECECF2',
-            fontSize: 12, fontWeight: 700, color: '#111',
-            borderRadius: 999, padding: '6px 10px',
-            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-          }}>
-            사용하기
-            <div style={{
-              width: 28, height: 16, borderRadius: 999,
-              background: fastMode ? '#6D4CFF' : '#D9D9E3',
-              position: 'relative', transition: 'background .15s',
-            }}>
-              <div style={{
-                position: 'absolute', top: 2,
-                left: fastMode ? 14 : 2,
-                width: 12, height: 12, borderRadius: '50%',
-                background: '#fff', transition: 'left .15s',
-              }} />
-            </div>
-          </button>
-        </div>
-      </section>
+      {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
       {/* 5) 완성도 카드 */}
       <section style={{ padding: '14px 20px 0' }}>
@@ -307,20 +268,8 @@ export default function ProductMobile() {
             <div style={{ marginTop: 2, fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>
               {pct >= 80 ? '매우 좋아요!' : pct >= 50 ? '좋아요!' : '조금 더 입력해 주세요'}
             </div>
-            <div style={{ marginTop: 6, display: 'flex', gap: 10 }}>
-              {[
-                { Icon: ShieldCheck, label: '신뢰도\n향상', val: '+23%' },
-                { Icon: TrendingUp,  label: '전환율\n향상', val: '+18%' },
-                { Icon: Search,      label: '검색 노출\n향상', val: '+15%' },
-              ].map(({ Icon, label, val }) => (
-                <div key={label} style={{
-                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                }}>
-                  <Icon size={16} color="#6D4CFF" />
-                  <div style={{ fontSize: 9.5, color: '#666', textAlign: 'center', whiteSpace: 'pre-line', lineHeight: 1.3 }}>{label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#6D4CFF' }}>{val}</div>
-                </div>
-              ))}
+            <div style={{ marginTop: 5, fontSize: 11.5, color: '#666' }}>
+              필수 항목을 채울수록 완성도가 올라가요. 현재 {pct}%
             </div>
           </div>
         </div>
@@ -504,6 +453,22 @@ export default function ProductMobile() {
         </div>
       </section>
 
+      {/* ①실측·검증 동의 — 생성 전 법적 방어선(체크 안 하면 진행 불가) */}
+      <section style={{ padding: '20px 20px 0' }}>
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 9,
+          padding: '13px 14px', borderRadius: 14,
+          background: agreed ? '#F0FDF4' : '#FFFBEB',
+          border: `1px solid ${agreed ? '#BBF7D0' : '#FDE68A'}`,
+        }}>
+          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+            style={{ width: 18, height: 18, marginTop: 1, accentColor: '#6D4CFF', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#92400E' }}>
+            입력한 정보는 <b>실측·검증된 사실</b>이며, 과장·허위 정보로 인한 <b>표시광고법상 책임이 본인에게 있음</b>을 확인합니다. <span style={{ color: '#DC2626', fontWeight: 700 }}>(필수)</span>
+          </span>
+        </label>
+      </section>
+
       {/* 8) 하단 버튼 */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -525,17 +490,17 @@ export default function ProductMobile() {
         </button>
         <button
           onClick={handleNext}
-          disabled={!productName.trim()}
+          disabled={!productName.trim() || !agreed}
           style={{
             flex: 1,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            background: productName.trim() ? '#6D4CFF' : '#D9D9E3',
+            background: (productName.trim() && agreed) ? '#6D4CFF' : '#D9D9E3',
             color: '#fff', border: 'none',
             fontSize: 15, fontWeight: 700,
             borderRadius: 14, padding: '14px',
-            cursor: productName.trim() ? 'pointer' : 'not-allowed',
+            cursor: (productName.trim() && agreed) ? 'pointer' : 'not-allowed',
             fontFamily: 'inherit',
-            boxShadow: productName.trim() ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
+            boxShadow: (productName.trim() && agreed) ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
           }}
         >
           다음 단계로 <ArrowRight size={16} />

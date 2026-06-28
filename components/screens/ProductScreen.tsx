@@ -5,7 +5,7 @@ import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { CatBlogPreview, CatSlidePreview } from './CategoryPreview';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { ChevronDown, ChevronUp, Zap, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -983,8 +983,8 @@ export default function ProductScreen() {
 
   // UI 일시 상태만 로컬 유지
   const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
-  const [quickMode, setQuickMode] = useState(false);
   const [previewTab, setPreviewTab] = useState<'blog' | 'slide'>('blog');
+  const [agreed, setAgreed] = useState(false);   // ①실측·검증 동의(생성 전 법적 방어선)
 
   // 모바일 분기 — 모든 훅 호출 후
   if (isMobile) return <ProductMobile />;
@@ -1038,6 +1038,10 @@ export default function ProductScreen() {
   const handleNext = () => {
     if (!productName.trim()) {
       alert('상품명을 입력해주세요.');
+      return;
+    }
+    if (!agreed) {
+      alert('입력 정보가 실측·검증된 사실임을 확인(동의)해 주세요.');
       return;
     }
     const lines: string[] = [];
@@ -1098,38 +1102,7 @@ export default function ProductScreen() {
         </div>
       </div>
 
-      {/* 빠른 생성 모드 배너 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#F7F5FF', border: '1.5px solid #DDD6FE',
-        borderRadius: 10, padding: '12px 18px', marginBottom: 24, marginTop: 16,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Zap size={16} color="#6D4CFF" />
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#6D4CFF' }}>빠른 생성 모드</span>
-          <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 4 }}>
-            필수 항목만 입력하고 바로 생성해요
-          </span>
-        </div>
-        <div
-          onClick={() => setQuickMode(p => !p)}
-          style={{
-            width: 44, height: 24, borderRadius: 12,
-            background: quickMode ? '#6D4CFF' : '#D1D5DB',
-            position: 'relative', cursor: 'pointer', transition: 'background .2s',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{
-            position: 'absolute', top: 3,
-            left: quickMode ? 23 : 3,
-            width: 18, height: 18,
-            borderRadius: '50%', background: '#fff',
-            transition: 'left .2s',
-            boxShadow: '0 1px 3px rgba(0,0,0,.2)',
-          }} />
-        </div>
-      </div>
+      {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
       {/* 2-column layout */}
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -1140,21 +1113,8 @@ export default function ProductScreen() {
           {/* Progress row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
             <ProgressCircle pct={pct} />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[
-                { label: '신뢰도 향상', val: '+23%' },
-                { label: '전환율 향상', val: '+18%' },
-                { label: '검색 노출 향상', val: '+15%' },
-              ].map(b => (
-                <div key={b.label} style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  background: '#F0FDF4', border: '1px solid #BBF7D0',
-                  borderRadius: 20, padding: '4px 11px',
-                }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A' }}>{b.val}</span>
-                  <span style={{ fontSize: 11, color: '#166534' }}>{b.label}</span>
-                </div>
-              ))}
+            <div style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.5 }}>
+              필수 항목을 채울수록 완성도가 올라가요.<br />현재 완성도 <b style={{ color: '#6D4CFF' }}>{pct}%</b>
             </div>
           </div>
 
@@ -1315,6 +1275,7 @@ export default function ProductScreen() {
                 <div className="fl">경쟁 제품 대비 차별점 <span className="freq">*</span></div>
                 <textarea className="finp" placeholder={diffPlaceholder}
                   value={diff} onChange={e => setDiff(e.target.value)} />
+                <div style={{ fontSize: 11, color: '#B45309', marginTop: 5 }}>⚠️ 실측·검증된 수치만 입력하세요 (과장 수치는 표시광고법 위반 위험)</div>
               </div>
             )}
           </AccordionSection>
@@ -1430,8 +1391,27 @@ export default function ProductScreen() {
             </div>
           </div>
 
+          {/* ①실측·검증 동의 — 생성 전 법적 방어선(체크 안 하면 진행 불가) */}
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 24,
+            padding: '12px 14px', borderRadius: 10,
+            background: agreed ? '#F0FDF4' : '#FFFBEB',
+            border: `1px solid ${agreed ? '#BBF7D0' : '#FDE68A'}`,
+            cursor: 'pointer', transition: 'all .15s',
+          }}>
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => setAgreed(e.target.checked)}
+              style={{ width: 16, height: 16, marginTop: 1, accentColor: '#6D4CFF', flexShrink: 0, cursor: 'pointer' }}
+            />
+            <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#92400E' }}>
+              입력한 정보는 <b>실측·검증된 사실</b>이며, 과장·허위 정보로 인한 <b>표시광고법상 책임이 본인에게 있음</b>을 확인합니다. <span style={{ color: '#DC2626', fontWeight: 700 }}>(필수)</span>
+            </span>
+          </label>
+
           {/* Navigation footer */}
-          <div className="cta-row" style={{ marginTop: 28 }}>
+          <div className="cta-row" style={{ marginTop: 14 }}>
             <button className="btn-back" onClick={() => go(prevScreen as any)}>
               <ArrowLeft size={14} style={{ display: 'inline', marginRight: 4 }} />
               이전 단계
