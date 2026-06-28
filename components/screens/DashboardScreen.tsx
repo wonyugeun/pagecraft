@@ -284,9 +284,14 @@ export default function DashboardScreen() {
       />
 
       {/* ══════════ 메인 콘텐츠 ══════════ */}
-      {/* ★사이드바와 공존(flex push). minWidth:0 제거 → 본문이 내용 최소폭 아래로 안 줄어듦.
-          wordBreak:keep-all → 한국어를 단어 단위로만 줄바꿈(글자단위 깨짐 방지). 데스크탑 폭이면 사이드바 240 빼도 안 깨짐. */}
-      <div style={{ flex: 1, wordBreak: 'keep-all', overflowY: 'auto', padding: '28px 32px 40px' }}>
+      {/* ★본문을 maxWidth 1080 중앙 정렬(좌우 패딩이 자동으로 여백 흡수). 데스크탑에선 사이드바 토글해도
+          내용 폭이 1080 그대로 → 카드 안 찌그러짐(좌우 여백만 줄었다 늘었다). 좁은 화면은 32px 패딩 + keep-all로 안전. */}
+      <div style={{
+        flex: 1, wordBreak: 'keep-all', overflowY: 'auto',
+        paddingTop: 28, paddingBottom: 40,
+        paddingLeft: 'max(32px, calc((100% - 1080px) / 2))',
+        paddingRight: 'max(32px, calc((100% - 1080px) / 2))',
+      }}>
 
         {/* ── 수정 2: 헤더 기능 활성화 ── */}
         <div style={{
