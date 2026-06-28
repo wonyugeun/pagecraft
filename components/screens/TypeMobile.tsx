@@ -7,6 +7,16 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import { baseSectionCount } from '@/lib/sectionDepth';
+import { CAT_DEFAULTS } from './SectionStructureScreen';
+import { iconFor } from '@/lib/sectionIcons';
+
+// 예시 칩을 실제 섹션 개수만큼 채움(섹션명 순환 보강) — 칩 양으로 차이 표현.
+function fillChips(secs: string[], count: number): string[] {
+  if (!secs.length) return [];
+  return Array.from({ length: count }, (_, i) => secs[i % secs.length]);
+}
+const FB_BASIC = ['히어로', '핵심 강점', '상세 정보', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
+const FB_PREMIUM = ['히어로', '브랜드 세계관', '핵심 강점', '상세 정보', '근거/신뢰', '사용법', '비교표', '감성 카피', '후기', 'FAQ', 'CTA'];
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -84,9 +94,12 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
 export default function TypeMobile() {
   const { cat, ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
   const channelLabel = ch ?? '스마트스토어';
-  // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스) — 기본형 vs 프리미엄형 ~2배 차이를 숫자로.
+  // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스) + 그 개수만큼 칩 — 기본형 vs 프리미엄형 ~2배를 칩 양으로.
   const basicCount = baseSectionCount(cat, false);
   const premiumCount = baseSectionCount(cat, true);
+  const catKey = cat && CAT_DEFAULTS[cat] ? cat : null;
+  const basicChips = fillChips(catKey ? CAT_DEFAULTS[catKey]['기본형'] : FB_BASIC, basicCount);
+  const premiumChips = fillChips(catKey ? CAT_DEFAULTS[catKey]['프리미엄형'] : FB_PREMIUM, premiumCount);
   const activeType = type;   // ★실제 선택만 강조(미선택 시 null) — 풍부 자동 강조 제거(데스크탑 일치)
 
   const onPick = (key: '프리미엄형' | '기본형') => setType(key);
@@ -263,11 +276,24 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.<br />브랜드 세계관·감성 카피까지 풍부하게.
               </p>
-              {/* 실제 개수 + 기본형 대비 강조 */}
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 5 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E' }}>실제 약</span>
-                <span style={{ fontSize: 22, fontWeight: 800, color: '#B45309', lineHeight: 1, letterSpacing: '-0.03em' }}>{premiumCount}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#92400E' }}>개 섹션 · 기본형의 약 2배</span>
+              {/* 예시 섹션 칩 — 실제 개수만큼 전부(칩 양으로 차이) + 개수 */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#92400E' }}>예시 섹션</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#B45309' }}>{premiumCount}</span>개 · 기본형의 약 2배
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {premiumChips.map((s, i) => {
+                    const Ic = iconFor(s);
+                    return (
+                      <span key={`${s}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 500, lineHeight: 1.3, padding: '3px 7px', borderRadius: 5, background: '#FEF3C7', color: '#92400E' }}>
+                        <Ic size={10} color="#B45309" strokeWidth={2} />{s}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['브랜드 톤', '풍부한 정보', '감성 카피', '시각 요소'].map(c => (
@@ -324,11 +350,24 @@ export default function TypeMobile() {
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
                 핵심만 빠르게, 구매 전환에 집중해요.<br />스크롤 짧고 임팩트 있게.
               </p>
-              {/* 실제 개수 */}
-              <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 5 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7B6FB4' }}>실제 약</span>
-                <span style={{ fontSize: 22, fontWeight: 800, color: '#9B8FD4', lineHeight: 1, letterSpacing: '-0.03em' }}>{basicCount}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#7B6FB4' }}>개 섹션</span>
+              {/* 예시 섹션 칩 — 실제 개수만큼 + 개수 */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7B6FB4' }}>예시 섹션</span>
+                  <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#9B8FD4' }}>{basicCount}</span>개
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {basicChips.map((s, i) => {
+                    const Ic = iconFor(s);
+                    return (
+                      <span key={`${s}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 500, lineHeight: 1.3, padding: '3px 7px', borderRadius: 5, background: '#EDE8FF', color: '#7B6FB4' }}>
+                        <Ic size={10} color="#9B8FD4" strokeWidth={2} />{s}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['핵심만 추림', '짧은 스크롤', '빠른 전환', '이미지 임팩트'].map(c => (

@@ -1,105 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import {
-  Sparkles, FileText, Star, Heart, ShieldCheck, Zap, BookOpen,
-  LayoutGrid, MessageSquare, HelpCircle, MousePointer, Globe,
-  Feather, BarChart2, Share2, ScrollText, Clock, RefreshCw,
+  Sparkles, FileText, Clock, RefreshCw,
   Check, ArrowLeft, ArrowRight, ThumbsUp,
 } from 'lucide-react';
 import { useApp, CH_CFG } from '@/store/AppContext';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
 import { baseSectionCount } from '@/lib/sectionDepth';
+import { iconFor } from '@/lib/sectionIcons';
 import TypeMobile from './TypeMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-// 섹션 이름(카테고리 무관)을 키워드로 해석 — 화장품 고정 아이콘/팁 제거, 모든 카테고리에 맞는 일반 표현.
-function iconFor(label: string): React.ElementType {
-  if (/히어로/.test(label)) return Star;
-  if (/공감|고민/.test(label)) return Heart;
-  if (/세계관|스토리|비전/.test(label)) return Globe;
-  if (/안전|인증|보증|GMP/.test(label)) return ShieldCheck;
-  if (/성분|영양|원료|함량|임상|인포그래픽/.test(label)) return BarChart2;
-  if (/효능|효과|기능|성능|스펙|기술|퍼포먼스/.test(label)) return Zap;
-  if (/소재|원단|품질|내구|핏|착용/.test(label)) return Feather;
-  if (/사용|설치|복용|레시피|관리|세탁|코디|사이즈|적합|연령|발달|호환|차종/.test(label)) return BookOpen;
-  if (/비교|차별/.test(label)) return LayoutGrid;
-  if (/후기|리뷰|전문가|추천/.test(label)) return MessageSquare;
-  if (/FAQ/.test(label)) return HelpCircle;
-  if (/CTA/.test(label)) return MousePointer;
-  if (/감성/.test(label)) return Feather;
-  if (/SNS|공유/.test(label)) return Share2;
-  if (/와디즈/.test(label)) return ScrollText;
-  return Sparkles;
-}
-function tipFor(label: string): string {
-  if (/히어로/.test(label)) return '첫 화면 — 시선을 잡는 핵심 메시지';
-  if (/공감|고민/.test(label)) return '고객의 고민에 공감하는 도입부';
-  if (/세계관|스토리|비전/.test(label)) return '브랜드·제품의 배경 이야기';
-  if (/안전|인증|보증|GMP/.test(label)) return '안전·인증·보증으로 신뢰 강화';
-  if (/성분|영양|원료|함량|임상|인포그래픽/.test(label)) return '구성·원료·근거 정보 제공';
-  if (/효능|효과|기능|성능|스펙|기술|퍼포먼스/.test(label)) return '핵심 기능·성능·효과 소개';
-  if (/소재|원단|품질|내구/.test(label)) return '소재·품질·내구성 정보';
-  if (/사용|설치|복용|레시피|관리|세탁|핏|착용|코디|사이즈|적합|연령|발달|호환|차종/.test(label)) return '사용·착용·관리 방법 안내';
-  if (/비교|차별/.test(label)) return '경쟁 제품 대비 우위 비교';
-  if (/후기|리뷰/.test(label)) return '실제 사용자 후기';
-  if (/전문가|추천/.test(label)) return '전문가·전문 기관의 추천';
-  if (/FAQ/.test(label)) return '자주 묻는 질문';
-  if (/CTA/.test(label)) return '구매 유도 마무리';
-  if (/감성/.test(label)) return '감성을 자극하는 카피';
-  if (/SNS|공유/.test(label)) return '소셜 공유용 임팩트 컷';
-  return '상세페이지 구성 섹션';
-}
-
-function SecIcon({ label, accent, highlight = false }: { label: string; accent: string; highlight?: boolean }) {
-  const Icon = iconFor(label);
-  const tip = tipFor(label);
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (!show) return;
-    const h = () => setShow(false);
-    document.addEventListener('click', h);
-    return () => document.removeEventListener('click', h);
-  }, [show]);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', position: 'relative' }}>
-      <button
-        onClick={e => { e.stopPropagation(); setShow(p => !p); }}
-        style={{
-          width: '40px', height: '40px', borderRadius: '10px',
-          // 강조(highlight) = 프리미엄형 추가 섹션: 액센트로 꽉 채워 '더해지는' 게 보이게
-          background: highlight ? accent : `${accent}18`,
-          border: `1px solid ${highlight ? accent : `${accent}30`}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 120ms ease',
-        }}
-      >
-        <Icon size={16} color={highlight ? '#fff' : accent} strokeWidth={1.8} />
-      </button>
-      <span style={{ fontSize: '10px', color: highlight ? accent : '#6B7280', fontWeight: highlight ? 700 : 500, textAlign: 'center', lineHeight: 1.2 }}>
-        {label}
-      </span>
-      {show && tip && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-          background: '#1e293b', color: '#f1f5f9', borderRadius: '8px',
-          padding: '8px 11px', fontSize: '11px', lineHeight: 1.65,
-          whiteSpace: 'nowrap', zIndex: 300,
-          boxShadow: '0 6px 20px rgba(0,0,0,.28)', pointerEvents: 'none',
-        }}>
-          <div style={{ fontWeight: 700 }}>{tip}</div>
-          <div style={{
-            position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-            width: 0, height: 0,
-            borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-            borderTop: '5px solid #1e293b',
-          }} />
-        </div>
-      )}
-    </div>
-  );
+// 예시 칩을 실제 섹션 개수(count)만큼 채움 — CAT_DEFAULTS 섹션명을 순환 사용해 부족분 보강.
+// 목적: 칩 '양'으로 기본형 vs 프리미엄형 차이(약 2배)를 한눈에 보여주기.
+function fillChips(secs: string[], count: number): string[] {
+  if (!secs.length) return [];
+  return Array.from({ length: count }, (_, i) => secs[i % secs.length]);
 }
 
 export default function TypeScreen() {
@@ -121,8 +37,9 @@ export default function TypeScreen() {
   // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스). 칩은 대표 맛보기, 개수는 이 값 기준 → 기본형 vs 프리미엄형 ~2배가 한눈에.
   const basicCount = baseSectionCount(cat, false);
   const premiumCount = baseSectionCount(cat, true);
-  // ★프리미엄형에만 추가되는 섹션(기본형에 없는 것) — 예시 칩에서 강조해 '기본형 + 이만큼 더'를 직관적으로.
-  const extraSet = new Set(premiumSecs.filter(s => !basicSecs.includes(s)));
+  // ★칩을 실제 개수만큼 전부 — 칩 양으로 차이가 보이게. (CAT_DEFAULTS 섹션명을 개수만큼 순환 보강)
+  const basicChips = fillChips(basicSecs, basicCount);
+  const premiumChips = fillChips(premiumSecs, premiumCount);
 
   const TYPES = [
     {
@@ -141,8 +58,7 @@ export default function TypeScreen() {
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#9B8FD4',
       secCount: basicCount,
-      secs: basicSecs,
-      highlightSet: new Set<string>(),
+      chips: basicChips,
       btnLabel: '기본형으로 만들기',
       btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
     },
@@ -162,8 +78,7 @@ export default function TypeScreen() {
       secLabel: `예시 섹션 (${catLabel} 기준)`,
       secLabelColor: '#B45309',
       secCount: premiumCount,
-      secs: premiumSecs,
-      highlightSet: extraSet,
+      chips: premiumChips,
       btnLabel: '프리미엄형으로 만들기',
       btnStyle: { background: '#B45309', color: '#fff' },
     },
@@ -323,25 +238,31 @@ export default function TypeScreen() {
                 ))}
               </div>
 
-              {/* 예시 섹션: 전체 칩 표시 + 프리미엄형 추가 섹션 강조 → 차이를 칩 안에서 직관적으로. 우측에 실제 개수. */}
+              {/* 예시 섹션: ★실제 개수만큼 칩 전부 — 칩 양(빽빽함)으로 프리미엄형이 약 2배 많은 게 한눈에 */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
                   <span style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, letterSpacing: '-0.01em' }}>
                     {t.secLabel}
                   </span>
                   <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    실제 <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>약 {t.secCount}개</span>
+                    <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션
                   </span>
                 </div>
-                <div className="cards-5col">
-                  {t.secs.map(s => <SecIcon key={s} label={s} accent={t.accent} highlight={t.highlightSet.has(s)} />)}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                  {t.chips.map((s, i) => {
+                    const Ic = iconFor(s);
+                    return (
+                      <span key={`${s}-${i}`} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        fontSize: '11px', fontWeight: 500, lineHeight: 1.3,
+                        padding: '4px 8px', borderRadius: '6px',
+                        background: `${t.accent}14`, color: t.accent,
+                      }}>
+                        <Ic size={11} color={t.accent} strokeWidth={2} />{s}
+                      </span>
+                    );
+                  })}
                 </div>
-                {t.highlightSet.size > 0 && (
-                  <div style={{ marginTop: '12px', fontSize: '12px', fontWeight: 700, color: t.accent, display: 'flex', alignItems: 'center', gap: '7px' }}>
-                    <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: t.accent, flexShrink: 0 }} />
-                    기본형 + <span style={{ fontSize: '14px' }}>{t.highlightSet.size}개 섹션</span> 더 (분량 약 2배)
-                  </div>
-                )}
               </div>
 
               {/* 선택 버튼 (카드 하단 고정) */}
