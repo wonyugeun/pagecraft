@@ -249,14 +249,26 @@ export const STEP_MAP: Record<string, number> = {
   s1: 1, s2: 2, s3: 3, s3b: 4, s5: 5, 's5-5': 6, 's5b': 7, s6: 8, s7: 9, s8: 10,
 };
 
+/* ── 새로고침 복원: 단계+입력값을 sessionStorage에 영속화(탭 닫으면 정리). 크레딧·생성결과·이미지는 제외(부작용 방지). ── */
+const PERSIST_KEY = 'pc_wizard_v1';
+// 복원 허용 단계: 입력 단계 + 대시보드만(생성중 s7/결과 s8은 휘발 데이터라 복원 안 함)
+const RESTORE_SCREENS = ['s1', 's2', 's3', 's3b', 's5', 's5-5', 's5b', 's6', 's-dash'];
+function loadPersist(): Record<string, unknown> | null {
+  if (typeof window === 'undefined') return null;
+  try { return JSON.parse(sessionStorage.getItem(PERSIST_KEY) || 'null'); } catch { return null; }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [screen, setScreen] = useState<ScreenId>('s0');
-  const [cat, setCatState] = useState<string | null>(null);
-  const [ch, setChState] = useState<string | null>(null);
-  const [type, setTypeState] = useState<string | null>(null);
-  const [out, setOutState] = useState<string | null>(null);
-  const [imgMode, setImgModeState] = useState<string | null>(null);
-  const [secCnt, setSecCntState] = useState(10);
+  const [_p] = useState(loadPersist);   // 세션 1회 로드(복원용)
+  const _scr = _p?.screen as ScreenId | undefined;
+  const _okScr = _scr && RESTORE_SCREENS.includes(_scr) ? _scr : undefined;
+  const [screen, setScreen] = useState<ScreenId>(_okScr ?? 's0');
+  const [cat, setCatState] = useState<string | null>((_p?.cat as string) ?? null);
+  const [ch, setChState] = useState<string | null>((_p?.ch as string) ?? null);
+  const [type, setTypeState] = useState<string | null>((_p?.type as string) ?? null);
+  const [out, setOutState] = useState<string | null>((_p?.out as string) ?? null);
+  const [imgMode, setImgModeState] = useState<string | null>((_p?.imgMode as string) ?? null);
+  const [secCnt, setSecCntState] = useState((_p?.secCnt as number) ?? 10);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
@@ -268,23 +280,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loggedIn = status === 'authenticated';
   const [credits, setCreditsState] = useState<number>(30);
   const [creditModalOpen, setCreditModalOpenState] = useState(false);
-  const [productName, setProductNameState] = useState('');
-  const [productExtra, setProductExtraState] = useState('');
+  const [productName, setProductNameState] = useState((_p?.productName as string) ?? '');
+  const [productExtra, setProductExtraState] = useState((_p?.productExtra as string) ?? '');
   const [productImages, setProductImagesState] = useState<string[]>([]);
-  const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
-  const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
-  const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
+  const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>((_p?.referenceAnalysis as ReferenceAnalysis) ?? null);
+  const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>((_p?.captureAnalysis as CaptureAnalysis) ?? null);
+  const [sectionStructure, setSectionStructureState] = useState<string[]>((_p?.sectionStructure as string[]) ?? []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [regularPrice, setRegularPrice] = useState('');
-  const [salePrice, setSalePrice] = useState('');
-  const [showPrice, setShowPrice] = useState(false);
-  const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>([]);
-  const [brand, setBrand] = useState('');
-  const [diff, setDiff] = useState('');
-  const [extraNote, setExtraNote] = useState('');
-  const [brandIntro, setBrandIntro] = useState('');
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [aiSelections, setAiSelections] = useState<string[]>([]);
+  const [regularPrice, setRegularPrice] = useState((_p?.regularPrice as string) ?? '');
+  const [salePrice, setSalePrice] = useState((_p?.salePrice as string) ?? '');
+  const [showPrice, setShowPrice] = useState((_p?.showPrice as boolean) ?? false);
+  const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>((_p?.productOptions as { name: string; values: string }[]) ?? []);
+  const [brand, setBrand] = useState((_p?.brand as string) ?? '');
+  const [diff, setDiff] = useState((_p?.diff as string) ?? '');
+  const [extraNote, setExtraNote] = useState((_p?.extraNote as string) ?? '');
+  const [brandIntro, setBrandIntro] = useState((_p?.brandIntro as string) ?? '');
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>((_p?.answers as Record<string, string | string[]>) ?? {});
+  const [aiSelections, setAiSelections] = useState<string[]>((_p?.aiSelections as string[]) ?? []);
 
   /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴(2단계). 신규 30 지급은 서버가 처리.
    * (이전: localStorage pc_cr_{email} 읽기 → 서버 조회로 교체. ★차감 deductCredits는 미접촉 = 3단계.)
@@ -460,6 +472,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setScreen(id);
     window.scrollTo(0, 0);
   };
+
+  // ★새로고침 복원: 단계+입력값을 sessionStorage에 저장(변경 시마다). 크레딧·생성결과·이미지 제외.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+        screen, cat, ch, type, out, imgMode, secCnt,
+        productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure,
+        regularPrice, salePrice, showPrice, productOptions,
+        brand, diff, extraNote, brandIntro, answers, aiSelections,
+      }));
+    } catch { /* 용량 초과 등 무시 */ }
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, answers, aiSelections]);
+
+  // 새로고침으로 복원된 단계를 history에도 반영(뒤로가기 일관)
+  useEffect(() => {
+    if (_okScr) window.history.replaceState({ screen: _okScr }, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 브라우저 뒤로가기/앞으로가기 처리
   useEffect(() => {

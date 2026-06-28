@@ -26,12 +26,14 @@ export default function Sidebar({ collapsed, onToggle, activeScreen }: SidebarPr
 
   return (
     <aside data-sidebar style={{
-      width: W, flexShrink: 0,
+      width: W,
       background: '#fff', borderRight: '1px solid #ECECF2',
       display: 'flex', flexDirection: 'column',
       overflowY: 'auto', overflowX: 'hidden',
       transition: 'width 200ms ease',
-      position: 'relative',
+      // ★오버레이: 본문 flex 흐름에서 제외 → 펼쳐도 본문이 안 밀림(어제 도우미 오버레이와 동일 원리)
+      position: 'absolute', top: 0, left: 0, height: '100%', zIndex: 30,
+      boxShadow: collapsed ? 'none' : '2px 0 16px rgba(0,0,0,0.08)',
     }}>
       {/* 로고 */}
       <div style={{

@@ -271,7 +271,7 @@ export default function DashboardScreen() {
 
   return (
     <div style={{
-      display: 'flex', height: '100vh',
+      display: 'flex', height: '100vh', position: 'relative',
       background: '#FAFAFC', overflow: 'hidden',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
@@ -284,7 +284,8 @@ export default function DashboardScreen() {
       />
 
       {/* ══════════ 메인 콘텐츠 ══════════ */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 40px' }}>
+      {/* ★사이드바를 오버레이(absolute)로 뺐으므로 본문은 접힘 폭(72)만큼 고정 오프셋 → 토글 펼쳐도 본문 안 밀림/안 커짐 */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 40px', marginLeft: 72 }}>
 
         {/* ── 수정 2: 헤더 기능 활성화 ── */}
         <div style={{
