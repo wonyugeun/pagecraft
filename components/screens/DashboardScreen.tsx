@@ -271,7 +271,7 @@ export default function DashboardScreen() {
 
   return (
     <div style={{
-      display: 'flex', height: '100vh', position: 'relative',
+      display: 'flex', height: '100vh',
       background: '#FAFAFC', overflow: 'hidden',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
@@ -284,8 +284,8 @@ export default function DashboardScreen() {
       />
 
       {/* ══════════ 메인 콘텐츠 ══════════ */}
-      {/* ★사이드바를 오버레이(absolute)로 뺐으므로 본문은 접힘 폭(72)만큼 고정 오프셋 → 토글 펼쳐도 본문 안 밀림/안 커짐 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px 40px', marginLeft: 72 }}>
+      {/* ★사이드바와 공존(flex). minWidth:0 = 사이드바 펼치면 본문이 자연스럽게 줄되 내용 반응형 reflow(찌그러짐/오버플로 방지). transition으로 부드럽게. */}
+      <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '28px 32px 40px', transition: 'width 200ms ease' }}>
 
         {/* ── 수정 2: 헤더 기능 활성화 ── */}
         <div style={{

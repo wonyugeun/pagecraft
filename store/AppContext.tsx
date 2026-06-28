@@ -259,16 +259,13 @@ function loadPersist(): Record<string, unknown> | null {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [_p] = useState(loadPersist);   // 세션 1회 로드(복원용)
-  const _scr = _p?.screen as ScreenId | undefined;
-  const _okScr = _scr && RESTORE_SCREENS.includes(_scr) ? _scr : undefined;
-  const [screen, setScreen] = useState<ScreenId>(_okScr ?? 's0');
-  const [cat, setCatState] = useState<string | null>((_p?.cat as string) ?? null);
-  const [ch, setChState] = useState<string | null>((_p?.ch as string) ?? null);
-  const [type, setTypeState] = useState<string | null>((_p?.type as string) ?? null);
-  const [out, setOutState] = useState<string | null>((_p?.out as string) ?? null);
-  const [imgMode, setImgModeState] = useState<string | null>((_p?.imgMode as string) ?? null);
-  const [secCnt, setSecCntState] = useState((_p?.secCnt as number) ?? 10);
+  const [screen, setScreen] = useState<ScreenId>('s0');
+  const [cat, setCatState] = useState<string | null>(null);
+  const [ch, setChState] = useState<string | null>(null);
+  const [type, setTypeState] = useState<string | null>(null);
+  const [out, setOutState] = useState<string | null>(null);
+  const [imgMode, setImgModeState] = useState<string | null>(null);
+  const [secCnt, setSecCntState] = useState(10);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
@@ -280,23 +277,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loggedIn = status === 'authenticated';
   const [credits, setCreditsState] = useState<number>(30);
   const [creditModalOpen, setCreditModalOpenState] = useState(false);
-  const [productName, setProductNameState] = useState((_p?.productName as string) ?? '');
-  const [productExtra, setProductExtraState] = useState((_p?.productExtra as string) ?? '');
+  const [productName, setProductNameState] = useState('');
+  const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
-  const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>((_p?.referenceAnalysis as ReferenceAnalysis) ?? null);
-  const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>((_p?.captureAnalysis as CaptureAnalysis) ?? null);
-  const [sectionStructure, setSectionStructureState] = useState<string[]>((_p?.sectionStructure as string[]) ?? []);
+  const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
+  const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
+  const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [regularPrice, setRegularPrice] = useState((_p?.regularPrice as string) ?? '');
-  const [salePrice, setSalePrice] = useState((_p?.salePrice as string) ?? '');
-  const [showPrice, setShowPrice] = useState((_p?.showPrice as boolean) ?? false);
-  const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>((_p?.productOptions as { name: string; values: string }[]) ?? []);
-  const [brand, setBrand] = useState((_p?.brand as string) ?? '');
-  const [diff, setDiff] = useState((_p?.diff as string) ?? '');
-  const [extraNote, setExtraNote] = useState((_p?.extraNote as string) ?? '');
-  const [brandIntro, setBrandIntro] = useState((_p?.brandIntro as string) ?? '');
-  const [answers, setAnswers] = useState<Record<string, string | string[]>>((_p?.answers as Record<string, string | string[]>) ?? {});
-  const [aiSelections, setAiSelections] = useState<string[]>((_p?.aiSelections as string[]) ?? []);
+  const [regularPrice, setRegularPrice] = useState('');
+  const [salePrice, setSalePrice] = useState('');
+  const [showPrice, setShowPrice] = useState(false);
+  const [productOptions, setProductOptions] = useState<{ name: string; values: string }[]>([]);
+  const [brand, setBrand] = useState('');
+  const [diff, setDiff] = useState('');
+  const [extraNote, setExtraNote] = useState('');
+  const [brandIntro, setBrandIntro] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [aiSelections, setAiSelections] = useState<string[]>([]);
 
   /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴(2단계). 신규 30 지급은 서버가 처리.
    * (이전: localStorage pc_cr_{email} 읽기 → 서버 조회로 교체. ★차감 deductCredits는 미접촉 = 3단계.)
@@ -486,9 +483,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch { /* 용량 초과 등 무시 */ }
   }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, answers, aiSelections]);
 
-  // 새로고침으로 복원된 단계를 history에도 반영(뒤로가기 일관)
+  // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
+  //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
   useEffect(() => {
-    if (_okScr) window.history.replaceState({ screen: _okScr }, '');
+    const p = loadPersist();
+    if (!p) return;
+    const scr = p.screen as ScreenId | undefined;
+    if (scr && RESTORE_SCREENS.includes(scr)) {
+      setScreen(scr);
+      try { window.history.replaceState({ screen: scr }, ''); } catch {}
+    }
+    if (typeof p.cat === 'string') setCatState(p.cat);
+    if (typeof p.ch === 'string') setChState(p.ch);
+    if (typeof p.type === 'string') setTypeState(p.type);
+    if (typeof p.out === 'string') setOutState(p.out);
+    if (typeof p.imgMode === 'string') setImgModeState(p.imgMode);
+    if (typeof p.secCnt === 'number') setSecCntState(p.secCnt);
+    if (typeof p.productName === 'string') setProductNameState(p.productName);
+    if (typeof p.productExtra === 'string') setProductExtraState(p.productExtra);
+    if (p.referenceAnalysis) setReferenceAnalysisState(p.referenceAnalysis as ReferenceAnalysis);
+    if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
+    if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
+    if (typeof p.regularPrice === 'string') setRegularPrice(p.regularPrice);
+    if (typeof p.salePrice === 'string') setSalePrice(p.salePrice);
+    if (typeof p.showPrice === 'boolean') setShowPrice(p.showPrice);
+    if (Array.isArray(p.productOptions)) setProductOptions(p.productOptions as { name: string; values: string }[]);
+    if (typeof p.brand === 'string') setBrand(p.brand);
+    if (typeof p.diff === 'string') setDiff(p.diff);
+    if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
+    if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
+    if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
+    if (Array.isArray(p.aiSelections)) setAiSelections(p.aiSelections as string[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
