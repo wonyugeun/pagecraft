@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, SlidersHorizontal, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronRight, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import ChannelMobile from './ChannelMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -170,29 +170,7 @@ export default function ChannelScreen() {
         ))}
       </div>
 
-      {/* 원하는 채널이 없나요 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#FAFAFA', border: '1px solid #EBEBEB', borderRadius: '12px',
-        padding: '16px 20px', marginBottom: '36px',
-      }}>
-        <div>
-          <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#333', marginBottom: '2px', letterSpacing: '-0.01em' }}>
-            원하는 채널이 없나요?
-          </div>
-          <div style={{ fontSize: '12px', color: '#AAA' }}>
-            직접 설정으로 나만의 상세페이지를 제작해보세요.
-          </div>
-        </div>
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '8px 14px', background: '#fff', border: '1px solid #D8CFFF',
-          borderRadius: '8px', fontSize: '12.5px', fontWeight: 600, color: '#6D4CFF',
-          cursor: 'pointer', flexShrink: 0,
-        }}>
-          <SlidersHorizontal size={13} /> 직접 설정하기 <ChevronRight size={13} />
-        </button>
-      </div>
+      {/* '직접 설정하기'(미구현 죽은 버튼) 박스 제거 — 채널 4개가 한국 이커머스 커버, 커스텀 불필요. */}
 
       {/* 하단 네비 */}
       <div style={{

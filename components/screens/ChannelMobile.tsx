@@ -49,7 +49,8 @@ export default function ChannelMobile() {
   const activeDef = CHANNELS.find(c => c.key === activeCh) ?? CHANNELS[0];
 
   const onPick = (key: ChannelKey) => setCh(key);
-  const onNext = () => { if (!ch) setCh('스마트스토어'); go('s3'); };
+  // ★데스크탑과 일치: 채널 미선택 시 자동 스마트스토어 금지 — 선택해야만 진행.
+  const onNext = () => { if (ch) go('s3'); };
 
   const renderIcon = (def: ChannelDef, size = 26) => {
     if (def.iconNode === 'N') {
@@ -228,7 +229,8 @@ export default function ChannelMobile() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {CHANNELS.map(c => {
-            const selected = activeCh === c.key;
+            // ★실제 선택(ch)으로만 하이라이트 — 미선택 시 스마트스토어 자동 강조 안 함(데스크탑 일치).
+            const selected = ch === c.key;
             return (
               <div
                 key={c.key}
@@ -346,15 +348,15 @@ export default function ChannelMobile() {
         }}>
           <ArrowLeft size={16} /> 이전 단계
         </button>
-        <button onClick={onNext} style={{
+        <button onClick={onNext} disabled={!ch} style={{
           flex: 1,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: '#6D4CFF', color: '#fff',
+          background: ch ? '#6D4CFF' : '#EDE8FF', color: ch ? '#fff' : '#B0A0E8',
           border: 'none',
           fontSize: 15, fontWeight: 700,
           borderRadius: 14, padding: '14px',
-          cursor: 'pointer', fontFamily: 'inherit',
-          boxShadow: '0 8px 20px rgba(109,76,255,0.3)',
+          cursor: ch ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+          boxShadow: ch ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
         }}>
           다음 단계 <ArrowRight size={16} />
         </button>
