@@ -48,7 +48,6 @@ export default function ImageMobile() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const nukkiRef = useRef<HTMLInputElement>(null);
 
   const secCount = sectionStructure.length > 0 ? sectionStructure.length : 9;
 
@@ -71,14 +70,6 @@ export default function ImageMobile() {
     } catch (err) {
       console.error('[ImageMobile] 이미지 업로드 실패:', err);
     }
-  };
-
-  const handleNukkiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    console.log('[handleNukkiUpload] 누끼 처리 대상 파일:', file.name);
-    alert('누끼컷 생성 기능은 곧 추가됩니다.');
   };
 
   const removePreview = () => { setPreview(null); setProductImages([]); };
@@ -293,20 +284,19 @@ export default function ImageMobile() {
             </div>
           </div>
           <button
-            onClick={() => nukkiRef.current?.click()}
+            disabled
+            title="곧 추가될 기능이에요"
             style={{
               flexShrink: 0,
-              background: '#fff', border: '1.5px solid #6D4CFF',
-              color: '#6D4CFF',
+              background: '#F4F4F6', border: '1.5px solid #E5E7EB',
+              color: '#A0A0AB',
               fontSize: 12, fontWeight: 700,
               borderRadius: 10, padding: '10px 14px',
-              cursor: 'pointer', fontFamily: 'inherit',
+              cursor: 'not-allowed', fontFamily: 'inherit',
             }}
           >
-            누끼컷 만들기
+            누끼컷 만들기 (준비 중)
           </button>
-          <input ref={nukkiRef} type="file" accept="image/*" onChange={handleNukkiUpload}
-            style={{ display: 'none' }} />
         </div>
       </section>
 

@@ -9,7 +9,7 @@ import {
   Image as ImageIcon, Sun, Palette, FileText, X,
 } from 'lucide-react';
 
-// TODO: 실제 앞 단계의 sectionStructure / sections state에서 동적으로 매핑
+// 아래는 "어떤 이미지가 만들어지나요" 드롭다운의 예시(컷 종류 안내)용. 실제 섹션 수는 sectionStructure로 동적 표시.
 const sectionImageMap = [
   { name: '히어로', cut: '정면 누끼컷', why: '첫인상·썸네일' },
   { name: '피부고민 공감', cut: '사용 장면컷', why: '공감 유도' },
@@ -39,14 +39,16 @@ const fileToBase64 = (file: File): Promise<string> =>
 
 export default function ImageScreen() {
   const isMobile = useIsMobile();
-  const { setProductImages, go } = useApp();
+  const { setProductImages, go, sectionStructure } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const nukkiRef = useRef<HTMLInputElement>(null);
 
   if (isMobile) return <ImageMobile />;
+
+  // ★섹션 수 동적: 섹션구조(STEP 7)에서 정한 실제 개수. 없으면 예시 개수로 폴백.
+  const secCount = sectionStructure.length > 0 ? sectionStructure.length : sectionImageMap.length;
 
   const goPrev = () => go('s5b');
   const goNext = () => go('s7');
@@ -68,17 +70,20 @@ export default function ImageScreen() {
     }
   };
 
-  const handleGenerateNukki = () => {
-    nukkiRef.current?.click();
-  };
-
-  const handleNukkiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
+  // 드래그&드롭 업로드 (모바일과 동일 패턴)
+  const handleDrop = async (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDropHover(false);
+    const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    // TODO: 배경 제거(누끼) API 연결 — 기존 /api/generate-image는 일반 이미지 생성이라 별도 엔드포인트 필요
-    console.log('[handleGenerateNukki] 누끼 처리 대상 파일:', file.name);
-    alert('누끼컷 생성 기능은 곧 추가됩니다.');
+    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    try {
+      const dataUrl = await fileToBase64(file);
+      setPreview(dataUrl);
+      setProductImages([dataUrl]);
+    } catch (err) {
+      console.error('[ImageScreen] drop 실패:', err);
+    }
   };
 
   const removePreview = () => {
@@ -98,7 +103,7 @@ export default function ImageScreen() {
         </h1>
         <p style={{ fontSize: 15, color: '#666', marginTop: 8, lineHeight: 1.6 }}>
           누끼컷(흰 배경 정면)을 기준으로 AI가{' '}
-          <span style={{ color: '#6D4CFF', fontWeight: 700 }}>{sectionImageMap.length}개 섹션</span>에 필요한 이미지를 전부 만들어요
+          <span style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</span>에 필요한 이미지를 전부 만들어요
         </p>
       </div>
 
@@ -111,6 +116,9 @@ export default function ImageScreen() {
             <label
               onMouseEnter={() => setDropHover(true)}
               onMouseLeave={() => setDropHover(false)}
+              onDragOver={e => { e.preventDefault(); setDropHover(true); }}
+              onDragLeave={() => setDropHover(false)}
+              onDrop={handleDrop}
               style={{
                 border: `2px dashed ${dropHover ? '#6D4CFF' : '#D8D2FF'}`,
                 borderRadius: 16,
@@ -178,22 +186,16 @@ export default function ImageScreen() {
               </div>
             </div>
             <button
-              onClick={handleGenerateNukki}
+              disabled
+              title="곧 추가될 기능이에요"
               style={{
-                height: 40, border: '1px solid #6D4CFF', background: '#fff', color: '#6D4CFF',
+                height: 40, border: '1px solid #E5E7EB', background: '#F4F4F6', color: '#A0A0AB',
                 fontWeight: 700, fontSize: 13, borderRadius: 12, padding: '0 16px',
-                whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--f)',
+                whiteSpace: 'nowrap', cursor: 'not-allowed', flexShrink: 0, fontFamily: 'var(--f)',
               }}
             >
               누끼컷 만들기 (준비 중)
             </button>
-            <input
-              ref={nukkiRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleNukkiUpload}
-            />
           </div>
 
           {/* 접힌 안내: 어떤 이미지가 만들어지나요 */}
