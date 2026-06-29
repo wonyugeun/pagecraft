@@ -210,7 +210,7 @@ function ChannelIcon({ iconKey, accent, size = 48 }: { iconKey: ChannelDef['icon
 function MiniMockup({ accent }: { accent: string }) {
   return (
     <div style={{
-      width: 122, flexShrink: 0, alignSelf: 'stretch', minHeight: 134,
+      width: 122, flexShrink: 0, alignSelf: 'stretch', minHeight: 176,
       borderRadius: 12, border: '1px solid #ECECF2', background: '#FBFBFD',
       padding: 11, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
@@ -243,7 +243,7 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
       onMouseLeave={() => setHov(false)}
       style={{
         position: 'relative',
-        padding: '28px 26px 24px',
+        padding: '34px 26px 32px',
         background: '#fff',
         border: `${selected ? 2 : 1.5}px solid ${selected ? a : hov ? `${a}66` : '#ECECF2'}`,
         borderRadius: '18px', cursor: 'pointer',
@@ -265,7 +265,7 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
       <div style={{ display: 'flex', gap: 16 }}>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* 아이콘(브랜드 마크) + 채널명/영문 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
             <ChannelIcon iconKey={c.iconKey} accent={a} size={54} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.2 }}>{c.key}</div>
@@ -274,9 +274,9 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
           </div>
 
           {/* 태그라인(채널 색) */}
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: a, marginBottom: 7 }}>{c.sub}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: a, marginBottom: 9 }}>{c.sub}</div>
           {/* 설명 */}
-          <p style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.6, margin: '0 0 13px', letterSpacing: '-0.01em' }}>{c.desc}</p>
+          <p style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.75, margin: '0 0 18px', letterSpacing: '-0.01em' }}>{c.desc}</p>
 
           {/* 칩 (아이콘 + 텍스트, 채널 색 톤) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 'auto' }}>
