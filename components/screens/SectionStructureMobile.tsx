@@ -6,7 +6,8 @@ import {
   Plus, ArrowLeft, ArrowRight, Trash2,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
-import { CAT_DEFAULTS, ALL_SECTIONS } from './SectionStructureScreen';
+import { ALL_SECTIONS } from './SectionStructureScreen';
+import { useInitialSections } from '@/hooks/useInitialSections';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -23,24 +24,14 @@ const STEPS = [
 
 export default function SectionStructureMobile() {
   const {
-    cat, type, go,
+    go,
     referenceAnalysis, captureAnalysis,
-    setSectionStructure, setSecCnt, sectionStructure,
+    setSectionStructure, setSecCnt,
     toggleChat, credits,
   } = useApp();
 
-  // 데스크탑 getInitial 로직 그대로
-  const getInitial = (): string[] => {
-    if (sectionStructure.length) return [...sectionStructure];
-    if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
-    if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
-    return (
-      CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
-      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA']
-    );
-  };
-
-  const [secs, setSecs] = useState<string[]>(getInitial);
+  // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI). 데·모 섹션 일치.
+  const { secs, setSecs, recommendLoading } = useInitialSections();
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [showTip, setShowTip] = useState(true);
@@ -193,6 +184,24 @@ export default function SectionStructureMobile() {
             }}>
               <X size={16} />
             </button>
+          </div>
+        </section>
+      )}
+
+      {/* AI 추천 로딩 — 데스크탑과 동일(레퍼런스 없을 때 recommend-sections 호출 중) */}
+      {recommendLoading && (
+        <section style={{ padding: '14px 20px 0' }}>
+          <div style={{
+            background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12,
+            padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
+            fontSize: 12.5, color: '#5b21b6', fontWeight: 600,
+          }}>
+            <span style={{
+              display: 'inline-block', width: 14, height: 14,
+              border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF',
+              borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0,
+            }} />
+            ✨ AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
           </div>
         </section>
       )}
