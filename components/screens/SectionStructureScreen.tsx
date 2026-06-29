@@ -63,6 +63,10 @@ export const ALL_SECTIONS = [
   '건강 고민 공감', '법적 고지',
 ];
 
+/* 필수 섹션 판별 — 법적 고지=삭제 하드 차단(표시광고법 등 법적 의무), CTA=삭제 전 경고(구매 전환 품질). */
+export const isLegalSection = (s: string) => s.replace(/\s+/g, '').includes('법적');
+export const isCtaSection = (s: string) => /cta/i.test(s);
+
 const BTN_SHARED: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   width: 26, height: 26, border: '1px solid var(--bd)',
@@ -143,6 +147,13 @@ export default function SectionStructureScreen() {
     const n = [...s]; [n[i], n[i + 1]] = [n[i + 1], n[i]]; return n;
   });
   const remove = (i: number) => setSecs(s => s.filter((_, idx) => idx !== i));
+  // 법적 고지=삭제 하드 차단(버튼도 비활성), CTA=삭제 전 경고 후 진행, 일반 섹션은 그대로.
+  const handleRemove = (i: number, sec: string) => {
+    if (isLegalSection(sec)) return;
+    if (isCtaSection(sec) && typeof window !== 'undefined' &&
+      !window.confirm('CTA(구매 유도) 섹션을 삭제하면 구매 전환이 약해질 수 있어요. 그래도 삭제할까요?')) return;
+    remove(i);
+  };
   const addSection = (label: string) => {
     if (label && !secs.includes(label)) setSecs(s => [...s, label]);
     setShowAdd(false);
@@ -235,11 +246,18 @@ export default function SectionStructureScreen() {
                 disabled={i === secs.length - 1}
                 aria-label="아래로 이동"
               >↓</button>
-              <button
-                style={{ ...BTN_SHARED, color: '#ef4444', borderColor: '#fecaca' }}
-                onClick={() => remove(i)}
-                aria-label="삭제"
-              >×</button>
+              {isLegalSection(sec) ? (
+                <span
+                  title="법적 필수 섹션 — 삭제할 수 없어요"
+                  style={{ ...BTN_DIS, width: 'auto', padding: '0 8px', fontSize: 10.5, fontWeight: 700, color: '#B45309', background: '#FEF3C7', borderColor: '#FDE68A', opacity: 1, cursor: 'default' }}
+                >필수</span>
+              ) : (
+                <button
+                  style={{ ...BTN_SHARED, color: '#ef4444', borderColor: '#fecaca' }}
+                  onClick={() => handleRemove(i, sec)}
+                  aria-label="삭제"
+                >×</button>
+              )}
             </div>
           </div>
         ))}
