@@ -42,7 +42,7 @@ export default function ChannelScreen() {
   if (isMobile) return <ChannelMobile />;
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '1060px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>
 
       {/* STEP pill */}
       <div style={{ textAlign: 'center', marginBottom: '18px' }}>
@@ -210,9 +210,9 @@ function ChannelIcon({ iconKey, accent, size = 48 }: { iconKey: ChannelDef['icon
 function MiniMockup({ accent }: { accent: string }) {
   return (
     <div style={{
-      width: 104, flexShrink: 0, alignSelf: 'stretch', minHeight: 116,
+      width: 122, flexShrink: 0, alignSelf: 'stretch', minHeight: 134,
       borderRadius: 12, border: '1px solid #ECECF2', background: '#FBFBFD',
-      padding: 10, display: 'flex', flexDirection: 'column', gap: 7, overflow: 'hidden',
+      padding: 11, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden',
       boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
     }}>
       {/* 상단바: 로고닷 + 검색 pill */}
@@ -243,7 +243,7 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
       onMouseLeave={() => setHov(false)}
       style={{
         position: 'relative',
-        padding: '22px 20px 18px',
+        padding: '28px 26px 24px',
         background: '#fff',
         border: `${selected ? 2 : 1.5}px solid ${selected ? a : hov ? `${a}66` : '#ECECF2'}`,
         borderRadius: '18px', cursor: 'pointer',
@@ -266,7 +266,7 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* 아이콘(브랜드 마크) + 채널명/영문 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 13 }}>
-            <ChannelIcon iconKey={c.iconKey} accent={a} size={48} />
+            <ChannelIcon iconKey={c.iconKey} accent={a} size={54} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 17, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.2 }}>{c.key}</div>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#B0B8C1', letterSpacing: '0.02em', marginTop: 2 }}>{c.en}</div>
