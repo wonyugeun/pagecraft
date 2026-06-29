@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, ArrowLeft, ArrowRight, Rocket, Store, Lightbulb } from 'lucide-react';
+import { ChevronRight, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import ChannelMobile from './ChannelMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -16,19 +16,19 @@ const ALL_CHANNELS: ChannelDef[] = [
     tags: ['블로그형 글+그림', '이미지 슬라이드', '썸네일 3종'],
   },
   {
-    key: '쿠팡', iconKey: 'coupang', en: 'Coupang', accent: '#E8330F',
+    key: '쿠팡', iconKey: 'coupang', en: 'Coupang', accent: '#FF6A2B',
     sub: '로켓배송 경쟁 환경',
     desc: '빠른 스크롤과 구매 전환을 고려한 시각적 임팩트 중심으로 제작합니다.',
     tags: ['이미지 슬라이드', '흰 배경 누끼컷', '썸네일 2종'],
   },
   {
-    key: '자사몰', iconKey: 'store', en: 'Own Mall', accent: '#7C3AED',
+    key: '자사몰', iconKey: 'store', en: 'Own Mall', accent: '#8B5CF6',
     sub: '브랜드 직접 운영',
     desc: '브랜드의 스토리와 고객 경험을 강화하는 프리미엄 상세페이지 제작',
     tags: ['HTML 섹션형', '감성 카피', '전셀 맞춤'],
   },
   {
-    key: '와디즈', iconKey: 'wadiz', en: 'Wadiz', accent: '#0EA5A4',
+    key: '와디즈', iconKey: 'wadiz', en: 'Wadiz', accent: '#14B8A6',
     sub: '펀딩·예약판매',
     desc: '창의적인 스토리텔링으로 후원자의 공감을 이끌어내는 페이지 제작',
     tags: ['긴 스크롤 HTML', '50장+ 이미지', 'GIF 포함'],
@@ -189,44 +189,54 @@ export default function ChannelScreen() {
   );
 }
 
-/* ─── 채널 브랜드 아이콘 (solid accent 박스 + 화이트 마크) ─── */
-function ChannelIcon({ iconKey, accent, size = 48 }: { iconKey: ChannelDef['iconKey']; accent: string; size?: number }) {
-  const isz = Math.round(size * 0.5);
-  const mark =
-    iconKey === 'naver'   ? <span style={{ color: '#fff', fontWeight: 900, fontSize: Math.round(size * 0.52), fontFamily: 'Arial, Helvetica, sans-serif', lineHeight: 1, letterSpacing: '-0.02em' }}>N</span>
-  : iconKey === 'coupang' ? <Rocket size={isz} color="#fff" strokeWidth={2.4} />
-  : iconKey === 'store'   ? <Store size={isz} color="#fff" strokeWidth={2.2} />
-  :                         <Lightbulb size={isz} color="#fff" strokeWidth={2.2} />;
+/* ─── 채널 아이콘 (소프트 틴트 스퀘어클 + 컬러풀 이모지 / 네이버는 초록 N) ─── */
+const ICON_EMOJI: Record<ChannelDef['iconKey'], string | null> = { naver: null, coupang: '🚀', store: '🏪', wadiz: '💡' };
+function ChannelIcon({ iconKey, accent, size = 54 }: { iconKey: ChannelDef['iconKey']; accent: string; size?: number }) {
+  const emoji = ICON_EMOJI[iconKey];
   return (
     <div style={{
-      width: size, height: size, borderRadius: 14, flexShrink: 0,
-      background: accent, boxShadow: `0 4px 12px ${accent}40`,
+      width: size, height: size, borderRadius: 16, flexShrink: 0,
+      background: `linear-gradient(140deg, ${accent}24, ${accent}0D)`,
+      border: `1px solid ${accent}2B`,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>{mark}</div>
+      fontSize: Math.round(size * 0.46), lineHeight: 1,
+    }}>
+      {emoji ?? (
+        <span style={{ color: accent, fontWeight: 900, fontSize: Math.round(size * 0.5), fontFamily: 'Arial, Helvetica, sans-serif', letterSpacing: '-0.02em', lineHeight: 1 }}>N</span>
+      )}
+    </div>
   );
 }
 
-/* ─── 채널별 미니 목업 (시안 우측 — 미니 상세페이지: 검색바+히어로+라인+CTA) ─── */
+/* ─── 채널별 미니 목업 (미니 상세페이지: 헤더 검색바 + 히어로 + 텍스트 + 썸네일 2장) ─── */
 function MiniMockup({ accent }: { accent: string }) {
   return (
     <div style={{
       width: 122, flexShrink: 0, alignSelf: 'stretch', minHeight: 176,
-      borderRadius: 12, border: '1px solid #ECECF2', background: '#FBFBFD',
-      padding: 11, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden',
-      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+      borderRadius: 14, border: '1px solid #EFEFF3', background: '#fff',
+      padding: 11, display: 'flex', flexDirection: 'column', gap: 9, overflow: 'hidden',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
     }}>
-      {/* 상단바: 로고닷 + 검색 pill */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <div style={{ width: 12, height: 12, borderRadius: 4, background: accent, flexShrink: 0 }} />
-        <div style={{ flex: 1, height: 9, borderRadius: 5, background: '#fff', border: '1px solid #E6E6EE' }} />
+      {/* 헤더: 브랜드 닷 + 검색바 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ width: 14, height: 14, borderRadius: 5, background: accent, flexShrink: 0 }} />
+        <div style={{ flex: 1, height: 11, borderRadius: 6, background: '#F3F4F7' }} />
       </div>
-      {/* 히어로 이미지 블록 */}
-      <div style={{ height: 34, borderRadius: 7, background: `linear-gradient(135deg, ${accent}28, ${accent}10)`, border: `1px solid ${accent}24` }} />
+      {/* 히어로 이미지(중앙 마크) */}
+      <div style={{
+        height: 50, borderRadius: 10, background: `linear-gradient(140deg, ${accent}22, ${accent}0C)`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ width: 22, height: 22, borderRadius: 8, background: `${accent}38` }} />
+      </div>
       {/* 텍스트 라인 */}
-      <div style={{ height: 5, borderRadius: 3, background: '#E7E9EF', width: '90%' }} />
-      <div style={{ height: 5, borderRadius: 3, background: '#E7E9EF', width: '64%' }} />
-      {/* CTA 버튼 */}
-      <div style={{ marginTop: 'auto', height: 13, borderRadius: 6, background: accent, width: '58%' }} />
+      <div style={{ height: 6, borderRadius: 3, background: '#EEEFF3', width: '88%' }} />
+      <div style={{ height: 6, borderRadius: 3, background: '#EEEFF3', width: '58%' }} />
+      {/* 썸네일 2장 */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
+        <div style={{ flex: 1, height: 26, borderRadius: 8, background: `${accent}1A` }} />
+        <div style={{ flex: 1, height: 26, borderRadius: 8, background: '#F3F4F7' }} />
+      </div>
     </div>
   );
 }
@@ -251,14 +261,15 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
         transition: 'all 140ms ease', userSelect: 'none',
       }}
     >
-      {/* 추천 배지 — 우상단 (스마트스토어만). 카드 높이 영향 없게 absolute */}
+      {/* 추천 배지 — 우상단 (스마트스토어만). 시안대로 퍼플 + 반짝이. 카드 높이 영향 없게 absolute */}
       {c.badge && (
         <span style={{
-          position: 'absolute', top: 14, right: 14,
-          display: 'inline-flex', alignItems: 'center', gap: 3,
-          fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '100px',
-          background: a, color: '#fff', whiteSpace: 'nowrap', boxShadow: `0 2px 8px ${a}40`,
-        }}>★ {c.badge}</span>
+          position: 'absolute', top: 16, right: 16,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          fontSize: '11px', fontWeight: 700, padding: '4px 11px', borderRadius: '100px',
+          background: 'linear-gradient(135deg, #7C5CFF, #6D4CFF)', color: '#fff', whiteSpace: 'nowrap',
+          boxShadow: '0 3px 10px rgba(109,76,255,0.35)',
+        }}><Sparkles size={11} /> {c.badge}</span>
       )}
 
       {/* 좌측 콘텐츠 + 우측 미니 목업 */}
