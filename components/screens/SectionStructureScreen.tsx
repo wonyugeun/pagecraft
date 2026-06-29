@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
 import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { useInitialSections } from '@/hooks/useInitialSections';
 
 export const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
   화장품: {
@@ -74,63 +75,12 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, productName, productExtra, go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, sectionStructure } = useApp();
+  const { go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
-  // 우선순위 1~3 (저장된 거 / 레퍼런스 / 캡처). 통과 시 [] 반환 → useEffect에서 AI 추천 호출.
-  const getInitial = (): string[] => {
-    if (sectionStructure.length) return [...sectionStructure];
-    if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
-    if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
-    return [];
-  };
-
-  const [secs, setSecs] = useState<string[]>(getInitial);
+  // ★데스크탑/모바일 공용 훅 사용(우선순위 + AI 추천 + 폴백 + 로딩 + 원본 보관).
+  const { secs, setSecs, recommendLoading, original } = useInitialSections();
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
-  const [recommendLoading, setRecommendLoading] = useState(false);
-  const recommendCalledRef = useRef(false);
-
-  // 4순위 진입: AI 추천 호출. 1~3순위 통과 시 secs가 이미 채워져 있어 skip.
-  useEffect(() => {
-    if (recommendCalledRef.current) return;
-    recommendCalledRef.current = true;
-    if (secs.length > 0) return; // 1~3순위 이미 적용된 상태
-    // 레퍼런스가 있으면 절대 호출하지 않음 (우선순위 유지)
-    if (referenceAnalysis?.sections?.length || captureAnalysis?.섹션목록?.length) return;
-
-    const depth: '간결' | '풍부' =
-      (type === '풍부' || type === '프리미엄형') ? '풍부' : '간결';
-    const fallback = (): string[] =>
-      CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
-      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
-
-    setRecommendLoading(true);
-    fetch('/api/recommend-sections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cat: cat ?? '기타',
-        ch: ch ?? '스마트스토어',
-        productName: productName ?? '',
-        depth,
-        productExtra: productExtra ?? undefined,
-      }),
-      signal: AbortSignal.timeout(60_000),
-    })
-      .then(async r => {
-        const data = await r.json();
-        if (!r.ok || !Array.isArray(data?.sections) || data.sections.length === 0) {
-          throw new Error(data?.error ?? '추천 실패');
-        }
-        setSecs(data.sections as string[]);
-      })
-      .catch(err => {
-        console.error('[recommend-sections]', err);
-        setSecs(fallback());
-      })
-      .finally(() => setRecommendLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   if (isMobile) return <SectionStructureMobile />;
 
@@ -156,6 +106,16 @@ export default function SectionStructureScreen() {
     setSectionStructure(secs);
     setSecCnt(secs.length);
     go('s6');
+  };
+
+  // ★AI 추천 구조로 되돌리기 — 보관된 원본 값으로 즉시 복원(AI 재호출 X = 무료·즉시).
+  const canReset = original.length > 0;
+  const resetToOriginal = () => {
+    if (!canReset) return;
+    if (typeof window !== 'undefined' &&
+      !window.confirm('현재 수정한 구조가 사라지고 AI 추천 구조로 돌아갑니다. 계속할까요?')) return;
+    setSecs([...original]);
+    setShowAdd(false);
   };
 
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
@@ -245,18 +205,32 @@ export default function SectionStructureScreen() {
         ))}
       </div>
 
-      {/* 섹션 추가 버튼 */}
-      <button
-        onClick={() => setShowAdd(p => !p)}
-        style={{
-          width: '100%', padding: '10px 0', border: '1.5px dashed var(--bd)',
-          borderRadius: 8, background: 'transparent', cursor: 'pointer',
-          fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)',
-          fontWeight: 600, marginBottom: showAdd ? 10 : 16,
-        }}
-      >
-        {showAdd ? '✕ 닫기' : '+ 섹션 추가'}
-      </button>
+      {/* 섹션 추가 + AI 추천 구조로 되돌리기 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: showAdd ? 10 : 16 }}>
+        <button
+          onClick={() => setShowAdd(p => !p)}
+          style={{
+            flex: 1, padding: '10px 0', border: '1.5px dashed var(--bd)',
+            borderRadius: 8, background: 'transparent', cursor: 'pointer',
+            fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)', fontWeight: 600,
+          }}
+        >
+          {showAdd ? '✕ 닫기' : '+ 섹션 추가'}
+        </button>
+        {canReset && (
+          <button
+            onClick={resetToOriginal}
+            title="처음 추천받은 구조로 되돌려요 (무료·즉시)"
+            style={{
+              flexShrink: 0, padding: '10px 14px', border: '1.5px solid var(--pl)',
+              borderRadius: 8, background: 'var(--pl)', cursor: 'pointer',
+              fontSize: 13, color: 'var(--pu)', fontFamily: 'var(--f)', fontWeight: 700,
+            }}
+          >
+            ↺ AI 추천 구조로 되돌리기
+          </button>
+        )}
+      </div>
 
       {/* 추가 패널 */}
       {showAdd && (

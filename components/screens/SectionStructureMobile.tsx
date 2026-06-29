@@ -30,8 +30,8 @@ export default function SectionStructureMobile() {
     toggleChat, credits,
   } = useApp();
 
-  // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI). 데·모 섹션 일치.
-  const { secs, setSecs, recommendLoading } = useInitialSections();
+  // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI + 원본 보관). 데·모 섹션 일치.
+  const { secs, setSecs, recommendLoading, original } = useInitialSections();
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [showTip, setShowTip] = useState(true);
@@ -59,6 +59,16 @@ export default function SectionStructureMobile() {
     setSectionStructure(secs);
     setSecCnt(secs.length);
     go('s6');
+  };
+
+  // ★AI 추천 구조로 되돌리기 — 보관된 원본 복원(AI 재호출 X = 무료·즉시). 데스크탑과 동일.
+  const canReset = original.length > 0;
+  const resetToOriginal = () => {
+    if (!canReset) return;
+    if (typeof window !== 'undefined' &&
+      !window.confirm('현재 수정한 구조가 사라지고 AI 추천 구조로 돌아갑니다. 계속할까요?')) return;
+    setSecs([...original]);
+    setShowAdd(false);
   };
 
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
@@ -295,7 +305,7 @@ export default function SectionStructureMobile() {
         </div>
       </section>
 
-      {/* 6) + 섹션 추가 */}
+      {/* 6) + 섹션 추가 + AI 추천 구조로 되돌리기 */}
       <section style={{ padding: '12px 20px 0' }}>
         <button
           onClick={() => setShowAdd(p => !p)}
@@ -312,6 +322,21 @@ export default function SectionStructureMobile() {
         >
           {showAdd ? <><X size={14} /> 닫기</> : <><Plus size={14} /> 섹션 추가</>}
         </button>
+        {canReset && (
+          <button
+            onClick={resetToOriginal}
+            style={{
+              width: '100%', marginTop: 8,
+              background: '#F4F0FF', border: '1.5px solid #DDD6FE',
+              borderRadius: 14, padding: '13px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              cursor: 'pointer', fontFamily: 'inherit',
+              color: '#6D4CFF', fontSize: 13, fontWeight: 700,
+            }}
+          >
+            ↺ AI 추천 구조로 되돌리기
+          </button>
+        )}
       </section>
 
       {/* 7) 섹션 추가 패널 — 데스크탑과 동일 데이터 ALL_SECTIONS */}

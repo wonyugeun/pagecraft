@@ -24,6 +24,8 @@ export function useInitialSections() {
   };
 
   const [secs, setSecs] = useState<string[]>(getInitial);
+  // ★원본 추천 구조 보관 — 셀러가 수정해도 처음 받은 구조를 기억. '되돌리기'에서 AI 재호출 없이 이 값으로 즉시 복원(무료).
+  const [original, setOriginal] = useState<string[]>(getInitial);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const recommendCalledRef = useRef(false);
 
@@ -60,14 +62,17 @@ export function useInitialSections() {
           throw new Error(data?.error ?? '추천 실패');
         }
         setSecs(data.sections as string[]);
+        setOriginal(data.sections as string[]);   // 원본 추천 보관
       })
       .catch(err => {
         console.error('[recommend-sections]', err);
-        setSecs(fallback());
+        const fb = fallback();
+        setSecs(fb);
+        setOriginal(fb);   // 폴백도 원본으로 보관
       })
       .finally(() => setRecommendLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { secs, setSecs, recommendLoading };
+  return { secs, setSecs, recommendLoading, original };
 }
