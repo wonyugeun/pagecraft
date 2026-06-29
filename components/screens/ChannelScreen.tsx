@@ -1,39 +1,60 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronRight, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronRight, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import ChannelMobile from './ChannelMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-// 4개 채널 — 시안(channel-design.png) 디자인. 채널별 accent 색·영문명 추가, 기존 데이터(이름·설명·칩) 유지.
-type ChannelDef = { key: string; iconKey: 'naver' | 'coupang' | 'store' | 'wadiz'; en: string; accent: string; badge?: string | null; sub: string; desc: string; tags: string[] };
-const ALL_CHANNELS: ChannelDef[] = [
+const TOP_CHANNELS = [
   {
-    key: '스마트스토어', iconKey: 'naver', en: 'Naver Shopping', accent: '#03C75A', badge: '추천 채널',
+    key: '스마트스토어',
+    emoji: '🛒',
+    iconBg: 'linear-gradient(135deg, #EDE8FF 0%, #D8CFFF 100%)',
+    badge: '추천 채널',
     sub: '네이버 쇼핑 기반',
     desc: '검색 유입을 기반으로 한 고객에게 신뢰도 높은 상세페이지를 제작합니다.',
     tags: ['블로그형 글+그림', '이미지 슬라이드', '썸네일 3종'],
   },
   {
-    key: '쿠팡', iconKey: 'coupang', en: 'Coupang', accent: '#FF6A2B',
+    key: '쿠팡',
+    emoji: '🚀',
+    iconBg: 'linear-gradient(135deg, #FFECF4 0%, #FFD6E9 100%)',
+    badge: null,
     sub: '로켓배송 경쟁 환경',
     desc: '빠른 스크롤과 구매 전환을 고려한 시각적 임팩트 중심으로 제작합니다.',
     tags: ['이미지 슬라이드', '흰 배경 누끼컷', '썸네일 2종'],
   },
+];
+
+const BOTTOM_CHANNELS = [
   {
-    key: '자사몰', iconKey: 'store', en: 'Own Mall', accent: '#8B5CF6',
+    key: '자사몰',
+    emoji: '🏪',
+    iconBg: 'linear-gradient(135deg, #FFEEE8 0%, #FFD9CC 100%)',
     sub: '브랜드 직접 운영',
     desc: '브랜드의 스토리와 고객 경험을 강화하는 프리미엄 상세페이지 제작',
     tags: ['HTML 섹션형', '감성 카피', '전셀 맞춤'],
   },
   {
-    key: '와디즈', iconKey: 'wadiz', en: 'Wadiz', accent: '#14B8A6',
+    key: '와디즈',
+    emoji: '💡',
+    iconBg: 'linear-gradient(135deg, #FFFBEA 0%, #FFF3B8 100%)',
     sub: '펀딩·예약판매',
     desc: '창의적인 스토리텔링으로 후원자의 공감을 이끌어내는 페이지 제작',
     tags: ['긴 스크롤 HTML', '50장+ 이미지', 'GIF 포함'],
   },
 ];
+
+const TAG_STYLE = {
+  fontSize: '11.5px', fontWeight: 500,
+  padding: '4px 10px', borderRadius: '6px',
+  background: '#F2F4F6', color: '#4E5968',
+} as const;
+
+// 4개 채널을 동일 카드(2×2 균등 그리드)로 통일. 데이터·디자인은 그대로, badge만 선택 필드로 통합.
+type ChannelDef = { key: string; emoji: string; iconBg: string; badge?: string | null; sub: string; desc: string; tags: string[] };
+const ALL_CHANNELS: ChannelDef[] = [...TOP_CHANNELS, ...BOTTOM_CHANNELS];
 
 export default function ChannelScreen() {
   const isMobile = useIsMobile();
@@ -42,7 +63,7 @@ export default function ChannelScreen() {
   if (isMobile) return <ChannelMobile />;
 
   return (
-    <div style={{ maxWidth: '1060px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: '820px', margin: '0 auto', padding: '44px 24px 100px', fontFamily: 'var(--f)' }}>
 
       {/* STEP pill */}
       <div style={{ textAlign: 'center', marginBottom: '18px' }}>
@@ -189,62 +210,9 @@ export default function ChannelScreen() {
   );
 }
 
-/* ─── 채널 아이콘 (소프트 틴트 스퀘어클 + 컬러풀 이모지 / 네이버는 초록 N) ─── */
-const ICON_EMOJI: Record<ChannelDef['iconKey'], string | null> = { naver: null, coupang: '🚀', store: '🏪', wadiz: '💡' };
-function ChannelIcon({ iconKey, accent, size = 54 }: { iconKey: ChannelDef['iconKey']; accent: string; size?: number }) {
-  const emoji = ICON_EMOJI[iconKey];
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 16, flexShrink: 0,
-      background: `linear-gradient(140deg, ${accent}24, ${accent}0D)`,
-      border: `1px solid ${accent}2B`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: Math.round(size * 0.46), lineHeight: 1,
-    }}>
-      {emoji ?? (
-        <span style={{ color: accent, fontWeight: 900, fontSize: Math.round(size * 0.5), fontFamily: 'Arial, Helvetica, sans-serif', letterSpacing: '-0.02em', lineHeight: 1 }}>N</span>
-      )}
-    </div>
-  );
-}
-
-/* ─── 채널별 미니 목업 (미니 상세페이지: 헤더 검색바 + 히어로 + 텍스트 + 썸네일 2장) ─── */
-function MiniMockup({ accent }: { accent: string }) {
-  return (
-    <div style={{
-      width: 122, flexShrink: 0, alignSelf: 'stretch', minHeight: 176,
-      borderRadius: 14, border: '1px solid #EFEFF3', background: '#fff',
-      padding: 11, display: 'flex', flexDirection: 'column', gap: 9, overflow: 'hidden',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
-    }}>
-      {/* 헤더: 브랜드 닷 + 검색바 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 14, height: 14, borderRadius: 5, background: accent, flexShrink: 0 }} />
-        <div style={{ flex: 1, height: 11, borderRadius: 6, background: '#F3F4F7' }} />
-      </div>
-      {/* 히어로 이미지(중앙 마크) */}
-      <div style={{
-        height: 50, borderRadius: 10, background: `linear-gradient(140deg, ${accent}22, ${accent}0C)`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{ width: 22, height: 22, borderRadius: 8, background: `${accent}38` }} />
-      </div>
-      {/* 텍스트 라인 */}
-      <div style={{ height: 6, borderRadius: 3, background: '#EEEFF3', width: '88%' }} />
-      <div style={{ height: 6, borderRadius: 3, background: '#EEEFF3', width: '58%' }} />
-      {/* 썸네일 2장 */}
-      <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
-        <div style={{ flex: 1, height: 26, borderRadius: 8, background: `${accent}1A` }} />
-        <div style={{ flex: 1, height: 26, borderRadius: 8, background: '#F3F4F7' }} />
-      </div>
-    </div>
-  );
-}
-
-/* ─── 채널 카드 (2×2 그리드 공통, 시안 디자인) ─── */
+/* ─── 채널 카드 (2×2 그리드 공통) ─── */
 function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean; onClick: () => void }) {
   const [hov, setHov] = useState(false);
-  const a = c.accent;
 
   return (
     <div
@@ -252,69 +220,58 @@ function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        position: 'relative',
-        padding: '34px 26px 32px',
-        background: '#fff',
-        border: `${selected ? 2 : 1.5}px solid ${selected ? a : hov ? `${a}66` : '#ECECF2'}`,
-        borderRadius: '18px', cursor: 'pointer',
-        boxShadow: selected ? `0 0 0 3px ${a}1F` : hov ? '0 6px 18px rgba(0,0,0,0.07)' : '0 1px 3px rgba(0,0,0,0.04)',
+        padding: '20px 20px 18px',
+        background: selected ? '#F7F5FF' : '#fff',
+        border: `${selected ? 2 : 1.5}px solid ${selected ? '#6D4CFF' : hov ? '#C4B5FD' : '#E5E7EB'}`,
+        borderRadius: '14px', cursor: 'pointer',
+        boxShadow: selected ? '0 0 0 3px rgba(109,76,255,0.08)' : hov ? '0 4px 16px rgba(0,0,0,0.06)' : 'none',
         transition: 'all 140ms ease', userSelect: 'none',
       }}
     >
-      {/* 추천 배지 — 우상단 (스마트스토어만). 시안대로 퍼플 + 반짝이. 카드 높이 영향 없게 absolute */}
-      {c.badge && (
-        <span style={{
-          position: 'absolute', top: 16, right: 16,
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          fontSize: '11px', fontWeight: 700, padding: '4px 11px', borderRadius: '100px',
-          background: 'linear-gradient(135deg, #7C5CFF, #6D4CFF)', color: '#fff', whiteSpace: 'nowrap',
-          boxShadow: '0 3px 10px rgba(109,76,255,0.35)',
-        }}><Sparkles size={11} /> {c.badge}</span>
-      )}
-
-      {/* 좌측 콘텐츠 + 우측 미니 목업 */}
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* 아이콘(브랜드 마크) + 채널명/영문 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-            <ChannelIcon iconKey={c.iconKey} accent={a} size={54} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.2 }}>{c.key}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#B0B8C1', letterSpacing: '0.02em', marginTop: 2 }}>{c.en}</div>
-            </div>
-          </div>
-
-          {/* 태그라인(채널 색) */}
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: a, marginBottom: 9 }}>{c.sub}</div>
-          {/* 설명 */}
-          <p style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.75, margin: '0 0 18px', letterSpacing: '-0.01em' }}>{c.desc}</p>
-
-          {/* 칩 (아이콘 + 텍스트, 채널 색 톤) */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 'auto' }}>
-            {c.tags.map(t => (
-              <span key={t} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: '10.5px', fontWeight: 600, padding: '3px 9px', borderRadius: '7px',
-                background: `${a}12`, color: a,
-              }}>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: a, flexShrink: 0 }} />
-                {t}
-              </span>
-            ))}
-          </div>
+      {/* 아이콘 + 화살표 */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{
+          width: '54px', height: '54px', borderRadius: '50%',
+          background: c.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '26px', lineHeight: 1,
+        }}>
+          {c.emoji}
         </div>
-
-        {/* 우측: 미니 목업 + 화살표(채널 색) */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-          <MiniMockup accent={a} />
+        {/* 우측: 추천 배지(있을 때만) + 화살표. 같은 행이라 카드 높이 안 늘어남(4개 동일 크기). */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {c.badge && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', fontSize: '11px', fontWeight: 700,
+              padding: '3px 9px', borderRadius: '100px', background: '#6D4CFF', color: '#fff', whiteSpace: 'nowrap',
+            }}>
+              {c.badge}
+            </span>
+          )}
           <div style={{
-            width: 28, height: 28, borderRadius: '50%',
-            background: selected ? a : `${a}14`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 140ms ease',
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: selected ? '#6D4CFF' : '#F0ECFF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 140ms ease', flexShrink: 0,
           }}>
-            <ChevronRight size={15} color={selected ? '#fff' : a} />
+            <ChevronRight size={14} color={selected ? '#fff' : '#6D4CFF'} />
           </div>
         </div>
+      </div>
+
+      {/* 채널명 */}
+      <div style={{ fontSize: '16px', fontWeight: 800, color: selected ? '#6D4CFF' : '#111', letterSpacing: '-0.03em', marginBottom: '3px' }}>
+        {c.key}
+      </div>
+      <div style={{ fontSize: '12px', color: '#B0B8C1', marginBottom: '12px' }}>{c.sub}</div>
+
+      {/* 설명 */}
+      <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.65, marginBottom: '14px', letterSpacing: '-0.01em' }}>
+        {c.desc}
+      </p>
+
+      {/* 태그 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+        {c.tags.map(t => <span key={t} style={{ ...TAG_STYLE, fontSize: '11px', padding: '3px 9px' }}>{t}</span>)}
       </div>
     </div>
   );
