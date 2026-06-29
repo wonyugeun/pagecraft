@@ -5,43 +5,39 @@ import { useApp } from '@/store/AppContext';
 import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
 
 /**
- * 섹션구조 초기화 — 데스크탑/모바일 공용 훅(중복 구현 방지).
- * 우선순위: 저장값(sectionStructure) > 레퍼런스 > 캡처 > AI(recommend-sections, 카테고리×타입×채널 동적).
- * - 레퍼런스/캡처 있으면 AI 호출 안 함(우선순위 유지).
- * - AI 실패/타임아웃 시 CAT_DEFAULTS[cat][type] 폴백(없으면 기본 8섹션).
- * - recommend-sections는 크레딧 미차감(과금 없음) — 추천만.
- * @returns { secs, setSecs, recommendLoading }
+ * 섹션구조 초기화/상태 — 데스크탑/모바일 공용 훅(중복 구현 방지).
+ *
+ * ★상태 3개 구분:
+ *   - secs            = 현재 작업값. ★store(sectionStructure) 단일 소스 — 삭제·추가·순서·되돌리기가 즉시 store에 반영 → 화면 이동에 유지.
+ *   - originalSections = 처음 받은 AI/레퍼런스 추천 원본(되돌리기용, 1회 보관·불변).
+ *   - setSecs         = store(sectionStructure)에 반영하는 setter.
+ *
+ * 초기 채움 우선순위: 저장값(sectionStructure) > 레퍼런스 > 캡처 > AI(recommend-sections, 동적). AI 실패 시 CAT_DEFAULTS 폴백.
+ * recommend-sections는 크레딧 미차감(과금 없음).
+ *
+ * @param enabled  false면 부수효과(AI 호출·원본 보관) 비활성 — 모바일에서 데스크탑 컴포넌트가 동시 마운트되며
+ *                 생기는 '이중 인스턴스'가 store를 덮어쓰지 않게(데스크탑 인스턴스 enabled=!isMobile).
  */
-export function useInitialSections() {
-  const { cat, ch, type, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, setOriginalSections } = useApp();
+export function useInitialSections(enabled: boolean = true) {
+  const { cat, ch, type, productName, productExtra, referenceAnalysis, captureAnalysis,
+    sectionStructure, setSectionStructure, originalSections, setOriginalSections } = useApp();
 
-  // 우선순위 1~3 (저장된 거 / 레퍼런스 / 캡처). 통과 시 [] 반환 → useEffect에서 AI 추천 호출.
-  const getInitial = (): string[] => {
-    if (sectionStructure.length) return [...sectionStructure];
-    if (referenceAnalysis?.sections?.length) return [...referenceAnalysis.sections];
-    if (captureAnalysis?.섹션목록?.length) return captureAnalysis.섹션목록.map(s => s.타입);
-    return [];
-  };
-
-  const [secs, setSecs] = useState<string[]>(getInitial);
   const [recommendLoading, setRecommendLoading] = useState(false);
-  const recommendCalledRef = useRef(false);
+  const initCalledRef = useRef(false);
 
-  // ★원본 추천 구조를 store(originalSections)에 처음 1회만 보관 — 화면 이동(unmount→remount)에도 보존.
-  //   secs가 처음 채워질 때 store가 비어있으면 저장(이미 있으면 덮어쓰지 않음 = 셀러 수정/탭이동에 안 사라짐).
-  useEffect(() => {
-    if (originalSections.length === 0 && secs.length > 0) {
-      setOriginalSections([...secs]);
-    }
-  }, [secs, originalSections.length, setOriginalSections]);
+  // ★현재 작업값 = store(sectionStructure) 단일 소스. setSecs는 store에 직접 반영 → 화면 떠났다 와도 마지막 값 유지.
+  const secs = sectionStructure;
+  const setSecs = (u: string[] | ((prev: string[]) => string[])) =>
+    setSectionStructure(typeof u === 'function' ? (u as (p: string[]) => string[])(sectionStructure) : u);
 
-  // 4순위 진입: AI 추천 호출. 1~3순위 통과 시 secs가 이미 채워져 있어 skip.
+  // 초기 채움(store가 비었을 때만) + AI 추천. enabled=false(비활성 인스턴스)면 아무것도 안 함.
   useEffect(() => {
-    if (recommendCalledRef.current) return;
-    recommendCalledRef.current = true;
-    if (secs.length > 0) return; // 1~3순위 이미 적용된 상태
-    // 레퍼런스가 있으면 절대 호출하지 않음 (우선순위 유지)
-    if (referenceAnalysis?.sections?.length || captureAnalysis?.섹션목록?.length) return;
+    if (!enabled) return;
+    if (initCalledRef.current) return;
+    initCalledRef.current = true;
+    if (sectionStructure.length > 0) return;              // 재진입/저장값 있으면 유지
+    if (referenceAnalysis?.sections?.length) { setSectionStructure([...referenceAnalysis.sections]); return; }
+    if (captureAnalysis?.섹션목록?.length) { setSectionStructure(captureAnalysis.섹션목록.map(s => s.타입)); return; }
 
     const depth: '간결' | '풍부' =
       (type === '풍부' || type === '프리미엄형') ? '풍부' : '간결';
@@ -67,16 +63,23 @@ export function useInitialSections() {
         if (!r.ok || !Array.isArray(data?.sections) || data.sections.length === 0) {
           throw new Error(data?.error ?? '추천 실패');
         }
-        setSecs(data.sections as string[]);
-        // 원본 보관은 위 useEffect가 secs 변화를 보고 store에 1회 저장.
+        setSectionStructure(data.sections as string[]);
       })
       .catch(err => {
         console.error('[recommend-sections]', err);
-        setSecs(fallback());
+        setSectionStructure(fallback());
       })
       .finally(() => setRecommendLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
+
+  // ★원본 추천을 store(originalSections)에 처음 1회만 보관(비었을 때만) — 이후 수정·탭이동에도 불변.
+  useEffect(() => {
+    if (!enabled) return;
+    if (originalSections.length === 0 && sectionStructure.length > 0) {
+      setOriginalSections([...sectionStructure]);
+    }
+  }, [enabled, sectionStructure, originalSections.length, setOriginalSections]);
 
   return { secs, setSecs, recommendLoading, original: originalSections };
 }

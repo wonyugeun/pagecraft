@@ -77,8 +77,10 @@ export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
   const { go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
-  // ★데스크탑/모바일 공용 훅 사용(우선순위 + AI 추천 + 폴백 + 로딩 + 원본 보관).
-  const { secs, setSecs, recommendLoading, original } = useInitialSections();
+  // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
+  //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
+  const active = typeof window === 'undefined' || window.innerWidth >= 768;
+  const { secs, setSecs, recommendLoading, original } = useInitialSections(active);
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
 
