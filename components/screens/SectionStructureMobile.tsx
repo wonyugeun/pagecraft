@@ -6,7 +6,7 @@ import {
   Plus, ArrowLeft, ArrowRight, Trash2,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
-import { CAT_DEFAULTS, ALL_SECTIONS, isLegalSection, isCtaSection } from './SectionStructureScreen';
+import { CAT_DEFAULTS, ALL_SECTIONS } from './SectionStructureScreen';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -56,13 +56,6 @@ export default function SectionStructureMobile() {
     const n = [...s]; [n[i], n[i + 1]] = [n[i + 1], n[i]]; return n;
   });
   const remove = (i: number) => setSecs(s => s.filter((_, idx) => idx !== i));
-  // 데스크탑과 동일: 법적 고지=삭제 차단, CTA=삭제 전 경고.
-  const handleRemove = (i: number, sec: string) => {
-    if (isLegalSection(sec)) return;
-    if (isCtaSection(sec) && typeof window !== 'undefined' &&
-      !window.confirm('CTA(구매 유도) 섹션을 삭제하면 구매 전환이 약해질 수 있어요. 그래도 삭제할까요?')) return;
-    remove(i);
-  };
   const addSection = (label: string) => {
     if (label && !secs.includes(label)) setSecs(s => [...s, label]);
     setShowAdd(false);
@@ -224,9 +217,6 @@ export default function SectionStructureMobile() {
                 }}>{i + 1}</div>
                 <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#111' }}>
                   {sec}
-                  {isLegalSection(sec) && (
-                    <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#B45309', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 5, padding: '1px 6px', verticalAlign: 'middle' }}>필수</span>
-                  )}
                 </span>
                 {isActive ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -256,29 +246,17 @@ export default function SectionStructureMobile() {
                     >
                       <ChevronDown size={14} color="#6D4CFF" />
                     </button>
-                    {isLegalSection(sec) ? (
-                      <span
-                        title="법적 필수 섹션 — 삭제할 수 없어요"
-                        style={{
-                          height: 26, borderRadius: 6, padding: '0 8px',
-                          background: '#FEF3C7', border: '1px solid #FDE68A',
-                          fontSize: 10.5, fontWeight: 700, color: '#B45309',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >필수</span>
-                    ) : (
-                      <button
-                        onClick={() => { handleRemove(i, sec); setActiveIdx(null); }}
-                        style={{
-                          width: 26, height: 26, borderRadius: 6,
-                          background: '#FEE2E2', border: 'none',
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        <Trash2 size={13} color="#EF4444" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => { remove(i); setActiveIdx(null); }}
+                      style={{
+                        width: 26, height: 26, borderRadius: 6,
+                        background: '#FEE2E2', border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <Trash2 size={13} color="#EF4444" />
+                    </button>
                     <button
                       onClick={() => setActiveIdx(null)}
                       style={{
