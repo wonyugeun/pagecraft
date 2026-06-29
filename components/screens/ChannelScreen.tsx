@@ -52,6 +52,10 @@ const TAG_STYLE = {
   background: '#F2F4F6', color: '#4E5968',
 } as const;
 
+// 4개 채널을 동일 카드(2×2 균등 그리드)로 통일. 데이터·디자인은 그대로, badge만 선택 필드로 통합.
+type ChannelDef = { key: string; emoji: string; iconBg: string; badge?: string | null; sub: string; desc: string; tags: string[] };
+const ALL_CHANNELS: ChannelDef[] = [...TOP_CHANNELS, ...BOTTOM_CHANNELS];
+
 export default function ChannelScreen() {
   const isMobile = useIsMobile();
   const { ch, setCh, go } = useApp();
@@ -156,16 +160,9 @@ export default function ChannelScreen() {
         </div>
       </div>
 
-      {/* 상단 2채널 - 풀 와이드 가로 카드 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
-        {TOP_CHANNELS.map(c => (
-          <TopCard key={c.key} c={c} selected={ch === c.key} onClick={() => setCh(c.key)} />
-        ))}
-      </div>
-
-      {/* 하단 2채널 - 2열 카드 (모바일 1열) */}
+      {/* 채널 4개 - 2×2 균등 그리드 (모바일 1열). 위계 통일, 추천은 배지로만 강조. */}
       <div className="cards-2col" style={{ marginBottom: '24px' }}>
-        {BOTTOM_CHANNELS.map(c => (
+        {ALL_CHANNELS.map(c => (
           <BottomCard key={c.key} c={c} selected={ch === c.key} onClick={() => setCh(c.key)} />
         ))}
       </div>
@@ -213,83 +210,8 @@ export default function ChannelScreen() {
   );
 }
 
-/* ─── 상단 풀-와이드 가로 카드 ─── */
-type TopCh = typeof TOP_CHANNELS[number];
-
-function TopCard({ c, selected, onClick }: { c: TopCh; selected: boolean; onClick: () => void }) {
-  const [hov, setHov] = useState(false);
-
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '20px',
-        padding: '22px 24px',
-        background: selected ? '#F7F5FF' : '#fff',
-        border: `${selected ? 2 : 1.5}px solid ${selected ? '#6D4CFF' : hov ? '#C4B5FD' : '#E5E7EB'}`,
-        borderRadius: '14px', cursor: 'pointer',
-        boxShadow: selected ? '0 0 0 3px rgba(109,76,255,0.08)' : hov ? '0 4px 16px rgba(0,0,0,0.06)' : 'none',
-        transition: 'all 140ms ease', userSelect: 'none',
-      }}
-    >
-      {/* 이모지 아이콘 */}
-      <div style={{
-        width: '68px', height: '68px', borderRadius: '50%', flexShrink: 0,
-        background: c.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '30px', lineHeight: 1,
-      }}>
-        {c.emoji}
-      </div>
-
-      {/* 채널명 + 배지 */}
-      <div style={{ flexShrink: 0, width: '130px' }}>
-        {c.badge && (
-          <span style={{
-            display: 'inline-block', fontSize: '11px', fontWeight: 700,
-            padding: '3px 9px', borderRadius: '100px', marginBottom: '6px',
-            background: '#6D4CFF', color: '#fff',
-          }}>
-            {c.badge}
-          </span>
-        )}
-        <div style={{
-          fontSize: '17px', fontWeight: 800, letterSpacing: '-0.03em',
-          color: selected ? '#6D4CFF' : '#111', marginBottom: '4px',
-        }}>
-          {c.key}
-        </div>
-        <div style={{ fontSize: '12px', color: '#B0B8C1' }}>{c.sub}</div>
-      </div>
-
-      {/* 설명 + 태그 */}
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: '13.5px', color: '#555', lineHeight: 1.65, marginBottom: '11px', letterSpacing: '-0.01em' }}>
-          {c.desc}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {c.tags.map(t => <span key={t} style={TAG_STYLE}>{t}</span>)}
-        </div>
-      </div>
-
-      {/* 화살표 */}
-      <div style={{
-        width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-        background: selected ? '#6D4CFF' : '#F0ECFF',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 140ms ease',
-      }}>
-        <ChevronRight size={16} color={selected ? '#fff' : '#6D4CFF'} />
-      </div>
-    </div>
-  );
-}
-
-/* ─── 하단 2열 소형 카드 ─── */
-type BotCh = typeof BOTTOM_CHANNELS[number];
-
-function BottomCard({ c, selected, onClick }: { c: BotCh; selected: boolean; onClick: () => void }) {
+/* ─── 채널 카드 (2×2 그리드 공통) ─── */
+function BottomCard({ c, selected, onClick }: { c: ChannelDef; selected: boolean; onClick: () => void }) {
   const [hov, setHov] = useState(false);
 
   return (
@@ -315,13 +237,24 @@ function BottomCard({ c, selected, onClick }: { c: BotCh; selected: boolean; onC
         }}>
           {c.emoji}
         </div>
-        <div style={{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: selected ? '#6D4CFF' : '#F0ECFF',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 140ms ease',
-        }}>
-          <ChevronRight size={14} color={selected ? '#fff' : '#6D4CFF'} />
+        {/* 우측: 추천 배지(있을 때만) + 화살표. 같은 행이라 카드 높이 안 늘어남(4개 동일 크기). */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {c.badge && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', fontSize: '11px', fontWeight: 700,
+              padding: '3px 9px', borderRadius: '100px', background: '#6D4CFF', color: '#fff', whiteSpace: 'nowrap',
+            }}>
+              {c.badge}
+            </span>
+          )}
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: selected ? '#6D4CFF' : '#F0ECFF',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 140ms ease', flexShrink: 0,
+          }}>
+            <ChevronRight size={14} color={selected ? '#fff' : '#6D4CFF'} />
+          </div>
         </div>
       </div>
 
