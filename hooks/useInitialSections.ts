@@ -13,7 +13,7 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
  * @returns { secs, setSecs, recommendLoading }
  */
 export function useInitialSections() {
-  const { cat, ch, type, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure } = useApp();
+  const { cat, ch, type, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, setOriginalSections } = useApp();
 
   // 우선순위 1~3 (저장된 거 / 레퍼런스 / 캡처). 통과 시 [] 반환 → useEffect에서 AI 추천 호출.
   const getInitial = (): string[] => {
@@ -24,10 +24,16 @@ export function useInitialSections() {
   };
 
   const [secs, setSecs] = useState<string[]>(getInitial);
-  // ★원본 추천 구조 보관 — 셀러가 수정해도 처음 받은 구조를 기억. '되돌리기'에서 AI 재호출 없이 이 값으로 즉시 복원(무료).
-  const [original, setOriginal] = useState<string[]>(getInitial);
   const [recommendLoading, setRecommendLoading] = useState(false);
   const recommendCalledRef = useRef(false);
+
+  // ★원본 추천 구조를 store(originalSections)에 처음 1회만 보관 — 화면 이동(unmount→remount)에도 보존.
+  //   secs가 처음 채워질 때 store가 비어있으면 저장(이미 있으면 덮어쓰지 않음 = 셀러 수정/탭이동에 안 사라짐).
+  useEffect(() => {
+    if (originalSections.length === 0 && secs.length > 0) {
+      setOriginalSections([...secs]);
+    }
+  }, [secs, originalSections.length, setOriginalSections]);
 
   // 4순위 진입: AI 추천 호출. 1~3순위 통과 시 secs가 이미 채워져 있어 skip.
   useEffect(() => {
@@ -62,17 +68,15 @@ export function useInitialSections() {
           throw new Error(data?.error ?? '추천 실패');
         }
         setSecs(data.sections as string[]);
-        setOriginal(data.sections as string[]);   // 원본 추천 보관
+        // 원본 보관은 위 useEffect가 secs 변화를 보고 store에 1회 저장.
       })
       .catch(err => {
         console.error('[recommend-sections]', err);
-        const fb = fallback();
-        setSecs(fb);
-        setOriginal(fb);   // 폴백도 원본으로 보관
+        setSecs(fallback());
       })
       .finally(() => setRecommendLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { secs, setSecs, recommendLoading, original };
+  return { secs, setSecs, recommendLoading, original: originalSections };
 }

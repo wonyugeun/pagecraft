@@ -102,6 +102,7 @@ interface AppState {
   referenceAnalysis: ReferenceAnalysis | null;
   captureAnalysis: CaptureAnalysis | null;
   sectionStructure: string[];
+  originalSections: string[];   // ★처음 받은 AI/레퍼런스 추천 원본(되돌리기용) — 화면 이동에도 보존
   credits: number;
   creditModalOpen: boolean;
   restoredImages: Record<string, string>;
@@ -139,6 +140,7 @@ interface AppContextType extends AppState {
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
   setCaptureAnalysis: (a: CaptureAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
+  setOriginalSections: (v: string[]) => void;
   setCredits: (balance: number) => void;
   setCreditModalOpen: (v: boolean) => void;
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
@@ -283,6 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
   const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
+  const [originalSections, setOriginalSectionsState] = useState<string[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [regularPrice, setRegularPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -390,6 +393,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
+    setOriginalSectionsState([]);
     setBrand('');
     setDiff('');
     setExtraNote('');
@@ -480,12 +484,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
         screen, cat, ch, type, out, imgMode, secCnt,
-        productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure,
+        productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
         brand, diff, extraNote, brandIntro, answers, aiSelections,
       }));
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, answers, aiSelections]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, answers, aiSelections]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -509,6 +513,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (p.referenceAnalysis) setReferenceAnalysisState(p.referenceAnalysis as ReferenceAnalysis);
     if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
     if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
+    if (Array.isArray(p.originalSections)) setOriginalSectionsState(p.originalSections as string[]);
     if (typeof p.regularPrice === 'string') setRegularPrice(p.regularPrice);
     if (typeof p.salePrice === 'string') setSalePrice(p.salePrice);
     if (typeof p.showPrice === 'boolean') setShowPrice(p.showPrice);
@@ -580,6 +585,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
+    setOriginalSectionsState([]);
     setSections([]);
     setRestoredImages({});
     setRestoredBlockImages({});
@@ -609,7 +615,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure,
+      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, answers, aiSelections,
       go,
@@ -630,6 +636,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setReferenceAnalysis: setReferenceAnalysisState,
       setCaptureAnalysis: setCaptureAnalysisState,
       setSectionStructure: setSectionStructureState,
+      setOriginalSections: setOriginalSectionsState,
       setCredits,
       setCreditModalOpen: setCreditModalOpenState,
       saveHistory,
