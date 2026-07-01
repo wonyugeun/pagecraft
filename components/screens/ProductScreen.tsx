@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { pickTestPreset } from '@/lib/testPresets';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, Star } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -1150,6 +1151,25 @@ export default function ProductScreen() {
   });
 
   // 다음 클릭 → 전체 입력값을 직렬화해 AppContext에 저장
+  // ── 개발용 테스트 데이터 채우기 (dev 전용 — 아래 버튼도 dev 게이트로만 렌더) ──
+  const isDev = process.env.NODE_ENV === 'development';
+  const fillTestData = () => {
+    const p = pickTestPreset(cat);
+    setProductName(p.productName);
+    setBrand(p.brand);
+    setDiff(p.diff);
+    setBrandIntro(p.brandIntro);
+    setExtraNote(p.extraNote);
+    setReviews(p.reviews);
+    setRegularPrice(p.regularPrice);
+    setSalePrice(p.salePrice);
+    setShowPrice(p.showPrice);
+    setProductOptions(p.productOptions);
+    setAnswers(p.answers);
+    setAiSelections(p.aiSelections);
+    setAgreed(true);   // 실측 동의도 자동 체크(생성 게이트 통과)
+  };
+
   const handleNext = () => {
     if (!productName.trim()) {
       alert('상품명을 입력해주세요.');
@@ -1238,6 +1258,21 @@ export default function ProductScreen() {
       </div>
 
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
+
+      {/* ★개발 전용 — 테스트 데이터 채우기 (프로덕션 빌드에선 NODE_ENV 게이트로 렌더 안 됨) */}
+      {isDev && (
+        <button
+          type="button"
+          onClick={fillTestData}
+          style={{
+            marginBottom: 20, padding: '10px 16px', borderRadius: 10,
+            border: '1px dashed #F59E0B', background: '#FFFBEB', color: '#92400E',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          🧪 [DEV] 테스트 데이터 채우기 — {pickTestPreset(cat).label}
+        </button>
+      )}
 
       {/* 2-column layout */}
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>

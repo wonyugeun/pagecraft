@@ -6,6 +6,7 @@ import {
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { pickTestPreset } from '@/lib/testPresets';
 import {
   CQ, SECTION_MAP, SECTION_DEFS, QuestionField,
 } from './ProductScreen';
@@ -42,9 +43,10 @@ export default function ProductMobile() {
     cat, ch, go,
     productName, setProductName, setProductExtra,
     regularPrice, salePrice, showPrice,
-    productOptions,
+    setRegularPrice, setSalePrice, setShowPrice,
+    productOptions, setProductOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote,
-    brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections,
+    brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections, setAiSelections,
     toggleChat, credits,
   } = useApp();
 
@@ -96,6 +98,25 @@ export default function ProductMobile() {
     const sQs = getSectionQs(sec.id);
     return sQs.length > 0 || sec.id === 's4';
   });
+
+  // ── 개발용 테스트 데이터 채우기 (dev 전용 — 버튼도 dev 게이트로만 렌더) ──
+  const isDev = process.env.NODE_ENV === 'development';
+  const fillTestData = () => {
+    const p = pickTestPreset(cat);
+    setProductName(p.productName);
+    setBrand(p.brand);
+    setDiff(p.diff);
+    setBrandIntro(p.brandIntro);
+    setExtraNote(p.extraNote);
+    setReviews(p.reviews);
+    setRegularPrice(p.regularPrice);
+    setSalePrice(p.salePrice);
+    setShowPrice(p.showPrice);
+    setProductOptions(p.productOptions);
+    setAnswers(p.answers);
+    setAiSelections(p.aiSelections);
+    setAgreed(true);
+  };
 
   // handleNext — 데스크탑과 동일 로직
   const handleNext = () => {
@@ -260,6 +281,23 @@ export default function ProductMobile() {
           fontSize: 44,
         }}>📝</div>
       </section>
+
+      {/* ★개발 전용 — 테스트 데이터 채우기 (프로덕션 빌드에선 NODE_ENV 게이트로 렌더 안 됨) */}
+      {isDev && (
+        <section style={{ padding: '16px 20px 0' }}>
+          <button
+            type="button"
+            onClick={fillTestData}
+            style={{
+              width: '100%', padding: '11px 14px', borderRadius: 10,
+              border: '1px dashed #F59E0B', background: '#FFFBEB', color: '#92400E',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            🧪 [DEV] 테스트 데이터 채우기 — {pickTestPreset(cat).label}
+          </button>
+        </section>
+      )}
 
       {/* ⚠️ 법적 경고 — 입력 정보는 그대로 반영, 책임은 판매자 (안내 UI만, 입력 처리 불변) */}
       <section style={{ padding: '16px 20px 0' }}>
