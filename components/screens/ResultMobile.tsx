@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Menu, Zap, Sparkles, ArrowLeft,
-  Smartphone, Monitor, Maximize,
-  Type, Image as ImageIcon, ArrowUpDown, EyeOff, Eye,
+  Smartphone, Monitor,
+  Type, Image as ImageIcon, ArrowUpDown, EyeOff, Eye, ChevronUp, ChevronDown,
   Upload, Download, RefreshCw,
 } from 'lucide-react';
 import { useApp, Section } from '@/store/AppContext';
@@ -54,8 +54,10 @@ export default function ResultMobile() {
   const [zoom, setZoom] = useState(100);
   const [htmlLoading, setHtmlLoading] = useState(false);
   const [mergeLoading, setMergeLoading] = useState(false);
+  const [captureLoading, setCaptureLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
+  const captureRef = useRef<HTMLDivElement>(null);   // 블로그 본문 — 섹션별 PNG 캡처 대상
   // 이미 IndexedDB에 증분 저장된 이미지 키(섹션 num / 블록 num#idx) — 데스크탑 ResultScreen 패턴 재사용
   const persistedKeysRef = useRef<Set<string>>(new Set());
   const overridesPersistTimer = useRef<NodeJS.Timeout | null>(null);
@@ -351,6 +353,65 @@ export default function ResultMobile() {
     }
   };
 
+  // 섹션 순서 변경 — 모바일은 드래그 대신 ↑↓ 버튼(터치 친화). displayIdx 기준으로 effectiveOrder 재배열.
+  const moveSection = (displayIdx: number, dir: -1 | 1) => {
+    const target = displayIdx + dir;
+    if (target < 0 || target >= effectiveOrder.length) return;
+    setSectionOrder(() => {
+      const next = [...effectiveOrder];
+      [next[displayIdx], next[target]] = [next[target], next[displayIdx]];
+      return next;
+    });
+  };
+
+  // 블로그형 섹션별 PNG 다운로드 — 데스크탑 handleFullCapture 이식(섹션당 1080폭 1장, AI 재호출 0).
+  const handleFullCapture = async () => {
+    if (captureLoading) return;
+    const container = captureRef.current;
+    if (!container) { alert('캡처할 본문이 없습니다.'); return; }
+    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
+    if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
+    setCaptureLoading(true);
+    try {
+      const { domToCanvas } = await import('modern-screenshot');
+      const TARGET_W = 1080;
+      const opts = {
+        backgroundColor: '#ffffff', scale: 1,
+        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },
+        // 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처에서 제외
+        filter: (node: Node) => {
+          if (!(node instanceof Element)) return true;
+          const c = (node as HTMLElement).className;
+          const cls = typeof c === 'string' ? c : '';
+          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel'));
+        },
+      };
+      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
+      if (units.length > 1) {
+        alert(`${units.length}장(섹션별)으로 저장됩니다. 밴드/인스타엔 원하는 섹션만 골라 올리세요.`);
+      }
+      for (let idx = 0; idx < units.length; idx++) {
+        const canvas = await domToCanvas(units[idx], opts);
+        const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
+        if (!blob) continue;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeName}_${String(idx + 1).padStart(2, '0')}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        await new Promise(r => setTimeout(r, 350)); // 다중 다운로드 간 텀
+      }
+    } catch (err) {
+      console.error('[섹션이미지]', err);
+      alert('섹션별 이미지 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+    } finally {
+      setCaptureLoading(false);
+    }
+  };
+
   const onPrev = () => go('s5');
   const onRegen = () => {
     if (!window.confirm('전체 텍스트와 이미지를 다시 생성합니다. 크레딧과 이미지 생성 비용이 발생할 수 있어요. 계속하시겠어요?')) return;
@@ -516,13 +577,6 @@ export default function ResultMobile() {
             <span style={{ minWidth: 32, textAlign: 'center', fontWeight: 600 }}>{zoom}%</span>
             <button onClick={zoomIn} disabled={zoom >= 150} style={{ background: 'none', border: 'none', cursor: zoom >= 150 ? 'default' : 'pointer', fontSize: 14, color: zoom >= 150 ? '#CCC' : '#666', fontFamily: 'inherit', padding: 0 }}>+</button>
           </div>
-          <button style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#fff', border: '1px solid #ECECF2',
-            borderRadius: 10, padding: 8, cursor: 'pointer',
-          }}>
-            <Maximize size={14} color="#666" />
-          </button>
         </div>
       </section>
 
@@ -536,7 +590,7 @@ export default function ResultMobile() {
         }}>
           <div style={{ width: '100%' }}>
             {isBlog && (
-              <div style={{ background: '#fff' }}>
+              <div ref={captureRef} style={{ background: '#fff' }}>
                 {orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
                   <BlogSection
                     key={realIdx}
@@ -665,6 +719,23 @@ export default function ResultMobile() {
                   }}>
                     {String(displayIdx + 1).padStart(2, '0')} {sec.name?.split('—')[0]?.trim() || sec.name}
                   </span>
+                  {/* 순서 변경 — 모바일은 ↑↓ 버튼 */}
+                  <button
+                    onClick={() => moveSection(displayIdx, -1)}
+                    disabled={displayIdx === 0}
+                    aria-label="위로"
+                    style={{ background: 'none', border: 'none', padding: 4, flexShrink: 0, display: 'flex', cursor: displayIdx === 0 ? 'default' : 'pointer' }}
+                  >
+                    <ChevronUp size={18} color={displayIdx === 0 ? '#DDD' : '#6D4CFF'} />
+                  </button>
+                  <button
+                    onClick={() => moveSection(displayIdx, 1)}
+                    disabled={displayIdx === effectiveOrder.length - 1}
+                    aria-label="아래로"
+                    style={{ background: 'none', border: 'none', padding: 4, flexShrink: 0, display: 'flex', cursor: displayIdx === effectiveOrder.length - 1 ? 'default' : 'pointer' }}
+                  >
+                    <ChevronDown size={18} color={displayIdx === effectiveOrder.length - 1 ? '#DDD' : '#6D4CFF'} />
+                  </button>
                 </div>
               );
             })}
@@ -711,6 +782,20 @@ export default function ResultMobile() {
             opacity: mergeLoading ? 0.7 : 1,
           }}>
             <ImageIcon size={16} /> {mergeLoading ? '합치는 중...' : '통이미지 다운로드'}
+          </button>
+        )}
+        {/* 섹션별 이미지(본문 캡처) — 블로그형: 각 섹션 1080폭 PNG 1장씩(밴드/인스타용) */}
+        {isBlog && (
+          <button onClick={handleFullCapture} disabled={captureLoading} style={{
+            width: '100%', height: 50,
+            background: '#fff', color: '#111',
+            border: '1px solid #ECECF2', borderRadius: 14,
+            fontSize: 14, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: captureLoading ? 'default' : 'pointer', fontFamily: 'inherit',
+            opacity: captureLoading ? 0.7 : 1,
+          }}>
+            <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '섹션별 이미지 다운로드 (밴드/인스타용)'}
           </button>
         )}
         <button onClick={onRegen} style={{

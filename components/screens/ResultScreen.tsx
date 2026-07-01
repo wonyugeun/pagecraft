@@ -9,7 +9,7 @@ import { compressMap } from '@/lib/imageCompress';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
-  Sparkles, Smartphone, Monitor, Maximize, Eye, GripVertical, Upload, RefreshCw,
+  Sparkles, Smartphone, Monitor, Eye, GripVertical, Upload, RefreshCw,
   Type, Image as ImageIcon, ArrowUpDown, EyeOff,
 } from 'lucide-react';
 
@@ -1664,14 +1664,6 @@ export default function ResultScreen() {
                   }}
                 >+</button>
               </div>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 10, border: '1px solid #ECECF2',
-                background: '#fff', fontSize: 13, fontFamily: 'var(--f)',
-                cursor: 'pointer', color: '#666',
-              }}>
-                <Maximize size={14} /> 전체화면
-              </button>
             </div>
           </div>
 
