@@ -113,11 +113,16 @@ export async function POST(req: NextRequest) {
     ? `Only depict the exact product(s) shown in the reference images. Never invent additional cosmetic containers, bottles, jars, or unrelated products. Props must be non-product objects only (stones, plants, water, fabric, trays).`
     : '';
 
-  // 인물 정책 — 감정/상황용 신체 일부·피부 클로즈업 허용, 식별되는 동일 모델 얼굴·화보만 금지.
-  const PEOPLE_RULES =
-    `Skin and body-part close-ups WITHOUT a recognizable face are allowed for emotion/situation ` +
-    `(cheek, jawline, neck, hands, back of hand, a fingertip touching skin). ` +
-    `Do NOT show a recognizable full face, a consistent brand model, or a fashion-style model holding the product as the focus.`;
+  // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.
+  const isSlide = outputType === 'slide';
+  const PEOPLE_RULES = isSlide
+    ? `A human model interacting with the product (holding, applying, or wearing it) is ALLOWED and encouraged ` +
+      `for hero/solution/CTA shots — editorial advertising style, like a premium beauty ad. ` +
+      `The product in the model's hands MUST exactly match the reference product (same shape, color, label). ` +
+      `(Face consistency across images is NOT required at this stage — a different face per cut is acceptable.)`
+    : `Skin and body-part close-ups WITHOUT a recognizable face are allowed for emotion/situation ` +
+      `(cheek, jawline, neck, hands, back of hand, a fingertip touching skin). ` +
+      `Do NOT show a recognizable full face, a consistent brand model, or a fashion-style model holding the product as the focus.`;
 
   // 미입력 사실 날조 금지 — 셀러 미입력 인증·수치·시험결과를 이미지에 그리지 못하게(헤드라인 카피 baked는 별개로 허용).
   const NO_FAKE_DATA_RULES =

@@ -18,8 +18,13 @@ export const IMAGE_DESC_FIELD_SPEC =
  * AI(Claude)에게 주는 "생성 가이드"이며, 강제 가드(인물/날조/텍스트/제품일관성)는
  * generate-image route의 코드 negation이 한 번 더 막는다(역할 분리: AI 생성 + 코드 가드).
  */
-export function buildV2ImageRules(cat: string): string {
+export function buildV2ImageRules(cat: string, isSlide = false): string {
   const isCosmetics = cat.split('/')[0].trim() === '화장품';
+
+  // ★슬라이드형만 모델(제품 든/사용하는 인물) 허용 — 메디힐식 에디토리얼 광고컷. 블로그는 기존(얼굴 화보 금지) 유지.
+  const peopleRule = isSlide
+    ? `- [인물 정책 — 슬라이드형] 모델(제품을 들거나 바르거나 착용한 인물)을 허용합니다. 히어로·솔루션·CTA 섹션은 모델+제품 에디토리얼 광고컷으로 연출하세요(얼굴 포함 가능). 모델이 든 제품은 reference 제품과 동일해야 합니다. (지금 단계는 얼굴 일관성 불필요 — 컷마다 얼굴이 달라도 됩니다.)`
+    : `- [인물 정책] 얼굴 없는 피부 클로즈업(붉어진 볼·턱선·목), 손, 신체 일부, 따가운 순간·상황 연출은 허용합니다(감정 전달용). 단 식별되는 동일 인물의 얼굴 전체·브랜드 모델·착용 화보는 금지(향후 가상모델 시스템 담당).`;
 
   const cosmeticsGuide = isCosmetics
     ? `
@@ -39,7 +44,7 @@ export function buildV2ImageRules(cat: string): string {
 - ⭐결정 순서: emotion_goal → target_fear/target_desire → headline+body(함께 읽어 visual_focus 도출) → mission → (그 결과로) shot_type/구도/prompt. shot_type부터 정하지 마세요.
 - ⭐모든 컷에 제품을 강제로 넣지 마세요. 공감·원인 섹션은 제품보다 "상황·감정(피부)"이 주인공입니다(product_visibility 0~20%). 솔루션·신뢰는 제품+근거, CTA는 제품 히어로.
 - ⭐target_desire를 페이지 전체에서 반복 환기하되 같은 장면 반복 금지 — 섹션마다 다른 상황·다른 연출로 변주.
-- [인물 정책] 얼굴 없는 피부 클로즈업(붉어진 볼·턱선·목), 손, 신체 일부, 따가운 순간·상황 연출은 허용합니다(감정 전달용). 단 식별되는 동일 인물의 얼굴 전체·브랜드 모델·착용 화보는 금지(향후 가상모델 시스템 담당).
+${peopleRule}
 - [미입력 사실 날조 금지] 인증 마크·수치·시험 결과·EWG 등급·임상 데이터·그래프·배지를 이미지에 그리지 마세요(셀러 미입력 사실). "테스트/검증"은 임의 데이터가 아니라 clinical·clean한 "분위기"로만 표현.
 - [제품 일관성] 제품이 등장하는 컷은 reference 이미지의 제품과 동일한 형태·색·라벨·브랜드를 유지하세요(섹션이 달라도 같은 제품). reference에 없는 화장품 용기·구성품을 추가하지 마세요. 연출 소품은 비제품(돌·식물·물·천·트레이)만.
 - [블로그형] 이미지 안에 텍스트·문구·숫자·타이포그래피를 그리지 마세요(제품 자체의 reference 라벨만 유지). 깨끗한 사진.

@@ -123,8 +123,8 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
   const targetDesire = typeof dna?.target_desire === 'string' ? dna.target_desire : '';
   const targetFear   = typeof dna?.target_fear === 'string' ? dna.target_fear : '';
 
-  // V2 이미지 규칙 — image_mission 우선, 인물/날조/제품일관성/블로그 텍스트 가이드
-  const imageRules = buildV2ImageRules(category);
+  // V2 이미지 규칙 — image_mission 우선, 인물/날조/제품일관성/블로그 텍스트 가이드. 슬라이드형만 모델 허용.
+  const imageRules = buildV2ImageRules(category, resolvedOut === 'slide');
 
   // 섹션별 ratio를 코드에서 확정 (9:16 절대 없음)
   const ratioByIdx = plan.map(s => aspectRatioFor(s.name));
