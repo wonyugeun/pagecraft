@@ -1081,7 +1081,7 @@ export function AccordionSection({
 export default function ProductScreen() {
   const isMobile = useIsMobile();
   const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
-    brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, answers, setAnswers, aiSelections, setAiSelections } = useApp();
+    brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections, setAiSelections } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
@@ -1201,6 +1201,8 @@ export default function ProductScreen() {
     if (!isGaejeon && diff.trim()) lines.push(`경쟁 차별점: ${diff.trim()}`);
     if (extraNote.trim())                 lines.push(`기타 요청사항: ${extraNote.trim()}`);
     if (brandIntro.trim())                lines.push(`브랜드 소개: ${brandIntro.trim()}`);
+    // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews가 확실히 true(키워드 의존 X) + 후기 섹션 재료로 전달
+    if (reviews.trim())                   lines.push(`고객 후기: ${reviews.trim()}`);
     if (aiSelections.length)              lines.push(`AI 추천 키워드: ${aiSelections.join(', ')}`);
     setProductExtra(lines.join('\n'));
     go('s5-5');
@@ -1488,6 +1490,28 @@ export default function ProductScreen() {
                 style={{ minHeight: 76 }}
               />
               <div className="fhint">입력한 내용이 AI 생성 지침에 직접 반영됩니다</div>
+            </div>
+          </AccordionSection>
+
+          {/* 고객 후기 (선택) — 실제 후기만. 있으면 후기 섹션에 표시, 없으면 미래형 기대 시나리오로 대체 */}
+          <AccordionSection
+            num={visibleSections.length + 3}
+            title="고객 후기 (선택)"
+            isOpen={openSecs.has('s_reviews')}
+            onToggle={() => toggleSec('s_reviews')}
+          >
+            <div className="fg">
+              <textarea
+                className="finp"
+                placeholder={'스토어에 등록된 실제 고객 후기를 붙여넣으세요. 여러 개 가능.\n예: "산책을 다시 좋아해요 - 김OO" / "포장이 꼼꼼했어요 ★★★★★"'}
+                value={reviews}
+                onChange={e => setReviews(e.target.value)}
+                style={{ minHeight: 76 }}
+              />
+              <div className="fhint">
+                실제 고객 후기를 붙여넣으면 후기 섹션에 표시됩니다. ⚠️ 실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반입니다.
+                비워두면 후기 섹션은 미래형 기대 시나리오로 자동 대체됩니다.
+              </div>
             </div>
           </AccordionSection>
 

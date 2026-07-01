@@ -44,7 +44,7 @@ export default function ProductMobile() {
     regularPrice, salePrice, showPrice,
     productOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote,
-    brandIntro, setBrandIntro, answers, setAnswers, aiSelections,
+    brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections,
     toggleChat, credits,
   } = useApp();
 
@@ -149,6 +149,8 @@ export default function ProductMobile() {
     if (!isGaejeon && diff.trim()) lines.push(`경쟁 차별점: ${diff.trim()}`);
     if (extraNote.trim())          lines.push(`기타 요청사항: ${extraNote.trim()}`);
     if (brandIntro.trim())         lines.push(`브랜드 소개: ${brandIntro.trim()}`);
+    // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews 확실히 true + 후기 섹션 재료
+    if (reviews.trim())            lines.push(`고객 후기: ${reviews.trim()}`);
     if (aiSelections.length)       lines.push(`AI 추천 키워드: ${aiSelections.join(', ')}`);
     setProductExtra(lines.join('\n'));
     go('s5-5');
@@ -471,6 +473,23 @@ export default function ProductMobile() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* 고객 후기 (선택) — 실제 후기만. 있으면 후기 섹션에 표시, 없으면 미래형 시나리오로 대체 */}
+      <section style={{ padding: '20px 20px 0' }}>
+        <div className="fg">
+          <div className="fl">고객 후기 <span className="fopt">선택</span></div>
+          <textarea
+            className="finp"
+            value={reviews}
+            onChange={e => setReviews(e.target.value)}
+            placeholder={'스토어의 실제 고객 후기를 붙여넣으세요 (여러 개 가능)'}
+            rows={3}
+          />
+          <div className="fhint" style={{ marginTop: 6, fontSize: 11.5, color: '#666', lineHeight: 1.5 }}>
+            실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반. 비워두면 미래형 기대 시나리오로 자동 대체됩니다.
+          </div>
         </div>
       </section>
 

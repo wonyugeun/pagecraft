@@ -212,6 +212,14 @@ export async function runCopyChunk(input: CopyChunkInput): Promise<CopyOut[]> {
    ★문체(writing_style — 이 섹션은 이 방식으로 쓰되, 바닥 브랜드 톤은 공유): ${s.writing_style || '(미정)'}`;
   }).join('\n\n');
 
+  // 셀러가 입력한 실제 고객 후기 — knownFacts의 "고객 후기:" 블록만 추출(전체 facts 주입 아님 = strategy_summary 설계 유지).
+  // 있으면 후기 섹션에서 이 후기만 quote로 인용하도록 지시(없는 후기·별점 날조 금지). 없으면 빈 문자열 → 미래형 시나리오 그대로.
+  const reviewMatch = (knownFacts ?? '').match(/고객 후기:\s*([\s\S]*?)(?:\nAI 추천 키워드:|$)/);
+  const reviewText = reviewMatch?.[1]?.trim() ?? '';
+  const reviewBlock = reviewText
+    ? `\n[셀러가 입력한 실제 고객 후기 — 후기/리뷰 섹션에서 아래 후기(들)만 quote 블록으로 인용하세요. 작성자·별점은 아래에 있을 때만 넣고, 여기 없는 후기·별점·작성자를 새로 지어내지 마세요]\n${reviewText}\n`
+    : '';
+
   const userPrompt = `다음 ${items.length}개 섹션의 카피를 작성하세요. 각 섹션의 목표는 mission을 설명하는 게 아니라, 그 섹션의 emotion_goal(독자가 속으로 느껴야 할 한마디)을 독자가 스스로 떠올리게 만드는 것입니다.
 
 ${strategyBlock}
@@ -225,7 +233,7 @@ ${sectionList}
 ${sectionGuide}
 
 ${blockSpec}
-
+${reviewBlock}
 ${copyGuard}
 
 ${COPY_PRINCIPLES}

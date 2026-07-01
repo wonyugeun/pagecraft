@@ -427,7 +427,8 @@ function CompareBlock({ headers, rows, isMobile, onChange }: { headers: string[]
 /* ─── quote ─── */
 function QuoteBlock({ text, author, rating, onChange }: { text: string; author?: string; rating?: number; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
-  const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 5;
+  // rating 미지정/0 → 별 미표시(가짜 ★5점 방지). 셀러가 실제로 준 별점만 표시.
+  const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 0;
   return (
     <div style={{
       marginBottom: 32,
@@ -445,11 +446,13 @@ function QuoteBlock({ text, author, rating, onChange }: { text: string; author?:
         marginTop: 16,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}>
-        <div style={{ display: 'flex', color: t.accent }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Star key={i} size={16} fill={i < stars ? t.accent : 'none'} color={t.accent} />
-          ))}
-        </div>
+        {stars > 0 ? (
+          <div style={{ display: 'flex', color: t.accent }}>
+            {Array.from({ length: stars }).map((_, i) => (
+              <Star key={i} size={16} fill={t.accent} color={t.accent} />
+            ))}
+          </div>
+        ) : <span />}
         {author && (
           <span style={{ fontSize: 13, color: COLORS.textSub }}>{author}</span>
         )}

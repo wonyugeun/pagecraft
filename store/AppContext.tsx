@@ -117,6 +117,7 @@ interface AppState {
   diff: string;
   extraNote: string;
   brandIntro: string;
+  reviews: string;
   answers: Record<string, string | string[]>;
   aiSelections: string[];
 }
@@ -157,6 +158,7 @@ interface AppContextType extends AppState {
   setDiff: (v: string) => void;
   setExtraNote: (v: string) => void;
   setBrandIntro: (v: string) => void;
+  setReviews: (v: string) => void;
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, string | string[]>>>;
   setAiSelections: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -295,6 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [diff, setDiff] = useState('');
   const [extraNote, setExtraNote] = useState('');
   const [brandIntro, setBrandIntro] = useState('');
+  const [reviews, setReviews] = useState('');   // 고객 후기 전용 입력(선택) — 있으면 factScrub sellerHasReviews=true
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [aiSelections, setAiSelections] = useState<string[]>([]);
 
@@ -398,6 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDiff('');
     setExtraNote('');
     setBrandIntro('');
+    setReviews('');
     setAnswers({});
     setAiSelections([]);
     setSections(item.sections);
@@ -486,10 +490,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         screen, cat, ch, type, out, imgMode, secCnt,
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
-        brand, diff, extraNote, brandIntro, answers, aiSelections,
+        brand, diff, extraNote, brandIntro, reviews, answers, aiSelections,
       }));
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, answers, aiSelections]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, answers, aiSelections]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -522,6 +526,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.diff === 'string') setDiff(p.diff);
     if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
     if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
+    if (typeof p.reviews === 'string') setReviews(p.reviews);
     if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
     if (Array.isArray(p.aiSelections)) setAiSelections(p.aiSelections as string[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -598,6 +603,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDiff('');
     setExtraNote('');
     setBrandIntro('');
+    setReviews('');
     setAnswers({});
     setAiSelections([]);
     go('s1');
@@ -617,7 +623,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
-      brand, diff, extraNote, brandIntro, answers, aiSelections,
+      brand, diff, extraNote, brandIntro, reviews, answers, aiSelections,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -653,6 +659,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setDiff,
       setExtraNote,
       setBrandIntro,
+      setReviews,
       setAnswers,
       setAiSelections,
     }}>
