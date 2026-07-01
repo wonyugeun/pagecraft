@@ -184,7 +184,7 @@ export async function runCopyChunk(input: CopyChunkInput): Promise<CopyOut[]> {
 - { "type": "iconcards", "cards": [{ "title": "...", "desc": "..." }] }
 - { "type": "stats", "items": [{ "value": "...", "label": "..." }] }
 - { "type": "compare", "headers": ["구분","A","B"], "rows": [["행이름","값","값"]] }
-- { "type": "quote", "text": "...", "author": "...", "rating": 5 }
+- { "type": "quote", "text": "..." }   ← author·rating은 셀러가 입력한 실제 후기가 있을 때만 채우세요. 실제 후기가 없으면 quote 블록 자체를 만들지 마세요(가짜 후기·별점 금지 — 표시광고법).
 - { "type": "faq", "items": [{ "q": "...", "a": "..." }] }
 - { "type": "heading", "text": "..." }
 - { "type": "cta", "text": "...", "button": "..." }

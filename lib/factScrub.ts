@@ -12,6 +12,32 @@ import type { Block } from '@/store/AppContext';
 
 const VARIETY = ['강분질', '신품종', '개량품종', '분질질감', '분질', '점질'];
 
+/**
+ * 셀러가 실제 후기를 입력했는지 판정 — allow(원입력)에 후기/리뷰/평점 신호가 있으면
+ * '진짜 후기 보유'로 보고 후기 스크럽 전체를 건너뛴다(셀러 실제 후기 오제거 방지).
+ * 미입력이면(=대부분의 날조 케이스) 후기 스크럽을 적용한다.
+ */
+function sellerHasReviews(allow: string): boolean {
+  return /후기|리뷰|고객\s*평|구매\s*평|평점|별점|사용\s*후기|추천사/i.test(allow);
+}
+
+/** 별점·평점 표기 제거(실제 후기 없을 때). 별 글리프 + 명시적 평점 패턴만 → 오제거 최소화. */
+function stripRatings(text: string): string {
+  return text
+    .replace(/[★⭐✩✭✮⭑✰]/g, '')                                            // ★★★★★, ⭐ 등 별 글리프
+    .replace(/(?:별점|평점)\s*[:\s]*\d(?:\.\d)?\s*(?:점|\/\s*5|만점)?/g, '')   // "별점 5", "평점 4.9점"
+    .replace(/\d\.\d\s*\/\s*5(?:\.0)?/g, '')                                  // "4.9/5" (소수/5 = 평점 특정)
+    .replace(/\d(?:\.\d)?\s*점\s*만점/g, '');                                 // "5점 만점"
+}
+
+// 1인칭 과거형 경험담 라인 제거용 — 1인칭 marker와 과거 경험/칭찬을 '동시' 충족할 때만(오제거 최소화).
+// 미래형 시나리오("만족하실 거예요")·대화체("~하지 않으셨나요?")·"우리 아이가 좋아하는 이유"는 걸리지 않는다.
+const FIRST_PERSON = /저는|제가|우리\s*아이가|샀는데|샀어요|써\s*봤|써봤|사용해\s*봤|사용해봤|구매했|재구매/;
+const PAST_PRAISE  = /좋았|만족했|효과.{0,4}봤|후회.{0,4}없었|잘\s*샀/;
+function isTestimonialLine(line: string): boolean {
+  return FIRST_PERSON.test(line) && PAST_PRAISE.test(line);
+}
+
 /** 셀러 원입력에 그 Brix 수치가 (당도/brix와 함께) 있으면 허용 — 셀러 입력값은 절대 막지 않도록 넉넉히 판정 */
 function brixAllowed(num: string, allow: string): boolean {
   return new RegExp(`(?:당도[:\\s]*)?${num}\\s*(?:brix|브릭스)`, 'i').test(allow)
@@ -39,6 +65,13 @@ export function scrubText(text: string | undefined, allow: string): string {
     if (!allow.includes(w)) {
       out = out.replace(new RegExp(`\\s*${w}(?:의|인|한|감|적인|스러운)?`, 'g'), '');
     }
+  }
+
+  // 4) 가짜 후기/별점 — 셀러 실제 후기 미입력 시에만: 별점 표기 + 1인칭 과거 경험담 라인 제거.
+  //    (실제 후기 있으면 skip → 오제거 방지. 미래형 시나리오·대화체는 조건 미충족이라 보존.)
+  if (!sellerHasReviews(allow)) {
+    out = stripRatings(out);
+    out = out.split('\n').filter(l => !isTestimonialLine(l)).join('\n');
   }
 
   // 정리: 빈 괄호/대시 잔여·연속 공백·구두점 앞 공백·고아 기호 정리
@@ -72,6 +105,10 @@ function scrubBlock(b: Block, allow: string): Block | null {
     case 'faq':
       return { ...b, items: b.items.map(q => ({ q: scrubText(q.q, allow), a: scrubText(q.a, allow) })) };
     case 'quote':
+      // 셀러 실제 후기 미입력 → quote(후기 인용) 블록 자체가 날조(작성자·별점 포함) → 통째 드롭.
+      //   (프롬프트도 미입력 시 quote 금지 지시 → 어겨서 나온 것을 출력단에서 최종 차단.)
+      // 실제 후기 입력 시 → 보존하되 text의 미입력 수치(Brix 등)만 스크럽, author·rating은 유지.
+      if (!sellerHasReviews(allow)) return null;
       return { ...b, text: scrubText(b.text, allow) };
     case 'heading':
       return { ...b, text: scrubText(b.text, allow) };
