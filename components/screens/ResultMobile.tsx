@@ -13,8 +13,9 @@ import { compressMap } from '@/lib/imageCompress';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
-  EnhancedLightbox, downloadHtml, downloadMergedImage, buildBakedText,
+  EnhancedLightbox, downloadHtml, downloadMergedImage,
 } from './ResultScreen';
+import { buildSlideBakedText } from '@/lib/slideBaked';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -102,10 +103,11 @@ export default function ResultMobile() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 = baked: 헤드라인을 한글 텍스트로 이미지에 합성(GPT Image 2). 블로그는 텍스트 0.
+      // 슬라이드 = baked: 헤드라인+서브카피+하단 특징 스트립(셀러 입력 기반, 수치 게이트) 합성. 블로그는 텍스트 0.
+      const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildBakedText(sec.headline, sec.subcopy)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +130,7 @@ export default function ResultMobile() {
       if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
-  }, [effectiveOut]);
+  }, [effectiveOut, productName, productExtra]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;

@@ -124,9 +124,11 @@ export async function POST(req: NextRequest) {
       `(cheek, jawline, neck, hands, back of hand, a fingertip touching skin). ` +
       `Do NOT show a recognizable full face, a consistent brand model, or a fashion-style model holding the product as the focus.`;
 
-  // 미입력 사실 날조 금지 — 셀러 미입력 인증·수치·시험결과를 이미지에 그리지 못하게(헤드라인 카피 baked는 별개로 허용).
-  const NO_FAKE_DATA_RULES =
-    `Do NOT render certification marks, seals, badges, test/clinical results, EWG grades, percentages, statistics, or graphs. Convey "tested/safe" only through clean clinical mood, never as data.`;
+  // 미입력 사실 날조 금지. ★슬라이드형은 baked 카피의 셀러 검증 수치(가격·용량·함량 등, 클라 게이트 통과분)는 텍스트로 허용,
+  //   그 외 날조 인증/통계/그래프는 계속 금지. 블로그·기타는 수치 전면 금지 유지.
+  const NO_FAKE_DATA_RULES = isSlide
+    ? `Do NOT invent certification marks, seals, badges, EWG grades, clinical/test results, or statistical graphs. You MAY render the specific numbers and labels that are part of the provided marketing copy (e.g. price, volume, ingredient specs) as designed ad text, but never add extra percentages or statistics that are not present in that copy.`
+    : `Do NOT render certification marks, seals, badges, test/clinical results, EWG grades, percentages, statistics, or graphs. Convey "tested/safe" only through clean clinical mood, never as data.`;
 
   // 텍스트 금지 — 블로그형 전체 + (슬라이드라도) overlay용 textZone 지정 시. 슬라이드 baked는 텍스트 허용이라 여기 안 걸림.
   const TEXT_RULES = (isBlog || textZone)

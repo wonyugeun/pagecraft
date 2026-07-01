@@ -6,6 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
+import { buildSlideBakedText } from '@/lib/slideBaked';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
@@ -1160,11 +1161,12 @@ export default function ResultScreen() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 = baked(채택): 헤드라인(+Hero는 서브카피)을 한글 텍스트로 이미지에 합성(GPT Image 2 한글 정확).
-      // 블로그: 텍스트 0 깨끗한 사진. (overlay 보류 — textZone 미전송. 롤백 시 buildBakedText 끄고 textZone 재전송.)
+      // 슬라이드 = baked: 헤드라인+서브카피+하단 특징 스트립(셀러 입력 기반, 수치 게이트)을 광고 레이아웃에 합성.
+      // 블로그: 텍스트 0 깨끗한 사진. knownFacts=원입력(수치 검증 기준).
+      const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildBakedText(sec.headline, opts?.slideHero ? sec.subcopy : undefined)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1189,7 +1191,7 @@ export default function ResultScreen() {
       if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
-  }, [effectiveOut]);
+  }, [effectiveOut, productName, productExtra]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;
