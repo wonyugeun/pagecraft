@@ -7,28 +7,45 @@ import { NextRequest, NextResponse } from 'next/server';
  *   이유: 한글 텍스트 baked 정확도(Gemini는 깨짐) + 2:3 네이티브 + 마케팅 퀄리티. 격리 테스트 통과.
  *   클라이언트 응답 계약 { imageBase64, mimeType }은 그대로 유지 → 호출부 7곳 무수정.
  *
- * [현재 범위] generations(text-to-image)만 사용 = 제품 reference 이미지 미첨부.
- *   productImages는 받아도 OpenAI generations가 ref를 지원하지 않아 전송하지 않는다.
- *   (제품 충실도용 reference = /v1/images/edits 멀티파트 = 별도 후속 과제.)
+ * [현재 범위] 제품 사진(productImages) 유무로 엔드포인트 분기.
+ *   있음 → /v1/images/edits (멀티파트, image[]에 첨부) = 제품 충실도 reference 반영.
+ *   없음 → /v1/images/generations (text-to-image) 폴백 = 기존 동작.
+ *   모델(gpt-image-2)·프롬프트·응답 파싱·retry·에러 분기는 두 경로 공통(재사용).
  *
  * [overlay 보류] textZone(상단 여백 확보) 분기는 코드로 남겨둠(롤백 가능) — 현재 baked 채택이라
  *   클라가 textZone을 보내지 않으면 동작 안 함. overlay로 되돌리려면 클라에서 textZone 재전송.
  */
 
 const MODEL   = 'gpt-image-2';
-const API_URL = 'https://api.openai.com/v1/images/generations';
+const GEN_URL  = 'https://api.openai.com/v1/images/generations'; // ref 없음 폴백
+const EDIT_URL = 'https://api.openai.com/v1/images/edits';       // ref 있음(제품 사진)
+const MAX_REF_IMAGES = 4;                                        // edits 첨부 상한(입력 토큰 비용 방어)
 const TIMEOUT = 180_000; // 3분 — high tier 생성이 길어질 수 있어 여유
 
 const MAX_RETRIES  = 3;
 const RETRY_DELAYS = [2_000, 5_000, 10_000]; // 레이트리밋 대비 백오프
 
-async function callOpenAI(apiKey: string, body: unknown): Promise<Response> {
-  return fetch(API_URL, {
+// body가 FormData(edits)면 Content-Type 미지정 → 런타임이 boundary 포함해 자동 설정.
+// JSON(generations)이면 application/json 명시.
+async function callOpenAI(apiKey: string, url: string, body: FormData | unknown): Promise<Response> {
+  const isForm = body instanceof FormData;
+  return fetch(url, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body:    JSON.stringify(body),
+    headers: isForm
+      ? { Authorization: `Bearer ${apiKey}` }
+      : { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body:    isForm ? body : JSON.stringify(body),
     signal:  AbortSignal.timeout(TIMEOUT),
   });
+}
+
+// senders 형식 불통일 정규화: data URL(data:image/png;base64,xxx) 또는 raw base64 → Blob(mime 포함).
+function base64ToBlob(input: string): Blob {
+  let mime = 'image/png';
+  let b64  = input;
+  const m = input.match(/^data:([^;]+);base64,([\s\S]*)$/);
+  if (m) { mime = m[1]; b64 = m[2]; }
+  return new Blob([Buffer.from(b64, 'base64')], { type: mime });
 }
 
 function sleep(ms: number) {
@@ -84,9 +101,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 3. 프롬프트 규칙 구성 ──
-  // GPT Image generations는 reference 미지원 → 현재는 항상 ref 없음으로 취급(제품 일관성 RULES는 ref 있을 때만 의미).
-  const hasRefImages = false;   // (productImages는 받아도 미사용 — edits 엔드포인트는 후속 과제)
-  void productImages;
+  // 제품 사진 있으면 edits로 ref 반영 → 제품 일관성 RULES 활성. 없으면 generations 폴백.
+  const refImages = (productImages ?? []).filter(s => typeof s === 'string' && s.length > 0).slice(0, MAX_REF_IMAGES);
+  const hasRefImages = refImages.length > 0;
   const isBlog = outputType === 'blog';
 
   const PRODUCT_RULES = hasRefImages
@@ -133,9 +150,29 @@ export async function POST(req: NextRequest) {
   // Hero·핵심(세로 4:5/2:3 = 히어로/CTA) = high, 나머지 = medium. 명시 quality 있으면 우선.
   const quality = qualityIn ?? (size === '1024x1536' ? 'high' : 'medium');
 
-  const body = { model: MODEL, prompt: fullPrompt, size, quality, n: 1 };
+  // ── 4b. 엔드포인트/바디 분기 ── ref 있으면 edits(FormData), 없으면 generations(JSON).
+  let apiUrl: string;
+  let reqBody: FormData | Record<string, unknown>;
+  if (hasRefImages) {
+    apiUrl = EDIT_URL;
+    const form = new FormData();
+    form.append('model', MODEL);
+    form.append('prompt', fullPrompt);
+    form.append('size', size);
+    form.append('quality', quality);
+    form.append('n', '1');
+    refImages.forEach((img, i) => {
+      const blob = base64ToBlob(img);
+      const ext  = (blob.type.split('/')[1] || 'png').split('+')[0];
+      form.append('image[]', blob, `product_${i}.${ext}`);   // gpt-image: 다중 참조 = image[] 반복
+    });
+    reqBody = form;
+  } else {
+    apiUrl  = GEN_URL;
+    reqBody = { model: MODEL, prompt: fullPrompt, size, quality, n: 1 };
+  }
 
-  console.log(`[generate-image] START — sectionNum: ${sectionNum}, size: ${size}, quality: ${quality}, promptLen: ${fullPrompt.length}`);
+  console.log(`[generate-image] START — sectionNum: ${sectionNum}, endpoint: ${hasRefImages ? 'edits' : 'generations'}, refImgs: ${refImages.length}, size: ${size}, quality: ${quality}, promptLen: ${fullPrompt.length}`);
   console.log(`[generate-image] prompt preview: "${fullPrompt.slice(0, 150)}"`);
 
   let lastError = '';
@@ -150,7 +187,7 @@ export async function POST(req: NextRequest) {
     // ── 5. OpenAI 호출 ──
     let res: Response;
     try {
-      res = await callOpenAI(apiKey, body);
+      res = await callOpenAI(apiKey, apiUrl, reqBody);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[generate-image] fetch 실패 (attempt ${attempt}):`, msg);
