@@ -33,7 +33,8 @@ export default function ResultMobile() {
   // 데스크탑 ResultScreen과 동일 useApp
   const {
     cat, ch, type, out, sections, productName, productExtra, productImages,
-    go, restoredImages, restoredBlockImages, updateLatestHistoryImages,
+    go, restoredImages, restoredBlockImages, restoredOverrides,
+    updateLatestHistoryImages, updateLatestHistoryOverrides,
     toggleChat, credits,
   } = useApp();
 
@@ -55,7 +56,9 @@ export default function ResultMobile() {
   const [mergeLoading, setMergeLoading] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
-  const savedImagesRef = useRef(false);
+  // 이미 IndexedDB에 증분 저장된 이미지 키(섹션 num / 블록 num#idx) — 데스크탑 ResultScreen 패턴 재사용
+  const persistedKeysRef = useRef<Set<string>>(new Set());
+  const overridesPersistTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setSectionOrder(sections.map((_, i) => i));
@@ -68,8 +71,19 @@ export default function ResultMobile() {
     ...sectionOverrides[realIdx],
   });
   const updateSection = (realIdx: number, patch: Partial<Section>) => {
-    setSectionOverrides(prev => ({ ...prev, [realIdx]: { ...prev[realIdx], ...patch } }));
+    setSectionOverrides(prev => {
+      const next = { ...prev, [realIdx]: { ...prev[realIdx], ...patch } };
+      // 편집값 IndexedDB 영속화(디바운스 600ms, AI 호출 0) — 새로고침/재방문에도 유지 (데스크탑 동일)
+      if (overridesPersistTimer.current) clearTimeout(overridesPersistTimer.current);
+      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides(next as Record<string, unknown>), 600);
+      return next;
+    });
   };
+
+  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override)을 state로 복원
+  useEffect(() => {
+    setSectionOverrides({ ...(restoredOverrides as Record<number, Partial<Section>>) });
+  }, [restoredOverrides]);
 
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
@@ -150,7 +164,11 @@ export default function ResultMobile() {
     if (!displaySections.length) return;
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    savedImagesRef.current = false;
+    // 증분 저장 추적 리셋 — 복원된(이미 IndexedDB에 있는) 이미지는 재저장 불필요하므로 미리 '저장됨'으로 시드.
+    persistedKeysRef.current = new Set([
+      ...Object.keys(restoredImages),
+      ...Object.keys(restoredBlockImages),
+    ]);
 
     if (Object.keys(restoredImages).length > 0) {
       const initial: Record<string, ImgState> = {};
@@ -209,41 +227,39 @@ export default function ResultMobile() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displaySections.length]);
 
-  // 작업기록 저장 (압축)
+  // ── 이미지 '증분 영속화' — 섹션/블록이 성공할 때마다 그 장만 즉시 IndexedDB에 병합 저장 ── (데스크탑 ResultScreen 패턴 재사용)
+  // (과거 allDone 일괄 저장 폐기: 배치 도중 페이지 이탈 시 성공분이 state에만 남아 재방문 시 전량 재생성=재과금됐음.)
+  // 새로 성공한(아직 저장 안 된) 이미지만 골라 compress→저장. 실패(null)는 저장 안 함.
   useEffect(() => {
-    if (!displaySections.length || savedImagesRef.current) return;
-    const allDone = displaySections.every(sec => {
-      const secImg = sectionImages[sec.num];
-      const secOk = !sec.imageDesc || (secImg && !secImg.loading);
-      const blockOk = !sec.blocks?.length || sec.blocks.every((b, bi) => {
-        if (b.type !== 'image') return true;
-        const img = blockImages[`${sec.num}#${bi}`];
-        return img && !img.loading;
-      });
-      return secOk && blockOk;
-    });
-    if (!allDone) return;
+    if (!displaySections.length) return;
 
-    const sectionUrls: Record<string, string> = {};
+    const newSection: Record<string, string> = {};
     for (const sec of displaySections) {
       const url = sectionImages[sec.num]?.url;
-      if (url) sectionUrls[sec.num] = url;
+      if (url && !persistedKeysRef.current.has(sec.num)) newSection[sec.num] = url;
     }
-    const blockUrls: Record<string, string> = {};
+    const newBlock: Record<string, string> = {};
     for (const sec of displaySections) {
       if (!sec.blocks?.length) continue;
       sec.blocks.forEach((b, bi) => {
         if (b.type !== 'image') return;
-        const url = blockImages[`${sec.num}#${bi}`]?.url;
-        if (url) blockUrls[`${sec.num}#${bi}`] = url;
+        const key = `${sec.num}#${bi}`;
+        const url = blockImages[key]?.url;
+        if (url && !persistedKeysRef.current.has(key)) newBlock[key] = url;
       });
     }
-    if (Object.keys(sectionUrls).length === 0 && Object.keys(blockUrls).length === 0) return;
-    savedImagesRef.current = true;
+
+    const sKeys = Object.keys(newSection);
+    const bKeys = Object.keys(newBlock);
+    if (sKeys.length === 0 && bKeys.length === 0) return;
+
+    // 낙관적 마킹: 같은 키 중복 compress/save 방지. (저장 실패 시 그 1장만 재방문 재생성 — '전량 재생성'보다 안전.)
+    [...sKeys, ...bKeys].forEach(k => persistedKeysRef.current.add(k));
+
     (async () => {
       const [compressedSection, compressedBlock] = await Promise.all([
-        compressMap(sectionUrls),
-        compressMap(blockUrls),
+        compressMap(newSection),
+        compressMap(newBlock),
       ]);
       updateLatestHistoryImages(compressedSection, compressedBlock);
     })();
