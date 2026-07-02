@@ -340,7 +340,7 @@ export default function ResultMobile() {
   const handleHtmlDownload = async () => {
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
-    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages);
+    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide);
     if (!ok) alert('HTML 다운로드 중 오류가 발생했어요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };

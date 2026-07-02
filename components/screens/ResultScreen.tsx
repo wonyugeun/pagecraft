@@ -87,24 +87,26 @@ export async function downloadMergedImage(
   }
 
   const urls: string[] = [];
+  let skipped = 0;
   sections.forEach((sec, secIdx) => {
-    if (sec.blocks?.length) {
-      sec.blocks.forEach((b, i) => {
-        if (b.type !== 'image') return;
-        const url = blockImgMap[`${sec.num}#${i}`]?.url;
-        if (url) urls.push(url);
-      });
-    } else if (secIdx === 0 && heroDataUrl) {
-      // 첫 섹션 = 슬라이드 Hero → 텍스트 합성된 캡처본 사용
-      urls.push(heroDataUrl);
-    } else {
-      const url = imgMap[sec.num]?.url;
+    // 섹션 대표 이미지 — ★blocks 유무 무관 수집. (기존엔 blocks 있으면 대표 이미지를 건너뛰어,
+    //  블록을 항상 가진 슬라이드 섹션이 전부 빠짐 = 통이미지 0장 무반응 버그의 원인)
+    const own = (secIdx === 0 && heroDataUrl) ? heroDataUrl : imgMap[sec.num]?.url;
+    if (own) urls.push(own);
+    else skipped++;
+    // image 타입 블록 이미지(블로그 호환) — 대표 이미지에 추가로
+    sec.blocks?.forEach((b, i) => {
+      if (b.type !== 'image') return;
+      const url = blockImgMap[`${sec.num}#${i}`]?.url;
       if (url) urls.push(url);
-    }
+    });
   });
   if (urls.length === 0) {
     alert('다운로드할 이미지가 없습니다. 섹션 이미지를 먼저 생성해주세요.');
     return;
+  }
+  if (skipped > 0) {
+    alert(`이미지가 없는 ${skipped}개 섹션은 제외하고 ${urls.length}장을 합칩니다.`);
   }
   const imgs = await Promise.all(
     urls.map(url =>
@@ -292,8 +294,48 @@ export async function downloadHtml(
   productName: string,
   imgMap: Record<string, ImgState>,
   blockImgMap: Record<string, ImgState>,
+  isSlide = false,   // 슬라이드형: 텍스트가 이미지에 baked → 이미지만 세로 스택(여백 0)
 ): Promise<boolean> {
   try {
+    // ── 슬라이드형: 섹션당 <img>만, 카피/블록 렌더 전부 제외(이미 이미지에 합성됨) ──
+    if (isSlide) {
+      const rawUrls: Record<string, string> = {};
+      for (const sec of sections) {
+        const u = imgMap[sec.num]?.url;
+        if (u) rawUrls[sec.num] = u;
+      }
+      const compressed = await compressMap(rawUrls);
+      const imgsHtml = sections
+        .map(sec => compressed[sec.num]
+          ? `  <img src="${compressed[sec.num]}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:0;padding:0;" />`
+          : '')
+        .filter(Boolean)
+        .join('\n');
+      const slideHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escHtml(productName || '상세페이지')}</title>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { max-width: 860px; margin: 0 auto; background: #fff; font-size: 0; }</style>
+</head>
+<body>
+  <!-- Flik 생성 · ${escHtml(meta)} -->
+${imgsHtml}
+</body>
+</html>`;
+      const blob = new Blob([slideHtml], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      return true;
+    }
+
     // 블록 이미지 압축본으로 추출 (800px / JPEG 0.7)
     const rawBlockUrls: Record<string, string> = {};
     for (const [k, st] of Object.entries(blockImgMap)) {
@@ -377,7 +419,7 @@ export async function downloadHtml(
   </style>
 </head>
 <body>
-  <div class="meta">Flik 생성 · ${escHtml(meta)}</div>
+  <!-- Flik 생성 · ${escHtml(meta)} -->
 ${sectionsHtml}
 </body>
 </html>`;
@@ -1388,8 +1430,8 @@ export default function ResultScreen() {
   const handleHtmlDownload = async () => {
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
-    // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영)
-    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages);
+    // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영). 슬라이드형은 이미지만 스택.
+    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide);
     if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };
