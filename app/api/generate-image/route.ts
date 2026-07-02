@@ -107,7 +107,8 @@ export async function POST(req: NextRequest) {
   const isBlog = outputType === 'blog';
 
   const PRODUCT_RULES = hasRefImages
-    ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image.`
+    ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. ` +
+      `Do NOT change, translate, restyle, or re-write ANY label text — reproduce the reference label lettering exactly as-is, even if the scene description mentions a product name or ingredient in words.`
     : '';
   const COMPONENT_RULES = hasRefImages
     ? `Only depict the exact product(s) shown in the reference images. Never invent additional cosmetic containers, bottles, jars, or unrelated products. Props must be non-product objects only (stones, plants, water, fabric, trays).`
@@ -116,8 +117,8 @@ export async function POST(req: NextRequest) {
   // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.
   const isSlide = outputType === 'slide';
   const PEOPLE_RULES = isSlide
-    ? `A human model interacting with the product (holding, applying, or wearing it) is ALLOWED and encouraged ` +
-      `for hero/solution/CTA shots — editorial advertising style, like a premium beauty ad. ` +
+    ? `If the scene describes a model/person, you MUST render that model with a fully visible face (Korean beauty-ad ` +
+      `editorial, upper body) — do NOT crop out the face or substitute hands-only shots. ` +
       `The product in the model's hands MUST exactly match the reference product (same shape, color, label). ` +
       `(Face consistency across images is NOT required at this stage — a different face per cut is acceptable.)`
     : `Skin and body-part close-ups WITHOUT a recognizable face are allowed for emotion/situation ` +

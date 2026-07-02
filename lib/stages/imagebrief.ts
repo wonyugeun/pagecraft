@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import { buildV2ImageRules } from '@/lib/imagePromptRules';
+import { classifyCutArchetype, type CutArchetype } from '@/lib/sectionArchetype';
 
 /**
  * Stage4 V2 (이미지 브리프 생성) — image_mission("왜 이 사진이 필요한가") 우선 설계.
@@ -68,6 +69,8 @@ export interface ImagebriefInput {
   cat?: string;
   ch?: string;
   out?: string | null;
+  /** Stage1 큐레이션 팔레트(visualPalette) — 페이지 공통 색·무드로 전 섹션 prompt에 주입(AI 창작 아님) */
+  visual?: { primary_color?: string; accent_color?: string; soft_color?: string; mood?: string };
 }
 
 export interface ImagebriefResult {
@@ -75,36 +78,18 @@ export interface ImagebriefResult {
   meta: { cat: string; ch: string; out: string; outputTypeLabel: string; count: number };
 }
 
-/** 섹션 role/name/emotion_goal → 제품 노출 권장 비중 [min,max] (코드 가드).
- *  공감/원인 0~20, 솔루션 40~70, 신뢰 50~80, CTA 80~100. 미분류는 완만한 기본값. */
-type Archetype = 'empathy' | 'cause' | 'solution' | 'trust' | 'cta' | 'neutral';
-
-const ARCHETYPE_BAND: Record<Archetype, [number, number]> = {
-  empathy:  [0, 20],
-  cause:    [0, 20],
-  solution: [40, 70],
-  trust:    [50, 80],
-  cta:      [80, 100],
-  neutral:  [30, 90],
+/** 컷 아키타입(8종) → 제품 노출 권장 비중 [min,max] (코드 가드).
+ *  분류는 lib/sectionArchetype.ts(classifyCutArchetype) 공유 — slideBaked 레이아웃 분기와 동일 기준. */
+const ARCHETYPE_BAND: Record<CutArchetype, [number, number]> = {
+  hero:             [60, 100],
+  empathy:          [0, 20],
+  ingredient_macro: [10, 40],
+  texture:          [20, 60],
+  clinical:         [50, 80],
+  editorial:        [20, 60],
+  product_only:     [70, 100],
+  cta:              [80, 100],
 };
-
-const CTA_KEYS     = ['cta', '구매', '결제', '마무리', '결정', '클로징', '클릭'];
-const TRUST_KEYS   = ['신뢰', '인증', '테스트', '안전', '검증', '비교', '후기', '리뷰', '스펙', 'faq', '의심', '이의', '배지', '보증'];
-const EMPATHY_KEYS = ['공감', '고민', '일상', '불편', '걱정', '망설'];
-const CAUSE_KEYS   = ['원인', '이유', '왜'];
-const SOLUTION_KEYS = ['솔루션', '해결', '제형', '사용', '효과', '진정', '성분', '원료', '제안', '루틴', '텍스처', '체험'];
-
-function classifyArchetype(name = '', role = '', emotion = ''): Archetype {
-  const hay = `${name} ${role} ${emotion}`.toLowerCase();
-  const hit = (keys: string[]) => keys.some(k => hay.includes(k.toLowerCase()));
-  // CTA/신뢰를 솔루션 키워드보다 먼저 (구매·인증이 더 구체적 신호)
-  if (hit(CTA_KEYS))      return 'cta';
-  if (hit(TRUST_KEYS))    return 'trust';
-  if (hit(EMPATHY_KEYS))  return 'empathy';
-  if (hit(CAUSE_KEYS))    return 'cause';
-  if (hit(SOLUTION_KEYS)) return 'solution';
-  return 'neutral';
-}
 
 function clamp(n: number, min: number, max: number): number {
   if (!Number.isFinite(n)) return Math.round((min + max) / 2);
@@ -112,7 +97,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefResult> {
-  const { dna, strategy, sections, copy, cat, ch, out } = input;
+  const { dna, strategy, sections, copy, cat, ch, out, visual } = input;
   const plan: SectionPlan[] = sections;
 
   const category = cat || '화장품';
@@ -126,10 +111,18 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
   // V2 이미지 규칙 — image_mission 우선, 인물/날조/제품일관성/블로그 텍스트 가이드. 슬라이드형만 모델 허용.
   const imageRules = buildV2ImageRules(category, resolvedOut === 'slide');
 
-  // 섹션별 ratio를 코드에서 확정 (9:16 절대 없음)
-  const ratioByIdx = plan.map(s => aspectRatioFor(s.name));
+  // 섹션별 ratio를 코드에서 확정 (9:16 절대 없음. ★슬라이드형은 전 섹션 4:5 고정 — 카드 스택 일관성)
+  const ratioByIdx = plan.map(s => aspectRatioFor(s.name, undefined, resolvedOut));
+  // ★섹션별 컷 아키타입(8종) — 첫 섹션은 무조건 hero. 브리프 장면 지시 + visibility 밴드 양쪽에 사용.
+  const archetypeByIdx: CutArchetype[] = plan.map((s, i) =>
+    i === 0 ? 'hero' : classifyCutArchetype(s.name, s.role, s.emotion_goal));
   // 섹션별 제품 노출 권장 비중 [min,max] (코드 가드 — Claude 응답을 이 범위로 clamp)
-  const bandByIdx = plan.map(s => ARCHETYPE_BAND[classifyArchetype(s.name, s.role, s.emotion_goal)]);
+  const bandByIdx = archetypeByIdx.map(a => ARCHETYPE_BAND[a]);
+
+  // ★페이지 공통 팔레트 — Stage1 큐레이션 hex(visualPalette)를 값으로 주입(임의 창작 아님). 색·조명 페이지 통일.
+  const paletteLine = visual?.primary_color
+    ? `\n- ⭐페이지 팔레트(전 섹션의 palette 필드가 이 색 계열을 준수 — 섹션마다 색이 튀면 실패): main ${visual.primary_color}, accent ${visual.accent_color ?? ''}, soft ${visual.soft_color ?? ''}${visual.mood ? `, mood: ${visual.mood}` : ''}. 조명(light)도 페이지 전체 한 가지 톤으로 정해 모든 섹션 prompt에 동일하게 기술하세요(예: soft diffused daylight).`
+    : '';
 
   const strategyBlock = `[이 페이지의 전략 — 이미지 무드·색조가 이 톤을 일관되게 따라야 합니다]
 - 컨셉: ${strategy.concept || '(없음)'}
@@ -137,11 +130,13 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
 - 설득 흐름: ${strategy.story_flow || '(없음)'}
 ${dna?.main_weapon ? `- 핵심 무기: ${dna.main_weapon}` : ''}
 ${targetDesire ? `- ⭐target_desire(페이지 전체가 반복 환기할 욕구, 단 같은 장면 반복 금지): ${targetDesire}` : ''}
-${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targetFear}` : ''}`;
+${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targetFear}` : ''}${paletteLine}`;
 
   const formNote = isBlogOutput
     ? '이 페이지는 블로그형입니다 — 이미지는 텍스트 오버레이가 없는 깨끗한 사진/연출이어야 합니다. prompt에 카피 문구·타이포그래피·숫자 오버레이를 절대 묘사하지 마세요(제품 자체 라벨은 reference 그대로).'
-    : '이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성(baked)이 허용됩니다. 제품을 주인공으로, 상단에 헤드라인 카피가 자연스럽게 얹힐 수 있는 광고 레이아웃으로 연출하세요. (실제 헤드라인 텍스트는 생성 단계에서 한글로 합성됩니다 — 여기선 글자 자체를 prompt에 적지 말고, 광고컷 구도/무드/여백 배치만 지시.)';
+    : `이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성(baked)이 허용됩니다. ⚠️단일 구도를 반복하지 마세요 — 각 섹션에 지정된 컷 아키타입(archetype)에 맞는 장면을 설계하세요:
+· hero=모델+제품 화보 / empathy=라이프스타일 상황(제품 조연) / ingredient_macro=원료 클로즈업(제품은 소품) / texture=제형·발림 클로즈업 / clinical=신뢰·검증 미니멀 스튜디오 / editorial=브랜드 무드컷 / product_only=제품 단독 스튜디오 / cta=모델+제품+구매 유도.
+인접 섹션과 archetype이 같으면(hero·cta 제외) 구도·카메라 거리·배경을 다르게 변주하세요. (실제 헤드라인 텍스트는 생성 단계에서 한글로 합성됩니다 — prompt에 글자를 적지 말고 장면·구도·여백만 지시.)`;
 
   console.log(`[imagebrief V2] cat=${category} ch=${channel} out=${resolvedOut} sections=${plan.length} desire="${targetDesire.slice(0, 24)}"`);
 
@@ -162,6 +157,7 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
    헤드라인(headline — 이 섹션의 핵심 감정 문장. body와 동급으로 반드시 반영, 무시 금지): ${c?.headline || '(없음)'}
    본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.slice(0, 280) : '(없음)'}
    제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
+   컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}
    고정 비율(ratio, 변경 금지): ${ratioByIdx[gi]}`;
     }).join('\n\n');
 
@@ -190,7 +186,9 @@ ${sectionList}
    - mood: 전략 tone + emotion을 영문 무드 키워드로.
    - palette: 영문 색조.
    - props: 비제품 소품만(식물·물방울·돌·천). reference에 없는 화장품 용기·구성품 금지.
-   - prompt: 위를 종합한 영문 이미지 프롬프트. "<natural English scene, 1~2 sentences> | shot: ..., light: ..., mood: ..., palette: ..., props: ..., surface: ...". 식별되는 동일 얼굴 금지(피부/손/신체일부는 허용). 인증·수치·시험·EWG·배지 묘사 금지. "portrait/vertical/9:16/tall" 금지.
+   - prompt: 위를 종합한 영문 이미지 프롬프트. "<natural English scene, 1~2 sentences> | shot: ..., light: ..., mood: ..., palette: ..., props: ..., surface: ...". ${isBlogOutput
+      ? '식별되는 동일 얼굴 금지(피부/손/신체일부는 허용).'
+      : '★archetype이 hero 또는 cta인 섹션의 prompt에는 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 영문으로 명시적으로 묘사하세요(예: "a Korean woman in her 20s holding the toner bottle, upper body, facing camera"). 그 외 archetype 섹션은 지정된 장면을 유지하세요(원료/제형/스튜디오 등 — 모델 없이). prompt에 제품명·라벨 문구를 새로 지어 적지 마세요(라벨은 reference 이미지가 결정).'} 인증·수치·시험·EWG·배지 묘사 금지. "portrait/vertical/9:16/tall" 금지.
 
 [출력 형식] — 다른 텍스트 없이 JSON 배열만, 길이 정확히 ${items.length}개:
 [

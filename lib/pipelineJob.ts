@@ -145,7 +145,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
       throw new PipelineJobError('strategy', e);
     }
   }
-  const { dna, strategy } = job.stages.strategy.result as StrategyResult;
+  const { dna, strategy, visual } = job.stages.strategy.result as StrategyResult;
 
   // ── 2) structure ──
   if (job.stages.structure.status === 'done') {
@@ -215,7 +215,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     const copySections = job.stages.copy.chunks.flatMap(c => c.result ?? []);
     try {
-      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out });
+      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual });
       if (r?.error) throw new Error(r.error);
       job.stages.imagebrief = { status: 'done', result: r as unknown as ImagebriefResult };
       await save({ stage: 'imagebrief', status: 'done' });

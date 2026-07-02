@@ -35,7 +35,10 @@ function matchByKeywords(name: string, keys: string[]): boolean {
   return keys.some(k => lower.includes(k.toLowerCase()));
 }
 
-export function aspectRatioFor(sectionName?: string, blockType?: string): ImageAspect {
+export function aspectRatioFor(sectionName?: string, blockType?: string, out?: string): ImageAspect {
+  // ★슬라이드형: 카드 스택이 한 세트로 보이도록 전 섹션 4:5 고정(크기 제각각 방지). 블로그·기타는 기존 로직.
+  if (out === 'slide') return '4:5';
+
   const name = (sectionName ?? '').trim();
 
   if (name) {

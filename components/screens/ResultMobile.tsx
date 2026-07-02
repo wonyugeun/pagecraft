@@ -16,6 +16,7 @@ import {
   EnhancedLightbox, downloadHtml, downloadMergedImage,
 } from './ResultScreen';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { classifyCutArchetype } from '@/lib/sectionArchetype';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -99,15 +100,16 @@ export default function ResultMobile() {
 
   // 데스크탑과 동일한 이미지 생성 함수
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
-    const aspect = aspectRatioFor(sec.name);
+    const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 = baked: 헤드라인+서브카피+하단 특징 스트립(셀러 입력 기반, 수치 게이트) 합성. 블로그는 텍스트 0.
+      // 슬라이드 = baked: archetype별 레이아웃(hero·cta=3층+특징 스트립, 그 외=상단 타이틀+장면). 블로그는 텍스트 0.
       const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
+      const archetype = classifyCutArchetype(sec.name);
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -21,9 +21,9 @@ export const IMAGE_DESC_FIELD_SPEC =
 export function buildV2ImageRules(cat: string, isSlide = false): string {
   const isCosmetics = cat.split('/')[0].trim() === '화장품';
 
-  // ★슬라이드형만 모델(제품 든/사용하는 인물) 허용 — 메디힐식 에디토리얼 광고컷. 블로그는 기존(얼굴 화보 금지) 유지.
+  // ★슬라이드형은 모델을 "지시"(허용이 아님) — 메디힐식 에디토리얼 광고컷. 블로그는 기존(얼굴 화보 금지) 유지.
   const peopleRule = isSlide
-    ? `- [인물 정책 — 슬라이드형] 모델(제품을 들거나 바르거나 착용한 인물)을 허용합니다. 히어로·솔루션·CTA 섹션은 모델+제품 에디토리얼 광고컷으로 연출하세요(얼굴 포함 가능). 모델이 든 제품은 reference 제품과 동일해야 합니다. (지금 단계는 얼굴 일관성 불필요 — 컷마다 얼굴이 달라도 됩니다.)`
+    ? `- [인물 정책 — 슬라이드형, ⚠️아래 감정별 변주 예시의 "no face" 문구보다 이 정책이 우선] archetype이 hero·cta인 섹션은 반드시 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 prompt에 명시적으로 묘사하세요 — 프리미엄 뷰티 광고 화보처럼. 그 외 archetype(원료/제형/스튜디오/무드컷)은 모델 없이 지정된 장면 유지(empathy는 상황 연출상 인물 등장 가능하되 제품이 조연). 모델이 든 제품은 reference 제품과 동일해야 합니다. (지금 단계는 얼굴 일관성 불필요 — 컷마다 얼굴이 달라도 됩니다.)`
     : `- [인물 정책] 얼굴 없는 피부 클로즈업(붉어진 볼·턱선·목), 손, 신체 일부, 따가운 순간·상황 연출은 허용합니다(감정 전달용). 단 식별되는 동일 인물의 얼굴 전체·브랜드 모델·착용 화보는 금지(향후 가상모델 시스템 담당).`;
 
   const cosmeticsGuide = isCosmetics
@@ -46,7 +46,7 @@ export function buildV2ImageRules(cat: string, isSlide = false): string {
 - ⭐target_desire를 페이지 전체에서 반복 환기하되 같은 장면 반복 금지 — 섹션마다 다른 상황·다른 연출로 변주.
 ${peopleRule}
 - [미입력 사실 날조 금지] 인증 마크·수치·시험 결과·EWG 등급·임상 데이터·그래프·배지를 이미지에 그리지 마세요(셀러 미입력 사실). "테스트/검증"은 임의 데이터가 아니라 clinical·clean한 "분위기"로만 표현.
-- [제품 일관성] 제품이 등장하는 컷은 reference 이미지의 제품과 동일한 형태·색·라벨·브랜드를 유지하세요(섹션이 달라도 같은 제품). reference에 없는 화장품 용기·구성품을 추가하지 마세요. 연출 소품은 비제품(돌·식물·물·천·트레이)만.
+- [제품 일관성] 제품이 등장하는 컷은 reference 이미지의 제품과 동일한 형태·색·라벨·브랜드를 유지하세요(섹션이 달라도 같은 제품). ⚠️prompt에 제품명·라벨 문구를 영문으로 지어 적지 마세요(예: "centella calming toner bottle" 금지 → "the toner bottle from the reference"로) — 라벨 텍스트는 reference 이미지가 결정하며, prompt에 적힌 제품명이 라벨을 덮어씁니다. reference에 없는 화장품 용기·구성품을 추가하지 마세요. 연출 소품은 비제품(돌·식물·물·천·트레이)만.
 - [블로그형] 이미지 안에 텍스트·문구·숫자·타이포그래피를 그리지 마세요(제품 자체의 reference 라벨만 유지). 깨끗한 사진.
 - ⚠️ "portrait/vertical/9:16/tall" 등 비율 표현 금지(비율은 시스템이 섹션별로 확정).
 - ⚠️ prompt는 반드시 영문(Gemini 미감 보존).${cosmeticsGuide}`;

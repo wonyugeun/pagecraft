@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
@@ -1157,16 +1158,17 @@ export default function ResultScreen() {
   const isBlog  = !isSlide && !isHtml;
 
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { slideHero?: boolean }) => {
-    const aspect = aspectRatioFor(sec.name);
+    const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 = baked: 헤드라인+서브카피+하단 특징 스트립(셀러 입력 기반, 수치 게이트)을 광고 레이아웃에 합성.
+      // 슬라이드 = baked: archetype별 레이아웃(hero·cta=3층+특징 스트립, 그 외=상단 타이틀+장면).
       // 블로그: 텍스트 0 깨끗한 사진. knownFacts=원입력(수치 검증 기준).
       const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
+      const archetype = opts?.slideHero ? 'hero' as const : classifyCutArchetype(sec.name);
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
