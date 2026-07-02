@@ -226,6 +226,10 @@ ${strategyBlock}
 
 ${formRule}
 
+[헤드라인·훅 변주 — 매 생성 다르게]
+- 헤드라인·서브카피·첫 문장(훅)은 생성마다 다른 각도로 쓰세요 — 질문형/선언형/공감형/반전형/수치·팩트형/장면묘사형 중 이 전략에 맞는 것을 선택하되, 가장 흔한 관용 표현("혹시 ~하지 않으셨나요?", "~로 고민이신가요?" 류)에 고정되지 마세요. 화자 가이드의 예시 문장은 예시일 뿐 정답이 아닙니다.
+- ⚠️변주는 표현(각도·어순·톤)만: 셀러 입력 팩트(성분·수치·기능·인증)는 정확히 유지하고, 변주를 이유로 새 사실·새 수치를 만들지 마세요.
+
 [작성할 섹션 — 순서·이름 그대로]
 ${sectionList}
 
@@ -255,10 +259,11 @@ ${COPY_PRINCIPLES}
   let lastErr = '';
   for (let attempt = 1; attempt <= COPY_MAX_ATTEMPTS; attempt++) {
     const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 16000,
-      system:     composedSystem,
-      messages:   [{ role: 'user', content: userPrompt }],
+      model:       'claude-sonnet-4-6',
+      max_tokens:  16000,
+      temperature: 1,   // 크리에이티브 변주 최대(API 기본값이나 의도 명시) — 팩트는 프롬프트 가드+factScrub이 지킴
+      system:      composedSystem,
+      messages:    [{ role: 'user', content: userPrompt }],
     });
 
     const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';

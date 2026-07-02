@@ -137,11 +137,11 @@ export function buildSlideBakedText(
     const allowDigits = (knownFacts ?? '').replace(/[,.\s]/g, '');
     const feats = extractFeatures(blocks, allowDigits);
     const featLine = feats.length
-      ? ` Feature points (bottom strip): render each as a minimal chip containing ONLY this short Korean label word, nothing else — ${feats.map(f => `"${f}"`).join(' · ')}. No sentences, no descriptions on the chips.`
+      ? ` Feature points (bottom band): render each item as a minimal thin-line icon with ONLY this short Korean label word beneath it, evenly spaced — ${feats.map(f => `"${f}"`).join(' · ')}. No sentences, no descriptions; do NOT draw outlined pill or capsule borders around the items.`
       : '';
     return [
       intro,
-      `Layout: an OVERSIZED display headline dominating the top third of the frame — bold Korean display typography at poster scale, with exactly ONE key word of the headline emphasized in ${accent} (the rest in near-black); the subcopy much smaller and lighter directly beneath it (strong size contrast); the product (and model if present) as the hero in the CENTER; the feature chips as a clean strip along the BOTTOM. Compose the top, middle and bottom areas so it reads as a complete, dense product advertisement — no large empty gaps.`,
+      `Layout: an OVERSIZED display headline dominating the top third of the frame — bold Korean display typography at poster scale, with exactly ONE key word of the headline emphasized in ${accent} (the rest in near-black); the subcopy much smaller and lighter directly beneath it (strong size contrast); the product (and model if present) as the hero in the CENTER; the feature items along the BOTTOM on a subtle translucent soft band that blends into the photo. Compose the top, middle and bottom areas so it reads as a complete, dense product advertisement — no large empty gaps.`,
       `${copyLine}${featLine}`,
       noFakeLine,
     ].join(' ');
