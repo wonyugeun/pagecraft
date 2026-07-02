@@ -16,6 +16,8 @@ import { NextRequest, NextResponse } from 'next/server';
  *   클라가 textZone을 보내지 않으면 동작 안 함. overlay로 되돌리려면 클라에서 textZone 재전송.
  */
 
+export const maxDuration = 300;   // high tier edits 1장 75~110s + 재시도 여유(타 route와 동일 기준)
+
 const MODEL   = 'gpt-image-2';
 const GEN_URL  = 'https://api.openai.com/v1/images/generations'; // ref 없음 폴백
 const EDIT_URL = 'https://api.openai.com/v1/images/edits';       // ref 있음(제품 사진)

@@ -17,6 +17,7 @@ import {
 } from './ResultScreen';
 import { buildSlideBakedText } from '@/lib/slideBaked';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
+import { runPool } from '@/lib/asyncPool';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -195,38 +196,22 @@ export default function ResultMobile() {
       setBlockImages({});
     }
 
-    const sleep = (ms: number) => new Promise<void>(r => {
-      const id = setTimeout(r, ms);
-      ctrl.signal.addEventListener('abort', () => { clearTimeout(id); r(); }, { once: true });
-    });
-
+    // ★동시 3장 워커 풀 — 데스크탑과 동일(순차 병목 해소). 실패 격리·취소 전파는 runPool+ctrl.signal.
     (async () => {
-      let count = 0;
-      for (let i = 0; i < displaySections.length; i++) {
-        if (ctrl.signal.aborted) break;
-        const sec = displaySections[i];
-
-        // 섹션 대표 이미지 — 블록 유무 무관 V2 브리프(sec.imageDesc)로 생성. 복원본 있으면 skip(과금 방지).
+      const tasks: Array<() => Promise<void>> = [];
+      displaySections.forEach(sec => {
+        // 섹션 대표 이미지 — 복원본 있으면 skip(재방문 과금 방지)
         if (sec.imageDesc && !restoredImages[sec.num]) {
-          if (count > 0) await sleep(3_000);
-          if (ctrl.signal.aborted) break;
-          await generateImage(sec, ctrl.signal);
-          count++;
+          tasks.push(() => generateImage(sec, ctrl.signal));
         }
-
         // 이미지 타입 블록(있으면) 추가 생성 — 현재 Stage3엔 없지만 호환 유지
-        if (sec.blocks?.length) {
-          for (let bi = 0; bi < sec.blocks.length; bi++) {
-            if (ctrl.signal.aborted) break;
-            const block = sec.blocks[bi];
-            if (block.type !== 'image') continue;
-            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
-            if (count > 0) await sleep(3_000);
-            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
-            count++;
-          }
-        }
-      }
+        sec.blocks?.forEach((block, bi) => {
+          if (block.type !== 'image') return;
+          if (restoredBlockImages[`${sec.num}#${bi}`]) return;
+          tasks.push(() => generateBlockImage(sec, bi, block.desc, ctrl.signal));
+        });
+      });
+      await runPool(tasks, 3, ctrl.signal);
     })();
 
     return () => { ctrl.abort(); };

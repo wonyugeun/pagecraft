@@ -8,6 +8,7 @@ import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
+import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
@@ -1299,40 +1300,23 @@ export default function ResultScreen() {
       setBlockImages({});
     }
 
-    const sleep = (ms: number) => new Promise<void>(r => {
-      const id = setTimeout(r, ms);
-      ctrl.signal.addEventListener('abort', () => { clearTimeout(id); r(); }, { once: true });
-    });
-
+    // ★동시 3장 워커 풀 — 순차(장당 ~90s × N + 3s 간격) 병목 해소. 장당 완료 즉시 state 반영 +
+    //   증분 IndexedDB 저장은 기존 구조 그대로. 실패는 장 단위 격리, 취소는 ctrl.signal이 풀·fetch에 전파.
     (async () => {
-      let count = 0;
-      for (let i = 0; i < displaySections.length; i++) {
-        if (ctrl.signal.aborted) break;
-        const sec = displaySections[i];
-
-        // 섹션 대표 이미지 — 블록 유무와 무관하게 V2 브리프(sec.imageDesc)로 생성.
-        // 이미 복원된(저장된) 이미지가 있으면 재생성하지 않는다(재방문 과금 방지).
+      const tasks: Array<() => Promise<void>> = [];
+      displaySections.forEach((sec, i) => {
+        // 섹션 대표 이미지 — 복원본 있으면 skip(재방문 과금 방지). 슬라이드 첫 섹션은 Hero 옵션.
         if (sec.imageDesc && !restoredImages[sec.num]) {
-          if (count > 0) await sleep(3_000);
-          if (ctrl.signal.aborted) break;
-          // 슬라이드 첫 섹션(Hero)만 overlay 방식(텍스트 안 굽고 상단 여백 확보). 나머지는 기존 baked.
-          await generateImage(sec, ctrl.signal, { slideHero: isSlide && i === 0 });
-          count++;
+          tasks.push(() => generateImage(sec, ctrl.signal, { slideHero: isSlide && i === 0 }));
         }
-
-        // 이미지 타입 블록이 있으면 추가 생성(현재 Stage3는 image 블록을 만들지 않지만 호환 유지)
-        if (sec.blocks?.length) {
-          for (let bi = 0; bi < sec.blocks.length; bi++) {
-            if (ctrl.signal.aborted) break;
-            const block = sec.blocks[bi];
-            if (block.type !== 'image') continue;
-            if (restoredBlockImages[`${sec.num}#${bi}`]) continue;
-            if (count > 0) await sleep(3_000);
-            await generateBlockImage(sec, bi, block.desc, ctrl.signal);
-            count++;
-          }
-        }
-      }
+        // 이미지 타입 블록(있으면) 추가 생성 — 현재 Stage3엔 없지만 호환 유지
+        sec.blocks?.forEach((block, bi) => {
+          if (block.type !== 'image') return;
+          if (restoredBlockImages[`${sec.num}#${bi}`]) return;
+          tasks.push(() => generateBlockImage(sec, bi, block.desc, ctrl.signal));
+        });
+      });
+      await runPool(tasks, 3, ctrl.signal);
     })();
 
     return () => { ctrl.abort(); };
