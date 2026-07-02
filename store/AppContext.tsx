@@ -3,6 +3,26 @@
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import { saveImages, patchImages, mergeImages, getImages, deleteImages } from '@/lib/historyDB';
+import { compressMap } from '@/lib/imageCompress';
+
+/** 제품 사진(reference) 압축 헬퍼 — compressMap(Record 기반)을 배열에 씌움. 실패 시 원본 유지(보수적). */
+async function compressProductImages(images: string[]): Promise<string[]> {
+  try {
+    const rec: Record<string, string> = {};
+    images.forEach((u, i) => { rec[String(i)] = u; });
+    const c = await compressMap(rec);
+    return images.map((u, i) => c[String(i)] ?? u);
+  } catch { return images; }
+}
+
+/** 같은 탭 세션 식별자 — '__session__' 스냅샷을 이 탭의 새로고침에서만 복원(타 제품 오염 방지) */
+function getSessionId(): string {
+  try {
+    let sid = sessionStorage.getItem('pc_session_id');
+    if (!sid) { sid = crypto.randomUUID(); sessionStorage.setItem('pc_session_id', sid); }
+    return sid;
+  } catch { return 'no-session'; }
+}
 
 export type ScreenId =
   | 's0' | 's-dash' | 's-quick' | 's-thumb'
@@ -345,6 +365,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn('[saveHistory] localStorage 저장 실패:', e);
       }
+      // ★제품 사진(edits reference)도 기록에 압축 보존 — 재방문 재생성 시 reference 소실(경쟁 브랜드 유출) 방지
+      if (productImages.length > 0) {
+        (async () => {
+          try {
+            const compressed = await compressProductImages(productImages);
+            await patchImages(newItem.id, { productImages: compressed });
+          } catch (e) {
+            console.warn('[saveHistory] productImages 보존 실패(기록 텍스트는 정상):', e);
+          }
+        })();
+      }
     } catch {
       // JSON 파싱 실패 등 — 무시
     }
@@ -416,6 +447,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (stored?.sectionImages) secImgs = { ...secImgs, ...stored.sectionImages };
         if (stored?.blockImages)   blkImgs = { ...blkImgs, ...stored.blockImages };
         if (stored?.sectionOverrides) overrides = stored.sectionOverrides;
+        // ★제품 사진(reference) 복원 — 재방문 재생성이 다시 edits를 타게(위 동기부의 [] 초기화를 여기서 대체)
+        if (stored?.productImages?.length) setProductImagesState(stored.productImages);
       } catch (e) {
         console.warn('[loadFromHistory] IndexedDB 읽기 실패 — 텍스트 기록만 복원:', e);
       }
@@ -530,6 +563,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
     if (Array.isArray(p.aiSelections)) setAiSelections(p.aiSelections as string[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ★제품 사진(reference) 세션 스냅샷 — sessionStorage 용량 한계로 미포함이던 productImages를
+  //   IndexedDB('__session__' 레코드)에 압축 보존. 새로고침 후 재생성이 reference 없이(generations 폴백)
+  //   경쟁 브랜드를 그리던 붕괴의 재발 방지.
+  useEffect(() => {
+    if (!didRestoreRef.current) return;          // 복원 완료 전 저장 차단(기존 didRestoreRef 패턴과 동일)
+    if (productImages.length === 0) return;
+    (async () => {
+      try {
+        const compressed = await compressProductImages(productImages);
+        await patchImages('__session__', { productImages: compressed, sessionId: getSessionId() });
+      } catch { /* 시크릿 모드 등 IndexedDB 불가 — 무시(다른 방어층이 있음) */ }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productImages]);
+
+  // 복원(mount 1회) — 같은 탭 세션(sessionId 일치)일 때만. 새 탭/다른 날 방문에 이전 제품 사진이 새면 안 됨.
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await getImages('__session__');
+        if (stored?.productImages?.length && stored.sessionId === getSessionId()) {
+          setProductImagesState(prev => (prev.length ? prev : stored.productImages!));
+        }
+      } catch { /* no-op */ }
+    })();
   }, []);
 
   // 브라우저 뒤로가기/앞으로가기 처리

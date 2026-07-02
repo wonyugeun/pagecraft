@@ -107,6 +107,19 @@ export async function POST(req: NextRequest) {
   const refImages = (productImages ?? []).filter(s => typeof s === 'string' && s.length > 0).slice(0, MAX_REF_IMAGES);
   const hasRefImages = refImages.length > 0;
   const isBlog = outputType === 'blog';
+  const isSlide = outputType === 'slide';
+
+  // ★슬라이드 + reference 없음 = 무경고 generations 폴백 금지 — 제품 일관성이 필수인 슬라이드에서
+  //   ref 없이 생성하면 모델이 실존 경쟁 브랜드를 그릴 수 있음(법적 리스크). OpenAI 호출 전 차단(무과금).
+  //   블로그형은 기존대로 ref 없이도 허용(텍스트0 조연 컷이라 제품 미등장 가능).
+  if (isSlide && !hasRefImages) {
+    console.warn(`[generate-image] 차단 — 슬라이드인데 refImgs=0 (sectionNum: ${sectionNum}). 제품 사진 유실 의심.`);
+    return errJson(
+      '제품 사진이 유실되었습니다 — 상품정보 단계에서 제품 사진을 다시 업로드한 뒤 재생성해 주세요.',
+      { sectionNum, code: 'ref_missing' },
+      422,
+    );
+  }
 
   const PRODUCT_RULES = hasRefImages
     ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. ` +
@@ -117,7 +130,6 @@ export async function POST(req: NextRequest) {
     : '';
 
   // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.
-  const isSlide = outputType === 'slide';
   const PEOPLE_RULES = isSlide
     ? `If the scene describes a model/person, you MUST render that model with a fully visible face (Korean beauty-ad ` +
       `editorial, upper body) — do NOT crop out the face or substitute hands-only shots. ` +

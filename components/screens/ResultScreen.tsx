@@ -458,7 +458,7 @@ const THUMB_SIZES: Record<string, string> = {
 };
 
 /* ─── 이미지 상태 ─── */
-export type ImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
+export type ImgState = { loading: boolean; url: string | null; error: boolean; errorMsg?: string; aspectRatio?: string };
 export const EMPTY_IMG: ImgState = { loading: false, url: null, error: false };
 
 /* ─── 향상된 라이트박스 (prev/next + keyboard) ─── */
@@ -576,7 +576,7 @@ function ImgSlot({
           <div style={{ fontSize: 28 }}>📸</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>{sec.imageLabel}</div>
           {!error && <div style={{ marginTop: 8, fontSize: 11, padding: '4px 12px', background: genBg, color: '#3b82f6', borderRadius: 20, fontWeight: 600 }}>✦ 클릭하여 재생성</div>}
-          {error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>생성 실패 — 클릭하여 재시도</div>}
+          {error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4, padding: '0 12px', textAlign: 'center', lineHeight: 1.5 }}>{imgState.errorMsg ?? '생성 실패 — 클릭하여 재시도'}</div>}
         </>
       )}
     </div>
@@ -1230,7 +1230,9 @@ export default function ResultScreen() {
       if (data.imageBase64) {
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
+        // 서버 안내문(예: ref_missing "제품 사진 유실 — 재업로드 필요")을 슬롯에 그대로 노출
+        const errorMsg = typeof data.error === 'string' ? data.error : undefined;
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg, aspectRatio: aspect } }));
       }
     } catch (err) {
       if (signal.aborted) return;

@@ -127,7 +127,9 @@ export default function ResultMobile() {
       if (data.imageBase64) {
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
+        // 서버 안내문(예: ref_missing "제품 사진 유실 — 재업로드 필요")을 슬롯에 그대로 노출
+        const errorMsg = typeof data.error === 'string' ? data.error : undefined;
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg, aspectRatio: aspect } }));
       }
     } catch {
       if (signal.aborted) return;
