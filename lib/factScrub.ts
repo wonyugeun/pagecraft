@@ -30,6 +30,32 @@ function stripRatings(text: string): string {
     .replace(/\d(?:\.\d)?\s*점\s*만점/g, '');                                 // "5점 만점"
 }
 
+/* ── 미검증 '주장형' 수치 그물 — slideBaked 수치 게이트와 동일 원칙(다자리 연속매칭) ──
+ * 대상: 퍼센트(만족도 97%)·배수(2배 보습)·기간 주장(48시간 지속/2주 만에).
+ * 비주장 수치(하루 2번·3단계·1+1)는 건드리지 않는다(카피 품질 보존).
+ * 제거는 라인째(v5 호흡 = 짧은 줄 단위) — 수치만 빼서 어색한 빈자리를 만들지 않는다. */
+/** knownFacts의 숫자 토큰 Set — 정확 매칭용("2배"의 "2"가 "200ml"의 부분 문자열로 오통과하지 않게) */
+function collectFactNumbers(allow: string): Set<string> {
+  return new Set((allow.match(/\d[\d,.]*\d|\d/g) ?? []).map(n => n.replace(/[,.]/g, '')));
+}
+
+function hasFabricatedClaimNumber(line: string, factNums: Set<string>): boolean {
+  const bad = (num: string) => !factNums.has(num.replace(/[,.]/g, ''));
+  // 퍼센트·배수 — 수치 자체가 주장(만족도/개선율/보습력 등)
+  for (const re of [/(\d+(?:[.,]\d+)?)\s*%/g, /(\d+(?:[.,]\d+)?)\s*배/g]) {
+    for (const m of line.matchAll(re)) {
+      if (bad(m[1])) return true;
+    }
+  }
+  // 기간 주장 — 숫자+기간 단위가 지속/유지/만에와 함께 쓰일 때만(배송·사용법 수치 오제거 방지)
+  if (/(지속|유지|만에)/.test(line)) {
+    for (const m of line.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:시간|일|주일|주|개월|년)/g)) {
+      if (bad(m[1])) return true;
+    }
+  }
+  return false;
+}
+
 // 1인칭 과거형 경험담 라인 제거용 — 1인칭 marker와 과거 경험/칭찬을 '동시' 충족할 때만(오제거 최소화).
 // 미래형 시나리오("만족하실 거예요")·대화체("~하지 않으셨나요?")·"우리 아이가 좋아하는 이유"는 걸리지 않는다.
 const FIRST_PERSON = /저는|제가|우리\s*아이가|샀는데|샀어요|써\s*봤|써봤|사용해\s*봤|사용해봤|구매했|재구매/;
@@ -67,7 +93,11 @@ export function scrubText(text: string | undefined, allow: string): string {
     }
   }
 
-  // 4) 가짜 후기/별점 — 셀러 실제 후기 미입력 시에만: 별점 표기 + 1인칭 과거 경험담 라인 제거.
+  // 4) 미검증 주장형 수치(%·배·기간지속) — 라인째 드롭. 셀러 입력 수치(200ml·24,000원·할인율 등)는 통과.
+  const factNums = collectFactNumbers(allow);
+  out = out.split('\n').filter(l => !hasFabricatedClaimNumber(l, factNums)).join('\n');
+
+  // 5) 가짜 후기/별점 — 셀러 실제 후기 미입력 시에만: 별점 표기 + 1인칭 과거 경험담 라인 제거.
   //    (실제 후기 있으면 skip → 오제거 방지. 미래형 시나리오·대화체는 조건 미충족이라 보존.)
   if (!sellerHasReviews(allow)) {
     out = stripRatings(out);
