@@ -2,7 +2,10 @@ import Anthropic from '@anthropic-ai/sdk';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import { buildV2ImageRules } from '@/lib/imagePromptRules';
-import { classifyCutArchetype, type CutArchetype } from '@/lib/sectionArchetype';
+import {
+  classifyCutArchetype, assignCompositions, type CutArchetype,
+  ARCHETYPE_INTENSITY, COMPOSITION_PHRASES, INTENSITY_PHRASES,
+} from '@/lib/sectionArchetype';
 
 /**
  * Stage4 V2 (이미지 브리프 생성) — image_mission("왜 이 사진이 필요한가") 우선 설계.
@@ -59,6 +62,8 @@ export interface Brief {
   palette: string;
   props: string;
   prompt: string;
+  /** 구도(enum, 코드 배정 — 슬라이드형만. 인접 섹션 중복 없음) */
+  composition?: string;
 }
 
 export interface ImagebriefInput {
@@ -118,6 +123,10 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
     i === 0 ? 'hero' : classifyCutArchetype(s.name, s.role, s.emotion_goal));
   // 섹션별 제품 노출 권장 비중 [min,max] (코드 가드 — Claude 응답을 이 범위로 clamp)
   const bandByIdx = archetypeByIdx.map(a => ARCHETYPE_BAND[a]);
+  // ★구도·강도(enum 고정, 코드 배정 — 슬라이드형만 주입): 인접 중복 없는 구도 순회 + 강-약-강 리듬
+  const isSlideOut = resolvedOut === 'slide';
+  const compositionByIdx = assignCompositions(archetypeByIdx);
+  const intensityByIdx = archetypeByIdx.map(a => ARCHETYPE_INTENSITY[a]);
 
   // ★페이지 공통 팔레트 — Stage1 큐레이션 hex(visualPalette)를 값으로 주입(임의 창작 아님). 색·조명 페이지 통일.
   const paletteLine = visual?.primary_color
@@ -136,7 +145,7 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
     ? '이 페이지는 블로그형입니다 — 이미지는 텍스트 오버레이가 없는 깨끗한 사진/연출이어야 합니다. prompt에 카피 문구·타이포그래피·숫자 오버레이를 절대 묘사하지 마세요(제품 자체 라벨은 reference 그대로).'
     : `이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성(baked)이 허용됩니다. ⚠️단일 구도를 반복하지 마세요 — 각 섹션에 지정된 컷 아키타입(archetype)에 맞는 장면을 설계하세요:
 · hero=모델+제품 화보 / empathy=라이프스타일 상황(제품 조연) / ingredient_macro=원료 클로즈업(제품은 소품) / texture=제형·발림 클로즈업 / clinical=신뢰·검증 미니멀 스튜디오 / editorial=브랜드 무드컷 / product_only=제품 단독 스튜디오 / cta=모델+제품+구매 유도.
-인접 섹션과 archetype이 같으면(hero·cta 제외) 구도·카메라 거리·배경을 다르게 변주하세요. (실제 헤드라인 텍스트는 생성 단계에서 한글로 합성됩니다 — prompt에 글자를 적지 말고 장면·구도·여백만 지시.)`;
+인접 섹션과 archetype이 같으면(hero·cta 제외) 구도·카메라 거리·배경을 다르게 변주하세요. 페이지 전체가 강-약-강 리듬으로 읽히도록, 각 섹션에 지정된 연출 강도(intensity: strong/medium/quiet)를 그대로 따르세요(quiet=미니멀·여백·소품 최소·차분한 조명, strong=임팩트·밀도 높은 연출). (실제 헤드라인 텍스트는 생성 단계에서 한글로 합성됩니다 — prompt에 글자를 적지 말고 장면·구도·여백만 지시.)`;
 
   console.log(`[imagebrief V2] cat=${category} ch=${channel} out=${resolvedOut} sections=${plan.length} desire="${targetDesire.slice(0, 24)}"`);
 
@@ -157,7 +166,9 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
    헤드라인(headline — 이 섹션의 핵심 감정 문장. body와 동급으로 반드시 반영, 무시 금지): ${c?.headline || '(없음)'}
    본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.slice(0, 280) : '(없음)'}
    제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
-   컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}
+   컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}${isSlideOut ? `
+   구도(composition, 변경 금지 — prompt의 shot에 이 구도를 그대로 반영): ${compositionByIdx[gi]}
+   연출 강도(intensity — 장면 밀도·소품·조명을 이 강도로): ${intensityByIdx[gi]}` : ''}
    고정 비율(ratio, 변경 금지): ${ratioByIdx[gi]}`;
     }).join('\n\n');
 
@@ -260,6 +271,11 @@ ${sectionList}
         product_visibility: clamp(rawVis, vmin, vmax),  // ← 코드 가드: 섹션 role 기반 비중으로 강제
         visual_priority:    Array.isArray(im.visual_priority) ? im.visual_priority.map(String) : [],
       };
+      // ★구도·강도는 코드가 확정(enum) — 슬라이드형은 prompt 끝에 영문 지시로 강제 주입(모델 응답 미신뢰)
+      const basePrompt = typeof s.prompt === 'string' ? s.prompt : '';
+      const finalPrompt = isSlideOut && basePrompt
+        ? `${basePrompt} | composition: ${COMPOSITION_PHRASES[compositionByIdx[gi]]}. ${INTENSITY_PHRASES[intensityByIdx[gi]]}`
+        : basePrompt;
       return {
         section:       typeof s.section === 'string' ? s.section : (items[j]?.name ?? ''),
         ratio:         ratioByIdx[gi],
@@ -268,7 +284,8 @@ ${sectionList}
         mood:          typeof s.mood === 'string' ? s.mood : '',
         palette:       typeof s.palette === 'string' ? s.palette : '',
         props:         typeof s.props === 'string' ? s.props : '',
-        prompt:        typeof s.prompt === 'string' ? s.prompt : '',
+        prompt:        finalPrompt,
+        composition:   isSlideOut ? compositionByIdx[gi] : undefined,
       };
     });
   }

@@ -1210,7 +1210,7 @@ export default function ResultScreen() {
       const archetype = opts?.slideHero ? 'hero' as const : classifyCutArchetype(sec.name);
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

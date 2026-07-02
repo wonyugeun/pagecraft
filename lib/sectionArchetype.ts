@@ -40,3 +40,72 @@ export function classifyCutArchetype(name = '', role = '', emotion = ''): CutArc
   if (hit(EDITORIAL_KEYS))  return 'editorial';
   return 'product_only';
 }
+
+/* ── Composition(구도) — enum 고정 10종. 아키타입별 허용 구도에서 페이지 단위 순회 배정(인접 중복 금지). ── */
+export type Composition =
+  | 'center' | 'left_heavy' | 'right_heavy' | 'diagonal' | 'top_view'
+  | 'flat_lay' | 'extreme_closeup' | 'low_angle' | 'symmetric' | 'negative_space';
+
+export const ARCHETYPE_COMPOSITIONS: Record<CutArchetype, Composition[]> = {
+  hero:             ['center', 'left_heavy', 'right_heavy'],
+  empathy:          ['negative_space', 'left_heavy', 'right_heavy', 'diagonal'],
+  ingredient_macro: ['top_view', 'flat_lay', 'extreme_closeup', 'diagonal'],
+  texture:          ['extreme_closeup', 'top_view', 'diagonal'],
+  clinical:         ['symmetric', 'center', 'negative_space'],
+  editorial:        ['negative_space', 'diagonal', 'low_angle', 'left_heavy'],
+  product_only:     ['center', 'low_angle', 'symmetric', 'negative_space'],
+  cta:              ['center', 'symmetric', 'low_angle'],
+};
+
+/** 이미지 프롬프트에 주입할 영문 구도 지시 — enum당 고정 문구(자유 텍스트 금지) */
+export const COMPOSITION_PHRASES: Record<Composition, string> = {
+  center:          'centered subject, balanced framing',
+  left_heavy:      'subject weighted to the left third, open copy space on the right',
+  right_heavy:     'subject weighted to the right third, open copy space on the left',
+  diagonal:        'dynamic diagonal arrangement across the frame',
+  top_view:        'top-down 90-degree overhead view',
+  flat_lay:        'styled flat lay arrangement on a surface',
+  extreme_closeup: 'extreme macro close-up, subject fills the frame',
+  low_angle:       'low camera angle looking slightly up, monumental feel',
+  symmetric:       'strict symmetric composition on a centered axis',
+  negative_space:  'minimal composition with generous negative space',
+};
+
+/** 페이지 단위 구도 배정 — 아키타입별 허용 목록을 순회하되 인접 섹션 동일 구도 금지. */
+export function assignCompositions(archetypes: CutArchetype[]): Composition[] {
+  const counters: Partial<Record<CutArchetype, number>> = {};
+  const out: Composition[] = [];
+  for (let i = 0; i < archetypes.length; i++) {
+    const allowed = ARCHETYPE_COMPOSITIONS[archetypes[i]];
+    const start = counters[archetypes[i]] ?? 0;
+    let pick = allowed[start % allowed.length];
+    // 인접 중복 회피 — 허용 목록 안에서 다음 후보로 순회(전부 같으면 그대로)
+    for (let k = 1; k < allowed.length && out[i - 1] === pick; k++) {
+      pick = allowed[(start + k) % allowed.length];
+    }
+    counters[archetypes[i]] = start + 1;
+    out.push(pick);
+  }
+  return out;
+}
+
+/* ── Intensity(연출 강도) — 3단계 리듬. 페이지가 강-약-강으로 읽히게 아키타입에 고정 매핑. ── */
+export type Intensity = 'strong' | 'medium' | 'quiet';
+
+export const ARCHETYPE_INTENSITY: Record<CutArchetype, Intensity> = {
+  hero:             'strong',
+  cta:              'strong',
+  ingredient_macro: 'medium',
+  texture:          'medium',
+  clinical:         'medium',
+  empathy:          'quiet',
+  editorial:        'quiet',
+  product_only:     'quiet',
+};
+
+/** 이미지 프롬프트에 주입할 영문 강도 지시 — enum당 고정 문구 */
+export const INTENSITY_PHRASES: Record<Intensity, string> = {
+  strong: 'Styling intensity: strong — high-impact, densely styled, bold dramatic presence.',
+  medium: 'Styling intensity: medium — balanced editorial density.',
+  quiet:  'Styling intensity: quiet — minimal styling, abundant negative space, very few props, calm subdued lighting.',
+};
