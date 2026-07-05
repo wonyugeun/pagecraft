@@ -125,8 +125,12 @@ export async function POST(req: NextRequest) {
     ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. ` +
       `Do NOT change, translate, restyle, or re-write ANY label text — reproduce the reference label lettering exactly as-is, even if the scene description mentions a product name or ingredient in words.`
     : '';
+  // ★Fidelity A/B(갈치, 2026-07-05)에서 확인된 라벨 날조 차단 — 레퍼런스에 없는 소매 포장·라벨 스티커·
+  //   인쇄 라벨 문구를 제품 위에 창작하는 것 금지(무포장 원물은 무포장 그대로). 표시광고 리스크.
   const COMPONENT_RULES = hasRefImages
-    ? `Only depict the exact product(s) shown in the reference images. Never invent additional cosmetic containers, bottles, jars, or unrelated products. Props must be non-product objects only (stones, plants, water, fabric, trays).`
+    ? `Only depict the exact product(s) shown in the reference images. Never invent additional cosmetic containers, bottles, jars, or unrelated products. ` +
+      `Never invent retail packaging, label stickers, or printed label text that is not visible in the reference images — if the reference product is unpackaged, keep it unpackaged. ` +
+      `Props must be non-product objects only (stones, plants, water, fabric, trays).`
     : '';
 
   // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.

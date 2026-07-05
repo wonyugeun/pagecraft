@@ -308,38 +308,20 @@ export const LAYOUT_LIBRARY: LayoutSpec[] = [
 
 /** Scene → 추천 Layout 후보(배열 순서 = 우선순위). 미등록 scene은 DEFAULT_LAYOUT_CANDIDATES 폴백. */
 export const SCENE_LAYOUT_MAP: Record<string, string[]> = {
-  // ── hero ──
+  // ── hero (★다이어트 2차: Scene 15→6 축소에 맞춰 잔존 장면 키만 유지) ──
   hero_beauty:       ['hero_magazine', 'hero_center', 'hero_editorial'],
-  hero_editorial:    ['hero_editorial', 'hero_magazine', 'hero_left_copy'],
   hero_campaign:     ['hero_campaign', 'hero_split', 'hero_stacked'],
   hero_luxury:       ['hero_premium', 'hero_stacked', 'hero_center'],
   hero_lifestyle:    ['hero_lifestyle_scene', 'hero_split', 'hero_right_copy'],
-  hero_applying:     ['hero_magazine', 'hero_center', 'hero_campaign'],
   hero_clean:        ['hero_clean', 'hero_premium', 'hero_center'],
   hero_clinical:     ['hero_kpi_rail', 'hero_center', 'hero_clean'],
-  hero_soft:         ['hero_clean', 'hero_center', 'hero_stacked'],
-  hero_minimal:      ['hero_minimal_wide', 'hero_clean', 'hero_right_copy'],
-  hero_glass:        ['hero_premium', 'hero_center', 'hero_diagonal'],
-  hero_window_light: ['hero_lifestyle_scene', 'hero_diagonal', 'hero_left_copy'],
-  hero_morning:      ['hero_lifestyle_scene', 'hero_right_copy', 'hero_center'],
-  hero_reflection:   ['hero_magazine', 'hero_editorial', 'hero_center'],
-  hero_water:        ['hero_campaign', 'hero_diagonal', 'hero_center'],
   // ── ingredient_macro (모델 없는 컷 — 제품 단독·미니멀 지면 위주) ──
   ingredient_droplet:         ['hero_product_focus', 'hero_minimal_wide', 'hero_clean'],
   ingredient_botanical_fresh: ['hero_product_focus', 'hero_diagonal', 'hero_clean'],
-  ingredient_leaf_dew:        ['hero_minimal_wide', 'hero_clean', 'hero_product_focus'],
-  ingredient_flat_lay:        ['hero_stacked', 'hero_product_focus', 'hero_center'],
-  ingredient_powder_swirl:    ['hero_product_focus', 'hero_premium', 'hero_diagonal'],
   ingredient_lab_glass:       ['hero_kpi_rail', 'hero_product_focus', 'hero_clean'],
-  ingredient_petri:           ['hero_clean', 'hero_product_focus', 'hero_minimal_wide'],
   ingredient_oil_drop:        ['hero_premium', 'hero_product_focus', 'hero_minimal_wide'],
-  ingredient_water_infusion:  ['hero_clean', 'hero_diagonal', 'hero_product_focus'],
   ingredient_splash_crown:    ['hero_campaign', 'hero_product_focus', 'hero_diagonal'],
   ingredient_slice_cross:     ['hero_product_focus', 'hero_stacked', 'hero_clean'],
-  ingredient_ice_fresh:       ['hero_minimal_wide', 'hero_product_focus', 'hero_premium'],
-  ingredient_mortar_craft:    ['hero_lifestyle_scene', 'hero_product_focus', 'hero_stacked'],
-  ingredient_gel_particle:    ['hero_minimal_wide', 'hero_clean', 'hero_product_focus'],
-  ingredient_window_herb:     ['hero_lifestyle_scene', 'hero_left_copy', 'hero_product_focus'],
 };
 
 /** scene_id 미등록/미지정 시 폴백 후보 */

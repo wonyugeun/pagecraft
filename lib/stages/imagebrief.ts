@@ -6,18 +6,17 @@ import {
   classifyCutArchetype, assignCompositions, type CutArchetype,
   ARCHETYPE_INTENSITY,
   selectScene, sceneToPromptFragment,
-  SCENE_COMPOSITION_MAP, COMPOSITION_LIBRARY, buildDirectorSpec,
 } from '@/lib/sectionArchetype';
 import { buildPhysicalSizePrompt, resolveProductForm } from '@/lib/productPhysicalSize';
 import { selectLayout } from '@/lib/layoutLibrary';
-import { selectPose } from '@/lib/poseLibrary';
 import { composeBrief } from '@/lib/promptComposer';
 
 /** ★Scene Library 롤백 스위치 — 효과 없으면 false 한 줄로 즉시 원상복구(hero·ingredient_macro만 적용 중) */
 const USE_SCENE_LIBRARY = true;
-/** ★Director 체인 스위치 — true: Scene→Composition→DirectorSpec→자연문 프롬프트 / false: 기존 sceneToPromptFragment.
- *  (USE_SCENE_LIBRARY=false면 이 값과 무관하게 둘 다 꺼짐 — 2단 롤백) */
-const USE_DIRECTOR_PROMPT = true;
+/** ★Composer 스위치 — true: Scene+Layout+PhysicalSize→4블록 브리프(composeBrief) / false: 기존 sceneToPromptFragment.
+ *  (USE_SCENE_LIBRARY=false면 이 값과 무관하게 둘 다 꺼짐 — 2단 롤백)
+ *  ★다이어트 2차: Pose·Director·Composition(배치 설계도) 계층 삭제 — composeBrief가 director를 이미 미사용(A/B 검증). */
+const USE_COMPOSER_PROMPT = true;
 
 /**
  * Stage4 V2 (이미지 브리프 생성) — image_mission("왜 이 사진이 필요한가") 우선 설계.
@@ -156,38 +155,29 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
       ? selectScene(a, sceneInput)
       : null);
 
-  // ★Scene 프롬프트 조각 — Director 체인(Scene→Composition→DirectorSpec→자연문) 또는 기존 fragment(롤백).
-  //   Composition은 SCENE_COMPOSITION_MAP 우선순위 1부터, 같은 Scene이 페이지에 반복되면 후보를 순회(변주, 결정적).
+  // ★Scene 프롬프트 조각 — Composer(Scene+Layout+PhysicalSize→4블록 브리프) 또는 기존 fragment(롤백).
   // ★Physical Size Engine — 셀러가 형태 또는 용량을 지정한 경우에만 제품 맞춤 실물 크기 지시 생성
-  //   (미지정이면 undefined → Translator가 기존 범용 실물비율 블록 유지 = 안전 기본값)
+  //   (미지정이면 undefined → composeBrief의 범용 실물비율 폴백 = 안전 기본값)
   const physicalSize = (productForm || productVolume)
     ? buildPhysicalSizePrompt(resolveProductForm(productForm), productVolume || undefined, productShapeProfile || undefined)
     : undefined;
   if (physicalSize) console.log(`[imagebrief V2] physical size — form=${productForm || '(자동)'} vol=${productVolume || '(기본)'} shape=${productShapeProfile || '(자동)'}`);
 
-  const compById = new Map(COMPOSITION_LIBRARY.map(c => [c.composition_id, c]));
-  const sceneUseCount: Record<string, number> = {};
   const sceneFragByIdx: string[] = [];
   const pickLog: string[] = [];
   sceneByIdx.forEach((scene, i) => {
     if (!scene) { sceneFragByIdx.push(''); return; }
-    const mappings = USE_DIRECTOR_PROMPT ? (SCENE_COMPOSITION_MAP[scene.scene_id] ?? []) : [];
-    if (!mappings.length) {
-      // Director 오프 또는 매핑 없음 → 기존 Scene fragment (기존 구조 보존)
+    if (!USE_COMPOSER_PROMPT) {
+      // Composer 오프 → 기존 Scene fragment (롤백 경로 보존)
       sceneFragByIdx.push(sceneToPromptFragment(scene));
       pickLog.push(`${i + 1}:${scene.scene_id}`);
       return;
     }
-    const n = sceneUseCount[scene.scene_id] ?? 0;
-    sceneUseCount[scene.scene_id] = n + 1;
-    const comp = compById.get(mappings[n % mappings.length].composition_id)!;
-    // ★Prompt Composer 호출부 — 5계층(Scene·Layout·Pose·Director·PhysicalSize)을 브리프 1개로 압축.
+    // ★Prompt Composer 호출부 — 3계층(Scene·Layout·PhysicalSize)을 브리프 1개로 압축.
     const layout = selectLayout({ ...sceneInput, scene_id: scene.scene_id });
-    const pose = selectPose({ ...sceneInput, scene_id: scene.scene_id, layout_id: layout.layout_id });
-    const composeInput = { scene, layout, pose, director: buildDirectorSpec(scene, comp), physicalSize };
-    const brief = composeBrief(composeInput);
+    const brief = composeBrief({ scene, layout, physicalSize });
     sceneFragByIdx.push(` | brief: ${brief}`);
-    pickLog.push(`${i + 1}:${scene.scene_id}→${comp.composition_id}/${layout.layout_id}/${pose.pose_id}`);
+    pickLog.push(`${i + 1}:${scene.scene_id}→${layout.layout_id}`);
   });
   if (pickLog.length) console.log(`[imagebrief V2] scene picks — ${pickLog.join(' ')}`);
 

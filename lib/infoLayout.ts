@@ -64,7 +64,8 @@ export interface InfoLayoutInput {
 const PRODUCT_VIEWPOINTS: string[] = [
   'a straight-on front view at eye level',
   'a 45-degree three-quarter angle',
-  'a low camera angle looking slightly up, giving the product a monumental presence',
+  // ★카메라 프로브(2026-07-05): 'looking slightly up'은 미발현(아이레벨로 회귀) — 카메라 물리 위치를 명시해 강화
+  'a dramatic low-angle shot, the camera physically placed below the product base looking up — the product towers over the viewer with visible upward foreshortening',
   'a top-down flat-lay arrangement seen from directly above',
   'a close-up detail crop framing only the upper half of the product',
   'the product standing on a glossy reflective surface with a clean mirror reflection beneath it',

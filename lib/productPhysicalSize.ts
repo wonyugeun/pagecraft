@@ -251,21 +251,11 @@ export function getPhysicalSize(form: ProductForm, volume?: ProductVolume | stri
   };
 }
 
-/** 형태+용량 → 프롬프트용 자연어 크기 지시(★digit-free — cm 등 숫자 절대 미포함, 명사는 형태별 자동). */
+/** 형태+용량 → 프롬프트용 자연어 크기 지시(★digit-free — cm 등 숫자 절대 미포함, 명사는 형태별 자동).
+ *  ★다이어트 2차: 6문장 → 핵심 1문장. 80장 기여도 감사에서 크기 오류 방지는
+ *  "손 대비 관계 + 과대 금지" 두 신호로 충분 — 실루엣·그립 서술은 발현 증거 없음. */
 export function buildPhysicalSizePrompt(form: ProductForm | string, volume?: string, shape?: ProductShapeProfile | string): string {
   const resolved = typeof form === 'string' && !(form in FORM_DB) ? resolveProductForm(form) : form as ProductForm;
   const s = getPhysicalSize(resolved, volume, shape);
-  const body = SHAPE_TRAITS[s.shape_profile].body;
-  // grip 절이 'it ...'로 시작하면 독립 문장으로, 'the fingers ...'처럼 도구 주어면 'When held,' 접두(중복 회피)
-  const gripSentence = s.grip_style.startsWith('it ')
-    ? `${s.grip_style.charAt(0).toUpperCase()}${s.grip_style.slice(1)}.`
-    : `When held, ${s.grip_style}.`;
-  return [
-    `Use realistic real-world product proportions.`,
-    `The ${s.noun} has ${body} and should appear at its natural physical size — it ${s.hand_relation}.`,
-    gripSentence,
-    `The product ${s.face_relation}.`,
-    `It should feel like a real commercial ${s.noun} photographed in a professional shoot.`,
-    `Avoid oversized product rendering; do not enlarge the product for dramatic emphasis.`,
-  ].join(' ');
+  return `The ${s.noun} appears at its realistic real-world size — it ${s.hand_relation}, and ${s.face_relation}; never enlarge the product for dramatic emphasis.`;
 }
