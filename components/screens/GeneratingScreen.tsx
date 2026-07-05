@@ -175,7 +175,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, productForm, productVolume, productShapeProfile } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -208,7 +208,7 @@ export default function GeneratingScreen() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false },
+        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
         {
           resume,
           isCancelled: () => cancelledRef.current,

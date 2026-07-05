@@ -7,6 +7,8 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { selectPageStyle } from '@/lib/pageStyleContract';
+import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
@@ -1209,9 +1211,23 @@ export default function ResultScreen() {
       // 블로그: 텍스트 0 깨끗한 사진. knownFacts=원입력(수치 검증 기준).
       const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
       const archetype = opts?.slideHero ? 'hero' as const : classifyCutArchetype(sec.name);
+      // 페이지 스타일 계약 — 결정적 선택(카테고리·무드·채널)이라 섹션마다 호출해도 페이지 내 항상 동일 = 전 섹션 상속
+      const pageStyle = selectPageStyle({ category: cat ?? undefined, channel: ch ?? undefined, moodText: knownFacts });
+      // InfoLayout 배정 — 페이지 전체 결정적 배정(인접 중복·고밀도 연속 방지)에서 이 섹션 몫을 조회
+      const infoLayouts = assignInfoLayouts(
+        sections.map((s, i) => ({ name: s.name, role: undefined, blocks: s.blocks, archetype: i === 0 ? 'hero' as const : classifyCutArchetype(s.name) })),
+        knownFacts,
+      );
+      const secIdx = sections.findIndex(x => x.num === sec.num);
+      const infoLayout = infoLayouts[secIdx] ?? 'scene_title';
+      // Viewpoint 축 — 제품 중심 섹션의 카메라 시점 순회(레이아웃과 독립, 결정적)
+      const pageArchetypes = sections.map((s, i) => i === 0 ? 'hero' as const : classifyCutArchetype(s.name));
+      const viewpoint = assignViewpoints(pageArchetypes, infoLayouts)[secIdx] || undefined;
+      const treatment = assignTreatments(pageArchetypes, infoLayouts)[secIdx] || undefined;
+      const lighting = assignLighting(pageArchetypes)[secIdx] || undefined;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1238,7 +1254,7 @@ export default function ResultScreen() {
       if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
-  }, [effectiveOut, productName, productExtra]);
+  }, [effectiveOut, productName, productExtra, cat, ch, sections]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;

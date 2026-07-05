@@ -5,7 +5,22 @@ import { buildV2ImageRules } from '@/lib/imagePromptRules';
 import {
   classifyCutArchetype, assignCompositions, type CutArchetype,
   ARCHETYPE_INTENSITY, COMPOSITION_PHRASES, INTENSITY_PHRASES,
+  selectScene, sceneToPromptFragment,
+  SCENE_COMPOSITION_MAP, COMPOSITION_LIBRARY, buildDirectorSpec,
 } from '@/lib/sectionArchetype';
+import { buildPhysicalSizePrompt, resolveProductForm } from '@/lib/productPhysicalSize';
+import { selectLayout } from '@/lib/layoutLibrary';
+import { selectPose } from '@/lib/poseLibrary';
+import { composeAdBrief, composeStructuredBrief } from '@/lib/promptComposer';
+
+/** ★Scene Library 롤백 스위치 — 효과 없으면 false 한 줄로 즉시 원상복구(hero·ingredient_macro만 적용 중) */
+const USE_SCENE_LIBRARY = true;
+/** ★Director 체인 스위치 — true: Scene→Composition→DirectorSpec→자연문 프롬프트 / false: 기존 sceneToPromptFragment.
+ *  (USE_SCENE_LIBRARY=false면 이 값과 무관하게 둘 다 꺼짐 — 2단 롤백) */
+const USE_DIRECTOR_PROMPT = true;
+/** ★A/B 실험 플래그(Task 21) — 'ad_brief'(자연문 브리프) | 'structured_brief'(섹션 라벨형).
+ *  A/B 후 승자만 남기고 패자 삭제 예정 — 커밋 금지 상태. */
+const PROMPT_MODE: 'ad_brief' | 'structured_brief' = 'ad_brief';
 
 /**
  * Stage4 V2 (이미지 브리프 생성) — image_mission("왜 이 사진이 필요한가") 우선 설계.
@@ -75,7 +90,11 @@ export interface ImagebriefInput {
   ch?: string;
   out?: string | null;
   /** Stage1 큐레이션 팔레트(visualPalette) — 페이지 공통 색·무드로 전 섹션 prompt에 주입(AI 창작 아님) */
-  visual?: { primary_color?: string; accent_color?: string; soft_color?: string; mood?: string };
+  visual?: { primary_color?: string; accent_color?: string; soft_color?: string; mood?: string; palette?: string };
+  /** Physical Size Engine 입력(선택) — 셀러가 형태/용량을 지정했을 때만 실물 크기 지시가 켜짐 */
+  productForm?: string;
+  productVolume?: string;
+  productShapeProfile?: string;
 }
 
 export interface ImagebriefResult {
@@ -102,7 +121,7 @@ function clamp(n: number, min: number, max: number): number {
 }
 
 export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefResult> {
-  const { dna, strategy, sections, copy, cat, ch, out, visual } = input;
+  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile } = input;
   const plan: SectionPlan[] = sections;
 
   const category = cat || '화장품';
@@ -127,6 +146,54 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
   const isSlideOut = resolvedOut === 'slide';
   const compositionByIdx = assignCompositions(archetypeByIdx);
   const intensityByIdx = archetypeByIdx.map(a => ARCHETYPE_INTENSITY[a]);
+
+  // ★Scene Library(hero·ingredient_macro만, 슬라이드만) — category/channel/palette/mood 점수 선택.
+  //   Texture 이하 아키타입은 라이브러리 미구축 → selectScene이 null 반환 = 기존 동작 그대로.
+  const sceneInput = {
+    category, channel,
+    palette: visual?.palette,
+    mood: [visual?.mood, typeof strategy.tone === 'string' ? strategy.tone : ''].filter(Boolean).join(' '),
+  };
+  const sceneByIdx = archetypeByIdx.map(a =>
+    USE_SCENE_LIBRARY && isSlideOut && (a === 'hero' || a === 'ingredient_macro')
+      ? selectScene(a, sceneInput)
+      : null);
+
+  // ★Scene 프롬프트 조각 — Director 체인(Scene→Composition→DirectorSpec→자연문) 또는 기존 fragment(롤백).
+  //   Composition은 SCENE_COMPOSITION_MAP 우선순위 1부터, 같은 Scene이 페이지에 반복되면 후보를 순회(변주, 결정적).
+  // ★Physical Size Engine — 셀러가 형태 또는 용량을 지정한 경우에만 제품 맞춤 실물 크기 지시 생성
+  //   (미지정이면 undefined → Translator가 기존 범용 실물비율 블록 유지 = 안전 기본값)
+  const physicalSize = (productForm || productVolume)
+    ? buildPhysicalSizePrompt(resolveProductForm(productForm), productVolume || undefined, productShapeProfile || undefined)
+    : undefined;
+  if (physicalSize) console.log(`[imagebrief V2] physical size — form=${productForm || '(자동)'} vol=${productVolume || '(기본)'} shape=${productShapeProfile || '(자동)'}`);
+
+  const compById = new Map(COMPOSITION_LIBRARY.map(c => [c.composition_id, c]));
+  const sceneUseCount: Record<string, number> = {};
+  const sceneFragByIdx: string[] = [];
+  const pickLog: string[] = [];
+  sceneByIdx.forEach((scene, i) => {
+    if (!scene) { sceneFragByIdx.push(''); return; }
+    const mappings = USE_DIRECTOR_PROMPT ? (SCENE_COMPOSITION_MAP[scene.scene_id] ?? []) : [];
+    if (!mappings.length) {
+      // Director 오프 또는 매핑 없음 → 기존 Scene fragment (기존 구조 보존)
+      sceneFragByIdx.push(sceneToPromptFragment(scene));
+      pickLog.push(`${i + 1}:${scene.scene_id}`);
+      return;
+    }
+    const n = sceneUseCount[scene.scene_id] ?? 0;
+    sceneUseCount[scene.scene_id] = n + 1;
+    const comp = compById.get(mappings[n % mappings.length].composition_id)!;
+    // ★Prompt Composer 호출부 — 5계층(Scene·Layout·Pose·Director·PhysicalSize)을 브리프 1개로 압축.
+    //   PROMPT_MODE로 자연문(ad_brief) vs 섹션 라벨형(structured_brief) A/B.
+    const layout = selectLayout({ ...sceneInput, scene_id: scene.scene_id });
+    const pose = selectPose({ ...sceneInput, scene_id: scene.scene_id, layout_id: layout.layout_id });
+    const composeInput = { scene, layout, pose, director: buildDirectorSpec(scene, comp), physicalSize };
+    const brief = PROMPT_MODE === 'structured_brief' ? composeStructuredBrief(composeInput) : composeAdBrief(composeInput);
+    sceneFragByIdx.push(` | brief: ${brief}`);
+    pickLog.push(`${i + 1}:${scene.scene_id}→${comp.composition_id}/${layout.layout_id}/${pose.pose_id}[${PROMPT_MODE}]`);
+  });
+  if (pickLog.length) console.log(`[imagebrief V2] scene picks — ${pickLog.join(' ')}`);
 
   // ★페이지 공통 팔레트 — Stage1 큐레이션 hex(visualPalette)를 값으로 주입(임의 창작 아님). 색·조명 페이지 통일.
   const paletteLine = visual?.primary_color
@@ -272,9 +339,20 @@ ${sectionList}
         visual_priority:    Array.isArray(im.visual_priority) ? im.visual_priority.map(String) : [],
       };
       // ★구도·강도는 코드가 확정(enum) — 슬라이드형은 prompt 끝에 영문 지시로 강제 주입(모델 응답 미신뢰)
+      //   Scene(hero·ingredient_macro)이 선택된 섹션은 Director 프롬프트(또는 롤백 시 기존 fragment)를 추가 append.
       const basePrompt = typeof s.prompt === 'string' ? s.prompt : '';
+      const sceneFrag = sceneFragByIdx[gi] ?? '';
+      // ★Hero 단순화 실험(삭제만): composer 브리프가 있는 섹션은
+      //   Claude 구조 접미(| shot:/light:/mood:/palette:/props:/surface:)와 composition/intensity tail을 제거
+      //   — 전부 composer STYLE·LAYOUT과 중복. 브리프 없는 섹션은 기존 tail 유지.
+      //   cta는 composition/intensity 꼬리 미부착(감사 F4) — "densely styled bold dramatic" 류 강도 문구가
+      //   클라이언트 존 스펙(미니멀 계약)과 충돌. cta 레이아웃은 slideBaked 존 스펙이 지배.
       const finalPrompt = isSlideOut && basePrompt
-        ? `${basePrompt} | composition: ${COMPOSITION_PHRASES[compositionByIdx[gi]]}. ${INTENSITY_PHRASES[intensityByIdx[gi]]}`
+        ? (sceneFrag
+            ? `${basePrompt.split(' | shot:')[0]}${sceneFrag}`
+            : archetypeByIdx[gi] === 'cta'
+              ? basePrompt
+              : `${basePrompt} | composition: ${COMPOSITION_PHRASES[compositionByIdx[gi]]}. ${INTENSITY_PHRASES[intensityByIdx[gi]]}`)
         : basePrompt;
       return {
         section:       typeof s.section === 'string' ? s.section : (items[j]?.name ?? ''),
@@ -290,11 +368,9 @@ ${sectionList}
     });
   }
 
-  const briefs: Brief[] = [];
-  for (const c of chunks) {
-    const part = await runChunk(c.items, c.startIdx);
-    briefs.push(...part);
-  }
+  // ★청크 병렬 — 순차 대기 제거(16섹션 = 2청크 동시). 결과 순서는 청크 배열 순서로 보존.
+  const parts = await Promise.all(chunks.map(c => runChunk(c.items, c.startIdx)));
+  const briefs: Brief[] = parts.flat();
 
   return {
     briefs,

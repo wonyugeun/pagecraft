@@ -16,6 +16,8 @@ import {
   EnhancedLightbox, downloadHtml, downloadMergedImage,
 } from './ResultScreen';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { selectPageStyle } from '@/lib/pageStyleContract';
+import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { runPool } from '@/lib/asyncPool';
 
@@ -108,9 +110,23 @@ export default function ResultMobile() {
       // 슬라이드 = baked: archetype별 레이아웃(hero·cta=3층+특징 스트립, 그 외=상단 타이틀+장면). 블로그는 텍스트 0.
       const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
       const archetype = classifyCutArchetype(sec.name);
+      // 페이지 스타일 계약 — 결정적 선택이라 섹션마다 호출해도 페이지 내 항상 동일 = 전 섹션 상속
+      const pageStyle = selectPageStyle({ category: cat ?? undefined, channel: ch ?? undefined, moodText: knownFacts });
+      // InfoLayout 배정 — 페이지 전체 결정적 배정(인접 중복·고밀도 연속 방지)에서 이 섹션 몫을 조회
+      const infoLayouts = assignInfoLayouts(
+        sections.map((s, i) => ({ name: s.name, role: undefined, blocks: s.blocks, archetype: i === 0 ? 'hero' as const : classifyCutArchetype(s.name) })),
+        knownFacts,
+      );
+      const secIdx = sections.findIndex(x => x.num === sec.num);
+      const infoLayout = infoLayouts[secIdx] ?? 'scene_title';
+      // Viewpoint 축 — 제품 중심 섹션의 카메라 시점 순회(레이아웃과 독립, 결정적)
+      const pageArchetypes = sections.map((s, i) => i === 0 ? 'hero' as const : classifyCutArchetype(s.name));
+      const viewpoint = assignViewpoints(pageArchetypes, infoLayouts)[secIdx] || undefined;
+      const treatment = assignTreatments(pageArchetypes, infoLayouts)[secIdx] || undefined;
+      const lighting = assignLighting(pageArchetypes)[secIdx] || undefined;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color)}`;
+        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -135,7 +151,7 @@ export default function ResultMobile() {
       if (signal.aborted) return;
       setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
     }
-  }, [effectiveOut, productName, productExtra]);
+  }, [effectiveOut, productName, productExtra, cat, ch, sections]);
 
   const generateBlockImage = useCallback(async (sec: Section, blockIdx: number, desc: string, signal: AbortSignal) => {
     const key = `${sec.num}#${blockIdx}`;

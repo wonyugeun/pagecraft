@@ -30,6 +30,10 @@ export interface PipelineInput {
   type?: string;
   /** Gemini 이미지 실제 생성 여부. 기본 false(무과금). 1단계에선 연결만 준비. */
   generateImages?: boolean;
+  /** Physical Size Engine 입력(선택) — 제품 형태/용량/실루엣 → imagebrief에서 실물 크기 지시로 변환 */
+  productForm?: string;
+  productVolume?: string;
+  productShapeProfile?: string;
 }
 
 /** ResultScreen이 읽을 수 있는 통합 섹션 — 구조(plan) + 카피 + 블록 + 이미지 브리프/자리 */
@@ -94,6 +98,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
   const imagebrief = await runImagebrief({
     dna: strategy.dna, strategy: strategy.strategy, sections: plan, copy: copy.sections, cat, ch, out,
     visual: strategy.visual,   // 페이지 공통 팔레트(Stage1 큐레이션) — 전 섹션 색·조명 통일
+    productForm: input.productForm, productVolume: input.productVolume, productShapeProfile: input.productShapeProfile,
   });
 
   // 인덱스 정렬 병합 — 구조(plan)를 척추로, 카피·브리프를 같은 순서로 얹는다

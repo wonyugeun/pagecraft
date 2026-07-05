@@ -3,6 +3,7 @@ import type { StructureResult, SectionPlan } from '@/lib/stages/structure';
 import type { CopyOut, StrategySummary } from '@/lib/stages/copy';
 import type { ImagebriefResult, Brief } from '@/lib/stages/imagebrief';
 import type { PipelineInput, PipelineSection } from '@/lib/pipeline';
+import { runPool } from '@/lib/asyncPool';
 
 /**
  * 엔진 통합 3단계 — 중간 상태 저장 + 실패 재개 오케스트레이터.
@@ -81,7 +82,11 @@ export class PipelineJobError extends Error {
   }
 }
 
-const COPY_CHUNK_SIZE_DEFAULT = 16;
+// ★카피 병렬화: 16섹션 1방(출력 1만+ 토큰 = 6~7분, 잘리면 통째 재시도)이 카피 스테이지 병목이었음.
+//   작은 청크(4섹션)를 동시 4개 워커로 — 벽시계 시간 = 가장 느린 청크 1개(~1분대), 잘림 재시도 사실상 소멸.
+//   비용: 토큰 과금이라 총액 동일(입력 프롬프트 반복분만 소폭 증가, 통째 재시도 낭비는 제거).
+const COPY_CHUNK_SIZE_DEFAULT = 4;
+const COPY_PARALLEL = 4;
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** dna+strategy에서 strategy_summary 7필드만 추출(순수 함수 — 클라 번들 안전, copy.ts 미의존) */
@@ -123,7 +128,7 @@ export function createJob(input: PipelineInput, jobId?: string): JobState {
  */
 export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobState> {
   const { call, persist, onProgress } = opts;
-  const { cat, ch, out, depth, productName, productExtra, sectionCount, sectionStructure } = job.input;
+  const { cat, ch, out, depth, productName, productExtra, sectionCount, sectionStructure, productForm, productVolume, productShapeProfile } = job.input;
 
   const save = async (ev: ProgressEvent) => {
     onProgress?.(job, ev);
@@ -180,11 +185,16 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   const ss = job.stages.copy.strategySummary as StrategySummary;
   const total = job.stages.copy.total as number;
 
+  // ★청크 병렬 실행(동시 COPY_PARALLEL개) — done 청크는 재호출 없이 스킵(재개 유지),
+  //   실패 청크는 상태만 기록하고 전체 settle 후 일괄 판정(부분 성공분은 저장 → 재개 시 실패분만 재호출).
+  const knownFactsStr = [productName, productExtra].filter(Boolean).join('\n');   // 셀러 원입력 — 후처리 날조 그물 기준
   for (const chunk of job.stages.copy.chunks) {
     if (chunk.status === 'done') {
       await save({ stage: 'copy', status: 'done', chunkStartIndex: chunk.startIndex, skipped: true });
-      continue;
     }
+  }
+  const pendingChunks = job.stages.copy.chunks.filter(c => c.status !== 'done');
+  await runPool(pendingChunks.map(chunk => async () => {
     try {
       const r = await call('/api/copy', {
         strategySummary: ss,
@@ -192,7 +202,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
         startIndex: chunk.startIndex,
         totalSections: total,
         cat, ch, out, depth,
-        knownFacts: [productName, productExtra].filter(Boolean).join('\n'),   // 셀러 원입력 — 후처리 날조 그물 기준
+        knownFacts: knownFactsStr,
       });
       if (r?.error) throw new Error(r.error);
       chunk.status = 'done';
@@ -202,10 +212,14 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
     } catch (e) {
       chunk.status = 'failed';
       chunk.error = msg(e);
-      job.stages.copy.status = 'failed';
       await save({ stage: 'copy', status: 'failed', chunkStartIndex: chunk.startIndex });
-      throw new PipelineJobError(`copy@${chunk.startIndex}`, e);
     }
+  }), COPY_PARALLEL);
+  const failedChunk = job.stages.copy.chunks.find(c => c.status === 'failed');
+  if (failedChunk) {
+    job.stages.copy.status = 'failed';
+    await save({ stage: 'copy', status: 'failed', chunkStartIndex: failedChunk.startIndex });
+    throw new PipelineJobError(`copy@${failedChunk.startIndex}`, new Error(failedChunk.error ?? '카피 청크 실패'));
   }
   job.stages.copy.status = 'done';
 
@@ -215,7 +229,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     const copySections = job.stages.copy.chunks.flatMap(c => c.result ?? []);
     try {
-      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual });
+      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual, productForm, productVolume, productShapeProfile });
       if (r?.error) throw new Error(r.error);
       job.stages.imagebrief = { status: 'done', result: r as unknown as ImagebriefResult };
       await save({ stage: 'imagebrief', status: 'done' });

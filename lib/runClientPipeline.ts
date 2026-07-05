@@ -17,7 +17,7 @@ import { getActiveJobId, setActiveJobId, clearActiveJobId } from '@/lib/activeJo
  * 검증된 스테이지 라우트/로직은 그대로 호출만 한다(변경 없음).
  */
 
-const COPY_CHUNK_SIZE = 16;
+const COPY_CHUNK_SIZE = 4;   // ★카피 병렬화 — 작은 청크 × 동시 4워커(pipelineJob runPool). 16 → 4
 
 const httpCall: StageCall = async (path, body) => {
   // strategy는 max_tokens(1500) 변동으로 가끔 실패 → 오케스트레이터 레벨 재시도(최대 3)

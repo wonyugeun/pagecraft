@@ -5,6 +5,7 @@ import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset } from '@/lib/testPresets';
+import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_OPTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, Star } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -1082,7 +1083,9 @@ export function AccordionSection({
 export default function ProductScreen() {
   const isMobile = useIsMobile();
   const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
-    brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections, setAiSelections } = useApp();
+    brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews,
+    productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
+    answers, setAnswers, aiSelections, setAiSelections } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
@@ -1161,6 +1164,9 @@ export default function ProductScreen() {
     setBrandIntro(p.brandIntro);
     setExtraNote(p.extraNote);
     setReviews(p.reviews);
+    setProductForm(p.productForm ?? '');           // Physical Size Engine 입력(프리셋에 없으면 미지정)
+    setProductVolume(p.productVolume ?? '');
+    setProductShapeProfile(p.productShapeProfile ?? '');
     setRegularPrice(p.regularPrice);
     setSalePrice(p.salePrice);
     setShowPrice(p.showPrice);
@@ -1547,6 +1553,63 @@ export default function ProductScreen() {
                 실제 고객 후기를 붙여넣으면 후기 섹션에 표시됩니다. ⚠️ 실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반입니다.
                 비워두면 후기 섹션은 미래형 기대 시나리오로 자동 대체됩니다.
               </div>
+            </div>
+          </AccordionSection>
+
+          {/* 제품 형태·용량 (선택) — Physical Size Engine 입력: AI가 제품 실물 크기를 정확히 그리게 함 */}
+          <AccordionSection
+            num={visibleSections.length + 4}
+            title="제품 형태·용량 (이미지 정확도)"
+            isOpen={openSecs.has('s_physical')}
+            onToggle={() => toggleSec('s_physical')}
+          >
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div className="fg" style={{ flex: 1 }}>
+                <div className="fl">제품 형태 <span className="fopt">선택</span></div>
+                <select
+                  className="finp"
+                  value={productForm}
+                  onChange={e => setProductForm(e.target.value)}
+                  style={{ height: 44, cursor: 'pointer' }}
+                >
+                  <option value="">선택 안 함</option>
+                  {PRODUCT_FORM_OPTIONS.map(o => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="fg" style={{ flex: 1 }}>
+                <div className="fl">제품 용량 <span className="fopt">선택</span></div>
+                <select
+                  className="finp"
+                  value={productVolume}
+                  onChange={e => setProductVolume(e.target.value)}
+                  style={{ height: 44, cursor: 'pointer' }}
+                >
+                  <option value="">선택 안 함</option>
+                  {PRODUCT_VOLUME_OPTIONS.map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            {/* 형태 프로필 — 같은 용량이라도 실루엣(슬림 롱/와이드/단지형 등)이 달라 크기 지시가 바뀜 */}
+            <div className="fg" style={{ marginTop: 12 }}>
+              <div className="fl">제품 형태 프로필 <span className="fopt">선택</span></div>
+              <select
+                className="finp"
+                value={productShapeProfile}
+                onChange={e => setProductShapeProfile(e.target.value)}
+                style={{ height: 44, cursor: 'pointer' }}
+              >
+                <option value="">자동 (형태 기준)</option>
+                {PRODUCT_SHAPE_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="fhint">
+              형태·용량을 알려주면 AI가 제품을 실물 크기 비율(손에 든 자연스러운 크기)로 그립니다. 프로필은 실루엣(길쭉/넓적/단지형)을 보정합니다.
             </div>
           </AccordionSection>
 

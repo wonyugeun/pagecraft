@@ -138,6 +138,9 @@ interface AppState {
   extraNote: string;
   brandIntro: string;
   reviews: string;
+  productForm: string;    // 제품 형태(토너 병/튜브 등 — Physical Size Engine 입력, 미연결 상태)
+  productVolume: string;  // 제품 용량(200ml 등)
+  productShapeProfile: string;  // 제품 형태 프로필(slim_tall/wide/jar 등 실루엣)
   answers: Record<string, string | string[]>;
   aiSelections: string[];
 }
@@ -179,6 +182,9 @@ interface AppContextType extends AppState {
   setExtraNote: (v: string) => void;
   setBrandIntro: (v: string) => void;
   setReviews: (v: string) => void;
+  setProductForm: (v: string) => void;
+  setProductVolume: (v: string) => void;
+  setProductShapeProfile: (v: string) => void;
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, string | string[]>>>;
   setAiSelections: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -318,6 +324,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [extraNote, setExtraNote] = useState('');
   const [brandIntro, setBrandIntro] = useState('');
   const [reviews, setReviews] = useState('');   // 고객 후기 전용 입력(선택) — 있으면 factScrub sellerHasReviews=true
+  const [productForm, setProductForm] = useState('');     // 제품 형태 — Physical Size Engine 입력(미연결)
+  const [productVolume, setProductVolume] = useState(''); // 제품 용량
+  const [productShapeProfile, setProductShapeProfile] = useState(''); // 형태 프로필(실루엣)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [aiSelections, setAiSelections] = useState<string[]>([]);
 
@@ -433,6 +442,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setExtraNote('');
     setBrandIntro('');
     setReviews('');
+    setProductForm('');
+    setProductVolume('');
+    setProductShapeProfile('');
     setAnswers({});
     setAiSelections([]);
     setSections(item.sections);
@@ -523,10 +535,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         screen, cat, ch, type, out, imgMode, secCnt,
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
-        brand, diff, extraNote, brandIntro, reviews, answers, aiSelections,
+        brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
       }));
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, answers, aiSelections]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -560,6 +572,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
     if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
     if (typeof p.reviews === 'string') setReviews(p.reviews);
+    if (typeof p.productForm === 'string') setProductForm(p.productForm);
+    if (typeof p.productVolume === 'string') setProductVolume(p.productVolume);
+    if (typeof p.productShapeProfile === 'string') setProductShapeProfile(p.productShapeProfile);
     if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
     if (Array.isArray(p.aiSelections)) setAiSelections(p.aiSelections as string[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -664,6 +679,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setExtraNote('');
     setBrandIntro('');
     setReviews('');
+    setProductForm('');
+    setProductVolume('');
+    setProductShapeProfile('');
     setAnswers({});
     setAiSelections([]);
     go('s1');
@@ -683,7 +701,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
-      brand, diff, extraNote, brandIntro, reviews, answers, aiSelections,
+      brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -720,6 +738,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setExtraNote,
       setBrandIntro,
       setReviews,
+      setProductForm,
+      setProductVolume,
+      setProductShapeProfile,
       setAnswers,
       setAiSelections,
     }}>

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import { pickTestPreset } from '@/lib/testPresets';
+import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_OPTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import {
   CQ, SECTION_MAP, SECTION_DEFS, QuestionField,
 } from './ProductScreen';
@@ -46,7 +47,9 @@ export default function ProductMobile() {
     setRegularPrice, setSalePrice, setShowPrice,
     productOptions, setProductOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote,
-    brandIntro, setBrandIntro, reviews, setReviews, answers, setAnswers, aiSelections, setAiSelections,
+    brandIntro, setBrandIntro, reviews, setReviews,
+    productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
+    answers, setAnswers, aiSelections, setAiSelections,
     toggleChat, credits,
   } = useApp();
 
@@ -109,6 +112,9 @@ export default function ProductMobile() {
     setBrandIntro(p.brandIntro);
     setExtraNote(p.extraNote);
     setReviews(p.reviews);
+    setProductForm(p.productForm ?? '');           // Physical Size Engine 입력(프리셋에 없으면 미지정)
+    setProductVolume(p.productVolume ?? '');
+    setProductShapeProfile(p.productShapeProfile ?? '');
     setRegularPrice(p.regularPrice);
     setSalePrice(p.salePrice);
     setShowPrice(p.showPrice);
@@ -511,6 +517,36 @@ export default function ProductMobile() {
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* 제품 형태·용량 (선택) — Physical Size Engine 입력(이미지 실물 크기 정확도) */}
+      <section style={{ padding: '20px 20px 0' }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div className="fg" style={{ flex: 1 }}>
+            <div className="fl">제품 형태 <span className="fopt">선택</span></div>
+            <select className="finp" value={productForm} onChange={e => setProductForm(e.target.value)} style={{ height: 44 }}>
+              <option value="">선택 안 함</option>
+              {PRODUCT_FORM_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+          <div className="fg" style={{ flex: 1 }}>
+            <div className="fl">제품 용량 <span className="fopt">선택</span></div>
+            <select className="finp" value={productVolume} onChange={e => setProductVolume(e.target.value)} style={{ height: 44 }}>
+              <option value="">선택 안 함</option>
+              {PRODUCT_VOLUME_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="fg" style={{ marginTop: 10 }}>
+          <div className="fl">제품 형태 프로필 <span className="fopt">선택</span></div>
+          <select className="finp" value={productShapeProfile} onChange={e => setProductShapeProfile(e.target.value)} style={{ height: 44 }}>
+            <option value="">자동 (형태 기준)</option>
+            {PRODUCT_SHAPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div className="fhint" style={{ marginTop: 6, fontSize: 11.5, color: '#666' }}>
+          형태·용량을 알려주면 AI가 제품을 실물 크기 비율로 그립니다. 프로필은 실루엣(길쭉/넓적/단지형)을 보정합니다.
         </div>
       </section>
 

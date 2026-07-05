@@ -169,8 +169,10 @@ export async function POST(req: NextRequest) {
 
   // ── 4. 사이즈/퀄리티 ──
   const size = mapSize(aspectRatio);
-  // Hero·핵심(세로 4:5/2:3 = 히어로/CTA) = high, 나머지 = medium. 명시 quality 있으면 우선.
-  const quality = qualityIn ?? (size === '1024x1536' ? 'high' : 'medium');
+  // ★테스트 모드: 개발 중엔 전 섹션 medium(장당 ~90원, high의 1/4) — 구도·레이아웃·색은 동일, 미세 디테일만 차이.
+  //   완성도 확정 후 출시 시 이 상수를 null로 되돌리면 기존 규칙(4:5=high) 복원. 명시 quality 요청은 항상 우선.
+  const QUALITY_TEST_OVERRIDE: string | null = 'medium';
+  const quality = qualityIn ?? QUALITY_TEST_OVERRIDE ?? (size === '1024x1536' ? 'high' : 'medium');
 
   // ── 4b. 엔드포인트/바디 분기 ── ref 있으면 edits(FormData), 없으면 generations(JSON).
   let apiUrl: string;

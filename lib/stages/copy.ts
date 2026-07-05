@@ -21,7 +21,7 @@ import type { Block } from '@/store/AppContext';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-export const COPY_CHUNK_SIZE = 16;
+export const COPY_CHUNK_SIZE = 4;   // ★카피 병렬화 — 작은 청크(출력 상한 잘림 소멸) × 동시 실행. 16 → 4
 const COPY_MAX_ATTEMPTS = 2; // 최초 1 + 자동 재시도 1 (strategy/imagebrief와 동일 패턴)
 
 interface Strategy {
@@ -163,12 +163,14 @@ export async function runCopyChunk(input: CopyChunkInput): Promise<CopyOut[]> {
   const composedSystem = isSlide ? system : system + blogModeRules;
 
   const formRule = isSlide
-    ? `[출력형태 = 슬라이드형] 이미지가 주인공입니다. headline은 12자 내외로 강하게, subcopy는 1줄, body는 최소화(1~2문장). 한 섹션 = 한 메시지. 비주얼이 말할 수 있는 것은 글로 반복하지 마세요.`
+    ? `[출력형태 = 슬라이드형] 이미지가 주인공입니다. headline은 12자 내외로 강하게, subcopy는 1줄, body는 최소화(1~2문장). 한 섹션 = 한 메시지. 비주얼이 말할 수 있는 것은 글로 반복하지 마세요.
+⚠️셀러에게 말을 거는 안내문·메타 문구를 headline/subcopy/body/blocks 어디에도 절대 쓰지 마세요(예: "실제 후기를 입력하면 이 섹션이 강해집니다", "~를 추가해 주세요") — 슬라이드 카피는 전부 이미지에 박혀 고객에게 그대로 노출됩니다. 후기가 없으면 후기 섹션은 기대형 카피("이런 분들께 맞습니다")로 쓰세요.`
     : `[출력형태 = 블로그형] 글이 설득의 주인공입니다(이미지는 텍스트 없는 사진). headline은 검색 키워드를 머금은 제목형, subcopy는 짧은 후킹 1줄. body는 v5 호흡 — 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르듯 이어지는 대화체(설명문·산문 덩어리 금지), 공감→상황→감정→설명 순서로 독자가 emotion_goal을 느끼도록. 섹션 끝은 다음 섹션으로 자연스럽게 이어지는 흐름.`;
 
   // 블록 강제 — 섹션마다 적절한 블록 1개 이상으로 설명문을 차단. 스키마는 AppContext의 Block 타입과 동일.
   const blockSpec = `[블록(blocks) — 설명문을 막기 위해, 각 섹션은 아래 블록 중 그 섹션 역할에 맞는 것을 최소 1개 포함하세요]
 역할 → 권장 블록 매핑:
+- ★첫 번째(히어로) 섹션 → iconcards 필수 (핵심 특징 2~3개: title=짧은 키워드, desc=짧은 보조설명 — 하단 지표 스트립의 재료가 됩니다)
 - 공감/고민 섹션 → checklist (독자가 "맞아" 하고 체크할 상황 목록)
 - 성분/특징 섹션 → iconcards (성분·특징 카드)
 - 사용법/루틴 섹션 → steps (순서 단계)
@@ -351,17 +353,17 @@ export async function runCopy(input: CopyInput): Promise<CopyResult> {
 
   console.log(`[copy] cat=${category} ch=${channel} form=${formLabel} sections=${total} chunkSize=${COPY_CHUNK_SIZE}`);
 
-  const results: CopyOut[] = [];
-  for (let i = 0; i < total; i += COPY_CHUNK_SIZE) {
-    const part = await runCopyChunk({
-      strategySummary,
-      sections: sections.slice(i, i + COPY_CHUNK_SIZE),
-      startIndex: i,
-      totalSections: total,
-      cat, ch, out, depth, knownFacts,
-    });
-    results.push(...part);
-  }
+  // ★청크 병렬 — 순차 대기 제거. 결과 순서는 청크 시작 인덱스 순으로 보존.
+  const starts: number[] = [];
+  for (let i = 0; i < total; i += COPY_CHUNK_SIZE) starts.push(i);
+  const parts = await Promise.all(starts.map(i => runCopyChunk({
+    strategySummary,
+    sections: sections.slice(i, i + COPY_CHUNK_SIZE),
+    startIndex: i,
+    totalSections: total,
+    cat, ch, out, depth, knownFacts,
+  })));
+  const results: CopyOut[] = parts.flat();
 
   return {
     sections: results,

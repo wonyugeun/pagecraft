@@ -17,6 +17,9 @@ export interface TestPreset {
   brandIntro: string;
   extraNote: string;
   reviews: string;   // 채우면 '진짜 후기' 케이스, 비우면 '미입력→미래형 시나리오' 케이스 테스트
+  productForm?: string;          // Physical Size Engine — 제품 형태(예: toner_bottle)
+  productVolume?: string;        // 제품 용량(예: 250ml)
+  productShapeProfile?: string;  // 실루엣 프로필(예: slim_tall)
   regularPrice: string;
   salePrice: string;
   showPrice: boolean;
@@ -35,6 +38,9 @@ export const TEST_PRESETS: TestPreset[] = [
     brandIntro: '민감성 피부를 위한 더마 코스메틱 브랜드',
     extraNote: '톤은 신뢰감 있되 친근하게, 성분 강조',
     reviews: '민감한데 안 따가워서 매일 써요 - 김OO / 트러블 올라올 때 진정용으로 최고 ★★★★★ - 이OO',
+    productForm: 'toner_bottle',        // 토너 병 — 실물 크기 지시(Physical Size Engine) 테스트용
+    productVolume: '250ml',
+    productShapeProfile: 'slim_tall',
     regularPrice: '32000',
     salePrice: '24000',
     showPrice: true,
