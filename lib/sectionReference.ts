@@ -17,14 +17,48 @@
  * ⚠️프로덕션 전제: 셀러 "본인" 포장 사진만(타사 포장·타 브랜드 라벨 금지 — 상표 리스크).
  */
 
-/** 포장/구성 계열 섹션 판별 — 섹션명(한글)·브리프 프롬프트(영문) 키워드.
- *  히어로·감성(empathy)은 아키타입으로, 조리·후기·효능·비교는 섹션명으로 제외. */
-export function isPackagingSection(name: string, prompt: string, archetype: string): boolean {
-  if (archetype === 'hero' || archetype === 'empathy') return false;
-  if (/조리|레시피|후기|리뷰|효능|효과|비교/.test(name)) return false;
-  const KO = /포장|배송|구성|수령|아이스박스|진공|세트|택배|배달/;
-  const EN = /vacuum[- ]?(?:seal|pack)|packag(?:e|ing|ed)|shipping box|insulated (?:box|shipping|cold)|parcel|unbox/i;
-  return KO.test(name) || EN.test(prompt);
+/* ═══ Required Asset 게이트 — 점수화 + 페이지당 1회 캡 ═══
+ * 갈치 16섹션 런(2026-07-05)에서 키워드 단독 게이트가 7개 섹션에 과발동(동일 사진 반복,
+ * CTA까지 플레이트화)해 페이지 리듬 붕괴 → 후보 점수화 후 최고점 1개 섹션만 선정으로 교체.
+ *   +5: 진공·아이스박스·수령·포장 상태처럼 실제 수령 상태를 직접 보여주는 신호
+ *   +3: 포장·구성·세트·박스·배송처럼 셀러 자산이 어울리는 일반 신호
+ *   -10: CTA·FAQ·해동·보관·조리·후기·효능·비교·감성(포장 단어가 있어도 대상 아님)
+ *   hero/cta/empathy 아키타입은 점수 무관 제외. 임계점(5) 미만이면 페이지 전체 미적용. */
+
+export interface RequiredAssetSection {
+  name: string;        // 섹션명(한글)
+  prompt: string;      // 브리프 프롬프트(영문 — EN 신호 판정용)
+  archetype: string;   // CutArchetype 문자열
+}
+
+const RA_STRONG_KO = /진공|아이스박스|수령|포장\s*상태|실제\s*포장|배송\s*포장|포장\s*배송/;
+const RA_STRONG_EN = /vacuum[- ]?(?:seal|pack)|insulated (?:box|shipping|cold)|ice\s?box/i;
+const RA_WEAK_KO = /포장|구성|세트|박스|택배|배달|배송/;
+const RA_WEAK_EN = /packag(?:e|ing|ed)|parcel|shipping box|unbox/i;
+const RA_EXCLUDE = /FAQ|묻는|해동|보관|조리|레시피|사용법|후기|리뷰|구매자|효능|효과|비교|전환|감성|선물/i;
+
+/** 섹션 1개의 Required Asset 적합 점수(결정적) */
+function requiredAssetScore(sec: RequiredAssetSection): number {
+  if (sec.archetype === 'hero' || sec.archetype === 'cta' || sec.archetype === 'empathy') return -100;
+  let score = 0;
+  if (RA_STRONG_KO.test(sec.name)) score += 5;
+  if (RA_STRONG_EN.test(sec.prompt)) score += 5;
+  if (RA_WEAK_KO.test(sec.name)) score += 3;
+  if (RA_WEAK_EN.test(sec.prompt)) score += 3;
+  if (RA_EXCLUDE.test(sec.name)) score -= 10;
+  return score;
+}
+
+/** Required Asset 적용 섹션 선정 — 페이지 전체에서 최고점 1개(임계점 5 이상)만. 없으면 -1.
+ *  동점은 앞 순서(결정적, 랜덤 0). 호출부는 `selectRequiredAssetIndex(...) === 섹션 idx`로 판정. */
+export function selectRequiredAssetIndex(sections: RequiredAssetSection[]): number {
+  let best = -1;
+  let bestScore = 4;   // 임계점 5 미만 탈락
+  sections.forEach((sec, i) => {
+    const s = requiredAssetScore(sec);
+    if (s > bestScore) { bestScore = s; best = i; }
+  });
+  return best;
 }
 
 /* ── 포토 스테이지 공유 상수 — 플레이트 프롬프트와 합성 코드가 같은 좌표를 사용(정합 보장) ── */

@@ -25,6 +25,7 @@ import { classifyCutArchetype } from '../lib/sectionArchetype';
 import { selectPageStyle } from '../lib/pageStyleContract';
 import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '../lib/infoLayout';
 import { buildSlideBakedText } from '../lib/slideBaked';
+import { selectRequiredAssetIndex, buildPlatePrompt } from '../lib/sectionReference';
 import { aspectRatioFor } from '../lib/sectionAspect';
 import { runPool } from '../lib/asyncPool';
 
@@ -51,6 +52,8 @@ interface HarnessPreset {
   productName: string; productExtra: string;
   productForm?: string; productVolume?: string; productShapeProfile?: string;
   refPrompt: string;   // 가상 제품 레퍼런스 사진 생성 프롬프트(1회성)
+  /** Required Asset — 실제 포장/구성 사진(test-assets 상대경로). 포장 계열 섹션은 플레이트 모드로 분기(ResultScreen 미러). */
+  packagingRef?: string;
 }
 const PRESETS: Record<string, HarnessPreset> = {
   leafgreen: {
@@ -111,6 +114,7 @@ const PRESETS: Record<string, HarnessPreset> = {
       '고객 후기: 살이 두툼하고 비린내가 진짜 없어요, 아이도 잘 먹어요 - 박OO / 은빛이 살아있어서 선물로 보냈는데 반응이 좋았습니다 - 최OO',
     ].join('\n'),
     refPrompt: 'Commercial food photography of a fresh whole Korean silver cutlassfish (galchi) with brilliant metallic silver skin, laid diagonally on crushed ice with a few pieces of cleaned cut portions beside it, glistening and pristine. Clean bright studio background, crisp detail, premium seafood market quality, no packaging, no text.',
+    packagingRef: 'small/galchi-pack.jpg',   // ⚠️검증용 다운로드 이미지(타사 라벨) — 저장소 미커밋, 프로덕션은 셀러 본인 사진
   },
   gold: {
     cat: '화장품', ch: '스마트스토어',
@@ -214,22 +218,40 @@ async function runFull(presetKey: string, sectionCount: number) {
   const lightings = assignLighting(pageArchetypes);
   console.log(`[run] 계약=${pageStyle.style_id} / 레이아웃: ${infoLayouts.join(' → ')}`);
 
+  // ★Required Asset — 포장 계열 섹션은 플레이트 모드(ResultScreen 미러). 합성은 후처리(Python, 동일 파라미터).
+  const packFile = preset.packagingRef ? path.join(ASSETS, preset.packagingRef) : null;
+  const packRef = packFile && fs.existsSync(packFile)
+    ? `data:image/jpeg;base64,${fs.readFileSync(packFile).toString('base64')}`
+    : null;
+
+  // ★페이지당 최고점 1개 섹션만(과발동 핫픽스) — ResultScreen과 동일 판정
+  const raIdx = packRef
+    ? selectRequiredAssetIndex(sections.map((s, j) => ({ name: s.name, prompt: s.imageDesc, archetype: j === 0 ? 'hero' : classifyCutArchetype(s.name) })))
+    : -1;
+  if (raIdx >= 0) console.log(`[run] Required Asset 적용 섹션: ${raIdx + 1}. ${sections[raIdx].name}`);
+
   const promptLog: Record<string, unknown>[] = [];
   const t1 = Date.now();
   const tasks = sections.map((sec, i) => async () => {
     const archetype = i === 0 ? 'hero' as const : classifyCutArchetype(sec.name);
     const aspect = aspectRatioFor(sec.name, undefined, 'slide');
-    const prompt = `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, accent, preset.productName, pageStyle, infoLayouts[i], viewpoints[i] || undefined, treatments[i] || undefined, lightings[i] || undefined)}`;
-    promptLog.push({ idx: i + 1, name: sec.name, archetype, infoLayout: infoLayouts[i], viewpoint: viewpoints[i], treatment: treatments[i], lighting: lightings[i], prompt });
+    const isPlate = raIdx >= 0 && i === raIdx;
+    const prompt = isPlate
+      ? buildPlatePrompt(sec.headline, sec.subcopy, accent)
+      : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, accent, preset.productName, pageStyle, infoLayouts[i], viewpoints[i] || undefined, treatments[i] || undefined, lightings[i] || undefined)}`;
+    promptLog.push({ idx: i + 1, name: sec.name, archetype, infoLayout: infoLayouts[i], viewpoint: viewpoints[i], treatment: treatments[i], lighting: lightings[i], plateMode: isPlate || undefined, prompt });
     const res = await fetch(`${BASE_URL}/api/generate-image`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({ prompt, sectionNum: sec.num, productImages: [refDataUrl], outputType: 'slide', aspectRatio: aspect }),
+      body: JSON.stringify(isPlate
+        ? { prompt, sectionNum: sec.num, outputType: 'slide', aspectRatio: aspect, plateMode: true }
+        : { prompt, sectionNum: sec.num, productImages: [refDataUrl], outputType: 'slide', aspectRatio: aspect }),
     });
     const data = await res.json() as { imageBase64?: string; error?: string };
-    const file = path.join(outDir, `sec${String(i + 1).padStart(2, '0')}.png`);
+    // 플레이트는 .plate.png로 저장 — 후처리 합성이 secNN.png를 만든다(합성 전 노출 방지)
+    const file = path.join(outDir, `sec${String(i + 1).padStart(2, '0')}${isPlate ? '.plate' : ''}.png`);
     if (data.imageBase64) {
       fs.writeFileSync(file, Buffer.from(data.imageBase64, 'base64'));
-      console.log(`  [img ${i + 1}/${sections.length}] ✅ ${sec.name} (${infoLayouts[i]})`);
+      console.log(`  [img ${i + 1}/${sections.length}] ✅ ${sec.name} (${infoLayouts[i]}${isPlate ? ', PLATE' : ''})`);
     } else {
       fs.writeFileSync(`${file}.error.txt`, data.error ?? 'unknown');
       console.log(`  [img ${i + 1}/${sections.length}] ❌ ${sec.name}: ${data.error}`);

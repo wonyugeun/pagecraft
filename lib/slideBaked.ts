@@ -12,6 +12,7 @@ import type { Block } from '@/store/AppContext';
 import type { CutArchetype } from '@/lib/sectionArchetype';
 import { STYLE_PRESETS, fillFragment, type PageStyleContract } from '@/lib/pageStyleContract';
 import type { InfoLayout } from '@/lib/infoLayout';
+import { fixNegativeTemps } from '@/lib/factScrub';
 
 /* ── 아키타입별 장면 지시(영문) — Claude 초안. 추후 GPT 최적화 문구로 교체 가능하도록 아키타입당 상수 1개. ── */
 const SCENE_EMPATHY =
@@ -167,8 +168,10 @@ export function buildSlideBakedText(
   treatment?: string,
   lighting?: string,
 ): string {
-  const head = stripMetaGuidance((headline ?? '').replace(/\n/g, ' ').trim());
-  const sub = stripMetaGuidance((subcopy ?? '').replace(/\n/g, ' ').trim());
+  // ★음수 온도 부호 안전망 — copy 단계 scrub을 거치지 않은 경로(과거 히스토리 복원·인라인 편집) 방어.
+  //   baked 최종 문자열 전체에 적용(수치+℃ 단위만 대상이라 % 존·가격 등 다른 숫자 무영향).
+  const head = fixNegativeTemps(stripMetaGuidance((headline ?? '').replace(/\n/g, ' ').trim()), knownFacts);
+  const sub = fixNegativeTemps(stripMetaGuidance((subcopy ?? '').replace(/\n/g, ' ').trim()), knownFacts);
   const accent = accentHex ? `accent color ${accentHex}` : 'the brand accent color';
 
   const intro =
@@ -249,7 +252,7 @@ export function buildSlideBakedText(
     for (const b of blocks ?? []) {
       if (b.type !== 'stats') continue;
       for (const it of b.items) {
-        if (gateFeature(it.value, allow) && nums.length < 3) nums.push({ value: it.value.trim(), label: (it.label ?? '').trim() });
+        if (gateFeature(it.value, allow) && nums.length < 3) nums.push({ value: fixNegativeTemps(it.value.trim(), knownFacts), label: (it.label ?? '').trim() });
       }
     }
     if (nums.length) {

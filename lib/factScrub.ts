@@ -72,6 +72,25 @@ function brixAllowed(num: string, allow: string): boolean {
       || (new RegExp(`(?<!\\d)${num}(?!\\d)`).test(allow) && /brix|브릭스|당도/i.test(allow));
 }
 
+/** 음수 온도 부호 보존 — 원입력이 "-40℃"인데 카피가 "40℃"로 나오면 부호 복원(영하→영상 사실 왜곡 방지).
+ *  하이픈(-)·유니코드 마이너스(−)·엔대시(–) 모두 인식. 같은 수치가 원입력에 양수 온도로도 있으면
+ *  모호성 회피를 위해 교정하지 않음. 갈치 16섹션 런(2026-07-05)에서 "-40℃"→"40℃" 소실 확인. */
+export function fixNegativeTemps(text: string, allow: string): string {
+  if (!text) return text ?? '';
+  let out = text;
+  const seen = new Set<string>();
+  for (const m of allow.matchAll(/[-−–]\s*(\d{1,3}(?:\.\d+)?)\s*(?:℃|°c|도)/gi)) {
+    const n = m[1];
+    if (seen.has(n)) continue;
+    seen.add(n);
+    const nEsc = n.replace('.', '\\.');
+    // 원입력에 같은 수치의 '양수 온도'도 존재하면 어느 쪽인지 판별 불가 → 무교정(안전)
+    if (new RegExp(`(?<![-−–\\d.])${nEsc}\\s*(?:℃|°c|도)`, 'i').test(allow)) continue;
+    out = out.replace(new RegExp(`(?<![-−–\\d.])${nEsc}\\s*(℃|°C)`, 'g'), `-${n}$1`);
+  }
+  return out;
+}
+
 export function scrubText(text: string | undefined, allow: string): string {
   if (!text) return text ?? '';
   let out = text;
@@ -103,6 +122,9 @@ export function scrubText(text: string | undefined, allow: string): string {
     out = stripRatings(out);
     out = out.split('\n').filter(l => !isTestimonialLine(l)).join('\n');
   }
+
+  // 6) 음수 온도 부호 복원 — "-40℃" 입력이 "40℃"로 출력되는 사실 왜곡 교정
+  out = fixNegativeTemps(out, allow);
 
   // 정리: 빈 괄호/대시 잔여·연속 공백·구두점 앞 공백·고아 기호 정리
   out = out

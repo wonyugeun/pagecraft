@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
-import { isPackagingSection, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
+import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { selectPageStyle } from '@/lib/pageStyleContract';
 import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
@@ -1232,9 +1232,12 @@ export default function ResultScreen() {
         ? sec.imageDesc
         : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
-      //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. 그 외 섹션은 기존 흐름 그대로.
+      //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
-      const isPlate = !!packRef && effectiveOut === 'slide' && isPackagingSection(sec.name, sec.imageDesc, archetype);
+      const raIdx = packRef && effectiveOut === 'slide'
+        ? selectRequiredAssetIndex(sections.map((s, j) => ({ name: s.name, prompt: s.imageDesc, archetype: j === 0 ? 'hero' : classifyCutArchetype(s.name) })))
+        : -1;
+      const isPlate = raIdx >= 0 && raIdx === secIdx;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
