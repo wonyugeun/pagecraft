@@ -229,7 +229,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     const copySections = job.stages.copy.chunks.flatMap(c => c.result ?? []);
     try {
-      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual, productForm, productVolume, productShapeProfile });
+      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra });
       if (r?.error) throw new Error(r.error);
       job.stages.imagebrief = { status: 'done', result: r as unknown as ImagebriefResult };
       await save({ stage: 'imagebrief', status: 'done' });

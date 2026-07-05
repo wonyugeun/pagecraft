@@ -91,6 +91,9 @@ export interface ImagebriefInput {
   productForm?: string;
   productVolume?: string;
   productShapeProfile?: string;
+  /** Product Understanding 입력(선택) — 식품(원물) 카테고리에서 물리 특징 블록 생성에 사용 */
+  productName?: string;
+  productExtra?: string;
 }
 
 export interface ImagebriefResult {
@@ -116,8 +119,37 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(n)));
 }
 
+/** ★Product Understanding(갈치 A/B 채택, 2026-07-05) — 신선 원물(식품)만: 원물의 물리 외형 특징
+ *  4~6절(영문)을 생성해 전 섹션 프롬프트에 공통 주입. GPT Image가 레퍼런스 사진만으로 놓치는
+ *  종 특이 형태(리본형 몸체·단면 흰 살·테이퍼 꼬리 등)를 텍스트로 고정 — 형태 정확성 4섹션 중 3섹션 개선.
+ *  ⚠️공산품 미적용: Claude가 레퍼런스 사진을 못 보므로 병·기기 외형을 지어낼 위험(레퍼런스가 형태 담보).
+ *  ⚠️질감 과장 금지: A/B에서 'metallic scales' 지시가 토막 클로즈업 표면을 호일처럼 뭉갠 유일 회귀 —
+ *    프롬프트에 smooth 우선 명시 + 숫자 포함 절은 코드에서 제거(날조 가드). 실패·미달 시 무주입 폴백. */
+async function buildProductUnderstanding(cat: string, productName?: string, productExtra?: string): Promise<string> {
+  if (cat.split('/')[0].trim() !== '식품' || !productName) return '';
+  try {
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `상품명: ${productName}\n${(productExtra ?? '').slice(0, 400)}\n\n위 상품이 "자연 원물 식품"(수산물·과일·채소·정육 등 원물 그대로 파는 상품)이면, 그 원물의 눈에 보이는 물리적 외형 특징을 영문 절 4~6개로 한 줄 출력하세요(세미콜론 구분). 형태·표면·색·단면·부위만 서술합니다. 절대 금지: 숫자·치수·무게, 포장·라벨 언급, 품질·신선도·산지 주장, 질감 과장(실물 표면이 매끈하면 반드시 smooth로 서술 — 예: 갈치는 비늘 없는 은막이므로 "smooth mirror-like metallic silver skin"). 출력 예시: "a long, flat silver ribbonfish; smooth mirror-like metallic silver skin; an elongated body tapering to a thin tail; clean cut cross-sections of firm white flesh; natural clear fish eyes; frozen raw seafood, unpackaged". 가공식품·공산품·판단 불가면 NONE만 출력하세요. 다른 텍스트 없이 결과만.`,
+      }],
+    });
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text.trim() : '';
+    if (!raw || /^NONE\b/i.test(raw)) return '';
+    // 날조 가드 — 숫자 포함 절 제거, 4절 미만이면 무주입(어설픈 반쪽 서술이 더 해로움)
+    const clauses = raw.replace(/\n/g, ' ').split(';').map(s => s.trim()).filter(s => s && !/[0-9]/.test(s));
+    if (clauses.length < 4) return '';
+    return ` | PRODUCT UNDERSTANDING — physical traits of the reference product, keep these accurate in every depiction: ${clauses.slice(0, 6).join('; ')}.`;
+  } catch (e) {
+    console.warn('[imagebrief V2] product understanding 생성 실패(무주입 폴백):', e instanceof Error ? e.message : e);
+    return '';
+  }
+}
+
 export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefResult> {
-  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile } = input;
+  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra } = input;
   const plan: SectionPlan[] = sections;
 
   const category = cat || '화장품';
@@ -162,6 +194,10 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
     ? buildPhysicalSizePrompt(resolveProductForm(productForm), productVolume || undefined, productShapeProfile || undefined)
     : undefined;
   if (physicalSize) console.log(`[imagebrief V2] physical size — form=${productForm || '(자동)'} vol=${productVolume || '(기본)'} shape=${productShapeProfile || '(자동)'}`);
+
+  // ★Product Understanding — 식품(원물)만, 전 섹션 프롬프트 공통 접미(슬라이드형). 실패 시 '' = 무주입.
+  const understanding = isSlideOut ? await buildProductUnderstanding(category, productName, productExtra) : '';
+  if (understanding) console.log(`[imagebrief V2] product understanding ON — ${understanding.slice(0, 120)}...`);
 
   const sceneFragByIdx: string[] = [];
   const pickLog: string[] = [];
@@ -333,9 +369,9 @@ ${sectionList}
       //   — 전부 composer STYLE·LAYOUT과 중복. 브리프 없는 섹션은 기존 tail 유지.
       //   ★구조 다이어트: composition/intensity 꼬리 전면 제거 — 80장 기여도 감사에서 발현 증거 없음(★2),
       //   구도 변주는 Viewpoint 축(infoLayout)이 흡수. 구도 다양성 지시는 Claude 프롬프트의 '구도' 필드로 충분.
-      const finalPrompt = isSlideOut && basePrompt && sceneFrag
+      const finalPrompt = (isSlideOut && basePrompt && sceneFrag
         ? `${basePrompt.split(' | shot:')[0]}${sceneFrag}`
-        : basePrompt;
+        : basePrompt) + (basePrompt ? understanding : '');
       return {
         section:       typeof s.section === 'string' ? s.section : (items[j]?.name ?? ''),
         ratio:         ratioByIdx[gi],

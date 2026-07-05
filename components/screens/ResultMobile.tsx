@@ -16,6 +16,7 @@ import {
   EnhancedLightbox, downloadHtml, downloadMergedImage,
 } from './ResultScreen';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { isPackagingSection, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { selectPageStyle } from '@/lib/pageStyleContract';
 import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
@@ -37,7 +38,7 @@ const STEPS = [
 export default function ResultMobile() {
   // 데스크탑 ResultScreen과 동일 useApp
   const {
-    cat, ch, type, out, sections, productName, productExtra, productImages,
+    cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage,
     go, restoredImages, restoredBlockImages, restoredOverrides,
     updateLatestHistoryImages, updateLatestHistoryOverrides,
     toggleChat, credits,
@@ -94,6 +95,8 @@ export default function ResultMobile() {
 
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
+  const packagingRefRef = useRef(packagingRefImage);
+  useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
 
   const displaySections = sections;
   const effectiveOut = resolveOutputType(ch, out);
@@ -127,13 +130,18 @@ export default function ResultMobile() {
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
         : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
+      // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트만, 셀러 포장 원본은 클라 코드 합성(픽셀 보존)
+      const packRef = packagingRefRef.current;
+      const isPlate = !!packRef && effectiveOut === 'slide' && isPackagingSection(sec.name, sec.imageDesc, archetype);
       const res = await fetch('/api/generate-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: promptText, sectionNum: sec.num,
-          productImages: images.length > 0 ? images : undefined,
+          prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color) : promptText,
+          sectionNum: sec.num,
+          productImages: isPlate ? undefined : (images.length > 0 ? images : undefined),
           outputType: effectiveOut,
           aspectRatio: aspect,
+          plateMode: isPlate || undefined,
         }),
         signal,
       });
@@ -141,7 +149,16 @@ export default function ResultMobile() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
+        let url = `data:${data.mimeType};base64,${data.imageBase64}`;
+        if (isPlate && packRef) {
+          try {
+            url = await compositeRequiredAsset(url, packRef);   // 원본 자산 카드 합성(픽셀 보존)
+          } catch {
+            setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg: '포장 사진 합성에 실패했어요 — 재생성해 주세요.', aspectRatio: aspect } }));
+            return;
+          }
+        }
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url, error: false, aspectRatio: aspect } }));
       } else {
         // 서버 안내문(예: ref_missing "제품 사진 유실 — 재업로드 필요")을 슬롯에 그대로 노출
         const errorMsg = typeof data.error === 'string' ? data.error : undefined;

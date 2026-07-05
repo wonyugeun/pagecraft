@@ -99,6 +99,7 @@ export async function runPipeline(input: PipelineInput): Promise<PipelineResult>
     dna: strategy.dna, strategy: strategy.strategy, sections: plan, copy: copy.sections, cat, ch, out,
     visual: strategy.visual,   // 페이지 공통 팔레트(Stage1 큐레이션) — 전 섹션 색·조명 통일
     productForm: input.productForm, productVolume: input.productVolume, productShapeProfile: input.productShapeProfile,
+    productName, productExtra,   // ★Product Understanding — 식품(원물) 물리 특징 블록 생성용
   });
 
   // 인덱스 정렬 병합 — 구조(plan)를 척추로, 카피·브리프를 같은 순서로 얹는다

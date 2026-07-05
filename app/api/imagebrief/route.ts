@@ -18,7 +18,7 @@ interface SectionPlan { name?: string; role?: string; mission?: string }
 interface CopyItem { name?: string; headline?: string; subcopy?: string; body?: string }
 
 export async function POST(req: NextRequest) {
-  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile } = await req.json() as {
+  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra } = await req.json() as {
     dna?: Record<string, unknown>;
     strategy?: Strategy;
     sections?: SectionPlan[];
@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     cat?: string; ch?: string; out?: string;
     visual?: { primary_color?: string; accent_color?: string; soft_color?: string; mood?: string; palette?: string };
     productForm?: string; productVolume?: string; productShapeProfile?: string;
+    productName?: string; productExtra?: string;
   };
 
   if (!strategy || !Array.isArray(sections) || sections.length === 0) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runImagebrief({ dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile });
+    const result = await runImagebrief({ dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra });
     return NextResponse.json(result);
   } catch (err) {
     console.error('Imagebrief error:', err);

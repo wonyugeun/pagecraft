@@ -119,6 +119,9 @@ interface AppState {
   productName: string;
   productExtra: string;
   productImages: string[]; // base64 data URLs (업로드된 제품 이미지)
+  /** Section Reference 슬롯(1차 최소 배선): 실제 포장/구성 상태 사진 1장(data URL).
+   *  포장·배송·구성 계열 섹션의 생성에만 두 번째 레퍼런스로 첨부. ⚠️셀러 본인 포장 사진만(타사 포장 금지). */
+  packagingRefImage: string | null;
   referenceAnalysis: ReferenceAnalysis | null;
   captureAnalysis: CaptureAnalysis | null;
   sectionStructure: string[];
@@ -161,6 +164,7 @@ interface AppContextType extends AppState {
   setProductName: (v: string) => void;
   setProductExtra: (v: string) => void;
   setProductImages: (images: string[]) => void;
+  setPackagingRefImage: (image: string | null) => void;
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
   setCaptureAnalysis: (a: CaptureAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
@@ -310,6 +314,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [productName, setProductNameState] = useState('');
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
+  const [packagingRefImage, setPackagingRefImageState] = useState<string | null>(null);
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
   const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
@@ -699,7 +704,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
       go,
@@ -717,6 +722,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductExtra: setProductExtraState,
       setProductName: setProductNameState,
       setProductImages: setProductImagesState,
+      setPackagingRefImage: setPackagingRefImageState,
       setReferenceAnalysis: setReferenceAnalysisState,
       setCaptureAnalysis: setCaptureAnalysisState,
       setSectionStructure: setSectionStructureState,

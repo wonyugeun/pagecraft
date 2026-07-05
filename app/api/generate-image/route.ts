@@ -75,11 +75,13 @@ export async function POST(req: NextRequest) {
   // ── 1. 요청 파싱 ── (계약 유지: prompt/sectionNum/productImages/outputType/aspectRatio/textZone, +quality 옵션)
   let prompt: string, sectionNum: string, productImages: string[] | undefined,
       outputType: string | undefined, aspectRatio: string | undefined,
-      textZone: 'top' | 'bottom' | undefined, qualityIn: string | undefined;
+      textZone: 'top' | 'bottom' | undefined, qualityIn: string | undefined,
+      plateMode: boolean;
   try {
     const body = await req.json() as {
       prompt: string; sectionNum: string; productImages?: string[];
       outputType?: string; aspectRatio?: string; textZone?: 'top' | 'bottom'; quality?: string;
+      plateMode?: boolean;
     };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
@@ -88,6 +90,8 @@ export async function POST(req: NextRequest) {
     aspectRatio   = body.aspectRatio;
     textZone      = body.textZone;     // overlay 보류 — 현재 클라는 미전송
     qualityIn     = body.quality;
+    // ★Required Asset 플레이트 모드 — GPT는 배경판·타이포만 생성(제품 미등장), 원본 자산은 클라가 코드 합성.
+    plateMode     = body.plateMode === true;
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
@@ -112,7 +116,8 @@ export async function POST(req: NextRequest) {
   // ★슬라이드 + reference 없음 = 무경고 generations 폴백 금지 — 제품 일관성이 필수인 슬라이드에서
   //   ref 없이 생성하면 모델이 실존 경쟁 브랜드를 그릴 수 있음(법적 리스크). OpenAI 호출 전 차단(무과금).
   //   블로그형은 기존대로 ref 없이도 허용(텍스트0 조연 컷이라 제품 미등장 가능).
-  if (isSlide && !hasRefImages) {
+  //   ★플레이트 모드는 예외 — 제품이 아예 등장하지 않는 배경판이라 ref 불필요(프롬프트가 제품 생성 전면 금지).
+  if (isSlide && !hasRefImages && !plateMode) {
     console.warn(`[generate-image] 차단 — 슬라이드인데 refImgs=0 (sectionNum: ${sectionNum}). 제품 사진 유실 의심.`);
     return errJson(
       '제품 사진이 유실되었습니다 — 상품정보 단계에서 제품 사진을 다시 업로드한 뒤 재생성해 주세요.',
@@ -134,7 +139,10 @@ export async function POST(req: NextRequest) {
     : '';
 
   // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.
-  const PEOPLE_RULES = isSlide
+  //   플레이트 모드는 무인물 배경판 — 모델 강제 지시가 오배동하지 않게 별도 처리.
+  const PEOPLE_RULES = plateMode
+    ? `No people, no hands, no body parts in the frame.`
+    : isSlide
     ? `If the scene describes a model/person, you MUST render that model with a fully visible face (Korean beauty-ad ` +
       `editorial, upper body) — do NOT crop out the face or substitute hands-only shots. ` +
       `The product in the model's hands MUST exactly match the reference product (same shape, color, label). ` +

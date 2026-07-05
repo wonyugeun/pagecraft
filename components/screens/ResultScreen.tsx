@@ -7,6 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
+import { isPackagingSection, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { selectPageStyle } from '@/lib/pageStyleContract';
 import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
@@ -1091,7 +1092,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, productImages, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1175,6 +1176,8 @@ export default function ResultScreen() {
 
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
+  const packagingRefRef = useRef(packagingRefImage);
+  useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
 
   // 빈 sections fallback ── 기존 유지
   if (sections.length === 0) {
@@ -1228,15 +1231,20 @@ export default function ResultScreen() {
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
         : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
+      // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
+      //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. 그 외 섹션은 기존 흐름 그대로.
+      const packRef = packagingRefRef.current;
+      const isPlate = !!packRef && effectiveOut === 'slide' && isPackagingSection(sec.name, sec.imageDesc, archetype);
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: promptText,
+          prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color) : promptText,
           sectionNum: sec.num,
-          productImages: images.length > 0 ? images : undefined,
+          productImages: isPlate ? undefined : (images.length > 0 ? images : undefined),
           outputType: effectiveOut,
           aspectRatio: aspect,
+          plateMode: isPlate || undefined,
         }),
         signal,
       });
@@ -1244,7 +1252,17 @@ export default function ResultScreen() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
-        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
+        let url = `data:${data.mimeType};base64,${data.imageBase64}`;
+        if (isPlate && packRef) {
+          try {
+            url = await compositeRequiredAsset(url, packRef);   // 원본 자산 카드 합성(픽셀 보존)
+          } catch {
+            // 합성 실패 시 빈 무대 플레이트를 그대로 노출하지 않고 에러 슬롯 처리
+            setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg: '포장 사진 합성에 실패했어요 — 재생성해 주세요.', aspectRatio: aspect } }));
+            return;
+          }
+        }
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url, error: false, aspectRatio: aspect } }));
       } else {
         // 서버 안내문(예: ref_missing "제품 사진 유실 — 재업로드 필요")을 슬롯에 그대로 노출
         const errorMsg = typeof data.error === 'string' ? data.error : undefined;
