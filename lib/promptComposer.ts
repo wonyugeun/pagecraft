@@ -138,12 +138,12 @@ export function composeBrief(input: ComposeInput): string {
   const subjectBlock = [`SUBJECT`, ...subjectLines].join('\n');
 
   /* ── STYLE — 조명·배경·색감·무드·촬영 스타일 통합 ── */
+  // ★A/B 검증(hero, 2026-07-05): Camera·Background 상세 서술 제거해도 품질 동급 이상 —
+  //   GPT는 스타일 계약 한 줄에서 구도·배경을 스스로 조합. Lighting만 유지(ingredient 무드 보호, 미검증 구간).
   const styleBlock = [
     `STYLE`,
-    `Premium Korean beauty advertising photograph — commercial editorial quality, like a real brand campaign.`,
-    `Camera: ${director.camera_instruction}.`,
+    `Premium Korean commercial advertising photograph — editorial quality, like a real brand campaign.`,
     `Lighting: ${scene.recommended_lighting}.`,
-    `Background: ${scene.recommended_background}, with ${SPACE_C[layout.negative_space]}.`,
   ].join('\n');
 
   /* ── NEGATIVE — 손 오류·제품 과대·아이콘 카드·KPI 박스·Template UI 통합(중복 제거) ── */
@@ -162,6 +162,3 @@ export function composeBrief(input: ComposeInput): string {
   return [layoutBlock, subjectBlock, styleBlock, negativeBlock].join('\n\n');
 }
 
-/* ── 하위 호환 export — imagebrief 호출부 무수정 유지(두 모드 모두 단순화된 4블록으로 수렴) ── */
-export const composeAdBrief = composeBrief;
-export const composeStructuredBrief = composeBrief;

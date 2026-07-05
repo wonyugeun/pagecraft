@@ -96,6 +96,22 @@ const PRESETS: Record<string, HarnessPreset> = {
     ].join('\n'),
     refPrompt: 'Commercial product photo of a sleek modern cordless stick vacuum cleaner in matte light grey and white, minimal design, small "AIRJET" logo on the body, standing upright. Clean white studio background, soft shadow, premium tech product shot.',
   },
+  galchi: {
+    cat: '식품', ch: '스마트스토어',
+    productName: '제주 은갈치 특대 1마리 600g',
+    productExtra: [
+      '브랜드: 제주바당 — 제주 산지직송 수산물 전문',
+      '차별점: 새벽 경매 당일 손질 후 급냉 — 은빛 그대로, 비린내 없이 도착',
+      '상품 구성: 특대 사이즈 1마리 600g 이상, 내장·지느러미 손질 후 4토막 진공포장',
+      '원산지: 국내산(제주), 제주 서귀포항 위판장 직매입',
+      '특징: 당일 손질, 급속 냉동(-40℃), 진공 포장, 아이스박스+드라이아이스 배송',
+      '조리: 갈치구이, 갈치조림, 갈치국 — 해동 후 바로 조리 가능',
+      '보관: 냉동 보관, 해동 후 재냉동 금지',
+      '가격: 정가 42000원 / 할인가 34900원',
+      '고객 후기: 살이 두툼하고 비린내가 진짜 없어요, 아이도 잘 먹어요 - 박OO / 은빛이 살아있어서 선물로 보냈는데 반응이 좋았습니다 - 최OO',
+    ].join('\n'),
+    refPrompt: 'Commercial food photography of a fresh whole Korean silver cutlassfish (galchi) with brilliant metallic silver skin, laid diagonally on crushed ice with a few pieces of cleaned cut portions beside it, glistening and pristine. Clean bright studio background, crisp detail, premium seafood market quality, no packaging, no text.',
+  },
   gold: {
     cat: '화장품', ch: '스마트스토어',
     productName: '오뜨 골드 리페어 앰플 30ml',

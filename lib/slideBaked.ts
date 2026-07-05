@@ -356,7 +356,7 @@ export function buildSlideBakedText(
     if (items.length >= 2) {
       return [
         intro,
-        `Layout: a compact headline band at the top — "${head}" in bold type${sub ? ` with the smaller, lighter subcopy "${sub}" beneath it` : ''}. Below it, TWO calm typographic panels side by side, separated by a fine hairline: the left panel titled "이런 고민이 있었다면" listing — ${items.map(t => `"${t}"`).join(' · ')} — in muted grey type; the right panel titled "이 토너가 다가가는 방식" with 2–3 short reassuring lines drawn from the copy above, keywords in ${accent}. This is a TEXT panel comparison ONLY: absolutely NO before/after skin photographs, NO split-face imagery, NO two-state skin comparison photos anywhere in the frame — the photographic background stays a single calm scene.`,
+        `Layout: a compact headline band at the top — "${head}" in bold type${sub ? ` with the smaller, lighter subcopy "${sub}" beneath it` : ''}. Below it, TWO calm typographic panels side by side, separated by a fine hairline: the left panel titled "이런 고민이 있었다면" listing — ${items.map(t => `"${t}"`).join(' · ')} — in muted grey type; the right panel titled "이 제품이 다가가는 방식" with 2–3 short reassuring lines drawn from the copy above, keywords in ${accent}. This is a TEXT panel comparison ONLY: absolutely NO before/after skin photographs, NO split-face imagery, NO two-state skin comparison photos anywhere in the frame — the photographic background stays a single calm scene.`,
         harmonyLine,
         noFakeLine,
       ].join(' ');
@@ -368,7 +368,7 @@ export function buildSlideBakedText(
   if (infoLayout === 'product_detail') {
     return [
       intro,
-      `Layout: a PREMIUM PRODUCT SHOWCASE — the product is the ONLY subject, standing large and commanding at 70–90% of the frame height.${viewLine}${treatLine}${lightLine} This is luxury cosmetic advertising photography at macro commercial quality: sharp crisp product edges, high-end studio lighting sculpting the form, the bottle's surface texture and material quality rendered in fine detail — glass clarity, liquid transparency, premium reflections tracing the silhouette, subtle specular highlights on the cap. The label is perfectly readable and crisp up close. Typography is minimal: only a small refined caption near the top — "${head}"${sub ? ` with an even smaller, lighter line "${sub}" beneath it` : ''} — nothing else.`,
+      `Layout: a PREMIUM PRODUCT SHOWCASE — the product is the ONLY subject, standing large and commanding at 70–90% of the frame height.${viewLine}${treatLine}${lightLine} This is luxury commercial product photography at macro quality: sharp crisp product edges, high-end studio lighting sculpting the form, and the product's real materials rendered in fine detail — whether glass, liquid, matte plastic, metal, kraft paper or fabric, stay true to the reference product's materials — with premium reflections tracing the silhouette and subtle specular highlights on its details. The label is perfectly readable and crisp up close. Typography is minimal: only a small refined caption near the top — "${head}"${sub ? ` with an even smaller, lighter line "${sub}" beneath it` : ''} — nothing else.`,
       `No people, no hands. No infographic, no icons, no feature strip, no boxes. The product label must exactly match the reference product.`,
       harmonyLine,
       noFakeLine,

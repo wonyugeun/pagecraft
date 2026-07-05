@@ -4,23 +4,20 @@ import { aspectRatioFor } from '@/lib/sectionAspect';
 import { buildV2ImageRules } from '@/lib/imagePromptRules';
 import {
   classifyCutArchetype, assignCompositions, type CutArchetype,
-  ARCHETYPE_INTENSITY, COMPOSITION_PHRASES, INTENSITY_PHRASES,
+  ARCHETYPE_INTENSITY,
   selectScene, sceneToPromptFragment,
   SCENE_COMPOSITION_MAP, COMPOSITION_LIBRARY, buildDirectorSpec,
 } from '@/lib/sectionArchetype';
 import { buildPhysicalSizePrompt, resolveProductForm } from '@/lib/productPhysicalSize';
 import { selectLayout } from '@/lib/layoutLibrary';
 import { selectPose } from '@/lib/poseLibrary';
-import { composeAdBrief, composeStructuredBrief } from '@/lib/promptComposer';
+import { composeBrief } from '@/lib/promptComposer';
 
 /** ★Scene Library 롤백 스위치 — 효과 없으면 false 한 줄로 즉시 원상복구(hero·ingredient_macro만 적용 중) */
 const USE_SCENE_LIBRARY = true;
 /** ★Director 체인 스위치 — true: Scene→Composition→DirectorSpec→자연문 프롬프트 / false: 기존 sceneToPromptFragment.
  *  (USE_SCENE_LIBRARY=false면 이 값과 무관하게 둘 다 꺼짐 — 2단 롤백) */
 const USE_DIRECTOR_PROMPT = true;
-/** ★A/B 실험 플래그(Task 21) — 'ad_brief'(자연문 브리프) | 'structured_brief'(섹션 라벨형).
- *  A/B 후 승자만 남기고 패자 삭제 예정 — 커밋 금지 상태. */
-const PROMPT_MODE: 'ad_brief' | 'structured_brief' = 'ad_brief';
 
 /**
  * Stage4 V2 (이미지 브리프 생성) — image_mission("왜 이 사진이 필요한가") 우선 설계.
@@ -185,13 +182,12 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
     sceneUseCount[scene.scene_id] = n + 1;
     const comp = compById.get(mappings[n % mappings.length].composition_id)!;
     // ★Prompt Composer 호출부 — 5계층(Scene·Layout·Pose·Director·PhysicalSize)을 브리프 1개로 압축.
-    //   PROMPT_MODE로 자연문(ad_brief) vs 섹션 라벨형(structured_brief) A/B.
     const layout = selectLayout({ ...sceneInput, scene_id: scene.scene_id });
     const pose = selectPose({ ...sceneInput, scene_id: scene.scene_id, layout_id: layout.layout_id });
     const composeInput = { scene, layout, pose, director: buildDirectorSpec(scene, comp), physicalSize };
-    const brief = PROMPT_MODE === 'structured_brief' ? composeStructuredBrief(composeInput) : composeAdBrief(composeInput);
+    const brief = composeBrief(composeInput);
     sceneFragByIdx.push(` | brief: ${brief}`);
-    pickLog.push(`${i + 1}:${scene.scene_id}→${comp.composition_id}/${layout.layout_id}/${pose.pose_id}[${PROMPT_MODE}]`);
+    pickLog.push(`${i + 1}:${scene.scene_id}→${comp.composition_id}/${layout.layout_id}/${pose.pose_id}`);
   });
   if (pickLog.length) console.log(`[imagebrief V2] scene picks — ${pickLog.join(' ')}`);
 
@@ -345,14 +341,10 @@ ${sectionList}
       // ★Hero 단순화 실험(삭제만): composer 브리프가 있는 섹션은
       //   Claude 구조 접미(| shot:/light:/mood:/palette:/props:/surface:)와 composition/intensity tail을 제거
       //   — 전부 composer STYLE·LAYOUT과 중복. 브리프 없는 섹션은 기존 tail 유지.
-      //   cta는 composition/intensity 꼬리 미부착(감사 F4) — "densely styled bold dramatic" 류 강도 문구가
-      //   클라이언트 존 스펙(미니멀 계약)과 충돌. cta 레이아웃은 slideBaked 존 스펙이 지배.
-      const finalPrompt = isSlideOut && basePrompt
-        ? (sceneFrag
-            ? `${basePrompt.split(' | shot:')[0]}${sceneFrag}`
-            : archetypeByIdx[gi] === 'cta'
-              ? basePrompt
-              : `${basePrompt} | composition: ${COMPOSITION_PHRASES[compositionByIdx[gi]]}. ${INTENSITY_PHRASES[intensityByIdx[gi]]}`)
+      //   ★구조 다이어트: composition/intensity 꼬리 전면 제거 — 80장 기여도 감사에서 발현 증거 없음(★2),
+      //   구도 변주는 Viewpoint 축(infoLayout)이 흡수. 구도 다양성 지시는 Claude 프롬프트의 '구도' 필드로 충분.
+      const finalPrompt = isSlideOut && basePrompt && sceneFrag
+        ? `${basePrompt.split(' | shot:')[0]}${sceneFrag}`
         : basePrompt;
       return {
         section:       typeof s.section === 'string' ? s.section : (items[j]?.name ?? ''),
