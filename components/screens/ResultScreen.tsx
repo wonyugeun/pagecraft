@@ -1392,15 +1392,21 @@ export default function ResultScreen() {
     const bKeys = Object.keys(newBlock);
     if (sKeys.length === 0 && bKeys.length === 0) return;
 
-    // 낙관적 마킹: 같은 키 중복 compress/save 방지. (저장 실패 시 그 1장만 재방문 재생성 — 기존의 '전량 재생성'보다 안전.)
+    // 선마킹: 같은 키 중복 compress/save 방지. ★저장 실패 시 아래에서 해당 키만 롤백 → 다음 effect 런에서 자동 재시도(P0).
     [...sKeys, ...bKeys].forEach(k => persistedKeysRef.current.add(k));
 
     (async () => {
-      const [compressedSection, compressedBlock] = await Promise.all([
-        compressMap(newSection),
-        compressMap(newBlock),
-      ]);
-      updateLatestHistoryImages(compressedSection, compressedBlock);
+      try {
+        const [compressedSection, compressedBlock] = await Promise.all([
+          compressMap(newSection),
+          compressMap(newBlock),
+        ]);
+        const ok = await updateLatestHistoryImages(compressedSection, compressedBlock);
+        if (!ok) throw new Error('persist failed');
+      } catch {
+        // 실패한 키만 선마킹 해제 — 유실 영구화 방지(다음 이미지 완료 시 이 키들이 다시 저장 후보가 됨)
+        [...sKeys, ...bKeys].forEach(k => persistedKeysRef.current.delete(k));
+      }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionImages, blockImages]);

@@ -66,14 +66,28 @@ export async function patchImages(historyId: string, partial: HistoryImagesPaylo
 
 /** 이미지 맵을 '내부 키 단위'로 깊게 병합 저장 — 섹션별 증분 저장에서 이전 섹션이 날아가지 않게.
  *  patchImages(얕은 병합)는 sectionImages 맵 전체를 교체하므로 1장씩 저장하면 앞 장이 유실된다.
- *  이 함수는 sectionImages/blockImages 내부 키를 누적 병합하고, 그 외 top-level 키(sectionOverrides 등)는 보존한다. */
+ *  이 함수는 sectionImages/blockImages 내부 키를 누적 병합하고, 그 외 top-level 키(sectionOverrides 등)는 보존한다.
+ *  ★원자화(P0, 2026-07-07): 이전에는 getImages/saveImages 각각 별도 트랜잭션(RMW 분리)이라
+ *    3-워커 병렬 증분 저장이 같은 base를 읽고 서로 덮어써 이미지가 유실됐다. 단일 readwrite
+ *    트랜잭션 안에서 get→병합→put — IndexedDB가 같은 스토어의 readwrite 트랜잭션을 직렬화하므로
+ *    동시 merge가 서로의 결과를 잃지 않는다. (트랜잭션 내 await 금지 규칙 때문에 콜백 체인으로 작성) */
 export async function mergeImages(historyId: string, partial: HistoryImagesPayload): Promise<void> {
-  let existing: HistoryImagesPayload | null = null;
-  try { existing = await getImages(historyId); } catch { /* 없으면 신규 */ }
-  await saveImages(historyId, {
-    ...(existing ?? {}),
-    sectionImages: { ...(existing?.sectionImages ?? {}), ...(partial.sectionImages ?? {}) },
-    blockImages:   { ...(existing?.blockImages ?? {}),   ...(partial.blockImages ?? {}) },
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    const req = store.get(historyId);
+    req.onsuccess = () => {
+      const existing = (req.result as HistoryImagesPayload | undefined) ?? null;
+      store.put({
+        ...(existing ?? {}),
+        sectionImages: { ...(existing?.sectionImages ?? {}), ...(partial.sectionImages ?? {}) },
+        blockImages:   { ...(existing?.blockImages ?? {}),   ...(partial.blockImages ?? {}) },
+      }, historyId);
+    };
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error ?? new Error('IndexedDB merge failed')); };
+    tx.onabort = () => { db.close(); reject(tx.error ?? new Error('IndexedDB merge aborted')); };
   });
 }
 

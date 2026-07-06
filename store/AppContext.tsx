@@ -173,7 +173,7 @@ interface AppContextType extends AppState {
   setCreditModalOpen: (v: boolean) => void;
   saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
   loadFromHistory: (item: HistoryItem) => void;
-  updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => void;
+  updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => Promise<boolean>;
   updateLatestHistoryOverrides: (sectionOverrides: Record<string, unknown>) => void;   // 인라인 편집 영속화
   deleteHistoryImages: (id: string) => void;
   setSidebarCollapsed: (v: boolean) => void;
@@ -395,20 +395,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateLatestHistoryImages = (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => {
+  // ★반환값(P0): 저장 성공 여부를 호출자에게 돌려줘 persistedKeysRef 롤백(실패 키 재시도)이 가능하게.
+  //   기존 호출부는 반환값을 무시해도 동작 동일(fire-and-forget 호환).
+  const updateLatestHistoryImages = (sectionImages: Record<string, string>, blockImages?: Record<string, string>): Promise<boolean> => {
     const email = session?.user?.email ?? 'guest';
     const key = `pc_history_${email}`;
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
-      if (existing.length === 0) return;
+      if (existing.length === 0) return Promise.resolve(false);
       const id = existing[0].id;
       // 이미지는 IndexedDB로 — 내부 키 단위 깊은 병합(mergeImages)으로 섹션별 '증분 저장' 지원.
       // (얕은 병합 patchImages는 1장씩 저장 시 앞 장을 덮어쓰므로 사용 불가. sectionOverrides 등 top-level은 보존됨.)
-      mergeImages(id, { sectionImages, blockImages }).catch(e => {
-        console.warn('[updateLatestHistoryImages] IndexedDB 저장 실패(텍스트 기록은 살아있음):', e);
-      });
+      return mergeImages(id, { sectionImages, blockImages }).then(
+        () => true,
+        e => {
+          console.warn('[updateLatestHistoryImages] IndexedDB 저장 실패(텍스트 기록은 살아있음):', e);
+          return false;
+        },
+      );
     } catch (e) {
       console.warn('[updateLatestHistoryImages] localStorage 읽기 실패:', e);
+      return Promise.resolve(false);
     }
   };
 
