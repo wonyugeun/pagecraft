@@ -74,19 +74,24 @@ function brixAllowed(num: string, allow: string): boolean {
 
 /** 음수 온도 부호 보존 — 원입력이 "-40℃"인데 카피가 "40℃"로 나오면 부호 복원(영하→영상 사실 왜곡 방지).
  *  하이픈(-)·유니코드 마이너스(−)·엔대시(–) 모두 인식. 같은 수치가 원입력에 양수 온도로도 있으면
- *  모호성 회피를 위해 교정하지 않음. 갈치 16섹션 런(2026-07-05)에서 "-40℃"→"40℃" 소실 확인. */
+ *  모호성 회피를 위해 교정하지 않음. 갈치 16섹션 런(2026-07-05)에서 "-40℃"→"40℃" 소실 확인.
+ *  ★범위 하이픈 구분(P0, 2026-07-07): "35-40℃"·"1-40℃"·"20 - 40℃" 같은 범위 표기의 하이픈은
+ *    음수 부호가 아님 — 부호 앞이 숫자(±공백 3칸 이내)면 범위로 보고 제외. 카피 쪽 치환도
+ *    "35 - 40℃"류 범위 끝값에 부호를 붙이지 않도록 동일 보호. */
 export function fixNegativeTemps(text: string, allow: string): string {
   if (!text) return text ?? '';
   let out = text;
   const seen = new Set<string>();
-  for (const m of allow.matchAll(/[-−–]\s*(\d{1,3}(?:\.\d+)?)\s*(?:℃|°c|도)/gi)) {
+  // 진짜 음수 부호만: 부호 바로 앞이 숫자(공백 포함)가 아닌 경우 — "35-40℃"의 '-'는 범위 하이픈
+  for (const m of allow.matchAll(/(?<!\d\s{0,3})[-−–]\s*(\d{1,3}(?:\.\d+)?)\s*(?:℃|°c|도)/gi)) {
     const n = m[1];
     if (seen.has(n)) continue;
     seen.add(n);
     const nEsc = n.replace('.', '\\.');
-    // 원입력에 같은 수치의 '양수 온도'도 존재하면 어느 쪽인지 판별 불가 → 무교정(안전)
+    // 원입력에 같은 수치의 '양수 온도'도 존재하면(범위 끝값 "20 - 40℃"의 40 포함) 판별 불가 → 무교정(안전)
     if (new RegExp(`(?<![-−–\\d.])${nEsc}\\s*(?:℃|°c|도)`, 'i').test(allow)) continue;
-    out = out.replace(new RegExp(`(?<![-−–\\d.])${nEsc}\\s*(℃|°C)`, 'g'), `-${n}$1`);
+    // 카피 치환 — 직전 부호·숫자·소수점 금지에 더해 "숫자 (공백) 대시 (공백)" 범위 꼬리도 금지
+    out = out.replace(new RegExp(`(?<![-−–\\d.])(?<!\\d\\s{0,3}[-−–]\\s{0,3})${nEsc}\\s*(℃|°C)`, 'g'), `-${n}$1`);
   }
   return out;
 }
