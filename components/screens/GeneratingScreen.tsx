@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 import GeneratingMobile from './GeneratingMobile';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
 import { deductCreditsOnServer } from '@/lib/clientCredits';
@@ -194,6 +194,10 @@ export default function GeneratingScreen() {
   useEffect(() => { creditsRef.current = credits; }, [credits]);
 
   useEffect(() => {
+    // ★모바일 이중 실행 차단(P0-1) — useIsMobile은 첫 렌더에 false라 이 effect가 모바일 분기
+    //   재렌더보다 먼저 발화한다. 뷰포트를 직접 확인해 모바일이면 여기서는 시작하지 않는다
+    //   (모바일은 GeneratingMobile이 유일한 시작점 — 파이프라인·멱등키·차감·히스토리 1회 보장).
+    if (window.innerWidth < MOBILE_BREAKPOINT) return;
     if (!isDev && creditsRef.current < GENERATION_COST) {
       setCreditInsufficient(true);
       return;

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import ResultMobile from './ResultMobile';
-import { useIsMobile } from '@/hooks/useIsMobile';
+import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
@@ -1311,6 +1311,10 @@ export default function ResultScreen() {
   }, []);
 
   useEffect(() => {
+    // ★모바일 이중 실행 차단(P0-1) — useIsMobile 첫 렌더 false 타이밍에 이 배치 effect가 먼저
+    //   발화해 ResultMobile과 이미지 풀을 2번 돌리던 문제. 모바일 뷰포트에서는 여기서 시작하지
+    //   않는다(모바일은 ResultMobile의 배치가 유일한 시작점 — 이미지 생성·증분 저장 1회 보장).
+    if (window.innerWidth < MOBILE_BREAKPOINT) return;
     if (!displaySections.length) return;
     const ctrl = new AbortController();
     abortRef.current = ctrl;
