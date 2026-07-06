@@ -289,6 +289,13 @@ ${COPY_PRINCIPLES}
     try {
       const p = JSON.parse(raw.slice(first, last + 1));
       if (!Array.isArray(p)) { lastErr = `JSON이 배열이 아님: ${typeof p}`; continue; }
+      // ★개수 검증(P0) — 요청 섹션 수와 응답 수가 다르면 이후 전 섹션이 한 칸씩 밀린 채
+      //   조용히 렌더되므로(인덱스 기반 병합) 절대 통과시키지 않는다. 재시도 → 소진 시 명확히 실패.
+      if (p.length !== items.length) {
+        lastErr = `응답 개수 불일치 — 청크@${startIndex} 요청 ${items.length}개 ↔ 응답 ${p.length}개`;
+        console.error(`[copy] ${lastErr} (attempt ${attempt})`);
+        continue;
+      }
       parsed = p;
       break;
     } catch (parseErr) {

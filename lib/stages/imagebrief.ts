@@ -329,6 +329,13 @@ ${sectionList}
       try {
         const p = JSON.parse(raw.slice(first, last + 1));
         if (!Array.isArray(p)) { lastErr = `JSON이 배열이 아님: ${typeof p}`; continue; }
+        // ★개수 검증(P0) — 응답이 적으면 이후 전 섹션 브리프가 밀리고(인덱스 병합),
+        //   많으면 bandByIdx[범위밖] 파괴적 TypeError. 재시도 → 소진 시 명확히 실패.
+        if (p.length !== items.length) {
+          lastErr = `응답 개수 불일치 — 청크@${startIdx} 요청 ${items.length}개 ↔ 응답 ${p.length}개`;
+          console.error(`[imagebrief V2] ${lastErr} (attempt ${attempt})`);
+          continue;
+        }
         parsed = p;
         break;
       } catch (parseErr) {
