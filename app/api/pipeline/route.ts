@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runPipeline, type PipelineInput } from '@/lib/pipeline';
+import { creditsBypassEnabled } from '@/lib/db';
 
 /**
  * 엔진 통합 1단계 — 통합 파이프라인 진입점.
@@ -10,6 +11,12 @@ import { runPipeline, type PipelineInput } from '@/lib/pipeline';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
+  // ★최소 잠금(P0) — 이 경로는 현재 클라이언트가 사용하지 않는 서버 통합 실행 진입점인데
+  //   크레딧 차감 없이 전체 파이프라인(Claude 다수 호출)을 돌릴 수 있어 dev 우회일 때만 허용.
+  //   (프로덕션 재개방 시에는 strategy 게이트와 동일한 선차감을 붙여야 함)
+  if (!creditsBypassEnabled()) {
+    return NextResponse.json({ error: '이 경로는 사용이 중지됐어요. 앱 화면에서 생성해주세요.' }, { status: 403 });
+  }
   const input = await req.json() as PipelineInput;
 
   try {

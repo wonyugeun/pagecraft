@@ -7,6 +7,7 @@ import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
 import { deductCreditsOnServer } from '@/lib/clientCredits';
+import { calculateGenerationCost } from '@/lib/pricing';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 import {
   Sparkles, Check, Loader2, Clock, Lightbulb,
@@ -24,7 +25,7 @@ export const GEN_STEPS = [
 ];
 export const STEP_PCTS = [12, 28, 50, 70, 87, 100];
 export const MIN_ANIM_MS = (GEN_STEPS.length - 1) * 900 + 600;
-export const GENERATION_COST = 10;
+// ★가격은 lib/pricing.ts(1섹션=1크레딧)로 이전 — 컴포넌트 안에서 calculateGenerationCost({sectionCount: secCnt})로 계산
 
 // ── UI 표시용 시안 7단계 ──
 export interface UIStep {
@@ -198,12 +199,15 @@ export default function GeneratingScreen() {
     //   재렌더보다 먼저 발화한다. 뷰포트를 직접 확인해 모바일이면 여기서는 시작하지 않는다
     //   (모바일은 GeneratingMobile이 유일한 시작점 — 파이프라인·멱등키·차감·히스토리 1회 보장).
     if (window.innerWidth < MOBILE_BREAKPOINT) return;
-    if (!isDev && creditsRef.current < GENERATION_COST) {
+    const generationCost = calculateGenerationCost({ sectionCount: secCnt });   // 1섹션=1크레딧(서버와 동일 함수)
+    if (!isDev && creditsRef.current < generationCost) {
       setCreditInsufficient(true);
       return;
     }
     setCreditInsufficient(false);
-    jobKeyRef.current = crypto.randomUUID();   // 이 생성 시도의 멱등키(성공 시 서버 차감에 사용)
+    // ★멱등키 — 생성 1회 1키. 재시도(retryKey)는 같은 키 유지(서버 선차감이 duplicate로 멱등),
+    //   새 상품/새 설정 생성은 화면 재마운트로 ref가 초기화돼 자연히 새 키.
+    if (!jobKeyRef.current) jobKeyRef.current = crypto.randomUUID();
 
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
@@ -212,7 +216,7 @@ export default function GeneratingScreen() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
         {
           resume,
           isCancelled: () => cancelledRef.current,
@@ -270,7 +274,7 @@ export default function GeneratingScreen() {
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure }),
+      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, jobKey: jobKeyRef.current }),
       signal: abortRef.current.signal,
     })
       .then(async r => {
@@ -371,7 +375,7 @@ export default function GeneratingScreen() {
           현재 잔액 <b style={{ color: '#dc2626' }}>{credits} 크레딧</b>
         </div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32, textAlign: 'center' }}>
-          상세페이지 생성에 <b>{GENERATION_COST} 크레딧</b>이 필요해요
+          상세페이지 생성에 <b>{calculateGenerationCost({ sectionCount: secCnt })} 크레딧</b>이 필요해요
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button className="btn-back" onClick={() => cancel()}>← 이전으로</button>

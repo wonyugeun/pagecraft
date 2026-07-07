@@ -6,12 +6,13 @@ import {
 } from 'lucide-react';
 import { useApp, Section } from '@/store/AppContext';
 import {
-  GEN_STEPS, STEP_PCTS, MIN_ANIM_MS, GENERATION_COST,
+  GEN_STEPS, STEP_PCTS, MIN_ANIM_MS,
   UI_STEPS, TOTAL_UI_STEPS, StepCard, StepStatus, EngineSteps,
 } from './GeneratingScreen';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
 import { deductCreditsOnServer } from '@/lib/clientCredits';
+import { calculateGenerationCost } from '@/lib/pricing';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 
 const STEPS = [
@@ -54,12 +55,14 @@ export default function GeneratingMobile() {
 
   // 데스크탑 useEffect 그대로 복제
   useEffect(() => {
-    if (!isDev && creditsRef.current < GENERATION_COST) {
+    const generationCost = calculateGenerationCost({ sectionCount: secCnt });   // 1섹션=1크레딧(서버와 동일 함수)
+    if (!isDev && creditsRef.current < generationCost) {
       setCreditInsufficient(true);
       return;
     }
     setCreditInsufficient(false);
-    jobKeyRef.current = crypto.randomUUID();   // 이 생성 시도의 멱등키(성공 시 서버 차감에 사용)
+    // ★멱등키 — 생성 1회 1키. 재시도는 같은 키 유지(서버 선차감 duplicate 멱등), 새 생성은 재마운트로 새 키.
+    if (!jobKeyRef.current) jobKeyRef.current = crypto.randomUUID();
 
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
@@ -125,7 +128,7 @@ export default function GeneratingMobile() {
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure }),
+      body: JSON.stringify({ cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, jobKey: jobKeyRef.current }),
       signal: abortRef.current.signal,
     })
       .then(async r => {
@@ -223,7 +226,7 @@ export default function GeneratingMobile() {
         <div style={{ fontSize: 44, marginBottom: 16 }}>⚡</div>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#7c3aed', marginBottom: 10 }}>크레딧이 부족해요</div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 24 }}>
-          상세페이지 생성에는 {GENERATION_COST} 크레딧이 필요해요.<br />
+          상세페이지 생성에는 {calculateGenerationCost({ sectionCount: secCnt })} 크레딧이 필요해요.<br />
           현재 보유 크레딧: <b>{credits}</b>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

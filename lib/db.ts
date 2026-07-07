@@ -1,4 +1,5 @@
 import { neon } from '@neondatabase/serverless';
+import { parseGenerationReason } from '@/lib/pricing';
 
 /**
  * Neon Postgres 연결 모듈 (크레딧 서버 이전 1단계).
@@ -22,8 +23,26 @@ export const sql = neon(connectionString ?? '');
 /** 신규 가입 기본 지급량 — 기존 로직(30)과 동일. */
 export const SIGNUP_GRANT = 30;
 
-/** 상세페이지 1회 생성 비용 — ★서버 권위값(클라가 보내는 금액을 신뢰하지 않는다 = 조작 방지). */
+/** @deprecated 고정가 10 시대의 상수 — 가격은 lib/pricing.ts(calculateGenerationCost, 1섹션=1크레딧)로 이전.
+ *  현재 유일 사용처는 /api/credits/deduct(과도기: 선차감 이후 duplicate로만 동작) — 후속 제거 예정. */
 export const GENERATION_COST = 10;
+
+/** dev/harness 크레딧 우회 — ★production에서는 어떤 경우에도 false.
+ *  로컬 개발·하네스가 선차감 강제(402)에 막히지 않게 하는 명시적 옵트인(.env.local). */
+export function creditsBypassEnabled(): boolean {
+  return process.env.NODE_ENV !== 'production' && process.env.FLIK_BYPASS_CREDITS_IN_DEV === 'true';
+}
+
+/** 멱등키(jobKey)로 결제된 섹션 수 조회 — credit_ledger.reason 규약 "generation:{count}" 파싱.
+ *  본인(user_email) 차감 기록만 인정(타인 키 재사용 차단). 기록 없거나 규약 불일치면 null. */
+export async function getPaidSections(email: string, idempotencyKey: string): Promise<number | null> {
+  const rows = await sql`
+    SELECT reason FROM credit_ledger
+    WHERE idempotency_key = ${idempotencyKey} AND user_email = ${email} AND type = 'deduct'
+    LIMIT 1` as Array<{ reason: string | null }>;
+  if (!rows.length) return null;
+  return parseGenerationReason(rows[0].reason);
+}
 
 /** 테이블 생성/마이그레이션(IF NOT EXISTS) — db-init 스크립트에서 1회 실행. 재실행 안전(멱등). */
 export async function ensureCreditTables(): Promise<void> {

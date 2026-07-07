@@ -28,6 +28,9 @@ export interface PipelineInput {
   sectionStructure?: string[];
   /** 파이프라인 로직엔 쓰이지 않으나 job에 보관해 재개 시 작업기록 저장에 사용(타입 라벨) */
   type?: string;
+  /** ★크레딧 멱등키(P0) — 생성 1회 1키. strategy 선차감·structure 결제 검증에 사용.
+   *  job 상태에 영속되므로 재시도·재개(resume)는 자동으로 같은 키 유지 = 이중 차감 없음. */
+  jobKey?: string;
   /** Gemini 이미지 실제 생성 여부. 기본 false(무과금). 1단계에선 연결만 준비. */
   generateImages?: boolean;
   /** Physical Size Engine 입력(선택) — 제품 형태/용량/실루엣 → imagebrief에서 실물 크기 지시로 변환 */

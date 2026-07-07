@@ -1,5 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { deductCreditsAtomic, creditsBypassEnabled } from '@/lib/db';
+import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
 import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
@@ -40,13 +44,14 @@ interface CaptureAnalysisInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, captureAnalysis } =
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, sectionStructure, captureAnalysis, jobKey } =
     await req.json() as {
       cat: string; ch: string; type: string; out: string;
       secCnt: number; productName: string; productExtra: string;
       referenceAnalysis?: ReferenceAnalysis;
       sectionStructure?: string[];
       captureAnalysis?: CaptureAnalysisInput;
+      jobKey?: string;
     };
 
   const resolvedOut  = resolveOutputType(ch, out);
@@ -54,6 +59,27 @@ export async function POST(req: NextRequest) {
   const outputType   = OUTPUT_TYPE_LABEL[resolvedOut];
   const count        = sectionStructure?.length || getDefaultSecCnt(ch, secCnt);
   const { system, sectionGuide } = getCategoryConfig(cat, ch);
+
+  // ── ★크레딧 선차감 게이트(P0) — 레거시 경로에도 동일 적용(1섹션=1크레딧, jobKey 멱등).
+  //    비용은 서버가 count 기준으로 계산(클라 금액 미신뢰). 부족 시 외부 API 호출 0회로 402.
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const email = session?.user?.email;
+    if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
+    if (!jobKey || typeof jobKey !== 'string') {
+      return NextResponse.json({ error: '생성 요청에 jobKey가 필요해요.' }, { status: 400 });
+    }
+    const cost = calculateGenerationCost({ sectionCount: count });
+    try {
+      const r = await deductCreditsAtomic(email, cost, jobKey, generationReason(count));
+      if (r.status === 'insufficient') {
+        return NextResponse.json({ error: `크레딧이 부족해요. (필요 ${cost} / 보유 ${r.balance})` }, { status: 402 });
+      }
+    } catch (err) {
+      console.error('[generate] 크레딧 차감 오류:', err);
+      return NextResponse.json({ error: '크레딧 처리 중 오류가 발생했어요.' }, { status: 500 });
+    }
+  }
 
   const hasPriceInfo = productExtra?.includes('가격 표시 여부:');
   const showPriceInCopy = productExtra?.includes('가격 표시 여부: 상세페이지에 표시');

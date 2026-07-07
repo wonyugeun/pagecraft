@@ -140,7 +140,8 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
     await save({ stage: 'strategy', status: 'done', skipped: true });
   } else {
     try {
-      const r = await call('/api/strategy', { cat, ch, productName, productExtra });
+      // ★sectionCount+jobKey — 서버 선차감 게이트(1섹션=1크레딧, jobKey 멱등 = 재시도·재개 이중 차감 없음)
+      const r = await call('/api/strategy', { cat, ch, productName, productExtra, sectionCount, jobKey: job.input.jobKey });
       if (r?.error) throw new Error(r.error);
       job.stages.strategy = { status: 'done', result: r as unknown as StrategyResult };
       await save({ stage: 'strategy', status: 'done' });
@@ -157,7 +158,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
     await save({ stage: 'structure', status: 'done', skipped: true });
   } else {
     try {
-      const r = await call('/api/structure', { dna, strategy, cat, ch, depth, sectionCount, sectionStructure });
+      const r = await call('/api/structure', { dna, strategy, cat, ch, depth, sectionCount, sectionStructure, jobKey: job.input.jobKey });
       if (r?.error) throw new Error(r.error);
       job.stages.structure = { status: 'done', result: r as unknown as StructureResult };
       await save({ stage: 'structure', status: 'done' });

@@ -190,6 +190,8 @@ async function runFull(presetKey: string, sectionCount: number) {
     sectionCount,
     productForm: preset.productForm, productVolume: preset.productVolume,
     productShapeProfile: preset.productShapeProfile,
+    // ★크레딧 멱등키 — 서버 선차감 게이트용. dev에선 FLIK_BYPASS_CREDITS_IN_DEV=true(.env.local)로 우회 가능.
+    jobKey: crypto.randomUUID(),
   });
   await runJob(job, {
     call: httpCall,
