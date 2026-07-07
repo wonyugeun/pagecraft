@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota } from '@/lib/db';
+import { calculateImageQuota, imageQuotaWeight } from '@/lib/pricing';
 
 /**
  * 이미지 생성 라우트 — GPT Image 2 (OpenAI Images / generations).
@@ -103,12 +104,13 @@ export async function POST(req: NextRequest) {
 
   if (!prompt) return errJson('prompt required', {}, 400);
 
-  // ── ★유료 뒷문 가드(P0 2차) — GPT Image 호출 전: 결제된 jobKey 검증(plateMode 포함).
-  //    이번 범위는 장당 과금·quota 없음(결제 키의 이미지 호출 상한은 배포 전 rate/quota 백로그). ──
+  // ── ★유료 뒷문 가드(P0 2차) — GPT Image 호출 전: 결제된 jobKey 검증(plateMode 포함). ──
+  let paidSections: number | null = null;   // null = dev 우회(아래 quota 선점도 생략)
   if (!creditsBypassEnabled()) {
     const session = await getServerSession(authOptions);
     const check = await verifyPaidJob(session?.user?.email, jobKey);
     if (!check.ok) return errJson(check.error, { sectionNum }, check.status);
+    paidSections = check.paidSections;
   }
 
   // ── 2. API 키 ──
@@ -197,6 +199,28 @@ export async function POST(req: NextRequest) {
   //   완성도 확정 후 출시 시 이 상수를 null로 되돌리면 기존 규칙(4:5=high) 복원. 명시 quality 요청은 항상 우선.
   const QUALITY_TEST_OVERRIDE: string | null = 'medium';
   const quality = qualityIn ?? QUALITY_TEST_OVERRIDE ?? (size === '1024x1536' ? 'high' : 'medium');
+
+  // ── ★이미지 quota 선점(P0) — GPT Image 호출 '전' 원자 증가(count+weight ≤ limit일 때만).
+  //    성공 후 카운트가 아니라 선점이므로 같은 jobKey 동시 100호출도 초과분은 외부 호출 자체가 안 나감.
+  //    실패 환급 없음(정책 — quota는 크레딧이 아니라 비용 폭주 안전장치) · 내부 자동 재시도는 요청당 1카운트. ──
+  if (paidSections !== null) {
+    const quotaLimit = calculateImageQuota(paidSections);
+    const weight = imageQuotaWeight(quality);
+    try {
+      const q = await consumeUsageQuota(`img:${jobKey}`, weight, quotaLimit);
+      if (!q.allowed) {
+        console.warn(`[generate-image] quota 초과 — jobKey=${jobKey} used=${q.used}/${quotaLimit} weight=${weight}`);
+        return errJson(
+          `이미지 생성 한도를 모두 사용했어요. (사용 ${q.used}/${quotaLimit})`,
+          { sectionNum, quotaLimit, quotaUsed: q.used, attemptedWeight: weight },
+          429,
+        );
+      }
+    } catch (err) {
+      console.error('[generate-image] quota 확인 오류:', err);
+      return errJson('사용량 확인 중 오류가 발생했어요.', { sectionNum }, 500);
+    }
+  }
 
   // ── 4b. 엔드포인트/바디 분기 ── ref 있으면 edits(FormData), 없으면 generations(JSON).
   let apiUrl: string;

@@ -29,6 +29,25 @@ export function calculateGenerationCost(input: GenerationPricingInput): number {
   return sections * CREDIT_PER_SECTION;
 }
 
+/* ── 이미지 quota 정책(P0, 2026-07-08) — "결제된 jobKey로 generate-image 무한 호출" 차단 ──
+ * quota = paidSections × 3 + 10 (8섹션=34, 16섹션=58, 24섹션=82).
+ * 정상 수요(기본 1장/섹션 + 재생성 + 블록 이미지 + 썸네일)는 넉넉히 덮고 비용 폭주만 상한.
+ * high 품질은 비용 ~4배라 2카운트(quality override 복원 후에도 노출 상한 유지). */
+
+export const IMAGE_QUOTA_PER_SECTION = 3;
+export const IMAGE_QUOTA_BASE = 10;
+
+/** 결제된 섹션 수 → jobKey당 이미지 quota */
+export function calculateImageQuota(paidSections: number): number {
+  const sections = Math.min(Math.max(Math.floor(paidSections) || MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
+  return sections * IMAGE_QUOTA_PER_SECTION + IMAGE_QUOTA_BASE;
+}
+
+/** 품질별 quota 가중치 — high=2(비용 ~4배 반영), 그 외(medium/기본)=1 */
+export function imageQuotaWeight(quality: string | undefined): number {
+  return quality === 'high' ? 2 : 1;
+}
+
 /* ── credit_ledger.reason 규약 — "generation:{결제 섹션 수}" (스키마 무변경으로 결제 수치 조회) ── */
 
 export const GENERATION_REASON_PREFIX = 'generation:';

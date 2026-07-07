@@ -33,6 +33,28 @@ export function creditsBypassEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' && process.env.FLIK_BYPASS_CREDITS_IN_DEV === 'true';
 }
 
+export interface QuotaResult {
+  allowed: boolean;
+  /** allowed=true면 선점 후 누적 사용량, false면 현재 사용량(참고용) */
+  used: number;
+}
+
+/** ★quota 원자 선점(P0) — count + weight ≤ limit일 때만 증가(단일 문장 = 동시 호출 안전).
+ *  외부 API 호출 '전'에 호출해 초과분은 호출 자체가 실행되지 않게 한다.
+ *  조건 불충족 시 UPDATE가 무효(RETURNING 없음) → allowed=false + 현재 사용량 별도 조회(보고용).
+ *  실패 환급 없음(정책) — quota는 크레딧이 아니라 비용 폭주 안전장치. */
+export async function consumeUsageQuota(scopeKey: string, weight: number, limit: number): Promise<QuotaResult> {
+  const rows = await sql`
+    INSERT INTO usage_counters (scope_key, count) VALUES (${scopeKey}, ${weight})
+    ON CONFLICT (scope_key) DO UPDATE
+      SET count = usage_counters.count + ${weight}, updated_at = now()
+      WHERE usage_counters.count + ${weight} <= ${limit}
+    RETURNING count` as Array<{ count: number }>;
+  if (rows.length) return { allowed: true, used: rows[0].count };
+  const cur = await sql`SELECT count FROM usage_counters WHERE scope_key = ${scopeKey}` as Array<{ count: number }>;
+  return { allowed: false, used: cur[0]?.count ?? 0 };
+}
+
 export type PaidJobCheck =
   | { ok: true; paidSections: number }
   | { ok: false; status: number; error: string };
@@ -89,6 +111,14 @@ export async function ensureCreditTables(): Promise<void> {
   // ★3단계 차감: 멱등키 컬럼 + UNIQUE(이중차감 방지의 하드 가드). deduct에만 채워짐(grant는 NULL 허용).
   await sql`ALTER TABLE credit_ledger ADD COLUMN IF NOT EXISTS idempotency_key TEXT`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS credit_ledger_idem_idx ON credit_ledger (idempotency_key)`;
+  // ★이미지 quota(P0) — 사용량 카운터. 재무 원장(credit_ledger)과 분리(고빈도·비재무).
+  //   scope_key 규약: img:{jobKey} (추후 rl:{email}:{class}:{window} 시간창 rate에도 재사용)
+  await sql`
+    CREATE TABLE IF NOT EXISTS usage_counters (
+      scope_key  TEXT PRIMARY KEY,
+      count      INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
 }
 
 export interface DeductResult {
