@@ -1,15 +1,22 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import * as cheerio from 'cheerio';
+import { authOptions } from '@/lib/auth';
+import { checkRateLimit, clientIp, creditsBypassEnabled } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
+import { validateCrawlUrl, fetchWithSsrfGuard } from '@/lib/urlGuard';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const CRAWL_TIMEOUT = 15_000;
 const MAX_TEXT_LEN  = 8_000; // Claude에 넘길 텍스트 최대 길이
+const MAX_HTML_LEN  = 2_000_000; // 응답 HTML 처리 상한(2MB) — 과대 응답 방어
 
 /* 크롤링: fetch + cheerio로 본문 텍스트 추출 */
 async function crawlPage(url: string): Promise<string> {
-  const res = await fetch(url, {
+  // ★SSRF 가드(진단 M3) — 리다이렉트 hop마다 재검증하는 fetch(허용 안 되는 주소로 튀면 예외)
+  const res = await fetchWithSsrfGuard(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -19,8 +26,10 @@ async function crawlPage(url: string): Promise<string> {
   });
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const contentLength = Number(res.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_HTML_LEN * 2) throw new Error('페이지가 너무 커요.');
 
-  const html = await res.text();
+  const html = (await res.text()).slice(0, MAX_HTML_LEN);
   const $    = cheerio.load(html);
 
   // 노이즈 제거
@@ -109,6 +118,18 @@ ${pageText}
 export async function POST(req: NextRequest) {
   const { url, text } = await req.json() as { url?: string; text?: string };
 
+  // ── ★prep rate limit(배포 전 방어) — 외부 fetch/Claude 호출 전. production 우회 불가. ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const rl = await checkRateLimit('prep', session?.user?.email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
+        { status: 429 },
+      );
+    }
+  }
+
   // ── 텍스트 직접 붙여넣기 모드 ──
   if (text?.trim()) {
     const trimmed = text.trim().slice(0, MAX_TEXT_LEN);
@@ -133,6 +154,13 @@ export async function POST(req: NextRequest) {
 
   let normalizedUrl = url.trim();
   if (!normalizedUrl.startsWith('http')) normalizedUrl = 'https://' + normalizedUrl;
+
+  // ★SSRF 가드(진단 M3) — https 전용 + localhost·사설 IP·메타데이터 IP 차단(첫 요청 전)
+  const urlCheck = validateCrawlUrl(normalizedUrl);
+  if (!urlCheck.ok) {
+    return NextResponse.json({ error: urlCheck.error }, { status: 400 });
+  }
+  normalizedUrl = urlCheck.url;
 
   console.log('[crawl-reference] crawling:', normalizedUrl);
 

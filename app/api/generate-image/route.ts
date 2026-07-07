@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota, checkRateLimit, clientIp } from '@/lib/db';
 import { calculateImageQuota, imageQuotaWeight } from '@/lib/pricing';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
  * 이미지 생성 라우트 — GPT Image 2 (OpenAI Images / generations).
@@ -108,8 +109,14 @@ export async function POST(req: NextRequest) {
   let paidSections: number | null = null;   // null = dev 우회(아래 quota 선점도 생략)
   if (!creditsBypassEnabled()) {
     const session = await getServerSession(authOptions);
-    const check = await verifyPaidJob(session?.user?.email, jobKey);
-    if (!check.ok) return errJson(check.error, { sectionNum }, check.status);
+    const email = session?.user?.email;
+    // ★적용 순서: ①user/IP rate → ②결제 검증 → ③jobKey quota → ④GPT Image 호출
+    const rl = await checkRateLimit('image', email, clientIp(req));
+    if (!rl.allowed) {
+      return errJson(`요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}장)`, { sectionNum, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used }, 429);
+    }
+    const check = await verifyPaidJob(email, jobKey);
+    if (!check.ok) return errJson(check.error, { sectionNum, code: check.code }, check.status);
     paidSections = check.paidSections;
   }
 
@@ -212,7 +219,7 @@ export async function POST(req: NextRequest) {
         console.warn(`[generate-image] quota 초과 — jobKey=${jobKey} used=${q.used}/${quotaLimit} weight=${weight}`);
         return errJson(
           `이미지 생성 한도를 모두 사용했어요. (사용 ${q.used}/${quotaLimit})`,
-          { sectionNum, quotaLimit, quotaUsed: q.used, attemptedWeight: weight },
+          { sectionNum, code: API_ERROR_CODES.quotaExhausted, quotaLimit, quotaUsed: q.used, attemptedWeight: weight },
           429,
         );
       }

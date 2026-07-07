@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
 import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
@@ -18,8 +19,15 @@ export async function POST(req: NextRequest) {
   //    regenerationCount로 별도 과금 전환 가능. jobKey 없는 과거 히스토리 요청은 차단(유예 없음). ──
   if (!creditsBypassEnabled()) {
     const session = await getServerSession(authOptions);
+    const rl = await checkRateLimit('llm', session?.user?.email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
+        { status: 429 },
+      );
+    }
     const check = await verifyPaidJob(session?.user?.email, jobKey);
-    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+    if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
   }
 
   const resolvedOut  = resolveOutputType(ch, out);

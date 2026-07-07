@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-import { parseGenerationReason } from '@/lib/pricing';
+import { parseGenerationReason, RATE_LIMITS } from '@/lib/pricing';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
  * Neon Postgres 연결 모듈 (크레딧 서버 이전 1단계).
@@ -55,9 +56,53 @@ export async function consumeUsageQuota(scopeKey: string, weight: number, limit:
   return { allowed: false, used: cur[0]?.count ?? 0 };
 }
 
+/* ── user/IP 시간창 rate limit — usage_counters 재사용(신규 테이블 없음) ── */
+
+export type RateClass = 'image' | 'llm' | 'prep';
+export interface RateCheck { allowed: boolean; limit?: number; used?: number; window?: string }
+
+/** 요청의 클라이언트 IP — 프록시(x-forwarded-for) 첫 항목. 없으면 null(로컬 등). */
+export function clientIp(req: Request): string | null {
+  const xf = req.headers.get('x-forwarded-for');
+  return xf ? xf.split(',')[0].trim() : null;
+}
+
+/** ★시간창 rate limit(보조 방어) — 고정 윈도(hour/day) 카운터를 원자 선점.
+ *  scope_key 규약: rl:{subject}:{class}:{h|d}:{window} (subject = email 또는 ip).
+ *  차감·quota(주 방어, fail-closed)와 달리 DB 오류 시 fail-open(허용+로그) — 보조층이
+ *  DB 순단으로 전 서비스를 죽이지 않게. 초과 판정은 consumeUsageQuota와 동일 선점 방식. */
+export async function checkRateLimit(cls: RateClass, email: string | null | undefined, ip: string | null): Promise<RateCheck> {
+  const now = new Date().toISOString();
+  const hour = now.slice(0, 13);   // 2026-07-08T14
+  const day = now.slice(0, 10);    // 2026-07-08
+  const checks: Array<{ scope: string; limit: number; window: string }> = [];
+  if (cls === 'image') {
+    if (email) {
+      checks.push({ scope: `rl:${email}:image:h:${hour}`, limit: RATE_LIMITS.image.emailHour, window: '시간' });
+      checks.push({ scope: `rl:${email}:image:d:${day}`, limit: RATE_LIMITS.image.emailDay, window: '일' });
+    }
+    if (ip) checks.push({ scope: `rl:${ip}:image:d:${day}`, limit: RATE_LIMITS.image.ipDay, window: '일' });
+  } else if (cls === 'llm') {
+    if (email) checks.push({ scope: `rl:${email}:llm:h:${hour}`, limit: RATE_LIMITS.llm.emailHour, window: '시간' });
+  } else {
+    if (email) checks.push({ scope: `rl:${email}:prep:d:${day}`, limit: RATE_LIMITS.prep.emailDay, window: '일' });
+    if (ip) checks.push({ scope: `rl:${ip}:prep:d:${day}`, limit: RATE_LIMITS.prep.ipDay, window: '일' });
+  }
+  try {
+    for (const c of checks) {
+      const q = await consumeUsageQuota(c.scope, 1, c.limit);
+      if (!q.allowed) return { allowed: false, limit: c.limit, used: q.used, window: c.window };
+    }
+    return { allowed: true };
+  } catch (err) {
+    console.error('[checkRateLimit] 오류 — fail-open(보조 방어):', err);
+    return { allowed: true };
+  }
+}
+
 export type PaidJobCheck =
   | { ok: true; paidSections: number }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; error: string; code?: string };
 
 /** ★유료 뒷문 가드(P0 2차) — 세션 email + jobKey + 본인 결제 기록(generation:{count})을 검증.
  *  copy·imagebrief·generate-image·regen-section이 외부 API 호출 '전'에 사용.
@@ -70,7 +115,7 @@ export async function verifyPaidJob(email: string | null | undefined, jobKey: un
   try {
     const paid = await getPaidSections(email, jobKey);
     if (paid === null) {
-      return { ok: false, status: 402, error: '결제된 생성 작업을 찾을 수 없어요. 새로 생성해주세요.' };
+      return { ok: false, status: 402, error: '결제된 생성 작업을 찾을 수 없어요. 새로 생성해주세요.', code: API_ERROR_CODES.paymentRequired };
     }
     return { ok: true, paidSections: paid };
   } catch (err) {

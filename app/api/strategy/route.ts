@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { runStrategy } from '@/lib/stages/strategy';
-import { deductCreditsAtomic, creditsBypassEnabled } from '@/lib/db';
+import { deductCreditsAtomic, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 
 /**
@@ -29,6 +30,14 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     const email = session?.user?.email;
     if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
+    // ★llm rate limit — 선차감·Claude 호출 전
+    const rl = await checkRateLimit('llm', email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
+        { status: 429 },
+      );
+    }
     if (!jobKey || typeof jobKey !== 'string' || typeof sectionCount !== 'number') {
       return NextResponse.json({ error: '생성 요청에 jobKey와 sectionCount가 필요해요.' }, { status: 400 });
     }
@@ -37,7 +46,7 @@ export async function POST(req: NextRequest) {
       const r = await deductCreditsAtomic(email, cost, jobKey, generationReason(sectionCount));
       if (r.status === 'insufficient') {
         return NextResponse.json(
-          { error: `크레딧이 부족해요. (필요 ${cost} / 보유 ${r.balance})`, cost, balance: r.balance, status: r.status },
+          { error: `크레딧이 부족해요. (필요 ${cost} / 보유 ${r.balance})`, code: API_ERROR_CODES.insufficientCredits, cost, balance: r.balance, status: r.status },
           { status: 402 },
         );
       }

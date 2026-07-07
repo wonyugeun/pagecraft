@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { runStructure, type Dna, type Strategy } from '@/lib/stages/structure';
 import { getPaidSections, creditsBypassEnabled } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
  * Stage2 (구조 설계) — ★결제 섹션 수 검증(P0).
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '결제 기록 확인 중 오류가 발생했어요.' }, { status: 500 });
     }
     if (paid === null) {
-      return NextResponse.json({ error: '결제된 생성 작업을 찾을 수 없어요. 처음부터 다시 시도해주세요.' }, { status: 402 });
+      return NextResponse.json({ error: '결제된 생성 작업을 찾을 수 없어요. 처음부터 다시 시도해주세요.', code: API_ERROR_CODES.paymentRequired }, { status: 402 });
     }
     const requested = Math.max(sectionCount ?? 0, sectionStructure?.length ?? 0);
     if (requested > paid) {

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { runImagebrief } from '@/lib/stages/imagebrief';
-import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
  * Stage4 (이미지 브리프 생성) 프로토타입 — 검증 전용 라우트.
@@ -41,8 +42,15 @@ export async function POST(req: NextRequest) {
   //    보다 먼저 실행: 결제된 jobKey + 결제 범위 검증. 외부 호출 0회로 차단. ──
   if (!creditsBypassEnabled()) {
     const session = await getServerSession(authOptions);
+    const rl = await checkRateLimit('llm', session?.user?.email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
+        { status: 429 },
+      );
+    }
     const check = await verifyPaidJob(session?.user?.email, jobKey);
-    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+    if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
     if (sections.length > check.paidSections) {
       return NextResponse.json(
         { error: `결제된 섹션 수(${check.paidSections})를 초과한 요청(${sections.length})이에요.` },

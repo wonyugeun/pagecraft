@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { checkRateLimit, clientIp, creditsBypassEnabled } from '@/lib/db';
+import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 export const maxDuration = 60;
 
@@ -143,6 +147,18 @@ ${stage1Json}
 
 export async function POST(req: NextRequest) {
   const body = await req.json() as { step: 1 | 2; image: string; stage1?: unknown };
+
+  // ── ★prep rate limit(배포 전 방어) — 외부 Claude 호출 전. production 우회 불가. ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const rl = await checkRateLimit('prep', session?.user?.email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
+        { status: 429 },
+      );
+    }
+  }
 
   if (!body.image) {
     return NextResponse.json({ error: '이미지 데이터가 필요해요.' }, { status: 400 });

@@ -48,6 +48,15 @@ export function imageQuotaWeight(quality: string | undefined): number {
   return quality === 'high' ? 2 : 1;
 }
 
+/* ── user/IP 시간창 rate limit(배포 전 방어, 2026-07-08) — 자동화 남용·무료 크레딧 farming 속도 상한.
+ * usage_counters 재사용(scope_key 규약 rl:{subject}:{class}:{h|d}:{window}), 고정 윈도.
+ * 수치는 실사용 분포 보고 조정 전제. ── */
+export const RATE_LIMITS = {
+  image: { emailHour: 120, emailDay: 400, ipDay: 800 },
+  llm:   { emailHour: 60 },
+  prep:  { emailDay: 20, ipDay: 60 },
+} as const;
+
 /* ── credit_ledger.reason 규약 — "generation:{결제 섹션 수}" (스키마 무변경으로 결제 수치 조회) ── */
 
 export const GENERATION_REASON_PREFIX = 'generation:';

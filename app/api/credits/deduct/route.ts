@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   try {
     const r = await deductCreditsAtomic(email, GENERATION_COST, idempotencyKey, 'generation');
     if (r.status === 'insufficient') {
-      return NextResponse.json({ error: '크레딧이 부족해요.', balance: r.balance, status: r.status }, { status: 402 });
+      return NextResponse.json({ error: '크레딧이 부족해요.', code: 'insufficient_credits', balance: r.balance, status: r.status }, { status: 402 });
     }
     // deducted | duplicate 모두 200 — 멱등(같은 생성 재호출은 추가 차감 없이 현재 잔액)
     return NextResponse.json({ balance: r.balance, status: r.status });
