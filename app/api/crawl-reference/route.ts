@@ -9,6 +9,8 @@ import { validateCrawlUrl, fetchWithSsrfGuard } from '@/lib/urlGuard';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+export const maxDuration = 60;   // ★배포 안정화: 외부 fetch(15s) + Claude 분석 — 기본 한도 방어
+
 const CRAWL_TIMEOUT = 15_000;
 const MAX_TEXT_LEN  = 8_000; // Claude에 넘길 텍스트 최대 길이
 const MAX_HTML_LEN  = 2_000_000; // 응답 HTML 처리 상한(2MB) — 과대 응답 방어

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { compressUpload } from '@/lib/imageCompress';
 import { useApp } from '@/store/AppContext';
 import ImageMobile from './ImageMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -62,7 +63,7 @@ export default function ImageScreen() {
       return;
     }
     try {
-      const dataUrl = await fileToBase64(file);
+      const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
       setProductImages([dataUrl]);
     } catch (err) {
@@ -78,7 +79,7 @@ export default function ImageScreen() {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
     try {
-      const dataUrl = await fileToBase64(file);
+      const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
       setProductImages([dataUrl]);
     } catch (err) {

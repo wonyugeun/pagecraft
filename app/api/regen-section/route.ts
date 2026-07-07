@@ -11,6 +11,8 @@ import { buildImagePromptRules, IMAGE_DESC_FIELD_SPEC } from '@/lib/imagePromptR
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+export const maxDuration = 60;   // ★배포 안정화: Claude 1회 호출 — 플랫폼 기본 한도에 잘리지 않게 명시
+
 export async function POST(req: NextRequest) {
   const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName, jobKey } = await req.json();
 
@@ -80,7 +82,7 @@ ${COPY_PRINCIPLES}
     const section = JSON.parse(jsonMatch[0]);
     return NextResponse.json({ section });
   } catch (err) {
-    console.error('[regen-section] error:', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    console.error('[regen-section] error:', err);   // ★상세는 서버 로그만 — 클라는 일반화 메시지
+    return NextResponse.json({ error: '섹션 재생성에 실패했어요. 잠시 후 다시 시도해 주세요.' }, { status: 500 });
   }
 }

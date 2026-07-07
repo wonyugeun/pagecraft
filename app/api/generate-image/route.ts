@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     console.error('[generate-image] OPENAI_API_KEY 환경변수 없음');
-    return errJson('OPENAI_API_KEY not set');
+    return errJson('이미지 생성 서비스 설정 오류예요. 잠시 후 다시 시도해 주세요.');   // ★env 이름 미노출
   }
 
   // ── 3. 프롬프트 규칙 구성 ──
@@ -294,11 +294,13 @@ export async function POST(req: NextRequest) {
       try { parsed = JSON.parse(text); } catch { /* 비JSON */ }
       const code = parsed.error?.code ?? '';
       const emsg = parsed.error?.message ?? text.slice(0, 200);
+      // ★마스킹(배포 안정화): OpenAI 원문(401 시 부분 마스킹 키 포함 가능)은 서버 로그에만.
+      //   클라에는 일반화 메시지 + status만. 안전정책 거부는 사용자 조치가 가능하니 유지.
       console.error(`[generate-image] OpenAI 오류 ${res.status}: ${emsg}`);
       if (code === 'content_policy_violation' || /safety|policy/i.test(emsg)) {
         return errJson(`안전 정책으로 이미지 생성이 거부되었습니다. 프롬프트를 수정해 주세요.`, { sectionNum, code }, 400);
       }
-      return errJson(`이미지 API 오류 (${res.status}): ${emsg}`, { sectionNum }, res.status);
+      return errJson(`이미지 생성에 실패했어요. 잠시 후 다시 시도해 주세요. (${res.status})`, { sectionNum }, res.status);
     }
 
     // ── 6. 응답 파싱 ── { created, data:[{b64_json}], output_format, size, quality, usage }

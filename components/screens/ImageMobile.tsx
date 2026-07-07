@@ -6,6 +6,7 @@ import {
   Image as ImageIcon, Sun, Palette, FileText, X,
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
+import { compressUpload } from '@/lib/imageCompress';
 import { useApp } from '@/store/AppContext';
 
 const STEPS = [
@@ -64,7 +65,7 @@ export default function ImageMobile() {
       return;
     }
     try {
-      const dataUrl = await fileToBase64(file);
+      const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
       setProductImages([dataUrl]);
     } catch (err) {
@@ -81,7 +82,7 @@ export default function ImageMobile() {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
     try {
-      const dataUrl = await fileToBase64(file);
+      const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
       setProductImages([dataUrl]);
     } catch (err) {
