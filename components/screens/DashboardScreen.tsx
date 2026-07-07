@@ -453,16 +453,13 @@ export default function DashboardScreen() {
             {/* 서브 카드 2열 (모바일 1열) */}
             <div className="cards-2col">
               <div
-                style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}
-                onMouseEnter={() => setHov('quick')}
-                onMouseLeave={() => setHov(null)}
-                onClick={() => go('s-quick')}
-              >
+                style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: 0.55, cursor: 'default' }}
+              >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성(진입 시 402) */}
                 <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(245,158,11,0.28)' }}>
                   <Zap size={22} color="#fff" fill="#fff" strokeWidth={1.6} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>빠른 제작</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>빠른 제작<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>원하는 섹션 1장만 골라<br />카피+이미지를 즉시 생성</div>
                 </div>
                 <div style={{ width: 34, height: 34, background: '#FDE68A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -470,16 +467,13 @@ export default function DashboardScreen() {
                 </div>
               </div>
               <div
-                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16 }}
-                onMouseEnter={() => setHov('thumb')}
-                onMouseLeave={() => setHov(null)}
-                onClick={() => go('s-thumb')}
-              >
+                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: 0.55, cursor: 'default' }}
+              >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
                 <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #A78BFA 0%, #6D4CFF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(109,76,255,0.28)' }}>
                   <ImageIcon size={22} color="#fff" strokeWidth={1.8} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>채널 규격 자동 적용·<br />4가지 타입 썸네일 즉시 생성</div>
                 </div>
                 <div style={{ width: 34, height: 34, background: '#EDE8FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

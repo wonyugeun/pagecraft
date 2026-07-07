@@ -90,7 +90,7 @@ function formatTime(iso: string) {
 
 /* ─── 메인 ─── */
 export default function DashboardMobile() {
-  const { startDetail, go, loadFromHistory, toggleChat, credits } = useApp();
+  const { startDetail, loadFromHistory, toggleChat, credits } = useApp();
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const email = session?.user?.email ?? 'guest';
@@ -230,14 +230,13 @@ export default function DashboardMobile() {
       {/* 4) 빠른 제작 */}
       <section style={{ padding: '12px 20px 0' }}>
         <div
-          onClick={() => go('s-quick')}
           style={{
             background: '#fff', borderRadius: 20, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
-            cursor: 'pointer',
+            opacity: 0.55,
             border: '1px solid #F0F0F4',
           }}
-        >
+        >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: '#FEF3C7',
@@ -246,7 +245,7 @@ export default function DashboardMobile() {
             <Zap size={26} color="#F59E0B" fill="#F59E0B" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>빠른 제작</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>빠른 제작<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
               원하는 섹션 1장만 골라<br />카피+이미지를 즉시 생성
             </div>
@@ -265,14 +264,13 @@ export default function DashboardMobile() {
       {/* 5) 썸네일 만들기 */}
       <section style={{ padding: '10px 20px 0' }}>
         <div
-          onClick={() => go('s-thumb')}
           style={{
             background: '#fff', borderRadius: 20, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
-            cursor: 'pointer',
+            opacity: 0.55,
             border: '1px solid #F0F0F4',
           }}
-        >
+        >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: '#FCE7F3',
@@ -281,7 +279,7 @@ export default function DashboardMobile() {
             <ImageIcon size={26} color="#EC4899" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
               채널 규격 자동 적용 ·<br />4가지 타입 썸네일 즉시 생성
             </div>

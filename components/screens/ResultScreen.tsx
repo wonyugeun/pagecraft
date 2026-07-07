@@ -8,6 +8,7 @@ import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText } from '@/lib/slideBaked';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
+import { friendlyGenerationError } from '@/lib/apiErrors';
 import { selectPageStyle } from '@/lib/pageStyleContract';
 import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
@@ -1272,8 +1273,8 @@ export default function ResultScreen() {
         }
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url, error: false, aspectRatio: aspect } }));
       } else {
-        // 서버 안내문(예: ref_missing "제품 사진 유실 — 재업로드 필요")을 슬롯에 그대로 노출
-        const errorMsg = typeof data.error === 'string' ? data.error : undefined;
+        // ★402/429 코드 분기(최소 안내) — 코드가 있으면 친화 문구, 없으면 서버 안내문 그대로
+        const errorMsg = friendlyGenerationError(data) ?? (typeof data.error === 'string' ? data.error : undefined);
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg, aspectRatio: aspect } }));
       }
     } catch (err) {
