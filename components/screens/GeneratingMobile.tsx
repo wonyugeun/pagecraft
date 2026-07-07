@@ -32,7 +32,7 @@ export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
     referenceAnalysis, captureAnalysis, sectionStructure,
-    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory,
+    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     toggleChat, productForm, productVolume, productShapeProfile,
   } = useApp();
 
@@ -82,6 +82,7 @@ export default function GeneratingMobile() {
           if (cancelledRef.current) return;
           if (sections.length) {
             setSections(sections);
+            setGenerationJobKey(jobInput.jobKey ?? jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
             saveHistory({
               productName: jobInput.productName ?? '',
               cat: jobInput.cat ?? '',
@@ -90,6 +91,7 @@ export default function GeneratingMobile() {
               out: jobInput.out ?? '',
               secCnt: jobInput.sectionCount ?? secCnt,
               sections,
+              jobKey: jobInput.jobKey ?? jobKeyRef.current,
             });
           }
           if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
@@ -144,6 +146,7 @@ export default function GeneratingMobile() {
 
         if (data.sections?.length) {
           setSections(data.sections);
+          setGenerationJobKey(jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
           saveHistory({
             productName,
             cat: cat ?? '',
@@ -152,6 +155,7 @@ export default function GeneratingMobile() {
             out: out ?? '',
             secCnt,
             sections: data.sections,
+            jobKey: jobKeyRef.current,
           });
         }
 

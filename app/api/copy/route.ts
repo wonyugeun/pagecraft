@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { runCopy, runCopyChunk, type StrategySummary } from '@/lib/stages/copy';
+import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
 
 /**
  * Stage3 (카피 생성, v5) 프로토타입 — 검증 전용 라우트.
@@ -34,9 +37,25 @@ export async function POST(req: NextRequest) {
     sections?: SectionPlan[];
     cat?: string; ch?: string; out?: string; depth?: string;
     knownFacts?: string;   // 셀러 원입력(productName+productExtra) — 후처리 날조 그물 허용 기준
+    jobKey?: string;       // ★결제 검증(P0 2차) — strategy에서 선차감된 생성 작업의 멱등키
   };
 
-  const { strategySummary, startIndex, totalSections, dna, strategy, sections, cat, ch, out, depth, knownFacts } = body;
+  const { strategySummary, startIndex, totalSections, dna, strategy, sections, cat, ch, out, depth, knownFacts, jobKey } = body;
+
+  // ── ★유료 뒷문 가드(P0 2차) — 외부 Claude 호출 전: 결제된 jobKey + 결제 범위 검증 ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+    // 청크 모드: totalSections·(startIndex+청크 크기) / 전체 모드: sections.length — 어느 쪽도 결제 초과 금지
+    const requested = Math.max(totalSections ?? 0, (startIndex ?? 0) + (sections?.length ?? 0));
+    if (requested > check.paidSections) {
+      return NextResponse.json(
+        { error: `결제된 섹션 수(${check.paidSections})를 초과한 요청(${requested})이에요.` },
+        { status: 402 },
+      );
+    }
+  }
 
   // ① 청크 모드
   if (strategySummary && typeof startIndex === 'number' && typeof totalSections === 'number') {

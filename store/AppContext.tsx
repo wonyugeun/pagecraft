@@ -101,6 +101,8 @@ export interface HistoryItem {
   secCnt: number;
   createdAt: string;
   sections: Section[];
+  /** ★결제 멱등키(P0 2차) — 이 생성 작업의 jobKey. 재생성·이미지 생성의 결제 검증에 사용(구항목은 없음=차단) */
+  jobKey?: string;
   sectionImages?: Record<string, string>;  // sec.num → data URL
   blockImages?: Record<string, string>;    // `${sec.num}#${blockIdx}` → data URL
 }
@@ -122,6 +124,8 @@ interface AppState {
   /** Section Reference 슬롯(1차 최소 배선): 실제 포장/구성 상태 사진 1장(data URL).
    *  포장·배송·구성 계열 섹션의 생성에만 두 번째 레퍼런스로 첨부. ⚠️셀러 본인 포장 사진만(타사 포장 금지). */
   packagingRefImage: string | null;
+  /** ★현재 세션의 결제 멱등키(P0 2차) — 유료 API(이미지·재생성) 호출 시 서버 결제 검증용 */
+  generationJobKey: string | null;
   referenceAnalysis: ReferenceAnalysis | null;
   captureAnalysis: CaptureAnalysis | null;
   sectionStructure: string[];
@@ -165,13 +169,14 @@ interface AppContextType extends AppState {
   setProductExtra: (v: string) => void;
   setProductImages: (images: string[]) => void;
   setPackagingRefImage: (image: string | null) => void;
+  setGenerationJobKey: (key: string | null) => void;
   setReferenceAnalysis: (a: ReferenceAnalysis | null) => void;
   setCaptureAnalysis: (a: CaptureAnalysis | null) => void;
   setSectionStructure: (v: string[]) => void;
   setOriginalSections: (v: string[]) => void;
   setCredits: (balance: number) => void;
   setCreditModalOpen: (v: boolean) => void;
-  saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => void;
+  saveHistory: (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[]; jobKey?: string }) => void;
   loadFromHistory: (item: HistoryItem) => void;
   updateLatestHistoryImages: (sectionImages: Record<string, string>, blockImages?: Record<string, string>) => Promise<boolean>;
   updateLatestHistoryOverrides: (sectionOverrides: Record<string, unknown>) => void;   // 인라인 편집 영속화
@@ -315,6 +320,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [productExtra, setProductExtraState] = useState('');
   const [productImages, setProductImagesState] = useState<string[]>([]);
   const [packagingRefImage, setPackagingRefImageState] = useState<string | null>(null);
+  const [generationJobKey, setGenerationJobKeyState] = useState<string | null>(null);
   const [referenceAnalysis, setReferenceAnalysisState] = useState<ReferenceAnalysis | null>(null);
   const [captureAnalysis, setCaptureAnalysisState] = useState<CaptureAnalysis | null>(null);
   const [sectionStructure, setSectionStructureState] = useState<string[]>([]);
@@ -362,7 +368,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCreditsState(Math.max(0, Math.floor(balance)));
   };
 
-  const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[] }) => {
+  const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[]; jobKey?: string }) => {
     const email = session?.user?.email ?? 'guest';
     const key = `pc_history_${email}`;
     try {
@@ -459,6 +465,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductShapeProfile('');
     setAnswers({});
     setAiSelections([]);
+    setGenerationJobKeyState(item.jobKey ?? null);
     setSections(item.sections);
 
     // 이미지는 IndexedDB 비동기 로드. 동시에 옛 localStorage 박힌 이미지도 폴백 사용(마이그 미완 케이스).
@@ -548,9 +555,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
         brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
+        generationJobKey,
       }));
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections, generationJobKey]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -571,6 +579,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.secCnt === 'number') setSecCntState(p.secCnt);
     if (typeof p.productName === 'string') setProductNameState(p.productName);
     if (typeof p.productExtra === 'string') setProductExtraState(p.productExtra);
+    if (typeof p.generationJobKey === 'string') setGenerationJobKeyState(p.generationJobKey);
     if (p.referenceAnalysis) setReferenceAnalysisState(p.referenceAnalysis as ReferenceAnalysis);
     if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
     if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
@@ -696,6 +705,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductShapeProfile('');
     setAnswers({});
     setAiSelections([]);
+    setGenerationJobKeyState(null);   // ★새 상품 = 새 결제 키(이전 작업 키 오염 방지)
     go('s1');
   };
 
@@ -711,7 +721,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
       go,
@@ -730,6 +740,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductName: setProductNameState,
       setProductImages: setProductImagesState,
       setPackagingRefImage: setPackagingRefImageState,
+      setGenerationJobKey: setGenerationJobKeyState,
       setReferenceAnalysis: setReferenceAnalysisState,
       setCaptureAnalysis: setCaptureAnalysisState,
       setSectionStructure: setSectionStructureState,

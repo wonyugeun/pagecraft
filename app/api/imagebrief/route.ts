@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { runImagebrief } from '@/lib/stages/imagebrief';
+import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
 
 /**
  * Stage4 (이미지 브리프 생성) 프로토타입 — 검증 전용 라우트.
@@ -18,7 +21,7 @@ interface SectionPlan { name?: string; role?: string; mission?: string }
 interface CopyItem { name?: string; headline?: string; subcopy?: string; body?: string }
 
 export async function POST(req: NextRequest) {
-  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra } = await req.json() as {
+  const { dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra, jobKey } = await req.json() as {
     dna?: Record<string, unknown>;
     strategy?: Strategy;
     sections?: SectionPlan[];
@@ -27,10 +30,25 @@ export async function POST(req: NextRequest) {
     visual?: { primary_color?: string; accent_color?: string; soft_color?: string; mood?: string; palette?: string };
     productForm?: string; productVolume?: string; productShapeProfile?: string;
     productName?: string; productExtra?: string;
+    jobKey?: string;   // ★결제 검증(P0 2차)
   };
 
   if (!strategy || !Array.isArray(sections) || sections.length === 0) {
     return NextResponse.json({ error: 'strategy와 sections(=Stage2 출력)는 필수입니다.' }, { status: 400 });
+  }
+
+  // ── ★유료 뒷문 가드(P0 2차) — runImagebrief(브리프 Claude 청크 + Product Understanding 호출 포함)
+  //    보다 먼저 실행: 결제된 jobKey + 결제 범위 검증. 외부 호출 0회로 차단. ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+    if (sections.length > check.paidSections) {
+      return NextResponse.json(
+        { error: `결제된 섹션 수(${check.paidSections})를 초과한 요청(${sections.length})이에요.` },
+        { status: 402 },
+      );
+    }
   }
 
   try {

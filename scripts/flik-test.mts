@@ -245,8 +245,8 @@ async function runFull(presetKey: string, sectionCount: number) {
     const res = await fetch(`${BASE_URL}/api/generate-image`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(isPlate
-        ? { prompt, sectionNum: sec.num, outputType: 'slide', aspectRatio: aspect, plateMode: true }
-        : { prompt, sectionNum: sec.num, productImages: [refDataUrl], outputType: 'slide', aspectRatio: aspect }),
+        ? { prompt, sectionNum: sec.num, outputType: 'slide', aspectRatio: aspect, plateMode: true, jobKey: job.input.jobKey }
+        : { prompt, sectionNum: sec.num, productImages: [refDataUrl], outputType: 'slide', aspectRatio: aspect, jobKey: job.input.jobKey }),
     });
     const data = await res.json() as { imageBase64?: string; error?: string };
     // 플레이트는 .plate.png로 저장 — 후처리 합성이 secNN.png를 만든다(합성 전 노출 방지)

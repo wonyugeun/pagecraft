@@ -934,6 +934,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
   productName: string;
   productImages: string[];
 }) {
+  const { generationJobKey: thumbJobKey } = useApp();   // ★결제 검증(P0 2차) — 썸네일도 결제된 생성 작업에서만
   const [selectedType, setSelectedType] = useState<ThumbTypeId | null>(null);
   const [thumbResults, setThumbResults] = useState<Partial<Record<ThumbTypeId, ImgState>>>({});
   const [refImage, setRefImage] = useState<string | null>(null);
@@ -970,6 +971,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
           prompt: `${typeDef.prompt} 상품명: ${productName}. 판매 채널: ${ch ?? ''}. 권장 규격: ${size}.`,
           sectionNum: `thumb_${selectedType}`,
           productImages: images.length > 0 ? images : undefined,
+          jobKey: thumbJobKey ?? undefined,   // ★결제 검증(P0 2차)
         }),
         signal: AbortSignal.timeout(130_000),
       });
@@ -1092,7 +1094,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1178,6 +1180,8 @@ export default function ResultScreen() {
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
   const packagingRefRef = useRef(packagingRefImage);
   useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
+  const jobKeyRef = useRef(generationJobKey);
+  useEffect(() => { jobKeyRef.current = generationJobKey; }, [generationJobKey]);
 
   // 빈 sections fallback ── 기존 유지
   if (sections.length === 0) {
@@ -1248,6 +1252,7 @@ export default function ResultScreen() {
           outputType: effectiveOut,
           aspectRatio: aspect,
           plateMode: isPlate || undefined,
+          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차) — 없으면 서버가 402(과거 히스토리 차단)
         }),
         signal,
       });
@@ -1293,6 +1298,7 @@ export default function ResultScreen() {
           productImages: images.length > 0 ? images : undefined,
           outputType: 'blog',
           aspectRatio: aspect,
+          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
         }),
         signal,
       });
@@ -1419,7 +1425,7 @@ export default function ResultScreen() {
       const res = await fetch('/api/regen-section', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name }),
+        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined }),
         signal: AbortSignal.timeout(30_000),
       });
       const data = await res.json();
@@ -1428,7 +1434,7 @@ export default function ResultScreen() {
       console.error('[regenFn] error:', err);
       return null;
     }
-  }, [cat, ch, type, out, productName, productExtra]);
+  }, [cat, ch, type, out, productName, productExtra, generationJobKey]);
 
   const outputTypeLabel = isBlog ? '블로그형' : isSlide ? '슬라이드형' : 'HTML형';
   const label = isSlide ? '이미지 슬라이드형' : isHtml ? 'HTML 섹션형' : '블로그형 (글+그림)';

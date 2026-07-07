@@ -204,6 +204,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
         totalSections: total,
         cat, ch, out, depth,
         knownFacts: knownFactsStr,
+        jobKey: job.input.jobKey,   // ★결제 검증(P0 2차)
       });
       if (r?.error) throw new Error(r.error);
       chunk.status = 'done';
@@ -230,7 +231,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     const copySections = job.stages.copy.chunks.flatMap(c => c.result ?? []);
     try {
-      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra });
+      const r = await call('/api/imagebrief', { dna, strategy, sections: plan, copy: copySections, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra, jobKey: job.input.jobKey });
       if (r?.error) throw new Error(r.error);
       job.stages.imagebrief = { status: 'done', result: r as unknown as ImagebriefResult };
       await save({ stage: 'imagebrief', status: 'done' });

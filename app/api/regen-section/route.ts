@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
 import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
@@ -8,7 +11,16 @@ import { buildImagePromptRules, IMAGE_DESC_FIELD_SPEC } from '@/lib/imagePromptR
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(req: NextRequest) {
-  const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName } = await req.json();
+  const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName, jobKey } = await req.json();
+
+  // ── ★유료 뒷문 가드(P0 2차) — Claude 호출 전: 결제된 jobKey 검증.
+  //    이번 범위는 추가 차감 없음(기본 생성 크레딧 포함) — 추후 pricing 확장 슬롯
+  //    regenerationCount로 별도 과금 전환 가능. jobKey 없는 과거 히스토리 요청은 차단(유예 없음). ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+  }
 
   const resolvedOut  = resolveOutputType(ch, out);
   const isBlogOutput = resolvedOut === 'blog';

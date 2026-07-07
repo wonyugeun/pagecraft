@@ -33,6 +33,30 @@ export function creditsBypassEnabled(): boolean {
   return process.env.NODE_ENV !== 'production' && process.env.FLIK_BYPASS_CREDITS_IN_DEV === 'true';
 }
 
+export type PaidJobCheck =
+  | { ok: true; paidSections: number }
+  | { ok: false; status: number; error: string };
+
+/** ★유료 뒷문 가드(P0 2차) — 세션 email + jobKey + 본인 결제 기록(generation:{count})을 검증.
+ *  copy·imagebrief·generate-image·regen-section이 외부 API 호출 '전'에 사용.
+ *  creditsBypassEnabled() 분기는 호출부(라우트)에서 — production에서는 우회 불가. */
+export async function verifyPaidJob(email: string | null | undefined, jobKey: unknown): Promise<PaidJobCheck> {
+  if (!email) return { ok: false, status: 401, error: '로그인이 필요해요.' };
+  if (!jobKey || typeof jobKey !== 'string') {
+    return { ok: false, status: 400, error: '생성 요청에 jobKey가 필요해요.' };
+  }
+  try {
+    const paid = await getPaidSections(email, jobKey);
+    if (paid === null) {
+      return { ok: false, status: 402, error: '결제된 생성 작업을 찾을 수 없어요. 새로 생성해주세요.' };
+    }
+    return { ok: true, paidSections: paid };
+  } catch (err) {
+    console.error('[verifyPaidJob] 결제 기록 조회 오류:', err);
+    return { ok: false, status: 500, error: '결제 기록 확인 중 오류가 발생했어요.' };
+  }
+}
+
 /** 멱등키(jobKey)로 결제된 섹션 수 조회 — credit_ledger.reason 규약 "generation:{count}" 파싱.
  *  본인(user_email) 차감 기록만 인정(타인 키 재사용 차단). 기록 없거나 규약 불일치면 null. */
 export async function getPaidSections(email: string, idempotencyKey: string): Promise<number | null> {

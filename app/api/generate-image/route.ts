@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { verifyPaidJob, creditsBypassEnabled } from '@/lib/db';
 
 /**
  * 이미지 생성 라우트 — GPT Image 2 (OpenAI Images / generations).
@@ -76,12 +79,12 @@ export async function POST(req: NextRequest) {
   let prompt: string, sectionNum: string, productImages: string[] | undefined,
       outputType: string | undefined, aspectRatio: string | undefined,
       textZone: 'top' | 'bottom' | undefined, qualityIn: string | undefined,
-      plateMode: boolean;
+      plateMode: boolean, jobKey: string | undefined;
   try {
     const body = await req.json() as {
       prompt: string; sectionNum: string; productImages?: string[];
       outputType?: string; aspectRatio?: string; textZone?: 'top' | 'bottom'; quality?: string;
-      plateMode?: boolean;
+      plateMode?: boolean; jobKey?: string;
     };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
@@ -92,12 +95,21 @@ export async function POST(req: NextRequest) {
     qualityIn     = body.quality;
     // ★Required Asset 플레이트 모드 — GPT는 배경판·타이포만 생성(제품 미등장), 원본 자산은 클라가 코드 합성.
     plateMode     = body.plateMode === true;
+    jobKey        = body.jobKey;       // ★결제 검증(P0 2차)
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
   }
 
   if (!prompt) return errJson('prompt required', {}, 400);
+
+  // ── ★유료 뒷문 가드(P0 2차) — GPT Image 호출 전: 결제된 jobKey 검증(plateMode 포함).
+  //    이번 범위는 장당 과금·quota 없음(결제 키의 이미지 호출 상한은 배포 전 rate/quota 백로그). ──
+  if (!creditsBypassEnabled()) {
+    const session = await getServerSession(authOptions);
+    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    if (!check.ok) return errJson(check.error, { sectionNum }, check.status);
+  }
 
   // ── 2. API 키 ──
   const apiKey = process.env.OPENAI_API_KEY;

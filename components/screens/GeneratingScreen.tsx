@@ -176,7 +176,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, productForm, productVolume, productShapeProfile } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, productForm, productVolume, productShapeProfile } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -227,6 +227,7 @@ export default function GeneratingScreen() {
           if (cancelledRef.current) return;
           if (sections.length) {
             setSections(sections);
+            setGenerationJobKey(jobInput.jobKey ?? jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
             saveHistory({
               productName: jobInput.productName ?? '',
               cat: jobInput.cat ?? '',
@@ -235,6 +236,7 @@ export default function GeneratingScreen() {
               out: jobInput.out ?? '',
               secCnt: jobInput.sectionCount ?? secCnt,
               sections,
+              jobKey: jobInput.jobKey ?? jobKeyRef.current,
             });
           }
           // ★서버 원자적 차감(생성 성공 후 1회). 잔액은 서버 반환값으로 갱신. 실패해도 화면 진행은 막지 않음.
@@ -290,6 +292,7 @@ export default function GeneratingScreen() {
 
         if (data.sections?.length) {
           setSections(data.sections);
+          setGenerationJobKey(jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
           saveHistory({
             productName,
             cat: cat ?? '',
@@ -298,6 +301,7 @@ export default function GeneratingScreen() {
             out: out ?? '',
             secCnt,
             sections: data.sections,
+            jobKey: jobKeyRef.current,
           });
         }
 

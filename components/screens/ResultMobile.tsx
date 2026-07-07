@@ -38,7 +38,7 @@ const STEPS = [
 export default function ResultMobile() {
   // 데스크탑 ResultScreen과 동일 useApp
   const {
-    cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage,
+    cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey,
     go, restoredImages, restoredBlockImages, restoredOverrides,
     updateLatestHistoryImages, updateLatestHistoryOverrides,
     toggleChat, credits,
@@ -97,6 +97,8 @@ export default function ResultMobile() {
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
   const packagingRefRef = useRef(packagingRefImage);
   useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
+  const jobKeyRef = useRef(generationJobKey);
+  useEffect(() => { jobKeyRef.current = generationJobKey; }, [generationJobKey]);
 
   const displaySections = sections;
   const effectiveOut = resolveOutputType(ch, out);
@@ -146,6 +148,7 @@ export default function ResultMobile() {
           outputType: effectiveOut,
           aspectRatio: aspect,
           plateMode: isPlate || undefined,
+          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
         }),
         signal,
       });
@@ -188,6 +191,7 @@ export default function ResultMobile() {
           productImages: images.length > 0 ? images : undefined,
           outputType: 'blog',
           aspectRatio: aspect,
+          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
         }),
         signal,
       });
@@ -306,7 +310,7 @@ export default function ResultMobile() {
     try {
       const res = await fetch('/api/regen-section', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name }),
+        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined }),
         signal: AbortSignal.timeout(30_000),
       });
       const data = await res.json();
@@ -315,7 +319,7 @@ export default function ResultMobile() {
       console.error('[regenFn] error:', err);
       return null;
     }
-  }, [cat, ch, type, out, productName, productExtra]);
+  }, [cat, ch, type, out, productName, productExtra, generationJobKey]);
 
   const handleRegenSection = async (realIdx: number) => {
     const targetSec = getEffectiveSection(realIdx);
