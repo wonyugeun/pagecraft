@@ -6,7 +6,6 @@ import GeneratingMobile from './GeneratingMobile';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
-import { deductCreditsOnServer } from '@/lib/clientCredits';
 import { calculateGenerationCost } from '@/lib/pricing';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 import {
@@ -176,7 +175,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, productForm, productVolume, productShapeProfile } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -225,6 +224,17 @@ export default function GeneratingScreen() {
       )
         .then(({ sections, jobInput }) => {
           if (cancelledRef.current) return;
+          // ★resume 렌더 정합 — ResultScreen은 AppContext(out·ch·cat…)를 읽는데 재개 세션엔 비어 있어
+          //   slide가 blog로 뒤바뀌던 문제. job.input을 컨텍스트에 복원해 job 기준으로 렌더되게 한다.
+          //   (fresh 생성은 컨텍스트가 이미 정확 → resume일 때만 복원. productImages는 job에 없어 세션 스냅샷에 의존)
+          if (resume) {
+            if (jobInput.out) setOut(jobInput.out);
+            if (jobInput.cat) setCat(jobInput.cat);
+            if (jobInput.ch) setCh(jobInput.ch);
+            if (jobInput.type) setType(jobInput.type);
+            if (jobInput.productName) setProductName(jobInput.productName);
+            if (jobInput.productExtra) setProductExtra(jobInput.productExtra);
+          }
           if (sections.length) {
             setSections(sections);
             setGenerationJobKey(jobInput.jobKey ?? jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
@@ -239,8 +249,7 @@ export default function GeneratingScreen() {
               jobKey: jobInput.jobKey ?? jobKeyRef.current,
             });
           }
-          // ★서버 원자적 차감(생성 성공 후 1회). 잔액은 서버 반환값으로 갱신. 실패해도 화면 진행은 막지 않음.
-          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
+          // ★사후차감 제거(resume 이중과금 수정) — 차감은 서버 선차감(strategy/generate의 deductCreditsAtomic)이 유일 소스.
           setPct(100);
           go('s8');
         })
@@ -309,8 +318,7 @@ export default function GeneratingScreen() {
         const wait    = Math.max(0, MIN_ANIM_MS - elapsed);
         const done    = setTimeout(() => {
           if (!cancelledRef.current) {
-            // ★서버 원자적 차감(생성 성공 후 1회). 잔액은 서버 반환값으로 갱신. 실패해도 화면 진행은 막지 않음.
-          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
+            // ★사후차감 제거(resume 이중과금 수정) — 차감은 서버 선차감(strategy/generate의 deductCreditsAtomic)이 유일 소스.
             go('s8');
           }
         }, wait);

@@ -7,7 +7,7 @@ import { AppProvider, useApp } from '@/store/AppContext';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { getActiveJobId, clearActiveJobId, markResumeIntent } from '@/lib/activeJob';
 import { getJob } from '@/lib/historyDB';
-import type { JobState } from '@/lib/pipelineJob';
+import { isResumableJob, type JobState } from '@/lib/pipelineJob';
 import TopBar from '@/components/layout/TopBar';
 import ProgressBar from '@/components/layout/ProgressBar';
 import ChatPanel from '@/components/layout/ChatPanel';
@@ -41,9 +41,10 @@ function App() {
     (async () => {
       try {
         const job = await getJob<JobState>(id);
-        const incomplete = !!job && job.stages.imagebrief.status !== 'done';
-        if (incomplete) { markResumeIntent(); go('s7'); }
-        else { clearActiveJobId(); }   // 완료됐거나 사라진 job → 마커 정리(자동 재개 안 함)
+        // ★정상 진행 중 job만 자동 재개 — 실패/stale(구버전, jobKey 없음)/완료 job은 마커 정리 후 재개 안 함.
+        //   (실패 job 무한재개 → 빈 결과·slide→blog·이중과금 유발하던 경로 차단. isResumableJob 참고)
+        if (isResumableJob(job)) { markResumeIntent(); go('s7'); }
+        else { clearActiveJobId(); }
       } catch { clearActiveJobId(); }
     })();
   }, [screen, go]);

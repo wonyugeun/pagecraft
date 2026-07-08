@@ -291,6 +291,29 @@ export function getJobResult(job: JobState): {
   };
 }
 
+/**
+ * 자동 재개(page.tsx 진입) 대상 판정 — stale·실패 job이 fresh 세션을 가로채 무한재개·오생성하는 걸 차단.
+ *
+ * 재개 O: 정상 진행 중(미완료) + 실패 스테이지·청크 없음 + jobKey 보유(구버전 아님).
+ * 재개 X(마커 정리 대상):
+ *   - jobKey 없음 → 구버전/stale. 재개하면 서버 선차감 멱등키가 흔들려 위험.
+ *   - imagebrief done → 이미 완주(재개 불필요).
+ *   - 어느 스테이지/카피 청크라도 failed → 실패 지점 보유. 자동 재개 대신 사용자가 처음부터 재시도.
+ */
+export function isResumableJob(job: JobState | null | undefined): boolean {
+  if (!job || !job.input?.jobKey) return false;
+  const s = job.stages;
+  if (s.imagebrief.status === 'done') return false;
+  const anyFailed =
+    s.strategy.status === 'failed' ||
+    s.structure.status === 'failed' ||
+    s.copy.status === 'failed' ||
+    s.imagebrief.status === 'failed' ||
+    s.copy.chunks.some(c => c.status === 'failed');
+  if (anyFailed) return false;
+  return true;
+}
+
 /** 진행 상태 한 줄 요약(보고/디버깅용) */
 export function jobProgressSummary(job: JobState): string {
   const s = job.stages;

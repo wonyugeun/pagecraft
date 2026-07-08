@@ -11,7 +11,6 @@ import {
 } from './GeneratingScreen';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { runClientPipeline } from '@/lib/runClientPipeline';
-import { deductCreditsOnServer } from '@/lib/clientCredits';
 import { calculateGenerationCost } from '@/lib/pricing';
 import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 
@@ -32,7 +31,8 @@ export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
     referenceAnalysis, captureAnalysis, sectionStructure,
-    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
+    go, setSections, credits, setCreditModalOpen, saveHistory, setGenerationJobKey,
+    setOut, setCat, setCh, setType, setProductName, setProductExtra,
     toggleChat, productForm, productVolume, productShapeProfile,
   } = useApp();
 
@@ -71,7 +71,7 @@ export default function GeneratingMobile() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
         {
           resume,
           isCancelled: () => cancelledRef.current,
@@ -80,6 +80,16 @@ export default function GeneratingMobile() {
       )
         .then(({ sections, jobInput }) => {
           if (cancelledRef.current) return;
+          // ★resume 렌더 정합 — ResultScreen은 AppContext(out·ch·cat…)를 읽는데 재개 세션엔 비어 있어
+          //   slide가 blog로 뒤바뀌던 문제. job.input을 컨텍스트에 복원(resume일 때만; fresh는 이미 정확).
+          if (resume) {
+            if (jobInput.out) setOut(jobInput.out);
+            if (jobInput.cat) setCat(jobInput.cat);
+            if (jobInput.ch) setCh(jobInput.ch);
+            if (jobInput.type) setType(jobInput.type);
+            if (jobInput.productName) setProductName(jobInput.productName);
+            if (jobInput.productExtra) setProductExtra(jobInput.productExtra);
+          }
           if (sections.length) {
             setSections(sections);
             setGenerationJobKey(jobInput.jobKey ?? jobKeyRef.current);   // ★이미지·재생성 결제 검증용(P0 2차)
@@ -94,7 +104,6 @@ export default function GeneratingMobile() {
               jobKey: jobInput.jobKey ?? jobKeyRef.current,
             });
           }
-          if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
           setPct(100);
           go('s8');
         })
@@ -163,8 +172,7 @@ export default function GeneratingMobile() {
         const wait = Math.max(0, MIN_ANIM_MS - elapsed);
         const done = setTimeout(() => {
           if (!cancelledRef.current) {
-            if (!isDev) void deductCreditsOnServer(jobKeyRef.current).then(r => { if (r) setCredits(r.balance); });
-            go('s8');
+              go('s8');
           }
         }, wait);
         timers.push(done);
