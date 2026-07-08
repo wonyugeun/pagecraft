@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { runImagebrief } from '@/lib/stages/imagebrief';
 import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
@@ -41,15 +40,15 @@ export async function POST(req: NextRequest) {
   // ── ★유료 뒷문 가드(P0 2차) — runImagebrief(브리프 Claude 청크 + Product Understanding 호출 포함)
   //    보다 먼저 실행: 결제된 jobKey + 결제 범위 검증. 외부 호출 0회로 차단. ──
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const rl = await checkRateLimit('llm', session?.user?.email, clientIp(req));
+    const email = await getSessionEmail(req);
+    const rl = await checkRateLimit('llm', email, clientIp(req));
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
         { status: 429 },
       );
     }
-    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    const check = await verifyPaidJob(email, jobKey);
     if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
     if (sections.length > check.paidSections) {
       return NextResponse.json(

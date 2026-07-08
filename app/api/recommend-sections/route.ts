@@ -19,9 +19,8 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { checkRateLimit, clientIp, creditsBypassEnabled } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { DEPTH_BASE } from '@/lib/sectionDepth';
 
@@ -75,8 +74,8 @@ export async function POST(req: NextRequest) {
 
   // ── ★prep rate limit(배포 전 방어) — 외부 Claude 호출 전. production 우회 불가. ──
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const rl = await checkRateLimit('prep', session?.user?.email, clientIp(req));
+    const email = await getSessionEmail(req);
+    const rl = await checkRateLimit('prep', email, clientIp(req));
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },

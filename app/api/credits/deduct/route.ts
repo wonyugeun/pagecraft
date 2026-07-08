@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextResponse, type NextRequest } from 'next/server';
 import { deductCreditsAtomic, GENERATION_COST } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 
 /**
  * POST /api/credits/deduct — ★서버 원자적 차감 (3단계). 생성 성공 후 클라가 1회 호출.
@@ -14,9 +13,8 @@ import { deductCreditsAtomic, GENERATION_COST } from '@/lib/db';
  * 입력: { idempotencyKey: string }   (amount는 받지 않음 — 서버가 정함)
  * 출력: { balance, status }          status: deducted | duplicate | insufficient
  */
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const email = session?.user?.email;
+export async function POST(req: NextRequest) {
+  const email = await getSessionEmail(req);
   if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
 
   let idempotencyKey: string | undefined;

@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { deductCreditsAtomic, creditsBypassEnabled } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
@@ -63,8 +62,7 @@ export async function POST(req: NextRequest) {
   // ── ★크레딧 선차감 게이트(P0) — 레거시 경로에도 동일 적용(1섹션=1크레딧, jobKey 멱등).
   //    비용은 서버가 count 기준으로 계산(클라 금액 미신뢰). 부족 시 외부 API 호출 0회로 402.
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const email = session?.user?.email;
+    const email = await getSessionEmail(req);
     if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
     if (!jobKey || typeof jobKey !== 'string') {
       return NextResponse.json({ error: '생성 요청에 jobKey가 필요해요.' }, { status: 400 });

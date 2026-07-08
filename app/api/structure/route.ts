@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { runStructure, type Dna, type Strategy } from '@/lib/stages/structure';
 import { getPaidSections, creditsBypassEnabled } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
@@ -29,8 +28,7 @@ export async function POST(req: NextRequest) {
   // ── 결제 섹션 수 검증(외부 API 호출 전) ──
   let paid: number | null = null;
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const email = session?.user?.email;
+    const email = await getSessionEmail(req);
     if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
     if (!jobKey || typeof jobKey !== 'string') {
       return NextResponse.json({ error: '생성 요청에 jobKey가 필요해요.' }, { status: 400 });

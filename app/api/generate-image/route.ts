@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota, checkRateLimit, clientIp } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { calculateImageQuota, imageQuotaWeight } from '@/lib/pricing';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
@@ -108,8 +107,7 @@ export async function POST(req: NextRequest) {
   // ── ★유료 뒷문 가드(P0 2차) — GPT Image 호출 전: 결제된 jobKey 검증(plateMode 포함). ──
   let paidSections: number | null = null;   // null = dev 우회(아래 quota 선점도 생략)
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const email = session?.user?.email;
+    const email = await getSessionEmail(req);
     // ★적용 순서: ①user/IP rate → ②결제 검증 → ③jobKey quota → ④GPT Image 호출
     const rl = await checkRateLimit('image', email, clientIp(req));
     if (!rl.allowed) {

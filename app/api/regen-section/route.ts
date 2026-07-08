@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
@@ -20,15 +19,15 @@ export async function POST(req: NextRequest) {
   //    이번 범위는 추가 차감 없음(기본 생성 크레딧 포함) — 추후 pricing 확장 슬롯
   //    regenerationCount로 별도 과금 전환 가능. jobKey 없는 과거 히스토리 요청은 차단(유예 없음). ──
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const rl = await checkRateLimit('llm', session?.user?.email, clientIp(req));
+    const email = await getSessionEmail(req);
+    const rl = await checkRateLimit('llm', email, clientIp(req));
     if (!rl.allowed) {
       return NextResponse.json(
         { error: `요청이 많아요 — 잠시 후 다시 시도해주세요. (${rl.window}당 ${rl.limit}회)`, code: API_ERROR_CODES.rateLimited, limit: rl.limit, used: rl.used },
         { status: 429 },
       );
     }
-    const check = await verifyPaidJob(session?.user?.email, jobKey);
+    const check = await verifyPaidJob(email, jobKey);
     if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
   }
 

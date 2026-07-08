@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { runStrategy } from '@/lib/stages/strategy';
 import { deductCreditsAtomic, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 
@@ -27,8 +26,7 @@ export async function POST(req: NextRequest) {
   // ── 크레딧 선차감(외부 API 호출 전) ──
   let credit: { cost: number; balance: number; status: string } | undefined;
   if (!creditsBypassEnabled()) {
-    const session = await getServerSession(authOptions);
-    const email = session?.user?.email;
+    const email = await getSessionEmail(req);
     if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
     // ★llm rate limit — 선차감·Claude 호출 전
     const rl = await checkRateLimit('llm', email, clientIp(req));
