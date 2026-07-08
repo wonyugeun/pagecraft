@@ -24,9 +24,8 @@ export const sql = neon(connectionString ?? '');
 /** 신규 가입 기본 지급량 — 기존 로직(30)과 동일. */
 export const SIGNUP_GRANT = 30;
 
-/** @deprecated 고정가 10 시대의 상수 — 가격은 lib/pricing.ts(calculateGenerationCost, 1섹션=1크레딧)로 이전.
- *  현재 유일 사용처는 /api/credits/deduct(과도기: 선차감 이후 duplicate로만 동작) — 후속 제거 예정. */
-export const GENERATION_COST = 10;
+// ★생성 비용 상수(고정가 10)는 제거됨 — 크레딧 금액은 lib/pricing.ts calculateGenerationCost(1섹션=1크레딧)가 단일 소스.
+//   서버 차감(strategy·generate)·클라 안내 모두 이 함수 경유. 고정 리터럴을 다시 두지 말 것.
 
 /** dev/harness 크레딧 우회 — ★production에서는 어떤 경우에도 false.
  *  로컬 개발·하네스가 선차감 강제(402)에 막히지 않게 하는 명시적 옵트인(.env.local). */

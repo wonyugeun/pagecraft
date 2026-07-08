@@ -10,8 +10,8 @@ for (const line of env.split('\n')) {
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
 }
 
-const { ensureCreditTables, getOrCreateBalance, deductCreditsAtomic, sql, GENERATION_COST } = await import('../lib/db');
-const C = GENERATION_COST; // 10
+const { ensureCreditTables, getOrCreateBalance, deductCreditsAtomic, sql } = await import('../lib/db');
+const C = 10; // 테스트용 샘플 차감액(원자성·dedup·부족·동시성 검증 — 실제 금액은 lib/pricing.calculateGenerationCost)
 let pass = true;
 const chk = (label: string, ok: boolean, detail = '') => { if (!ok) pass = false; console.log(`  ${ok ? '✅' : '❌'} ${label}${detail ? ' — ' + detail : ''}`); };
 

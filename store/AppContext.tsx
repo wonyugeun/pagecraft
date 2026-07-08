@@ -362,7 +362,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session?.user?.email]);
 
-  /* ★3단계: 클라 차감(localStorage) 제거. 차감은 서버(/api/credits/deduct)가 원자적으로 함.
+  /* ★3단계: 클라 차감(localStorage) 제거. 차감은 서버 선차감(strategy·generate의 deductCreditsAtomic)이 원자적으로 함.
    * 화면 잔액은 서버가 돌려준 새 잔액으로만 갱신 — setCredits. (조작 방지: 진짜 잔액은 서버에만.) */
   const setCredits = (balance: number) => {
     setCreditsState(Math.max(0, Math.floor(balance)));
