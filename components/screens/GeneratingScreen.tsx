@@ -175,7 +175,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -220,6 +220,7 @@ export default function GeneratingScreen() {
           resume,
           isCancelled: () => cancelledRef.current,
           onProgress: ({ pct: p, label }) => { if (!cancelledRef.current) { setPct(p); setEngineLabel(label); } },
+          onCredit: (balance) => { if (!cancelledRef.current) setCredits(balance); },   // strategy 선차감 후 헤더 실시간 갱신
         },
       )
         .then(({ sections, jobInput }) => {

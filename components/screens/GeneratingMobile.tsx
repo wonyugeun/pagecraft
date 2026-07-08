@@ -31,7 +31,7 @@ export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
     referenceAnalysis, captureAnalysis, sectionStructure,
-    go, setSections, credits, setCreditModalOpen, saveHistory, setGenerationJobKey,
+    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     setOut, setCat, setCh, setType, setProductName, setProductExtra,
     toggleChat, productForm, productVolume, productShapeProfile,
   } = useApp();
@@ -76,6 +76,7 @@ export default function GeneratingMobile() {
           resume,
           isCancelled: () => cancelledRef.current,
           onProgress: ({ pct: p, label }) => { if (!cancelledRef.current) { setPct(p); setEngineLabel(label); } },
+          onCredit: (balance) => { if (!cancelledRef.current) setCredits(balance); },   // strategy 선차감 후 헤더 실시간 갱신
         },
       )
         .then(({ sections, jobInput }) => {

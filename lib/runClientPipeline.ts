@@ -60,6 +60,8 @@ export interface RunClientPipelineOpts {
   resume?: boolean;
   onProgress?: (p: ClientProgress) => void;
   isCancelled?: () => boolean;
+  /** strategy 선차감 직후 서버 잔액을 헤더로 반영(추가 API 호출 없이 strategy 응답 재사용). */
+  onCredit?: (balance: number) => void;
 }
 
 export interface ClientPipelineResult {
@@ -72,7 +74,7 @@ export async function runClientPipeline(
   appInput: PipelineInput,
   opts: RunClientPipelineOpts = {},
 ): Promise<ClientPipelineResult> {
-  const { resume = false, onProgress, isCancelled } = opts;
+  const { resume = false, onProgress, isCancelled, onCredit } = opts;
 
   // 재개: 마커의 job을 불러옴. 없으면(복구 실패) 신규 생성으로 가지 않고 에러 — 빈 입력 오생성 방지.
   let job: JobState | null = null;
@@ -99,6 +101,7 @@ export async function runClientPipeline(
     chunkSize: COPY_CHUNK_SIZE,
     onProgress: (j) => { if (!isCancelled?.()) onProgress?.(mapProgress(j)); },
     persist: async (j) => { try { await saveJob(j); } catch { /* no-op */ } },
+    onCredit: (balance) => { if (!isCancelled?.()) onCredit?.(balance); },
   });
 
   // 완주 → 진행 중 마커 제거(이후 재진입 시 자동 재개 대상 아님)

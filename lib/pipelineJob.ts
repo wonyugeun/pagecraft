@@ -64,6 +64,8 @@ export interface RunJobOptions {
   chunkSize?: number;                                  // copy 청크 크기(기본 16)
   onProgress?: (job: JobState, ev: ProgressEvent) => void;
   persist?: (job: JobState) => void | Promise<void>;   // 각 상태 변화 시 저장(클라/IndexedDB/파일 주입)
+  /** strategy 응답의 서버 잔액(credit.balance)을 흘려보냄 — 헤더 크레딧 실시간 갱신용(차감 로직 무관, 표시만). */
+  onCredit?: (balance: number) => void;
 }
 
 export interface ProgressEvent {
@@ -144,6 +146,9 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
       const r = await call('/api/strategy', { cat, ch, productName, productExtra, sectionCount, jobKey: job.input.jobKey });
       if (r?.error) throw new Error(r.error);
       job.stages.strategy = { status: 'done', result: r as unknown as StrategyResult };
+      // ★서버가 선차감 후 반환한 실시간 잔액을 헤더로 전달(추가 조회 없음). dev bypass 시 credit 없음 → 스킵.
+      const bal = (r as { credit?: { balance?: number } }).credit?.balance;
+      if (typeof bal === 'number') opts.onCredit?.(bal);
       await save({ stage: 'strategy', status: 'done' });
     } catch (e) {
       job.stages.strategy = { status: 'failed', error: msg(e) };

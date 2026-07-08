@@ -341,10 +341,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [aiSelections, setAiSelections] = useState<string[]>([]);
 
-  /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴(2단계). 신규 30 지급은 서버가 처리.
-   * (이전: localStorage pc_cr_{email} 읽기 → 서버 조회로 교체. ★차감 deductCredits는 미접촉 = 3단계.)
-   * 주의(과도기): 차감은 아직 클라(localStorage)라, 새로고침하면 서버 잔액으로 다시 동기화된다.
-   *   서버 차감 이전(3단계) 전까지는 차감이 영구 반영되지 않음 — 의도된 중간 상태. */
+  /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴. 신규 30 지급도 서버가 처리.
+   * 이 effect는 로그인/세션 변경 시 1회만 실행(초기 스냅샷). 차감은 서버 선차감(strategy)이 원자적으로 하고,
+   * 생성 중에는 strategy 응답의 credit.balance를 onCredit→setCredits로 받아 헤더를 실시간 갱신한다. */
   useEffect(() => {
     if (status !== 'authenticated') return;
     let cancelled = false;
