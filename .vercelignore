@@ -1,0 +1,24 @@
+# 배포 제외 — 개발 산출물·레퍼런스(약 200MB, 타사 브랜드 이미지 포함). 앱 코드/사용 중인 public 에셋은 유지.
+# ⚠️.vercelignore가 있으면 Vercel은 .gitignore 대신 이 파일을 이그노어 목록으로 사용하므로,
+#   .gitignore가 막던 것(_prototype_out 등)도 여기에 명시해야 함.
+
+# ── 개발/검증 산출물 ──
+_prototype_out/
+runs/
+test-assets/
+
+# ── 레퍼런스 이미지(타사 상세페이지·브랜드 캡처 — 저작권/상표 리스크) ──
+래퍼런스/
+메디힐 래퍼런스/
+상세페이지 ui/
+
+# ── public/images 개발 크루프트(코드 미참조 확인) — 앱이 쓰는 것은 아래에서 명시 유지 ──
+public/images/channel-design.png
+public/images/reference-flow.png
+public/images/reference-flow-v2.png
+public/images/로고.png
+public/images/샘플.png
+public/images/채널시안2.png
+
+# 유지되는 public 에셋(참조 확인): logo-flik.png, reference-flow-v3.png, slide1~3.png,
+#   images/dashboard/*, images/landing/*, 루트 *.svg — 제외 목록에 없으므로 정상 배포됨.
