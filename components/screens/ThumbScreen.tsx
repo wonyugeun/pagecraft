@@ -211,7 +211,7 @@ export default function ThumbScreen() {
     if (!resultUrl) return;
     const a = document.createElement('a');
     a.href     = resultUrl;
-    a.download = `${productName || 'pagecraft'}_thumb_${selectedType}.png`;
+    a.download = `${productName || 'flik'}_thumb_${selectedType}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

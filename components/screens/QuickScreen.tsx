@@ -300,7 +300,7 @@ export default function QuickScreen() {
     if (!imgUrl || !selectedSection) return;
     const a = document.createElement('a');
     a.href = imgUrl;
-    a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_${selectedSection.name}.png`;
+    a.download = `${(productName || 'flik').replace(/[/\\?%*:|"<>]/g, '_')}_${selectedSection.name}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

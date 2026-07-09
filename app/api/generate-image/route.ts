@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
   if (isSlide && !hasRefImages && !plateMode) {
     console.warn(`[generate-image] 차단 — 슬라이드인데 refImgs=0 (sectionNum: ${sectionNum}). 제품 사진 유실 의심.`);
     return errJson(
-      '제품 사진이 유실되었습니다 — 상품정보 단계에서 제품 사진을 다시 업로드한 뒤 재생성해 주세요.',
+      '제품 사진이 유실됐어요 — 제품 사진 업로드 단계에서 사진을 다시 올린 뒤 재생성해 주세요.',
       { sectionNum, code: 'ref_missing' },
       422,
     );

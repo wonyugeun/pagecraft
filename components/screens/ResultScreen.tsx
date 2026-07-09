@@ -165,7 +165,7 @@ export async function downloadMergedImage(
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${productName || 'pagecraft'}_detail.png`;
+      a.download = `${productName || 'flik'}_detail.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -356,7 +356,7 @@ ${imgsHtml}
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
+      a.download = `${(productName || 'flik').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -455,7 +455,7 @@ ${sectionsHtml}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
+    a.download = `${(productName || 'flik').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1013,7 +1013,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
   const downloadThumb = (url: string, typeId: ThumbTypeId) => {
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(productName || 'pagecraft').replace(/[/\\?%*:|"<>]/g, '_')}_thumb_${typeId}.png`;
+    a.download = `${(productName || 'flik').replace(/[/\\?%*:|"<>]/g, '_')}_thumb_${typeId}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

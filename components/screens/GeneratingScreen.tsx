@@ -412,6 +412,7 @@ export default function GeneratingScreen() {
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32, textAlign: 'center', maxWidth: 320 }}>
           {apiError}
         </div>
+        <div style={{ fontSize: 12.5, color: '#16a34a', fontWeight: 600, marginBottom: 16 }}>추가 차감 없이 다시 시도할 수 있어요</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button className="btn-back" onClick={cancel}>← 이전으로</button>
           <button className="btn-next" onClick={retry}>↻ 다시 시도</button>

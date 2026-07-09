@@ -57,14 +57,14 @@ export default function LandingPageMobile() {
               color: '#111', letterSpacing: '-0.02em',
             }}>
               AI가 만드는<br />
-              고퀄리티 상세페이지,
+              상세페이지,
             </h1>
             <h1 style={{
               marginTop: '6px',
               fontSize: '24px', fontWeight: 800, lineHeight: 1.25,
               color: '#111', letterSpacing: '-0.02em',
             }}>
-              <span style={{ color: '#6D4CFF' }}>단 3분</span> 만에
+              <span style={{ color: '#6D4CFF' }}>몇 분</span> 만에
             </h1>
 
             <p style={{

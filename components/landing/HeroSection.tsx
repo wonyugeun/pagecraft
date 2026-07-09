@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-const META_ITEMS = ['회원가입 즉시 무료', '신용카드 불필요', '고퀄리티 보장'];
+const META_ITEMS = ['가입 시 무료 크레딧', '신용카드 불필요', '카테고리별 특화'];
 
 export default function HeroSection() {
   const [hoverCta, setHoverCta] = useState(false);
@@ -49,8 +49,8 @@ export default function HeroSection() {
             lineHeight: 1.2,
             marginBottom: '24px',
           }}>
-            AI가 만드는 고퀄리티<br />
-            상세페이지, <span style={{ color: '#6E5BFB' }}>단 3분</span> 만에
+            AI가 만드는<br />
+            상세페이지, <span style={{ color: '#6E5BFB' }}>몇 분</span> 만에
           </h1>
 
           {/* 부제 */}

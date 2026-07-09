@@ -270,7 +270,8 @@ export default function GeneratingMobile() {
       }}>
         <div style={{ fontSize: 44, marginBottom: 16 }}>⚠️</div>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626', marginBottom: 10 }}>생성에 실패했어요</div>
-        <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 24 }}>{apiError}</div>
+        <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 16 }}>{apiError}</div>
+        <div style={{ fontSize: 12.5, color: '#16a34a', fontWeight: 600, marginBottom: 20 }}>추가 차감 없이 다시 시도할 수 있어요</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button onClick={retry} style={{
             background: '#6D4CFF', color: '#fff', border: 'none',
