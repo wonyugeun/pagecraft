@@ -96,7 +96,7 @@
 
 - 서비스명: Flik (flik.kr)
 - 운영자: [   이름/상호   ]
-- 이메일: [   문의 이메일   ]
+- 이메일: flik.support@gmail.com
 
 ---
 

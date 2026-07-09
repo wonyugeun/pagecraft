@@ -47,12 +47,7 @@ const PLATFORM_CATS: { name: string; count: string; emoji: string }[] = [
   { name: '패션/잡화',    count: '3,652개',  emoji: '👗' },
 ];
 
-const SAMPLE_HISTORY: HistoryItem[] = [
-  { id: 'sample-1', productName: '데일리 수분 크림 상세페이지', cat: '화장품/미용', ch: '스마트스토어', type: '기본형', out: 'blog', secCnt: 16, createdAt: '2026-05-22T18:08:00', sections: [] },
-  { id: 'sample-2', productName: '원목 의자 상세페이지',       cat: '가구/인테리어', ch: '스마트스토어', type: '기본형', out: 'slide', secCnt: 12, createdAt: '2026-05-22T17:48:00', sections: [] },
-  { id: 'sample-3', productName: '닭가슴살 스테이크 상세페이지', cat: '식품',         ch: '자사몰',      type: '프리미엄형', out: 'blog', secCnt: 18, createdAt: '2026-05-22T17:35:00', sections: [] },
-  { id: 'sample-4', productName: '미니 가습기 상세페이지',     cat: '디지털/가전',   ch: '쿠팡',        type: '기본형',  out: 'slide', secCnt: 10, createdAt: '2026-05-22T16:22:00', sections: [] },
-];
+// (SAMPLE_HISTORY 목업 제거 — 신규 유저 가짜 작업 노출 방지. 실제 history만, 0개면 빈 상태 안내 표시)
 
 function MiniBar({ counts }: { counts: number[] }) {
   const labels = ['월', '화', '수', '목', '금', '토', '일'];
@@ -103,8 +98,7 @@ export default function DashboardMobile() {
   }, [email]);
 
   const stats = getWeeklyStats(history);
-  const isEmpty = history.length === 0;
-  const displayHistory = isEmpty ? SAMPLE_HISTORY : history.slice(0, 4);
+  const displayHistory = history.slice(0, 4);   // 실제 작업만(가짜 예시 없음)
 
   return (
     <div style={{
@@ -300,15 +294,14 @@ export default function DashboardMobile() {
         <div style={{ background: '#fff', borderRadius: 20, padding: 16, border: '1px solid #F0F0F4' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</div>
-            <button style={{
-              display: 'inline-flex', alignItems: 'center', gap: 2,
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 600, color: '#6D4CFF',
-              fontFamily: 'inherit', padding: 0,
-            }}>
-              전체 보기 <ChevronRight size={12} />
-            </button>
+            {/* '전체 보기' 제거 — /my-works 미구현(무동작 버튼). 작업 4개 초과로 필요해지면 페이지 생성 후 복원(백로그) */}
           </div>
+          {displayHistory.length === 0 && (
+            <div style={{ padding: '20px 0 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#444', marginBottom: 4 }}>아직 만든 상세페이지가 없어요</div>
+              <div style={{ fontSize: 12, color: '#AAA' }}>위에서 첫 상세페이지를 만들어보세요</div>
+            </div>
+          )}
           {displayHistory.map((item) => {
             const cat = getCatStyle(item.cat);
             const isSample = item.id.startsWith('sample-');

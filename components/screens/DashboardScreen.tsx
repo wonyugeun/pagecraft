@@ -7,7 +7,6 @@ import {
   Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
   LogOut,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useApp, HistoryItem } from '@/store/AppContext';
 import { getImages } from '@/lib/historyDB';
 import DashboardMobile from './DashboardMobile';
@@ -63,12 +62,7 @@ const PLATFORM_CATS = [
   '패션/잡화',
 ];
 
-const SAMPLE_HISTORY: HistoryItem[] = [
-  { id: 'sample-1', productName: '데일리 수분 크림 상세페이지', cat: '화장품/미용', ch: '스마트스토어', type: '기본형', out: 'blog', secCnt: 16, createdAt: '2026-05-22T18:08:00', sections: [] },
-  { id: 'sample-2', productName: '원목 의자 상세페이지', cat: '가구/인테리어', ch: '스마트스토어', type: '기본형', out: 'slide', secCnt: 12, createdAt: '2026-05-22T17:48:00', sections: [] },
-  { id: 'sample-3', productName: '닭가슴살 스테이크 상세페이지', cat: '식품', ch: '자사몰', type: '프리미엄형', out: 'blog', secCnt: 18, createdAt: '2026-05-22T17:35:00', sections: [] },
-  { id: 'sample-4', productName: '미니 가습기 상세페이지', cat: '디지털/가전', ch: '쿠팡', type: '기본형', out: 'slide', secCnt: 10, createdAt: '2026-05-22T16:22:00', sections: [] },
-];
+// (SAMPLE_HISTORY 목업 제거 — 신규 유저에게 가짜 작업이 뜨던 문제. 실제 history만 표시, 0개면 CTA 배너가 빈 상태 안내)
 
 // ── 막대 차트 (항상 표시) ───────────────────────────────
 function BarChart({ counts }: { counts: number[] }) {
@@ -188,7 +182,6 @@ function RobotIllust() {
 export default function DashboardScreen() {
   const isMobile = useIsMobile();
   const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
-  const router = useRouter();
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -256,8 +249,7 @@ export default function DashboardScreen() {
   };
 
   const stats = getWeeklyStats(history);
-  const isEmpty = history.length === 0;
-  const displayHistory = isEmpty ? SAMPLE_HISTORY : history.slice(0, 4);
+  const displayHistory = history.slice(0, 4);   // 실제 작업만(가짜 예시 없음). 0개면 아래 CTA 배너가 빈 상태 안내
 
   const card = (id: string, extra?: React.CSSProperties): React.CSSProperties => ({
     background: '#fff',
@@ -486,9 +478,7 @@ export default function DashboardScreen() {
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #F4F4F6' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</span>
-                <button onClick={() => router.push('/my-works')} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>
-                  전체 보기 →
-                </button>
+                {/* '전체 보기' 제거 — /my-works 페이지 미구현(죽은 링크). 작업 4개 초과로 필요해지면 페이지 생성 후 복원(백로그) */}
               </div>
 
               <div ref={menuRef}>
