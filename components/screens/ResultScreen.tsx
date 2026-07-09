@@ -62,6 +62,28 @@ export function buildBakedText(headline: string, subcopy?: string): string {
   ].join(' ');
 }
 
+/** 아직 생성 중(loading)인 이미지 개수 — 다운로드 전 "생성 중" 가드용(섹션 대표 + image 블록). */
+export function countGeneratingImages(
+  sections: Section[],
+  imgMap: Record<string, ImgState>,
+  blockImgMap: Record<string, ImgState>,
+): number {
+  let n = 0;
+  for (const sec of sections) {
+    if (imgMap[sec.num]?.loading) n++;
+    sec.blocks?.forEach((b, i) => {
+      if (b.type === 'image' && blockImgMap[`${sec.num}#${i}`]?.loading) n++;
+    });
+  }
+  return n;
+}
+
+/** 생성 중 이미지가 있으면 확인 — 완성분만 받을지/대기할지. true=진행, false=취소(대기). count 0이면 무조건 진행. */
+export function confirmSkipGenerating(count: number): boolean {
+  if (count <= 0) return true;
+  return confirm(`아직 생성 중인 이미지가 ${count}개 있어요.\n지금 내려받으면 미완성 이미지는 제외돼요.\n\n[확인] 완성분만 다운로드   [취소] 생성 완료 후 다시 시도`);
+}
+
 /* ─── 통이미지 다운로드 ─── */
 export async function downloadMergedImage(
   sections: Section[],
@@ -217,9 +239,10 @@ function blocksToHtml(
         const url = blockImageUrls[key];
         const cssAspect = (blockAspects[key] ?? '1:1').replace(':', '/');
         const imgStyle = `aspect-ratio:${cssAspect};object-fit:contain;`;
+        // ★이미지 없는 블록은 스킵(슬롯 플레이스홀더 미노출) — 셀러 결과물에 내부 안내 요소 0.
         return url
           ? `<figure class="image" style="aspect-ratio:${cssAspect};"><img src="${url}" alt="${escHtml(b.label)}" style="${imgStyle}" /></figure>`
-          : `<div class="image-slot" style="aspect-ratio:${cssAspect};">📸 ${escHtml(b.label)}</div>`;
+          : '';
       }
       case 'cta':
         return `<div class="cta">
@@ -1468,6 +1491,8 @@ export default function ResultScreen() {
     : -1;
 
   const handleHtmlDownload = async () => {
+    // ★생성 중 이미지 가드 — 미완성분은 export에서 스킵되므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
     // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영). 슬라이드형은 이미지만 스택.
@@ -1478,6 +1503,8 @@ export default function ResultScreen() {
 
   const handleMergeDownload = async () => {
     if (mergeLoading) return;
+    // ★생성 중 이미지 가드 — 완성분만 합치므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setMergeLoading(true);
     try {
       await downloadMergedImage(finalSectionsForExport, sectionImages, blockImages, productName);
@@ -1494,6 +1521,8 @@ export default function ResultScreen() {
   // 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처 시 제외. AI 재호출 0.
   const handleFullCapture = async () => {
     if (captureLoading) return;
+    // ★생성 중 이미지 가드 — 캡처는 화면 그대로라 미완성 섹션이 찍히므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
     if (!container) { alert('캡처할 본문이 없습니다.'); return; }
     // 직계 자식 중 실제 섹션 div만(자식 있는 것). 56px 빈 스페이서는 children 0이라 제외.

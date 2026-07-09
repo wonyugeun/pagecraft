@@ -14,6 +14,7 @@ import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
   EnhancedLightbox, downloadHtml, downloadMergedImage,
+  countGeneratingImages, confirmSkipGenerating,
 } from './ResultScreen';
 import { buildSlideBakedText } from '@/lib/slideBaked';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
@@ -373,6 +374,8 @@ export default function ResultMobile() {
   const totalLength = (displaySections.length * 1040).toLocaleString();
 
   const handleHtmlDownload = async () => {
+    // ★생성 중 이미지 가드 — 미완성분은 export에서 스킵되므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
     const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide);
@@ -381,6 +384,8 @@ export default function ResultMobile() {
   };
   const handleMergeDownload = async () => {
     if (mergeLoading) return;
+    // ★생성 중 이미지 가드 — 완성분만 합치므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setMergeLoading(true);
     try {
       await downloadMergedImage(finalSectionsForExport, sectionImages, blockImages, productName);
@@ -406,6 +411,8 @@ export default function ResultMobile() {
   // 블로그형 섹션별 PNG 다운로드 — 데스크탑 handleFullCapture 이식(섹션당 1080폭 1장, AI 재호출 0).
   const handleFullCapture = async () => {
     if (captureLoading) return;
+    // ★생성 중 이미지 가드 — 캡처는 화면 그대로라 미완성 섹션이 찍히므로, 지금 받을지/기다릴지 확인.
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
     if (!container) { alert('캡처할 본문이 없습니다.'); return; }
     const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
