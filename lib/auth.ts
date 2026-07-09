@@ -47,8 +47,11 @@ export const authOptions: NextAuthOptions = {
       if (url.startsWith(baseUrl)) return url;
       return baseUrl;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user?.id) token.uid = user.id;
+      // ★provider 캡처(최초 로그인 시 account 존재) — 이메일 미제공(카카오 선택동의 거절) 시
+      //   getSessionEmail이 provider+sub 합성 키로 폴백하는 데 사용. 토큰에 영속돼 이후 호출에도 유지.
+      if (account?.provider) token.provider = account.provider;
       return token;
     },
     async session({ session, token }) {
