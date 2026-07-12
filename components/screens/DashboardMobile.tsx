@@ -85,9 +85,12 @@ function formatTime(iso: string) {
 
 /* ─── 메인 ─── */
 export default function DashboardMobile() {
-  const { startDetail, loadFromHistory, toggleChat, credits } = useApp();
+  const { startDetail, loadFromHistory, toggleChat, credits, go } = useApp();
+  // ★빠른제작: 결제 배관 완비 → 프로덕션 항상 활성. ★썸네일: 결제 배관 전까지 dev만. 서버 게이트 불변.
+  const thumbEnabled = process.env.NODE_ENV === 'development';
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showAllWorks, setShowAllWorks] = useState(false);   // 최근작업 더보기(8→전체 최대 20). 표시만.
   const email = session?.user?.email ?? 'guest';
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function DashboardMobile() {
   }, [email]);
 
   const stats = getWeeklyStats(history);
-  const displayHistory = history.slice(0, 4);   // 실제 작업만(가짜 예시 없음)
+  const displayHistory = history.slice(0, showAllWorks ? 20 : 6);   // 기본 6, 더보기 시 전체(최대 20). 저장 무접촉(표시만)
 
   return (
     <div style={{
@@ -224,13 +227,14 @@ export default function DashboardMobile() {
       {/* 4) 빠른 제작 */}
       <section style={{ padding: '12px 20px 0' }}>
         <div
+          onClick={() => go('s-quick')}
           style={{
             background: '#fff', borderRadius: 20, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
-            opacity: 0.55,
+            cursor: 'pointer',
             border: '1px solid #F0F0F4',
           }}
-        >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
+        >{/* ★프로덕션 활성 — quick/charge 결제 배관 완비 */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: '#FEF3C7',
@@ -239,7 +243,7 @@ export default function DashboardMobile() {
             <Zap size={26} color="#F59E0B" fill="#F59E0B" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>빠른 제작<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>빠른 제작</div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
               원하는 섹션 1장만 골라<br />카피+이미지를 즉시 생성
             </div>
@@ -258,13 +262,15 @@ export default function DashboardMobile() {
       {/* 5) 썸네일 만들기 */}
       <section style={{ padding: '10px 20px 0' }}>
         <div
+          onClick={thumbEnabled ? () => go('s-thumb') : undefined}
           style={{
             background: '#fff', borderRadius: 20, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
-            opacity: 0.55,
+            opacity: thumbEnabled ? 1 : 0.55,
+            cursor: thumbEnabled ? 'pointer' : 'default',
             border: '1px solid #F0F0F4',
           }}
-        >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
+        >{/* ★썸네일은 결제 배관 전까지 dev만. 프로덕션 준비 중 */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: '#FCE7F3',
@@ -273,7 +279,7 @@ export default function DashboardMobile() {
             <ImageIcon size={26} color="#EC4899" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기{!thumbEnabled && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span>}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
               채널 규격 자동 적용 ·<br />4가지 타입 썸네일 즉시 생성
             </div>
@@ -294,7 +300,17 @@ export default function DashboardMobile() {
         <div style={{ background: '#fff', borderRadius: 20, padding: 16, border: '1px solid #F0F0F4' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</div>
-            {/* '전체 보기' 제거 — /my-works 미구현(무동작 버튼). 작업 4개 초과로 필요해지면 페이지 생성 후 복원(백로그) */}
+            {/* 더 보기 — 헤더 우측 인라인 펼침(라우팅 아님). 6개 초과 시만 노출. */}
+            {history.length > 6 && (
+              <button
+                onClick={() => setShowAllWorks(v => !v)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#F4F0FF', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 12, fontWeight: 600, color: '#6D4CFF', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.01em' }}
+              >
+                <span>{showAllWorks ? '접기' : '더보기'}</span>
+                {!showAllWorks && <span style={{ fontWeight: 500, opacity: 0.6, fontVariantNumeric: 'tabular-nums' }}>{history.length - 6}</span>}
+                <ChevronDown size={13} strokeWidth={2.2} style={{ transform: showAllWorks ? 'rotate(180deg)' : 'none', transition: 'transform 0.22s ease' }} />
+              </button>
+            )}
           </div>
           {displayHistory.length === 0 && (
             <div style={{ padding: '20px 0 8px', textAlign: 'center' }}>
@@ -327,6 +343,11 @@ export default function DashboardMobile() {
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>{item.productName}</div>
                   <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {item.type === '빠른제작' && (
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#6D4CFF', color: '#fff', fontWeight: 700 }}>
+                        ⚡ 빠른제작
+                      </span>
+                    )}
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F0FF', color: '#6D4CFF', fontWeight: 600 }}>
                       {item.cat}
                     </span>

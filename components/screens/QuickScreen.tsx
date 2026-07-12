@@ -1,11 +1,23 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 
 interface ImgFile { url: string; }
+
+// ★디자인 통일 — 구 토큰(파랑 #2563eb + 베이지)을 Flik 토큰(#6D4CFF 보라 + 화이트 카드톤)으로 스코프 오버라이드.
+//   globals.css의 var(--ac/--al/--bd/--sf/--r/--rs)를 루트에서 덮어써 하위 클래스 전체에 적용(전면 재작성 X).
+//   참고: DashboardScreen 카드(테두리 #ECECF2, radius 큼, 화이트).
+const FLIK_TOKENS = {
+  '--ac': '#6D4CFF',
+  '--al': 'rgba(109,76,255,0.08)',
+  '--bd': '#ECECF2',
+  '--sf': '#F4F0FF',
+  '--r': '16px',
+  '--rs': '10px',
+} as unknown as CSSProperties;
 
 interface FieldDef {
   id: string;
@@ -119,6 +131,14 @@ const CAT_CHIPS = [
 
 const CH_CHIPS = ['스마트스토어', '쿠팡', '와디즈', '자사몰'];
 
+// 출력형태별 셀러 안내 — resolveOutputType 결과(blog/slide/html) 기준. 새 매핑 아님(기존 로직 그대로).
+//   quick 단일 이미지 기준: slide=텍스트 이미지에 합성(4:5 세로), blog·html=텍스트/이미지 분리.
+const OUTPUT_GUIDE: Record<string, string> = {
+  slide: '슬라이드형 · 이미지에 텍스트 포함 (세로 긴 광고 이미지)',
+  blog:  '블로그형 · 텍스트와 이미지 분리 (네이버 SEO 유리)',
+  html:  '블로그형 · 텍스트와 이미지 분리 (네이버 SEO 유리)',
+};
+
 type GenStatus = 'idle' | 'text' | 'image' | 'done' | 'text_err' | 'img_err';
 
 /* ─── 라이트박스 ─── */
@@ -154,7 +174,8 @@ function QuickLightbox({ url, alt, onClose }: { url: string; alt: string; onClos
 }
 
 export default function QuickScreen() {
-  const { go } = useApp();
+  const { go, setCredits, setCreditModalOpen, saveHistory, updateLatestHistoryImages } = useApp();
+  const jobKeyRef = useRef<string>('');   // ★결제 멱등키 — 생성 1회 1키. charge가 이 키로 원자 차감, 이후 verify-only. 새 섹션=새 키.
 
   const [step, setStep] = useState<1 | 2>(1);
 
@@ -162,6 +183,7 @@ export default function QuickScreen() {
   const [productName, setProductName] = useState('');
   const [cat, setCat] = useState('');
   const [ch, setCh] = useState('');
+  const [out, setOut] = useState<string | null>(null);   // 스마트스토어 출력형태 선택(blog/slide). 그 외 채널은 resolveOutputType이 고정.
   const [images, setImages] = useState<ImgFile[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -179,11 +201,14 @@ export default function QuickScreen() {
   // Auto-close lightbox when result is cleared
   useEffect(() => { if (!sectionResult) setLightboxOpen(false); }, [sectionResult]);
 
+  // 결과는 saveHistory로 히스토리에 누적 → 대시보드 "최근 작업"에서 열람/복원(loadFromHistory→ResultScreen).
+  //   빠른제작 화면은 매 진입 새 입력으로 시작(이전 결과는 대시보드에 보존 = 안 사라짐).
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
 
-  const outType = resolveOutputType(ch || null, null);
+  const outType = resolveOutputType(ch || null, out);   // 스마트스토어만 out 반영, 쿠팡=slide·와디즈/자사몰=html 고정(기존 로직)
 
   const setField = (id: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [id]: value }));
@@ -217,10 +242,29 @@ export default function QuickScreen() {
 
   const handleGenerate = async () => {
     if (!selectedSection) return;
+    // ★결제 게이트 — 생성의 첫 동작. jobKey 발급(1회) → charge가 유일 차감·발급 지점(단일 CTE 원자성).
+    //   deducted|duplicate일 때만 이후 regen-section·generate-image 진행. 순서 절대 불가침(생성→차감 금지).
+    if (!jobKeyRef.current) jobKeyRef.current = crypto.randomUUID();
     setGenStatus('text');
     setSectionResult(null);
     setImgUrl(null);
     setLightboxOpen(false);
+
+    try {
+      const chargeRes = await fetch('/api/quick/charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobKey: jobKeyRef.current, sectionCount: 1 }),
+      });
+      const chargeData = await chargeRes.json().catch(() => ({}));
+      if (!chargeRes.ok) {
+        if (chargeRes.status === 402) { setCreditModalOpen(true); setGenStatus('idle'); return; }  // 크레딧 부족 — 생성 중단
+        setGenStatus('text_err'); return;
+      }
+      if (typeof chargeData.balance === 'number') setCredits(chargeData.balance);   // 헤더 크레딧 갱신(일반 생성과 동일)
+    } catch {
+      setGenStatus('text_err'); return;
+    }
 
     let section: Section | null = null;
 
@@ -237,6 +281,7 @@ export default function QuickScreen() {
           productExtra: buildProductExtra(),
           sectionNum: selectedSection.num,
           sectionName: selectedSection.name,
+          jobKey: jobKeyRef.current,   // ★charge로 결제된 키 — verifyPaidJob 통과(verify-only, 재차감 없음)
         }),
         signal: AbortSignal.timeout(30_000),
       });
@@ -269,15 +314,32 @@ export default function QuickScreen() {
         body: JSON.stringify({
           prompt,
           sectionNum: selectedSection.num,
-          aspectRatio: aspectRatioFor(selectedSection.name),
+          aspectRatio: aspectRatioFor(selectedSection.name, undefined, outType),   // ★out 전달 — 슬라이드 상품 4:5 강제(일반 생성과 동일)
+          jobKey: jobKeyRef.current,   // ★결제된 키 — verifyPaidJob + img quota(img:{jobKey}) 통과
           ...(base64s.length > 0 ? { productImages: base64s } : {}),
         }),
         signal: AbortSignal.timeout(130_000),
       });
       const data = await res.json();
       if (data.imageBase64) {
-        setImgUrl(`data:${data.mimeType};base64,${data.imageBase64}`);
+        const finalUrl = `data:${data.mimeType};base64,${data.imageBase64}`;
+        setImgUrl(finalUrl);
         setGenStatus('done');
+        // ★영속화 — 일반 생성과 동일한 saveHistory 재사용(1섹션). 히스토리에 누적 → 대시보드 노출·클릭복원.
+        //   재진입/다른섹션 생성해도 이전 것 안 사라짐(pc_history 배열, 최대 20). 이미지는 IndexedDB로 첨부.
+        try {
+          const secNum = String(section.num || '1');
+          const savedSection: Section = { ...section, num: secNum };
+          saveHistory({
+            productName, cat, ch,
+            type: '빠른제작',
+            out: outType,
+            secCnt: 1,
+            sections: [savedSection],
+            jobKey: jobKeyRef.current,
+          });
+          await updateLatestHistoryImages({ [secNum]: finalUrl });   // 생성 이미지(base64) 첨부 → 재진입/대시보드 복원 시 OpenAI 재호출 0
+        } catch { /* 영속화 실패 — 화면 결과는 유지 */ }
       } else {
         setGenStatus('img_err');
       }
@@ -307,6 +369,7 @@ export default function QuickScreen() {
   };
 
   const goToStep2 = () => {
+    jobKeyRef.current = '';   // ★새 생성 컨텍스트 → 새 jobKey(다음 charge에서 발급). 재생성(같은 섹션)만 키 유지=무료 재시도.
     setFieldValues({});
     setGenStatus('idle');
     setSectionResult(null);
@@ -335,7 +398,7 @@ export default function QuickScreen() {
   );
 
   return (
-    <div className="inner">
+    <div className="inner" style={FLIK_TOKENS}>
       <div className="stitle">빠른 제작</div>
       <div className="ssub">필요한 섹션 1장만 골라 카피와 이미지를 즉시 생성해드려요</div>
 
@@ -383,8 +446,18 @@ export default function QuickScreen() {
                 </button>
               ))}
             </div>
-            {ch && ch !== '스마트스토어' && (
-              <div className="fhint">💡 {ch}는 이미지 슬라이드형으로 생성됩니다 (스마트스토어만 블로그형)</div>
+            {/* 스마트스토어만 출력형태 선택 가능(일반 생성 설계와 동일). 그 외 채널은 자동 고정. */}
+            {ch === '스마트스토어' && (
+              <div style={{ marginTop: 12 }}>
+                <div className="fl" style={{ marginBottom: 8 }}>출력 형태</div>
+                <div className="chips">
+                  <button className={`chip${out !== 'slide' ? ' on' : ''}`} onClick={() => setOut('blog')}>블로그형</button>
+                  <button className={`chip${out === 'slide' ? ' on' : ''}`} onClick={() => setOut('slide')}>슬라이드형</button>
+                </div>
+              </div>
+            )}
+            {ch && (
+              <div className="fhint" style={{ marginTop: 8 }}>💡 {OUTPUT_GUIDE[outType] ?? OUTPUT_GUIDE.blog}</div>
             )}
           </div>
 
@@ -619,6 +692,7 @@ export default function QuickScreen() {
                   </button>
                   <button
                     onClick={() => {
+                      jobKeyRef.current = '';   // ★다른 섹션 = 새 생성 → 새 jobKey(새 charge)
                       setStep(1);
                       setGenStatus('idle');
                       setSectionResult(null);

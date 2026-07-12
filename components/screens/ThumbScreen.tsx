@@ -1,7 +1,17 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp } from '@/store/AppContext';
+
+// ★디자인 통일 — 구 토큰(파랑+베이지) → Flik 토큰(#6D4CFF 보라+화이트). QuickScreen과 동일 스코프 오버라이드.
+const FLIK_TOKENS = {
+  '--ac': '#6D4CFF',
+  '--al': 'rgba(109,76,255,0.08)',
+  '--bd': '#ECECF2',
+  '--sf': '#F4F0FF',
+  '--r': '16px',
+  '--rs': '10px',
+} as unknown as CSSProperties;
 
 /* ─── 카테고리 ─── */
 const CATS = [
@@ -219,7 +229,7 @@ export default function ThumbScreen() {
 
   /* ─── render ─── */
   return (
-    <div className="inner">
+    <div className="inner" style={FLIK_TOKENS}>
       <div className="stitle">썸네일 생성</div>
       <div className="ssub">채널별 최적 규격으로 이커머스 썸네일을 AI로 만들어드려요</div>
 

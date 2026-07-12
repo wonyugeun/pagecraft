@@ -5,7 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import {
   Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
-  LogOut,
+  LogOut, ChevronDown,
 } from 'lucide-react';
 import { useApp, HistoryItem } from '@/store/AppContext';
 import { getImages } from '@/lib/historyDB';
@@ -183,11 +183,15 @@ export default function DashboardScreen() {
   const isMobile = useIsMobile();
   const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
   const { data: session } = useSession();
+  // ★빠른제작: 결제 배관(quick/charge 선차감+jobKey) 완비 → 프로덕션 항상 활성.
+  //   ★썸네일: 아직 결제 배관 없음 → 로컬(dev)에서만 활성, 프로덕션은 "준비 중" 유지. 서버 게이트(verifyPaidJob) 불변.
+  const thumbEnabled = process.env.NODE_ENV === 'development';
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hov, setHov] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});   // 최근작업 hero 썸네일(historyId → dataURL)
+  const [showAllWorks, setShowAllWorks] = useState(false);   // 최근작업 더보기(8개→전체 최대 20). 표시만.
   const menuRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -221,7 +225,7 @@ export default function DashboardScreen() {
     let cancelled = false;
     (async () => {
       const map: Record<string, string> = {};
-      for (const item of history.slice(0, 4)) {
+      for (const item of history.slice(0, 20)) {   // 더보기 확장분 썸네일까지 미리 로드(최대 20)
         try {
           const si = (await getImages(item.id))?.sectionImages;
           if (!si) continue;
@@ -249,7 +253,7 @@ export default function DashboardScreen() {
   };
 
   const stats = getWeeklyStats(history);
-  const displayHistory = history.slice(0, 4);   // 실제 작업만(가짜 예시 없음). 0개면 아래 CTA 배너가 빈 상태 안내
+  const displayHistory = history.slice(0, showAllWorks ? 20 : 6);   // 기본 6개, 더보기 시 전체(최대 20). 저장 로직 무접촉(표시만)
 
   const card = (id: string, extra?: React.CSSProperties): React.CSSProperties => ({
     background: '#fff',
@@ -445,13 +449,14 @@ export default function DashboardScreen() {
             {/* 서브 카드 2열 (모바일 1열) */}
             <div className="cards-2col">
               <div
-                style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: 0.55, cursor: 'default' }}
-              >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성(진입 시 402) */}
+                onClick={() => go('s-quick')}
+                style={{ ...card('quick'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
+              >{/* ★프로덕션 활성 — quick/charge 결제 배관으로 유료 jobKey 발급 → 서버 게이트 통과 */}
                 <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(245,158,11,0.28)' }}>
                   <Zap size={22} color="#fff" fill="#fff" strokeWidth={1.6} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>빠른 제작<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>빠른 제작</div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>원하는 섹션 1장만 골라<br />카피+이미지를 즉시 생성</div>
                 </div>
                 <div style={{ width: 34, height: 34, background: '#FDE68A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -459,13 +464,14 @@ export default function DashboardScreen() {
                 </div>
               </div>
               <div
-                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: 0.55, cursor: 'default' }}
-              >{/* ★준비 중 — 무결제 비용 경로라 과금 흐름 설계 전까지 비활성 */}
+                onClick={thumbEnabled ? () => go('s-thumb') : undefined}
+                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: thumbEnabled ? 1 : 0.55, cursor: thumbEnabled ? 'pointer' : 'default' }}
+              >{/* ★썸네일은 결제 배관 전까지 로컬(dev)만 활성. 프로덕션 준비 중 */}
                 <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #A78BFA 0%, #6D4CFF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(109,76,255,0.28)' }}>
                   <ImageIcon size={22} color="#fff" strokeWidth={1.8} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기<span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span></div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기{!thumbEnabled && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span>}</div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>채널 규격 자동 적용·<br />4가지 타입 썸네일 즉시 생성</div>
                 </div>
                 <div style={{ width: 34, height: 34, background: '#EDE8FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -478,7 +484,19 @@ export default function DashboardScreen() {
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 14px', borderBottom: '1px solid #F4F4F6' }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>최근 작업</span>
-                {/* '전체 보기' 제거 — /my-works 페이지 미구현(죽은 링크). 작업 4개 초과로 필요해지면 페이지 생성 후 복원(백로그) */}
+                {/* 더 보기 — 헤더 우측 인라인 펼침(라우팅 아님, /my-works 없음). 6개 초과 시만 노출. */}
+                {history.length > 6 && (
+                  <button
+                    onClick={() => setShowAllWorks(v => !v)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', borderRadius: 8, padding: '5px 8px', fontSize: 12.5, fontWeight: 600, color: '#8B8B99', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.01em', transition: 'color 0.15s, background 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#6D4CFF'; e.currentTarget.style.background = '#F4F0FF'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#8B8B99'; e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <span>{showAllWorks ? '접기' : '더보기'}</span>
+                    {!showAllWorks && <span style={{ fontWeight: 500, opacity: 0.6, fontVariantNumeric: 'tabular-nums' }}>{history.length - 6}</span>}
+                    <ChevronDown size={13} strokeWidth={2.2} style={{ transform: showAllWorks ? 'rotate(180deg)' : 'none', transition: 'transform 0.22s ease' }} />
+                  </button>
+                )}
               </div>
 
               <div ref={menuRef}>
@@ -512,8 +530,13 @@ export default function DashboardScreen() {
                         <div style={{ fontSize: 14, fontWeight: 500, color: '#111', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.productName || '(상품명 없음)'}
                         </div>
-                        {/* 수정 4: 카테고리 칩 보라색, 채널 칩 회색 */}
+                        {/* 수정 4: 카테고리 칩 보라색, 채널 칩 회색 / 빠른제작은 구분 뱃지 */}
                         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                          {item.type === '빠른제작' && (
+                            <span style={{ background: '#6D4CFF', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#fff', fontWeight: 600 }}>
+                              ⚡ 빠른제작
+                            </span>
+                          )}
                           {item.cat && (
                             <span style={{ background: '#F4F0FF', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#6D4CFF', fontWeight: 500 }}>
                               {item.cat}
