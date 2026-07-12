@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
+import { calculateGenerationCost } from '@/lib/pricing';
 
 interface ImgFile { url: string; }
 
@@ -104,23 +105,23 @@ const SECTION_FIELDS: Record<string, FieldDef[]> = {
 };
 
 const QUICK_SECTIONS = [
-  { id: 'hero',          name: '히어로',      desc: '메인 후킹',      ico: '🎯', num: 'SECTION 01' },
-  { id: 'empathy',       name: '공감',        desc: '고민 공감',      ico: '😔', num: 'SECTION 02' },
-  { id: 'usp',           name: 'USP',         desc: '핵심 기능',      ico: '⭐', num: 'SECTION 03' },
-  { id: 'howto',         name: '사용법',      desc: '사용 방법',      ico: '📋', num: 'SECTION 04' },
-  { id: 'compare',       name: '비교표',      desc: '경쟁 우위',      ico: '📊', num: 'SECTION 05' },
-  { id: 'review',        name: '후기',        desc: '후기 강조',      ico: '💬', num: 'SECTION 06' },
-  { id: 'faq',           name: 'FAQ',         desc: '자주 묻는 질문', ico: '❓', num: 'SECTION 07' },
-  { id: 'cta',           name: 'CTA',         desc: '구매 유도',      ico: '🛒', num: 'SECTION 08' },
-  { id: 'ingredient',    name: '성분신뢰',    desc: '성분 근거',      ico: '🔬', num: 'SECTION 09' },
-  { id: 'brand',         name: '브랜드 스토리', desc: '브랜드 철학',  ico: '🏷️', num: 'SECTION 10' },
-  { id: 'delivery',      name: '배송/포장',   desc: '배송·패키지',   ico: '📦', num: 'SECTION 11' },
-  { id: 'as',            name: 'A/S·환불',   desc: '사후 보장',      ico: '🔧', num: 'SECTION 12' },
-  { id: 'certification', name: '인증/특허',   desc: '공식 인증',      ico: '🏅', num: 'SECTION 13' },
-  { id: 'process',       name: '제조 공정',   desc: '생산 품질',      ico: '🏭', num: 'SECTION 14' },
-  { id: 'gift',          name: '선물 포장',      desc: '기프팅 옵션',          ico: '🎁', num: 'SECTION 15' },
-  { id: 'infographic',  name: '수치 인포그래픽', desc: '효능·성분을 숫자로 시각화', ico: '📈', num: 'SECTION 16' },
-  { id: 'goods',        name: '굿즈/사은품',    desc: '증정품·구성품 안내',      ico: '🎀', num: 'SECTION 17' },
+  { id: 'hero',          name: '히어로',        desc: '첫 화면에서 상품의 핵심 매력을 보여줘요',   ico: '🎯', num: 'SECTION 01' },
+  { id: 'empathy',       name: '공감',          desc: '고객의 고민을 먼저 짚어 구매 몰입을 높여요', ico: '😔', num: 'SECTION 02' },
+  { id: 'usp',           name: 'USP',           desc: '다른 상품과 다른 핵심 차별점을 보여줘요',   ico: '⭐', num: 'SECTION 03' },
+  { id: 'howto',         name: '사용법',        desc: '사용 순서와 활용 장면을 쉽게 안내해요',     ico: '📋', num: 'SECTION 04' },
+  { id: 'compare',       name: '비교표',        desc: '구매 전 비교 기준을 한눈에 정리해요',       ico: '📊', num: 'SECTION 05' },
+  { id: 'review',        name: '후기',          desc: '실제 사용 만족감을 자연스럽게 보여줘요',    ico: '💬', num: 'SECTION 06' },
+  { id: 'faq',           name: 'FAQ',           desc: '구매 전 자주 묻는 질문을 해결해요',         ico: '❓', num: 'SECTION 07' },
+  { id: 'cta',           name: 'CTA',           desc: '구매 행동을 유도하는 마무리 섹션이에요',    ico: '🛒', num: 'SECTION 08' },
+  { id: 'ingredient',    name: '성분신뢰',      desc: '성분과 원료 신뢰감을 시각적으로 보여줘요',  ico: '🔬', num: 'SECTION 09' },
+  { id: 'brand',         name: '브랜드 스토리', desc: '브랜드 철학과 탄생 이야기를 전해요',        ico: '🏷️', num: 'SECTION 10' },
+  { id: 'delivery',      name: '배송/포장',     desc: '배송 상태와 포장 안정감을 안내해요',        ico: '📦', num: 'SECTION 11' },
+  { id: 'as',            name: 'A/S·환불',     desc: '교환·반품·보증 기준을 명확히 안내해요',     ico: '🔧', num: 'SECTION 12' },
+  { id: 'certification', name: '인증/특허',     desc: '공식 인증과 수상 이력을 보여줘요',          ico: '🏅', num: 'SECTION 13' },
+  { id: 'process',       name: '제조 공정',     desc: '생산 과정과 품질 관리 신뢰를 보여줘요',     ico: '🏭', num: 'SECTION 14' },
+  { id: 'gift',          name: '선물 포장',     desc: '선물용 구매 이유와 패키지를 강조해요',      ico: '🎁', num: 'SECTION 15' },
+  { id: 'infographic',   name: '수치 인포그래픽', desc: '효능·성분·수치를 시각적으로 정리해요',    ico: '📈', num: 'SECTION 16' },
+  { id: 'goods',         name: '굿즈/사은품',   desc: '증정품과 구성품을 안내해요',                ico: '🎀', num: 'SECTION 17' },
 ];
 
 const CAT_CHIPS = [
@@ -138,6 +139,81 @@ const OUTPUT_GUIDE: Record<string, string> = {
   blog:  '블로그형 · 텍스트와 이미지 분리 (네이버 SEO 유리)',
   html:  '블로그형 · 텍스트와 이미지 분리 (네이버 SEO 유리)',
 };
+
+// ── 빠른제작 스튜디오 스타일(호버·전환·반응형은 인라인 불가라 스코프 CSS로) ──
+const QUICK_CSS = `
+.quick-studio{ background:#FAFAFC; min-height:100%; }
+.quick-studio .q-wrap{ max-width:1180px; margin:0 auto; padding:56px 32px 40px; }
+.quick-studio .q-title{ font-size:30px; font-weight:800; color:#111; letter-spacing:-0.03em; margin-bottom:8px; }
+.quick-studio .q-sub{ font-size:15px; color:#666; line-height:1.6; margin-bottom:28px; }
+.quick-studio .q-steps{ display:flex; align-items:center; gap:12px; margin-bottom:28px; flex-wrap:wrap; }
+.quick-studio .q-step{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#B8B8C7; }
+.quick-studio .q-step .q-stepno{ width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:#ECECF2; color:#B8B8C7; }
+.quick-studio .q-step.on{ color:#6D4CFF; }
+.quick-studio .q-step.on .q-stepno{ background:#6D4CFF; color:#fff; }
+.quick-studio .q-stepline{ flex:1; min-width:16px; height:2px; background:#ECECF2; border-radius:2px; }
+.quick-studio .q-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:24px; align-items:start; }
+.quick-studio .q-card{ background:#fff; border:1px solid #ECECF2; border-radius:28px; box-shadow:0 16px 40px rgba(17,17,17,0.04); padding:32px; }
+.quick-studio .q-card + .q-card{ margin-top:20px; }
+.quick-studio .q-cardtitle{ font-size:17px; font-weight:700; color:#111; letter-spacing:-0.02em; margin-bottom:20px; }
+.quick-studio .q-fg{ margin-bottom:22px; }
+.quick-studio .q-fg:last-child{ margin-bottom:0; }
+.quick-studio .q-label{ font-size:13px; font-weight:700; color:#111; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.quick-studio .q-opt{ font-size:11px; font-weight:500; color:#B8B8C7; }
+.quick-studio .q-input{ width:100%; padding:13px 16px; background:#fff; border:1px solid #ECECF2; border-radius:14px; font-size:14px; color:#111; outline:none; font-family:inherit; transition:border-color .15s; }
+.quick-studio .q-input:focus{ border-color:#6D4CFF; }
+.quick-studio .q-input::placeholder{ color:#B8B8C7; }
+.quick-studio .q-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.quick-studio .q-chip{ height:36px; padding:0 15px; border-radius:999px; border:1px solid #ECECF2; background:#fff; color:#666; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; font-family:inherit; }
+.quick-studio .q-chip:hover{ border-color:#D8CEFF; }
+.quick-studio .q-chip.on{ background:#F4F0FF; border-color:#6D4CFF; color:#6D4CFF; font-weight:700; }
+.quick-studio .q-hint{ font-size:12px; color:#8B8B99; margin-top:10px; line-height:1.6; }
+.quick-studio .q-up{ background:linear-gradient(180deg,#FFFFFF 0%,#F7F4FF 100%); border:1.5px dashed #C8BAFF; border-radius:24px; padding:44px 32px; text-align:center; cursor:pointer; transition:all .18s; }
+.quick-studio .q-up:hover{ border-color:#6D4CFF; background:#FBFAFF; }
+.quick-studio .q-upbtn{ display:inline-block; margin-top:16px; background:#6D4CFF; color:#fff; border:none; border-radius:14px; padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+.quick-studio .q-thumbs{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:14px; }
+.quick-studio .q-thumb{ position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden; border:1px solid #ECECF2; background:#F4F0FF; }
+.quick-studio .q-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.quick-studio .q-thumb-rm{ position:absolute; top:4px; right:4px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(17,17,17,0.6); color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.quick-studio .q-secgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.quick-studio .q-sec{ position:relative; background:#fff; border:1px solid #ECECF2; border-radius:20px; padding:20px 18px; cursor:pointer; transition:all .18s ease; }
+.quick-studio .q-sec:hover{ transform:translateY(-2px); border-color:#D8CEFF; background:#FBFAFF; box-shadow:0 12px 32px rgba(17,17,17,0.06); }
+.quick-studio .q-sec.sel{ border:2px solid #6D4CFF; padding:19px 17px; background:linear-gradient(180deg,#FFFFFF 0%,#F4F0FF 100%); box-shadow:0 12px 32px rgba(109,76,255,0.16); }
+.quick-studio .q-sec-badge{ position:absolute; top:12px; right:12px; width:24px; height:24px; border-radius:50%; background:#6D4CFF; color:#fff; display:none; align-items:center; justify-content:center; font-size:12px; }
+.quick-studio .q-sec.sel .q-sec-badge{ display:flex; }
+.quick-studio .q-sec-ico{ font-size:22px; margin-bottom:10px; }
+.quick-studio .q-sec-name{ font-size:14px; font-weight:700; color:#111; margin-bottom:5px; }
+.quick-studio .q-sec-desc{ font-size:11.5px; color:#8B8B99; line-height:1.5; }
+.quick-studio .q-summary{ position:sticky; top:88px; background:#fff; border:1px solid #ECECF2; border-radius:28px; padding:24px; box-shadow:0 16px 40px rgba(17,17,17,0.05); }
+.quick-studio .q-sum-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:10px 0; border-bottom:1px solid #F4F4F6; }
+.quick-studio .q-sum-row:last-child{ border-bottom:none; }
+.quick-studio .q-sum-k{ font-size:12.5px; color:#8B8B99; flex-shrink:0; }
+.quick-studio .q-sum-v{ font-size:13px; font-weight:600; color:#111; text-align:right; }
+.quick-studio .q-sum-v.muted{ color:#B8B8C7; font-weight:500; }
+.quick-studio .q-preview{ margin-top:16px; border:1px solid #ECECF2; border-radius:20px; overflow:hidden; background:#fff; }
+.quick-studio .q-preview-hero{ padding:26px 20px 30px; background:linear-gradient(160deg,#EDE7FF 0%,#F7F4FF 60%,#fff 100%); }
+.quick-studio .q-preview-bar{ height:9px; border-radius:6px; background:#D8CEFF; }
+.quick-studio .q-cta{ position:sticky; bottom:0; background:rgba(255,255,255,0.86); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-top:1px solid #ECECF2; }
+.quick-studio .q-cta-inner{ max-width:1180px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.quick-studio .q-cta-next{ height:52px; padding:0 36px; border:none; border-radius:16px; font-size:15px; font-weight:700; color:#fff; background:#6D4CFF; cursor:pointer; font-family:inherit; transition:background .15s; }
+.quick-studio .q-cta-next:hover{ background:#5B3EE0; }
+.quick-studio .q-cta-next:disabled{ background:#D9D9E3; cursor:default; }
+.quick-studio .q-cta-back{ height:52px; padding:0 22px; border:1px solid #ECECF2; border-radius:16px; font-size:14px; font-weight:600; color:#666; background:#fff; cursor:pointer; font-family:inherit; }
+@media (max-width:980px){
+  .quick-studio .q-grid{ grid-template-columns:1fr; }
+  .quick-studio .q-secgrid{ grid-template-columns:repeat(2,1fr); }
+  .quick-studio .q-card{ padding:22px; border-radius:22px; }
+  .quick-studio .q-summary{ position:static; }
+  .quick-studio .q-thumbs{ grid-template-columns:repeat(5,1fr); }
+}
+@media (max-width:560px){
+  .quick-studio .q-wrap{ padding:32px 16px 32px; }
+  .quick-studio .q-secgrid{ grid-template-columns:1fr 1fr; }
+  .quick-studio .q-cta-inner{ padding:14px 16px; }
+  .quick-studio .q-cta-back{ display:none; }
+  .quick-studio .q-cta-next{ flex:1; padding:0; }
+}
+`;
 
 type GenStatus = 'idle' | 'text' | 'image' | 'done' | 'text_err' | 'img_err';
 
@@ -209,6 +285,7 @@ export default function QuickScreen() {
   const selectedSection = QUICK_SECTIONS.find(s => s.id === selectedSectionId) ?? null;
 
   const outType = resolveOutputType(ch || null, out);   // 스마트스토어만 out 반영, 쿠팡=slide·와디즈/자사몰=html 고정(기존 로직)
+  const estCost = selectedSectionId ? calculateGenerationCost({ sectionCount: 1 }) : 0;   // 예상 차감(하드코딩 X, 서버와 동일 함수)
 
   const setField = (id: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [id]: value }));
@@ -389,160 +466,166 @@ export default function QuickScreen() {
     }
   };
 
-  const progressPill = (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-      <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: step === 1 ? 'var(--tx)' : 'var(--sf)', color: step === 1 ? '#fff' : 'var(--tx3)' }}>1단계 · 섹션 선택</span>
-      <span style={{ color: 'var(--tx3)', fontSize: 12 }}>→</span>
-      <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: step === 2 ? 'var(--tx)' : 'var(--sf)', color: step === 2 ? '#fff' : 'var(--tx3)' }}>2단계 · 생성</span>
-    </div>
-  );
-
   return (
-    <div className="inner" style={FLIK_TOKENS}>
-      <div className="stitle">빠른 제작</div>
-      <div className="ssub">필요한 섹션 1장만 골라 카피와 이미지를 즉시 생성해드려요</div>
+    <div className="quick-studio" style={FLIK_TOKENS}>
+      <style>{QUICK_CSS}</style>
 
-      {progressPill}
-
-      {/* ── STEP 1 ── */}
+      {/* ── STEP 1 ── 스튜디오 2단 레이아웃 (시안 기준) */}
       {step === 1 && (
-        <div>
-          <div className="fg">
-            <div className="fl">상품명 <span className="fopt">(선택)</span></div>
-            <input
-              className="finp"
-              type="text"
-              placeholder="예: 병풀 크림 50ml"
-              value={productName}
-              onChange={e => setProductName(e.target.value)}
-            />
-          </div>
+        <>
+          <div className="q-wrap">
+            <h1 className="q-title">빠른 제작</h1>
+            <p className="q-sub">상품 사진 1장과 섹션 목적만 선택하면, AI가 카피와 이미지를 함께 구성합니다.</p>
 
-          <div className="fg">
-            <div className="fl">카테고리 <span className="fopt">(선택)</span></div>
-            <div className="chips">
-              {CAT_CHIPS.map(c => (
-                <button
-                  key={c.label}
-                  className={`chip${cat === c.label ? ' on' : ''}`}
-                  onClick={() => setCat(p => p === c.label ? '' : c.label)}
-                >
-                  {c.label}
-                </button>
-              ))}
+            {/* 진행 단계 */}
+            <div className="q-steps">
+              <span className="q-step on"><span className="q-stepno">01</span>섹션 선택</span>
+              <span className="q-stepline" />
+              <span className="q-step"><span className="q-stepno">02</span>이미지 생성</span>
+              <span className="q-stepline" />
+              <span className="q-step"><span className="q-stepno">03</span>결과 확인</span>
             </div>
-          </div>
 
-          <div className="fg">
-            <div className="fl">채널 <span className="fopt">(선택)</span></div>
-            <div className="chips">
-              {CH_CHIPS.map(c => (
-                <button
-                  key={c}
-                  className={`chip${ch === c ? ' on' : ''}`}
-                  onClick={() => setCh(p => p === c ? '' : c)}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-            {/* 스마트스토어만 출력형태 선택 가능(일반 생성 설계와 동일). 그 외 채널은 자동 고정. */}
-            {ch === '스마트스토어' && (
-              <div style={{ marginTop: 12 }}>
-                <div className="fl" style={{ marginBottom: 8 }}>출력 형태</div>
-                <div className="chips">
-                  <button className={`chip${out !== 'slide' ? ' on' : ''}`} onClick={() => setOut('blog')}>블로그형</button>
-                  <button className={`chip${out === 'slide' ? ' on' : ''}`} onClick={() => setOut('slide')}>슬라이드형</button>
-                </div>
-              </div>
-            )}
-            {ch && (
-              <div className="fhint" style={{ marginTop: 8 }}>💡 {OUTPUT_GUIDE[outType] ?? OUTPUT_GUIDE.blog}</div>
-            )}
-          </div>
+            <div className="q-grid">
+              {/* 좌측 */}
+              <div>
+                {/* 제작 정보 카드 */}
+                <div className="q-card">
+                  <div className="q-cardtitle">제작 정보</div>
 
-          <div className="fg">
-            <div className="fl">상품 이미지 업로드 <span className="fopt">(선택)</span></div>
-            <div
-              className={`up-zone${dragging ? ' drag' : ''}`}
-              onDragOver={e => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={e => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); }}
-              onClick={() => inputRef.current?.click()}
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={e => addFiles(e.target.files)}
-              />
-              <div style={{ fontSize: 28, marginBottom: 10 }}>📷</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>이미지 드래그 또는 클릭해서 업로드</div>
-              <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.6 }}>PNG · JPG · WEBP · 최대 5장</div>
-              <label
-                className="up-btn"
-                onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}
-                style={{ cursor: 'pointer' }}
-              >
-                파일 선택
-              </label>
-            </div>
-            {images.length > 0 && (
-              <div className="img-grid">
-                {images.map((img, i) => (
-                  <div className="img-th" key={i}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.url} alt={`상품이미지 ${i + 1}`} />
-                    <div className="img-lbl">{i + 1}</div>
-                    <button
-                      className="img-th-rm"
-                      onClick={() => { URL.revokeObjectURL(img.url); setImages(p => p.filter((_, j) => j !== i)); }}
-                    >
-                      ✕
-                    </button>
+                  <div className="q-fg">
+                    <div className="q-label">상품명 <span className="q-opt">선택</span></div>
+                    <input className="q-input" type="text" placeholder="예: 병풀 크림 50ml" value={productName} onChange={e => setProductName(e.target.value)} />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div className="fg">
-            <div className="fl" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>어떤 섹션이 필요하세요?</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {QUICK_SECTIONS.map(s => (
-                <div
-                  key={s.id}
-                  className={`cc${selectedSectionId === s.id ? ' on' : ''}`}
-                  onClick={() => setSelectedSectionId(p => p === s.id ? null : s.id)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="cc-ck">✓</div>
-                  <div className="cc-ico">{s.ico}</div>
-                  <div className="cc-name">{s.name}</div>
-                  <div className="cc-sub">{s.desc}</div>
+                  <div className="q-fg">
+                    <div className="q-label">카테고리 <span className="q-opt">선택</span></div>
+                    <div className="q-chips">
+                      {CAT_CHIPS.map(c => (
+                        <button key={c.label} className={`q-chip${cat === c.label ? ' on' : ''}`} onClick={() => setCat(p => p === c.label ? '' : c.label)}>{c.label}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="q-fg">
+                    <div className="q-label">판매 채널 <span className="q-opt">선택</span></div>
+                    <div className="q-chips">
+                      {CH_CHIPS.map(c => (
+                        <button key={c} className={`q-chip${ch === c ? ' on' : ''}`} onClick={() => setCh(p => p === c ? '' : c)}>{c}</button>
+                      ))}
+                    </div>
+                    {/* ★출력형태 안내·토글 유지(리디자인해도 사라지면 안 됨) */}
+                    {ch === '스마트스토어' && (
+                      <div style={{ marginTop: 14 }}>
+                        <div className="q-label" style={{ marginBottom: 8 }}>출력 형태</div>
+                        <div className="q-chips">
+                          <button className={`q-chip${out !== 'slide' ? ' on' : ''}`} onClick={() => setOut('blog')}>블로그형</button>
+                          <button className={`q-chip${out === 'slide' ? ' on' : ''}`} onClick={() => setOut('slide')}>슬라이드형</button>
+                        </div>
+                      </div>
+                    )}
+                    {ch && <div className="q-hint">💡 {OUTPUT_GUIDE[outType] ?? OUTPUT_GUIDE.blog}</div>}
+                  </div>
+
+                  <div className="q-fg">
+                    <div className="q-label">상품 이미지 업로드 <span className="q-opt">선택</span></div>
+                    <div
+                      className="q-up"
+                      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                      onDragLeave={() => setDragging(false)}
+                      onDrop={e => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); }}
+                      onClick={() => inputRef.current?.click()}
+                      style={dragging ? { borderColor: '#6D4CFF', background: '#FBFAFF' } : undefined}
+                    >
+                      <input ref={inputRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={e => addFiles(e.target.files)} />
+                      <div style={{ fontSize: 30, marginBottom: 10 }}>⬆️</div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 6 }}>상품 사진을 업로드하세요</div>
+                      <div style={{ fontSize: 12.5, color: '#8B8B99', lineHeight: 1.6 }}>제품 전체가 잘 보이는 정면 사진을 추천해요<br />PNG · JPG · WEBP · 최대 5장</div>
+                      <button className="q-upbtn" onClick={e => { e.stopPropagation(); inputRef.current?.click(); }}>이미지 선택</button>
+                    </div>
+                    {images.length > 0 && (
+                      <div className="q-thumbs">
+                        {images.map((img, i) => (
+                          <div className="q-thumb" key={i}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img.url} alt={`상품이미지 ${i + 1}`} />
+                            <button className="q-thumb-rm" onClick={() => { URL.revokeObjectURL(img.url); setImages(p => p.filter((_, j) => j !== i)); }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="q-hint">💡 배경이 깔끔하고 로고·라벨이 선명한 사진일수록 더 좋은 결과를 얻을 수 있어요.</div>
+                  </div>
                 </div>
-              ))}
+
+                {/* 섹션 선택 카드 */}
+                <div className="q-card">
+                  <div className="q-cardtitle">어떤 섹션이 필요하세요?</div>
+                  <div className="q-secgrid">
+                    {QUICK_SECTIONS.map(s => (
+                      <div
+                        key={s.id}
+                        className={`q-sec${selectedSectionId === s.id ? ' sel' : ''}`}
+                        onClick={() => setSelectedSectionId(p => p === s.id ? null : s.id)}
+                      >
+                        <div className="q-sec-badge">✓</div>
+                        <div className="q-sec-ico">{s.ico}</div>
+                        <div className="q-sec-name">{s.name}</div>
+                        <div className="q-sec-desc">{s.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 우측 요약 + 미리보기 */}
+              <aside>
+                <div className="q-summary">
+                  <div className="q-cardtitle" style={{ fontSize: 15, marginBottom: 14 }}>✨ 생성 요약</div>
+                  <div className="q-sum-row"><span className="q-sum-k">상품명</span><span className={`q-sum-v${productName ? '' : ' muted'}`}>{productName || '아직 입력되지 않음'}</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">카테고리</span><span className={`q-sum-v${cat ? '' : ' muted'}`}>{cat || '미선택'}</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">채널</span><span className={`q-sum-v${ch ? '' : ' muted'}`}>{ch || '미선택'}</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">업로드 이미지</span><span className="q-sum-v">{images.length}장</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">선택한 섹션</span><span className={`q-sum-v${selectedSection ? '' : ' muted'}`}>{selectedSection ? selectedSection.name : '없음'}</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">예상 차감</span><span className="q-sum-v" style={{ color: '#6D4CFF' }}>{estCost} 크레딧</span></div>
+                  <div className="q-sum-row"><span className="q-sum-k">생성 결과</span><span className="q-sum-v">카피 + 이미지 1장</span></div>
+
+                  {/* 미리보기 mockup (UI용) */}
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', margin: '18px 0 8px' }}>예상 결과 미리보기</div>
+                  <div className="q-preview">
+                    <div className="q-preview-hero">
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#4B3B9E', lineHeight: 1.4, marginBottom: 16 }}>{productName || '상품명'}<br />{selectedSection ? selectedSection.name : '핵심 포인트'}</div>
+                      <div className="q-preview-bar" style={{ width: '82%', marginBottom: 8 }} />
+                      <div className="q-preview-bar" style={{ width: '56%', background: '#E6DEFF' }} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#B8B8C7', marginTop: 10, textAlign: 'center' }}>* 실제 생성되는 결과와 다를 수 있습니다.</div>
+                </div>
+              </aside>
             </div>
           </div>
 
-          <div className="cta-row">
-            <button className="btn-back" onClick={() => go('s-dash')}>← 뒤로</button>
-            <button
-              className="btn-next"
-              disabled={!selectedSectionId}
-              onClick={() => { if (selectedSectionId) goToStep2(); }}
-            >
-              다음 →
-            </button>
+          {/* 하단 sticky CTA */}
+          <div className="q-cta">
+            <div className="q-cta-inner">
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>선택한 섹션 {selectedSectionId ? 1 : 0}개 · 예상 차감 {estCost}크레딧</div>
+                <div style={{ fontSize: 12, color: '#8B8B99', marginTop: 2 }}>{selectedSectionId ? '다음 단계에서 세부 정보를 입력해요.' : '섹션을 선택하면 다음 단계로 진행할 수 있어요.'}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="q-cta-back" onClick={() => go('s-dash')}>← 뒤로</button>
+                <button className="q-cta-next" disabled={!selectedSectionId} onClick={() => { if (selectedSectionId) goToStep2(); }}>다음 →</button>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* ── STEP 2 ── */}
+      {/* ── STEP 2 ── (기능 유지, 기존 narrow 폼) */}
       {step === 2 && selectedSection && (
-        <div>
+        <div className="inner" style={FLIK_TOKENS}>
+          <div className="stitle" style={{ fontSize: 20 }}>빠른 제작 · {selectedSection.name}</div>
+          <div className="ssub">세부 정보를 입력하면 카피 퀄리티가 올라가요 (비워도 생성돼요)</div>
           {/* Summary chips */}
           <div className="chips" style={{ marginBottom: 20 }}>
             <span className="chip on">{selectedSection.name}</span>
