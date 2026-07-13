@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp } from '@/store/AppContext';
+import { calculateGenerationCost } from '@/lib/pricing';
 
 // ★디자인 통일 — 구 토큰(파랑+베이지) → Flik 토큰(#6D4CFF 보라+화이트). QuickScreen과 동일 스코프 오버라이드.
 const FLIK_TOKENS = {
@@ -12,6 +13,137 @@ const FLIK_TOKENS = {
   '--r': '16px',
   '--rs': '10px',
 } as unknown as CSSProperties;
+
+// ── 스튜디오 스타일(QuickScreen과 동일 `.quick-studio` 시스템으로 통일) ──
+const STUDIO_CSS = `
+.quick-studio{ background:#FAFAFC; min-height:100%; }
+.quick-studio .q-wrap{ max-width:1180px; margin:0 auto; padding:56px 32px 40px; }
+.quick-studio .q-title{ font-size:30px; font-weight:800; color:#111; letter-spacing:-0.03em; margin-bottom:8px; }
+.quick-studio .q-sub{ font-size:15px; color:#666; line-height:1.6; margin-bottom:28px; }
+.quick-studio .q-steps{ display:flex; align-items:center; gap:12px; margin-bottom:28px; flex-wrap:wrap; }
+.quick-studio .q-step{ display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#B8B8C7; }
+.quick-studio .q-step .q-stepno{ width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:#ECECF2; color:#B8B8C7; }
+.quick-studio .q-step.on{ color:#6D4CFF; }
+.quick-studio .q-step.on .q-stepno{ background:#6D4CFF; color:#fff; }
+.quick-studio .q-stepline{ flex:1; min-width:16px; height:2px; background:#ECECF2; border-radius:2px; }
+.quick-studio .q-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:24px; align-items:start; }
+.quick-studio .q-card{ background:#fff; border:1px solid #ECECF2; border-radius:28px; box-shadow:0 16px 40px rgba(17,17,17,0.04); padding:32px; }
+.quick-studio .q-card + .q-card{ margin-top:20px; }
+.quick-studio .q-cardtitle{ font-size:17px; font-weight:700; color:#111; letter-spacing:-0.02em; margin-bottom:20px; }
+.quick-studio .q-fg{ margin-bottom:22px; }
+.quick-studio .q-fg:last-child{ margin-bottom:0; }
+.quick-studio .q-label{ font-size:13px; font-weight:700; color:#111; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.quick-studio .q-opt{ font-size:11px; font-weight:500; color:#B8B8C7; }
+.quick-studio .q-req{ font-size:11px; font-weight:700; color:#6D4CFF; }
+.quick-studio .q-input{ width:100%; padding:13px 16px; background:#fff; border:1px solid #ECECF2; border-radius:14px; font-size:14px; color:#111; outline:none; font-family:inherit; transition:border-color .15s; }
+.quick-studio .q-input:focus{ border-color:#6D4CFF; }
+.quick-studio .q-input::placeholder{ color:#B8B8C7; }
+.quick-studio .q-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.quick-studio .q-chip{ height:36px; padding:0 15px; border-radius:999px; border:1px solid #ECECF2; background:#fff; color:#666; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; font-family:inherit; }
+.quick-studio .q-chip:hover{ border-color:#D8CEFF; }
+.quick-studio .q-chip.on{ background:#F4F0FF; border-color:#6D4CFF; color:#6D4CFF; font-weight:700; }
+.quick-studio .q-hint{ font-size:12px; color:#8B8B99; margin-top:10px; line-height:1.6; }
+.quick-studio .q-up{ background:linear-gradient(180deg,#FFFFFF 0%,#F7F4FF 100%); border:1.5px dashed #C8BAFF; border-radius:24px; padding:44px 32px; text-align:center; cursor:pointer; transition:all .18s; }
+.quick-studio .q-up:hover{ border-color:#6D4CFF; background:#FBFAFF; }
+.quick-studio .q-up.sm{ padding:28px 24px; }
+.quick-studio .q-upbtn{ display:inline-block; margin-top:16px; background:#6D4CFF; color:#fff; border:none; border-radius:14px; padding:10px 22px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+.quick-studio .q-thumbs{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:14px; }
+.quick-studio .q-thumb{ position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden; border:1px solid #ECECF2; background:#F4F0FF; }
+.quick-studio .q-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.quick-studio .q-thumb-rm{ position:absolute; top:4px; right:4px; width:20px; height:20px; border:none; border-radius:50%; background:rgba(17,17,17,0.6); color:#fff; font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.quick-studio .q-secgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.quick-studio .q-secgrid.two{ grid-template-columns:repeat(2,1fr); }
+.quick-studio .q-sec{ position:relative; background:#fff; border:1px solid #ECECF2; border-radius:20px; padding:20px 18px; cursor:pointer; transition:all .18s ease; }
+.quick-studio .q-sec:hover{ transform:translateY(-2px); border-color:#D8CEFF; background:#FBFAFF; box-shadow:0 12px 32px rgba(17,17,17,0.06); }
+.quick-studio .q-sec.sel{ border:2px solid #6D4CFF; padding:19px 17px; background:linear-gradient(180deg,#FFFFFF 0%,#F4F0FF 100%); box-shadow:0 12px 32px rgba(109,76,255,0.16); }
+.quick-studio .q-sec.off{ opacity:0.5; cursor:default; background:#FAFAFC; }
+.quick-studio .q-sec.off:hover{ transform:none; border-color:#ECECF2; background:#FAFAFC; box-shadow:none; }
+.quick-studio .q-sec-badge{ position:absolute; top:12px; right:12px; width:24px; height:24px; border-radius:50%; background:#6D4CFF; color:#fff; display:none; align-items:center; justify-content:center; font-size:12px; }
+.quick-studio .q-sec.sel .q-sec-badge{ display:flex; }
+.quick-studio .q-sec-ico{ font-size:22px; margin-bottom:10px; }
+.quick-studio .q-sec-name{ font-size:14px; font-weight:700; color:#111; margin-bottom:5px; }
+.quick-studio .q-sec-desc{ font-size:11.5px; color:#8B8B99; line-height:1.5; }
+.quick-studio .q-summary{ position:sticky; top:88px; background:#fff; border:1px solid #ECECF2; border-radius:28px; padding:24px; box-shadow:0 16px 40px rgba(17,17,17,0.05); }
+.quick-studio .q-sum-row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:10px 0; border-bottom:1px solid #F4F4F6; }
+.quick-studio .q-sum-row:last-child{ border-bottom:none; }
+.quick-studio .q-sum-k{ font-size:12.5px; color:#8B8B99; flex-shrink:0; }
+.quick-studio .q-sum-v{ font-size:13px; font-weight:600; color:#111; text-align:right; }
+.quick-studio .q-sum-v.muted{ color:#B8B8C7; font-weight:500; }
+.quick-studio .q-preview{ margin-top:16px; border:1px solid #ECECF2; border-radius:20px; overflow:hidden; background:#fff; }
+.quick-studio .q-preview-hero{ aspect-ratio:1; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; background:linear-gradient(160deg,#EDE7FF 0%,#F7F4FF 60%,#fff 100%); color:#8B7FD0; font-size:13px; font-weight:600; }
+.quick-studio .q-samples{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.quick-studio .q-sample{ aspect-ratio:1; border-radius:14px; overflow:hidden; position:relative; border:1px solid #ECECF2; display:flex; align-items:center; justify-content:center; }
+.quick-studio .q-sample-cap{ position:absolute; left:6px; bottom:6px; font-size:9px; font-weight:700; padding:2px 6px; border-radius:6px; background:rgba(255,255,255,0.82); color:#6D4CFF; backdrop-filter:blur(2px); }
+.quick-studio .q-cta{ position:sticky; bottom:0; background:rgba(255,255,255,0.86); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border-top:1px solid #ECECF2; }
+.quick-studio .q-cta-inner{ max-width:1180px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.quick-studio .q-cta-next{ height:52px; padding:0 36px; border:none; border-radius:16px; font-size:15px; font-weight:700; color:#fff; background:#6D4CFF; cursor:pointer; font-family:inherit; transition:background .15s; display:inline-flex; align-items:center; gap:8px; }
+.quick-studio .q-cta-next:hover{ background:#5B3EE0; }
+.quick-studio .q-cta-next:disabled{ background:#D9D9E3; cursor:default; }
+.quick-studio .q-cta-back{ height:52px; padding:0 22px; border:1px solid #ECECF2; border-radius:16px; font-size:14px; font-weight:600; color:#666; background:#fff; cursor:pointer; font-family:inherit; }
+@media (max-width:980px){
+  .quick-studio .q-grid{ grid-template-columns:1fr; }
+  .quick-studio .q-secgrid{ grid-template-columns:repeat(2,1fr); }
+  .quick-studio .q-card{ padding:22px; border-radius:22px; }
+  .quick-studio .q-summary{ position:static; }
+}
+@media (max-width:560px){
+  .quick-studio .q-wrap{ padding:32px 16px 32px; }
+  .quick-studio .q-secgrid{ grid-template-columns:1fr 1fr; }
+  .quick-studio .q-cta-inner{ padding:14px 16px; }
+  .quick-studio .q-cta-back{ display:none; }
+  .quick-studio .q-cta-next{ flex:1; padding:0; justify-content:center; }
+}
+`;
+
+// 썸네일 타입 카드 아이콘(표시용) — 로직 무관.
+const THUMB_ICO: Record<string, string> = {
+  white: '🤍', concept: '🎨', text_overlay: '🔤', ref_copy: '📐', ref_vibe: '🌈', sale: '🏷️', model: '👤',
+};
+
+// 예시 썸네일 4종 — 셀러가 폴더에 넣은 실제 썸네일 이미지(public/images/thumb-sample-1~4).
+const SAMPLE_THUMBS = [
+  '/images/thumb-sample-1.png',
+  '/images/thumb-sample-2.png',
+  '/images/thumb-sample-3.png',
+  '/images/thumb-sample-4.png',
+];
+
+// 1개 크게 + 좌우 화살표·점·스와이프로 4개 넘겨보는 캐러셀.
+function SampleCarousel() {
+  const [idx, setIdx] = useState(0);
+  const touchX = useRef<number | null>(null);
+  const n = SAMPLE_THUMBS.length;
+  const move = (d: number) => setIdx(i => (i + d + n) % n);
+  const navBtn: CSSProperties = {
+    position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+    width: 34, height: 34, borderRadius: '50%', border: 'none',
+    background: 'rgba(255,255,255,0.92)', boxShadow: '0 2px 10px rgba(17,17,17,0.18)',
+    color: '#6D4CFF', fontSize: 20, lineHeight: 1, cursor: 'pointer', zIndex: 2,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit',
+  };
+  return (
+    <div
+      style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', border: '1px solid #ECECF2', background: '#F4F0FF' }}
+      onTouchStart={e => { touchX.current = e.touches[0].clientX; }}
+      onTouchEnd={e => { if (touchX.current == null) return; const dx = e.changedTouches[0].clientX - touchX.current; if (Math.abs(dx) > 40) move(dx < 0 ? 1 : -1); touchX.current = null; }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={SAMPLE_THUMBS[idx]} alt={`예시 썸네일 ${idx + 1}`} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }} />
+      <button aria-label="이전 예시" onClick={() => move(-1)} style={{ ...navBtn, left: 8 }}>‹</button>
+      <button aria-label="다음 예시" onClick={() => move(1)} style={{ ...navBtn, right: 8 }}>›</button>
+      <div style={{ position: 'absolute', bottom: 10, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5, zIndex: 2 }}>
+        {SAMPLE_THUMBS.map((_, i) => (
+          <button
+            key={i}
+            aria-label={`${i + 1}번째 예시`}
+            onClick={() => setIdx(i)}
+            style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 999, border: 'none', padding: 0, cursor: 'pointer', background: i === idx ? '#6D4CFF' : 'rgba(255,255,255,0.85)', boxShadow: '0 1px 3px rgba(17,17,17,0.15)', transition: 'all .2s' }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ─── 카테고리 ─── */
 const CATS = [
@@ -143,6 +275,10 @@ export default function ThumbScreen() {
   // 타입/채널 변경 = 새 썸네일 → 새 jobKey(새 charge). 동일 설정 재생성은 같은 키 = 무료 재시도(C정책).
   useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch]);
 
+  const estCost = selectedType ? calculateGenerationCost({ sectionCount: 1 }) : 0;   // 예상 차감(하드코딩 X, 서버와 동일 함수)
+  const activeStep = resultUrl ? 3 : loading ? 2 : 1;   // 01 타입선택 → 02 이미지생성 → 03 결과확인
+  const recSize = ch ? CH_SIZE[ch as Channel] : null;
+
   /* ─── helpers ─── */
   const toBase64 = (objectUrl: string): Promise<string> =>
     fetch(objectUrl).then(r => r.blob()).then(blob => new Promise<string>((resolve, reject) => {
@@ -265,253 +401,197 @@ export default function ThumbScreen() {
     document.body.removeChild(a);
   };
 
-  /* ─── render ─── */
+  /* ─── render ─── 스튜디오 2단 레이아웃(QuickScreen과 통일) */
   return (
-    <div className="inner" style={FLIK_TOKENS}>
-      <div className="stitle">썸네일 생성</div>
-      <div className="ssub">채널별 최적 규격으로 이커머스 썸네일을 AI로 만들어드려요</div>
+    <div className="quick-studio" style={FLIK_TOKENS}>
+      <style>{STUDIO_CSS}</style>
 
-      {/* 상품명 */}
-      <div className="fg">
-        <div className="fl">상품명 <span className="fopt">선택</span></div>
-        <input
-          className="finp"
-          type="text"
-          placeholder="예: 제주 병풀 토너 200ml"
-          value={productName}
-          onChange={e => setProductName(e.target.value)}
-        />
-      </div>
+      <div className="q-wrap">
+        <h1 className="q-title">썸네일 생성</h1>
+        <p className="q-sub">채널별 최적 규격으로, 원하는 타입을 골라 이커머스 썸네일 1장을 AI로 만들어드려요.</p>
 
-      {/* 카테고리 */}
-      <div className="fg">
-        <div className="fl">카테고리 <span className="fopt">선택</span></div>
-        <div className="chips">
-          {CATS.map(c => (
-            <button
-              key={c.key}
-              className={`chip${cat === c.key ? ' on' : ''}`}
-              onClick={() => setCat(p => p === c.key ? '' : c.key)}
-              type="button"
-            >
-              {c.ico} {c.key}
-            </button>
-          ))}
+        {/* 진행 단계 */}
+        <div className="q-steps">
+          <span className={`q-step${activeStep >= 1 ? ' on' : ''}`}><span className="q-stepno">01</span>타입 선택</span>
+          <span className="q-stepline" />
+          <span className={`q-step${activeStep >= 2 ? ' on' : ''}`}><span className="q-stepno">02</span>이미지 생성</span>
+          <span className="q-stepline" />
+          <span className={`q-step${activeStep >= 3 ? ' on' : ''}`}><span className="q-stepno">03</span>결과 확인</span>
         </div>
-      </div>
 
-      {/* 채널 */}
-      <div className="fg">
-        <div className="fl">채널 <span className="freq">*</span></div>
-        <div className="chips">
-          {CHANNELS.map(c => (
-            <button
-              key={c}
-              className={`chip${ch === c ? ' on' : ''}`}
-              onClick={() => setCh(p => p === c ? '' : c)}
-              type="button"
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-        {ch && <div className="fhint">권장 규격: {CH_SIZE[ch as Channel]}px</div>}
-      </div>
+        <div className="q-grid">
+          {/* 좌측 */}
+          <div>
+            {/* 제작 정보 카드 */}
+            <div className="q-card">
+              <div className="q-cardtitle">제작 정보</div>
 
-      {/* 상품 이미지 업로드 */}
-      <div className="fg">
-        <div className="fl">상품 이미지 <span className="fopt">선택</span></div>
-        <div
-          className={`up-zone${dragging ? ' drag' : ''}`}
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={e => { e.preventDefault(); setDragging(false); addProductFiles(e.dataTransfer.files); }}
-          onClick={() => productInputRef.current?.click()}
-        >
-          <input ref={productInputRef} type="file" multiple accept="image/*" style={{ display: 'none' }}
-            onChange={e => { addProductFiles(e.target.files); e.target.value = ''; }}
-          />
-          <div style={{ fontSize: 28, marginBottom: 10 }}>📷</div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>상품 이미지 드래그 또는 클릭</div>
-          <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.6 }}>PNG · JPG · WEBP · 최대 5장</div>
-          <label className="up-btn" onClick={e => { e.stopPropagation(); productInputRef.current?.click(); }} style={{ cursor: 'pointer' }}>파일 선택</label>
-        </div>
-        {productImgs.length > 0 && (
-          <div className="img-grid">
-            {productImgs.map((img, i) => (
-              <div className="img-th" key={i}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={`상품이미지 ${i + 1}`} />
-                <div className="img-lbl">이미지 {i + 1}</div>
-                <button className="img-th-rm" onClick={() => removeProductImg(i)}>✕</button>
+              <div className="q-fg">
+                <div className="q-label">상품명 <span className="q-opt">선택</span></div>
+                <input className="q-input" type="text" placeholder="예: 제주 병풀 토너 200ml" value={productName} onChange={e => setProductName(e.target.value)} />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* 썸네일 타입 — 2열 카드 그리드 */}
-      <div className="fg">
-        <div className="fl">썸네일 타입 <span className="freq">*</span></div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          {THUMB_TYPES.filter(t => !t.disabled).map(t => {
-            const isOn = selectedType === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setSelectedType(p => p === t.key ? '' : t.key)}
-                style={{
-                  textAlign: 'left',
-                  padding: '10px 12px',
-                  border: `1.5px solid ${isOn ? 'var(--ac)' : 'var(--bd)'}`,
-                  borderRadius: 'var(--r)',
-                  background: isOn ? 'var(--al)' : 'var(--white)',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--f)',
-                  transition: 'border-color .15s, background .15s',
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 700, color: isOn ? 'var(--ac)' : 'var(--tx)', marginBottom: 3 }}>{t.label}</div>
-                <div style={{ fontSize: 11, color: isOn ? 'var(--ac)' : 'var(--tx3)', lineHeight: 1.4 }}>{t.desc}</div>
-              </button>
-            );
-          })}
-        </div>
-        {THUMB_TYPES.some(t => t.disabled) && (
-          <div style={{ marginTop: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ flex: 1, height: 1, background: 'var(--bd)' }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--tx3)', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>준비 중</span>
-              <div style={{ flex: 1, height: 1, background: 'var(--bd)' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, opacity: 0.45 }}>
-              {THUMB_TYPES.filter(t => t.disabled).map(t => (
-                <div
-                  key={t.key}
-                  style={{
-                    textAlign: 'left', padding: '10px 12px',
-                    border: '1.5px solid var(--bd)', borderRadius: 'var(--r)',
-                    background: 'var(--sf)', cursor: 'default',
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tx)', marginBottom: 3 }}>
-                    {t.label}
-                    <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--tx3)', marginLeft: 5 }}>Coming Soon</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.4 }}>{t.desc}</div>
+              <div className="q-fg">
+                <div className="q-label">카테고리 <span className="q-opt">선택</span></div>
+                <div className="q-chips">
+                  {CATS.map(c => (
+                    <button key={c.key} type="button" className={`q-chip${cat === c.key ? ' on' : ''}`} onClick={() => setCat(p => p === c.key ? '' : c.key)}>{c.ico} {c.key}</button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+              </div>
 
-      {/* 레퍼런스 이미지 (ref_copy / ref_vibe) */}
-      {needsRef && (
-        <div className="fg">
-          <div className="fl">레퍼런스 이미지 <span className="freq">*</span></div>
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#1e40af', lineHeight: 1.6, marginBottom: 12 }}>
-            {selectedType === 'ref_copy'
-              ? '💡 구도·배경·소품을 그대로 유지하고 제품만 교체할 레퍼런스 이미지를 업로드하세요.'
-              : '💡 색감·무드·분위기를 분석할 레퍼런스 이미지를 업로드하세요. 구도는 새롭게 연출돼요.'}
-          </div>
-          <div
-            className={`up-zone${draggingRef ? ' drag' : ''}`}
-            onDragOver={e => { e.preventDefault(); setDraggingRef(true); }}
-            onDragLeave={() => setDraggingRef(false)}
-            onDrop={e => { e.preventDefault(); setDraggingRef(false); setRefFile(e.dataTransfer.files); }}
-            onClick={() => refInputRef.current?.click()}
-          >
-            <input ref={refInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-              onChange={e => { setRefFile(e.target.files); e.target.value = ''; }}
-            />
-            <div style={{ fontSize: 28, marginBottom: 10 }}>🖼️</div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>레퍼런스 이미지 드래그 또는 클릭</div>
-            <div style={{ fontSize: 11, color: 'var(--tx3)', lineHeight: 1.6 }}>참고할 썸네일 디자인 이미지 1장</div>
-            <label className="up-btn" onClick={e => { e.stopPropagation(); refInputRef.current?.click(); }} style={{ cursor: 'pointer' }}>파일 선택</label>
-          </div>
-          {refImg && (
-            <div className="img-grid">
-              <div className="img-th">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={refImg.url} alt="레퍼런스 이미지" />
-                <div className="img-lbl">레퍼런스</div>
-                <button className="img-th-rm" onClick={removeRefImg}>✕</button>
+              <div className="q-fg">
+                <div className="q-label">판매 채널 <span className="q-req">*</span></div>
+                <div className="q-chips">
+                  {CHANNELS.map(c => (
+                    <button key={c} type="button" className={`q-chip${ch === c ? ' on' : ''}`} onClick={() => setCh(p => p === c ? '' : c)}>{c}</button>
+                  ))}
+                </div>
+                {recSize && <div className="q-hint">💡 권장 규격 {recSize}px · PNG로 저장돼요</div>}
+              </div>
+
+              <div className="q-fg">
+                <div className="q-label">상품 이미지 업로드 <span className="q-opt">선택</span></div>
+                <div
+                  className="q-up"
+                  onDragOver={e => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={e => { e.preventDefault(); setDragging(false); addProductFiles(e.dataTransfer.files); }}
+                  onClick={() => productInputRef.current?.click()}
+                  style={dragging ? { borderColor: '#6D4CFF', background: '#FBFAFF' } : undefined}
+                >
+                  <input ref={productInputRef} type="file" multiple accept="image/*" style={{ display: 'none' }} onChange={e => { addProductFiles(e.target.files); e.target.value = ''; }} />
+                  <div style={{ fontSize: 30, marginBottom: 10 }}>⬆️</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 6 }}>상품 사진을 업로드하세요</div>
+                  <div style={{ fontSize: 12.5, color: '#8B8B99', lineHeight: 1.6 }}>제품 전체가 잘 보이는 정면 사진을 추천해요<br />PNG · JPG · WEBP · 최대 5장</div>
+                  <button className="q-upbtn" onClick={e => { e.stopPropagation(); productInputRef.current?.click(); }}>이미지 선택</button>
+                </div>
+                {productImgs.length > 0 && (
+                  <div className="q-thumbs">
+                    {productImgs.map((img, i) => (
+                      <div className="q-thumb" key={i}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.url} alt={`상품이미지 ${i + 1}`} />
+                        <button className="q-thumb-rm" onClick={() => removeProductImg(i)}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* 에러 */}
-      {error && (
-        <div style={{ background: '#fff1f2', border: '1.5px solid #fecaca', borderRadius: 'var(--r)', padding: '10px 14px', fontSize: 13, color: '#dc2626', marginBottom: 8 }}>
-          ⚠️ {error}
-        </div>
-      )}
+            {/* 썸네일 타입 카드 */}
+            <div className="q-card">
+              <div className="q-cardtitle">썸네일 타입 <span className="q-req" style={{ fontSize: 12 }}>*</span></div>
+              <div className="q-secgrid two">
+                {THUMB_TYPES.map(t => t.disabled ? (
+                  <div key={t.key} className="q-sec off">
+                    <div className="q-sec-ico">{THUMB_ICO[t.key]}</div>
+                    <div className="q-sec-name">{t.label} <span style={{ fontSize: 10, fontWeight: 500, color: '#B8B8C7' }}>준비 중</span></div>
+                    <div className="q-sec-desc">{t.desc}</div>
+                  </div>
+                ) : (
+                  <div key={t.key} className={`q-sec${selectedType === t.key ? ' sel' : ''}`} onClick={() => setSelectedType(p => p === t.key ? '' : t.key)}>
+                    <div className="q-sec-badge">✓</div>
+                    <div className="q-sec-ico">{THUMB_ICO[t.key]}</div>
+                    <div className="q-sec-name">{t.label}</div>
+                    <div className="q-sec-desc">{t.desc}</div>
+                  </div>
+                ))}
+              </div>
 
-      {/* 생성 결과 */}
-      {resultUrl && (
-        <div style={{ marginBottom: 16, background: 'var(--white)', border: '1.5px solid rgba(22,163,74,.3)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--bd)', fontSize: 13, fontWeight: 600 }}>
-            ✅ 썸네일 생성 완료
-          </div>
-          <div style={{ padding: 16 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={resultUrl}
-              alt="생성된 썸네일"
-              onClick={() => setLightboxOpen(true)}
-              style={{ width: '100%', borderRadius: 'var(--rs)', display: 'block', marginBottom: 12, cursor: 'zoom-in' }}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={generate}
-                disabled={loading}
-                style={{
-                  flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 600,
-                  background: 'transparent', border: '1.5px solid var(--ac)', color: 'var(--ac)',
-                  borderRadius: 'var(--r)', cursor: loading ? 'default' : 'pointer',
-                  opacity: loading ? 0.5 : 1, fontFamily: 'var(--f)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-              >
-                {loading
-                  ? <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />생성 중…</>
-                  : '↻ 재생성'}
-              </button>
-              <button
-                onClick={download}
-                style={{
-                  flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 600,
-                  background: 'var(--ac)', border: 'none', color: '#fff',
-                  borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: 'var(--f)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                }}
-              >
-                ⬇ 다운로드
-              </button>
+              {/* 레퍼런스 이미지 (ref_copy / ref_vibe) */}
+              {needsRef && (
+                <div style={{ marginTop: 20 }}>
+                  <div className="q-label">레퍼런스 이미지 <span className="q-req">*</span></div>
+                  <div className="q-hint" style={{ marginTop: 0, marginBottom: 12 }}>
+                    {selectedType === 'ref_copy'
+                      ? '💡 구도·배경·소품을 그대로 유지하고 제품만 교체할 레퍼런스 이미지를 업로드하세요.'
+                      : '💡 색감·무드·분위기를 분석할 레퍼런스 이미지를 업로드하세요. 구도는 새롭게 연출돼요.'}
+                  </div>
+                  <div
+                    className="q-up sm"
+                    onDragOver={e => { e.preventDefault(); setDraggingRef(true); }}
+                    onDragLeave={() => setDraggingRef(false)}
+                    onDrop={e => { e.preventDefault(); setDraggingRef(false); setRefFile(e.dataTransfer.files); }}
+                    onClick={() => refInputRef.current?.click()}
+                    style={draggingRef ? { borderColor: '#6D4CFF', background: '#FBFAFF' } : undefined}
+                  >
+                    <input ref={refInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setRefFile(e.target.files); e.target.value = ''; }} />
+                    <div style={{ fontSize: 26, marginBottom: 8 }}>🖼️</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>레퍼런스 이미지 업로드</div>
+                    <div style={{ fontSize: 12, color: '#8B8B99' }}>참고할 썸네일 디자인 1장</div>
+                    <button className="q-upbtn" onClick={e => { e.stopPropagation(); refInputRef.current?.click(); }}>파일 선택</button>
+                  </div>
+                  {refImg && (
+                    <div className="q-thumbs" style={{ gridTemplateColumns: 'repeat(5,1fr)' }}>
+                      <div className="q-thumb">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={refImg.url} alt="레퍼런스 이미지" />
+                        <button className="q-thumb-rm" onClick={removeRefImg}>✕</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="q-hint">💡 배경이 깔끔하고 로고·라벨이 선명한 사진일수록 좋은 썸네일이 나와요. 텍스트오버레이·세일컷은 카피가 이미지에 합성됩니다.</div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* CTA */}
-      <div className="cta-row">
-        <button className="btn-back" onClick={() => go('s-dash')}>← 뒤로</button>
-        {!resultUrl && (
-          <button
-            className="btn-next"
-            disabled={isDisabled}
-            onClick={generate}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            {loading
-              ? <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />생성 중…</>
-              : '✦ 썸네일 생성하기'}
-          </button>
-        )}
+          {/* 우측 요약 + 결과/미리보기 */}
+          <aside>
+            <div className="q-summary">
+              <div className="q-cardtitle" style={{ fontSize: 15, marginBottom: 14 }}>✨ 생성 요약</div>
+              <div className="q-sum-row"><span className="q-sum-k">상품명</span><span className={`q-sum-v${productName ? '' : ' muted'}`}>{productName || '아직 입력되지 않음'}</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">카테고리</span><span className={`q-sum-v${cat ? '' : ' muted'}`}>{cat || '미선택'}</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">채널</span><span className={`q-sum-v${ch ? '' : ' muted'}`}>{ch || '미선택'}</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">업로드 이미지</span><span className="q-sum-v">{productImgs.length}장</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">선택 타입</span><span className={`q-sum-v${selectedType ? '' : ' muted'}`}>{currentTypeDef ? currentTypeDef.label : '없음'}</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">예상 차감</span><span className="q-sum-v" style={{ color: '#6D4CFF' }}>{estCost} 크레딧</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">생성 결과</span><span className="q-sum-v">썸네일 1장{recSize ? ` · ${recSize}` : ''}</span></div>
+
+              {error && (
+                <div style={{ marginTop: 14, background: '#FFF1F2', border: '1px solid #FECACA', borderRadius: 12, padding: '10px 14px', fontSize: 12.5, color: '#DC2626', lineHeight: 1.5 }}>⚠️ {error}</div>
+              )}
+
+              {resultUrl ? (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8 }}>✅ 생성 완료</div>
+                  <div className="q-preview">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resultUrl} alt="생성된 썸네일" onClick={() => setLightboxOpen(true)} style={{ width: '100%', display: 'block', cursor: 'zoom-in' }} />
+                  </div>
+                  <button onClick={download} style={{ width: '100%', marginTop: 10, height: 44, border: 'none', borderRadius: 14, background: '#6D4CFF', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>⬇ 다운로드</button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', margin: '18px 0 8px' }}>이런 스타일로 만들 수 있어요</div>
+                  <SampleCarousel />
+                  <div style={{ fontSize: 11, color: '#B8B8C7', marginTop: 10, textAlign: 'center' }}>* 예시 이미지예요. 실제 생성 결과와 다를 수 있습니다.</div>
+                </>
+              )}
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      {/* 하단 sticky CTA */}
+      <div className="q-cta">
+        <div className="q-cta-inner">
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>{currentTypeDef ? `${currentTypeDef.label} · 예상 차감 ${estCost}크레딧` : '썸네일 타입을 선택해주세요'}</div>
+            <div style={{ fontSize: 12, color: '#8B8B99', marginTop: 2 }}>{!ch ? '채널을 선택해주세요' : needsRef && !refImg ? '레퍼런스 이미지를 올려주세요' : selectedType ? '썸네일 1장이 생성돼요' : '타입을 선택하면 생성할 수 있어요'}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="q-cta-back" onClick={() => go('s-dash')}>← 뒤로</button>
+            <button className="q-cta-next" disabled={isDisabled} onClick={generate}>
+              {loading
+                ? <><span style={{ display: 'inline-block', width: 15, height: 15, border: '2px solid rgba(255,255,255,.45)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />생성 중…</>
+                : resultUrl ? '↻ 다시 생성' : '✦ 썸네일 생성하기'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 라이트박스 */}

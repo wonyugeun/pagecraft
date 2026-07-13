@@ -279,7 +279,7 @@ export default function DashboardMobile() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기</div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
-              채널 규격 자동 적용 ·<br />4가지 타입 썸네일 즉시 생성
+              채널 규격 자동 적용 ·<br />원하는 타입 골라 썸네일 1장 생성
             </div>
           </div>
           <div style={{
