@@ -183,9 +183,8 @@ export default function DashboardScreen() {
   const isMobile = useIsMobile();
   const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
   const { data: session } = useSession();
-  // ★빠른제작: 결제 배관(quick/charge 선차감+jobKey) 완비 → 프로덕션 항상 활성.
-  //   ★썸네일: 아직 결제 배관 없음 → 로컬(dev)에서만 활성, 프로덕션은 "준비 중" 유지. 서버 게이트(verifyPaidJob) 불변.
-  const thumbEnabled = process.env.NODE_ENV === 'development';
+  // ★빠른제작·썸네일 모두 결제 배관(quick/charge·thumb/charge 선차감+jobKey) 완비 → 프로덕션 항상 활성.
+  //   서버 게이트(verifyPaidJob) 불변 — 통과 자격(paid jobKey)만 charge에서 발급.
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -464,14 +463,14 @@ export default function DashboardScreen() {
                 </div>
               </div>
               <div
-                onClick={thumbEnabled ? () => go('s-thumb') : undefined}
-                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, opacity: thumbEnabled ? 1 : 0.55, cursor: thumbEnabled ? 'pointer' : 'default' }}
-              >{/* ★썸네일은 결제 배관 전까지 로컬(dev)만 활성. 프로덕션 준비 중 */}
+                onClick={() => go('s-thumb')}
+                style={{ ...card('thumb'), padding: '20px 22px', display: 'flex', alignItems: 'center', gap: 16, cursor: 'pointer' }}
+              >{/* ★프로덕션 활성 — thumb/charge 결제 배관으로 유료 jobKey 발급 → 서버 게이트 통과 */}
                 <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg, #A78BFA 0%, #6D4CFF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(109,76,255,0.28)' }}>
                   <ImageIcon size={22} color="#fff" strokeWidth={1.8} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기{!thumbEnabled && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span>}</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: '#111', marginBottom: 4 }}>썸네일 만들기</div>
                   <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>채널 규격 자동 적용·<br />4가지 타입 썸네일 즉시 생성</div>
                 </div>
                 <div style={{ width: 34, height: 34, background: '#EDE8FF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -535,6 +534,11 @@ export default function DashboardScreen() {
                           {item.type === '빠른제작' && (
                             <span style={{ background: '#6D4CFF', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#fff', fontWeight: 600 }}>
                               ⚡ 빠른제작
+                            </span>
+                          )}
+                          {item.type === '썸네일' && (
+                            <span style={{ background: '#EDE8FF', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#6D4CFF', fontWeight: 700 }}>
+                              🖼️ 썸네일
                             </span>
                           )}
                           {item.cat && (

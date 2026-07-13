@@ -86,8 +86,7 @@ function formatTime(iso: string) {
 /* ─── 메인 ─── */
 export default function DashboardMobile() {
   const { startDetail, loadFromHistory, toggleChat, credits, go } = useApp();
-  // ★빠른제작: 결제 배관 완비 → 프로덕션 항상 활성. ★썸네일: 결제 배관 전까지 dev만. 서버 게이트 불변.
-  const thumbEnabled = process.env.NODE_ENV === 'development';
+  // ★빠른제작·썸네일 모두 결제 배관(quick/charge·thumb/charge) 완비 → 프로덕션 항상 활성. 서버 게이트 불변.
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showAllWorks, setShowAllWorks] = useState(false);   // 최근작업 더보기(8→전체 최대 20). 표시만.
@@ -262,15 +261,14 @@ export default function DashboardMobile() {
       {/* 5) 썸네일 만들기 */}
       <section style={{ padding: '10px 20px 0' }}>
         <div
-          onClick={thumbEnabled ? () => go('s-thumb') : undefined}
+          onClick={() => go('s-thumb')}
           style={{
             background: '#fff', borderRadius: 20, padding: 16,
             display: 'flex', alignItems: 'center', gap: 14,
-            opacity: thumbEnabled ? 1 : 0.55,
-            cursor: thumbEnabled ? 'pointer' : 'default',
+            cursor: 'pointer',
             border: '1px solid #F0F0F4',
           }}
-        >{/* ★썸네일은 결제 배관 전까지 dev만. 프로덕션 준비 중 */}
+        >{/* ★프로덕션 활성 — thumb/charge 결제 배관 완비 */}
           <div style={{
             width: 56, height: 56, borderRadius: 14,
             background: '#FCE7F3',
@@ -279,7 +277,7 @@ export default function DashboardMobile() {
             <ImageIcon size={26} color="#EC4899" />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기{!thumbEnabled && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#9CA3AF', background: '#F3F4F6', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle' }}>준비 중</span>}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>썸네일 만들기</div>
             <div style={{ marginTop: 4, fontSize: 12, color: '#666', lineHeight: 1.45 }}>
               채널 규격 자동 적용 ·<br />4가지 타입 썸네일 즉시 생성
             </div>
@@ -346,6 +344,11 @@ export default function DashboardMobile() {
                     {item.type === '빠른제작' && (
                       <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#6D4CFF', color: '#fff', fontWeight: 700 }}>
                         ⚡ 빠른제작
+                      </span>
+                    )}
+                    {item.type === '썸네일' && (
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#EDE8FF', color: '#6D4CFF', fontWeight: 700 }}>
+                        🖼️ 썸네일
                       </span>
                     )}
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F0FF', color: '#6D4CFF', fontWeight: 600 }}>

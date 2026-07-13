@@ -115,7 +115,8 @@ function ThumbLightbox({ url, onClose }: { url: string; onClose: () => void }) {
 interface ImgFile { url: string; file: File; }
 
 export default function ThumbScreen() {
-  const { go } = useApp();
+  const { go, setCredits, setCreditModalOpen, saveHistory, updateLatestHistoryImages } = useApp();
+  const jobKeyRef = useRef<string>('');   // ★결제 멱등키 — charge가 이 키로 원자 차감, 이후 verify-only. 타입/채널 바뀌면 새 키(새 과금).
 
   const [productName, setProductName]   = useState('');
   const [cat, setCat]                   = useState('');
@@ -138,6 +139,9 @@ export default function ThumbScreen() {
   const currentTypeDef = THUMB_TYPES.find(t => t.key === selectedType) ?? null;
   const needsRef = currentTypeDef?.needsRef ?? false;
   const isDisabled = !ch || !selectedType || loading || (needsRef && !refImg);
+
+  // 타입/채널 변경 = 새 썸네일 → 새 jobKey(새 charge). 동일 설정 재생성은 같은 키 = 무료 재시도(C정책).
+  useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch]);
 
   /* ─── helpers ─── */
   const toBase64 = (objectUrl: string): Promise<string> =>
@@ -176,10 +180,29 @@ export default function ThumbScreen() {
   /* ─── generate ─── */
   const generate = async () => {
     if (isDisabled || !currentTypeDef) return;
+    // ★결제 게이트 — 생성 첫 동작. jobKey 발급(1회) → charge가 유일 차감·발급 지점(단일 CTE 원자성).
+    //   deducted|duplicate일 때만 generate-image 진행. 순서 불가침(생성→차감 금지).
+    if (!jobKeyRef.current) jobKeyRef.current = crypto.randomUUID();
     setLoading(true);
     setError('');
     setResultUrl('');
     setLightboxOpen(false);
+
+    try {
+      const chargeRes = await fetch('/api/thumb/charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobKey: jobKeyRef.current, sectionCount: 1 }),
+      });
+      const chargeData = await chargeRes.json().catch(() => ({}));
+      if (!chargeRes.ok) {
+        if (chargeRes.status === 402) { setCreditModalOpen(true); setLoading(false); return; }   // 크레딧 부족 — 생성 중단
+        setError(chargeData.error || '크레딧 처리 중 오류가 발생했어요.'); setLoading(false); return;
+      }
+      if (typeof chargeData.balance === 'number') setCredits(chargeData.balance);   // 헤더 크레딧 갱신
+    } catch {
+      setError('크레딧 처리 중 오류가 발생했어요.'); setLoading(false); return;
+    }
 
     try {
       const size   = ch ? CH_SIZE[ch as Channel] : '';
@@ -194,7 +217,7 @@ export default function ThumbScreen() {
         base64s.push(await toBase64(refImg.url));
       }
 
-      const body: Record<string, unknown> = { prompt, sectionNum: `thumb_${selectedType}` };
+      const body: Record<string, unknown> = { prompt, sectionNum: `thumb_${selectedType}`, jobKey: jobKeyRef.current };
       if (base64s.length > 0) body.productImages = base64s;
 
       const res  = await fetch('/api/generate-image', {
@@ -205,7 +228,22 @@ export default function ThumbScreen() {
       });
       const data = await res.json();
       if (data.imageBase64) {
-        setResultUrl(`data:${data.mimeType};base64,${data.imageBase64}`);
+        const finalUrl = `data:${data.mimeType};base64,${data.imageBase64}`;
+        setResultUrl(finalUrl);
+        // ★영속화 — saveHistory 재사용(빠른제작과 동일, type='썸네일'). 대시보드 최근작업 누적·클릭 복원.
+        try {
+          const secNum = `thumb_${selectedType}`;
+          const secName = `${currentTypeDef.label} 썸네일`;
+          saveHistory({
+            productName, cat, ch,
+            type: '썸네일',
+            out: 'blog',
+            secCnt: 1,
+            sections: [{ num: secNum, name: secName, headline: '', body: '', imageLabel: '', imageDesc: '' }],
+            jobKey: jobKeyRef.current,
+          });
+          await updateLatestHistoryImages({ [secNum]: finalUrl });
+        } catch { /* 영속화 실패 — 화면 결과는 유지 */ }
       } else {
         setError(data.error || '이미지 생성에 실패했어요. 다시 시도해주세요.');
       }
