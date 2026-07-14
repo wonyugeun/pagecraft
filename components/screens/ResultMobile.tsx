@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Menu, Zap, Sparkles, ArrowLeft,
+  Zap, Sparkles, ArrowLeft,
   Smartphone, Monitor,
   Type, Image as ImageIcon, ArrowUpDown, EyeOff, Eye, ChevronUp, ChevronDown,
   Upload, Download, RefreshCw,
@@ -516,7 +516,6 @@ export default function ResultMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 

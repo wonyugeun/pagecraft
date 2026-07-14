@@ -10,6 +10,7 @@ import { getJob } from '@/lib/historyDB';
 import { isResumableJob, type JobState } from '@/lib/pipelineJob';
 import TopBar from '@/components/layout/TopBar';
 import ProgressBar from '@/components/layout/ProgressBar';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import ChatPanel from '@/components/layout/ChatPanel';
 import LoginScreen from '@/components/screens/LoginScreen';
 import DashboardScreen from '@/components/screens/DashboardScreen';
@@ -28,8 +29,14 @@ import ThumbScreen from '@/components/screens/ThumbScreen';
 import OutputScreen from '@/components/screens/OutputScreen';
 import { STEP_MAP } from '@/store/AppContext';
 
+// ★모바일 자체 헤더(로고·크레딧·스텝)를 렌더하는 화면들 — 이 화면들은 모바일에서 앱 레벨
+//   데스크톱 크롬(TopBar/ProgressBar)을 렌더하면 헤더·스텝이 2중 표시된다. 모바일 변형이 없는
+//   화면(s0 로그인·s-quick·s-thumb·s3b 아웃풋)은 앱 크롬이 유일한 크롬이므로 그대로 유지.
+const SCREENS_WITH_MOBILE_VARIANT = new Set(['s-dash', 's1', 's2', 's3', 's5', 's5-5', 's5b', 's6', 's7', 's8']);
+
 function App() {
   const { screen, go } = useApp();
+  const isMobile = useIsMobile();
 
   // 재진입 복구: 새로고침/탭 이탈 후, IndexedDB에 미완료 파이프라인 job이 있으면 s7로 돌려 마지막 지점부터 재개.
   const resumedRef = useRef(false);
@@ -51,7 +58,11 @@ function App() {
 
   const isDash = screen === 's-dash';
   const hasProgress = Boolean(STEP_MAP[screen]);
-  const paddingTop = isDash ? 0 : screen === 's0' ? 56 : hasProgress ? 106 : 56;
+  // ★모바일 크롬 중복 방지 — 모바일 변형 화면은 자체 헤더/스텝을 그리므로 앱 크롬을 끄고 상단 여백 0.
+  const mobileOwnsChrome = isMobile && SCREENS_WITH_MOBILE_VARIANT.has(screen);
+  const showTopBar = !isDash && !mobileOwnsChrome;
+  const showProgress = hasProgress && !mobileOwnsChrome;
+  const paddingTop = mobileOwnsChrome ? 0 : isDash ? 0 : screen === 's0' ? 56 : hasProgress ? 106 : 56;
 
   const screenMap: Record<string, React.ReactNode> = {
     's0': <LoginScreen />,
@@ -72,8 +83,8 @@ function App() {
 
   return (
     <>
-      {!isDash && <TopBar />}
-      {hasProgress && <ProgressBar />}
+      {showTopBar && <TopBar />}
+      {showProgress && <ProgressBar />}
       {/* ★도우미는 본문에 영향 0인 순수 오버레이. .main에 chat-open 클래스를 붙이지 않는다 →
           도우미를 열어도 본문(미리보기·카드)의 width/margin이 전혀 바뀌지 않음. 도우미는 fixed로 본문 위에 뜸. */}
       <div className="main" style={{ paddingTop }}>

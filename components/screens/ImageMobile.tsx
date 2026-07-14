@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import {
-  Menu, Zap, UploadCloud, Sparkles, ChevronDown, Lightbulb,
+  Zap, UploadCloud, Sparkles, ChevronDown, Lightbulb,
   Image as ImageIcon, Sun, Palette, FileText, X,
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
@@ -122,7 +122,6 @@ export default function ImageMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 

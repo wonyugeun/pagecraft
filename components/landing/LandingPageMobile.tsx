@@ -2,11 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import {
-  Menu,
   Sparkles,
   LayoutGrid,
   Zap, CreditCard, ShieldCheck, Wand2, Download, PencilLine, ChevronRight,
-  Home, SlidersHorizontal, Receipt, User,
 } from 'lucide-react';
 
 const TRUST_BADGES = [
@@ -35,7 +33,7 @@ export default function LandingPageMobile() {
       minHeight: '100vh',
       background: '#FAFAFC',
       fontFamily: 'Pretendard, sans-serif',
-      paddingBottom: '80px',
+      paddingBottom: '32px',
     }}>
 
       {/* 1) 상단 바 */}
@@ -43,12 +41,11 @@ export default function LandingPageMobile() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '20px 24px',
       }}>
-        <Menu size={24} color="#111" />
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: '32px', width: 'auto', objectFit: 'contain', display: 'block' }} />
         </div>
-        <button style={{
+        <button onClick={() => router.push('/login')} style={{
           border: '1px solid #ECECF2', borderRadius: '12px',
           background: '#fff', color: '#111',
           padding: '8px 16px', fontSize: '14px', fontWeight: 600,
@@ -221,32 +218,7 @@ export default function LandingPageMobile() {
         </div>
       </section>
 
-      {/* 9) 하단 고정 탭바 */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderTop: '1px solid #ECECF2',
-        padding: '10px 0',
-        display: 'flex', justifyContent: 'space-around',
-        zIndex: 100,
-      }}>
-        {[
-          { Icon: Home,              label: '홈',     active: true  },
-          { Icon: SlidersHorizontal, label: '기능',   active: false },
-          { Icon: LayoutGrid,        label: '템플릿', active: false },
-          { Icon: Receipt,           label: '요금제', active: false },
-          { Icon: User,              label: '마이',   active: false },
-        ].map(({ Icon, label, active }) => {
-          const color = active ? '#6D4CFF' : '#999';
-          return (
-            <div key={label} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-            }}>
-              <Icon size={22} color={color} fill={active ? '#6D4CFF' : 'none'} />
-              <span style={{ fontSize: '11px', color, fontWeight: active ? 700 : 400 }}>{label}</span>
-            </div>
-          );
-        })}
-      </nav>
+      {/* (하단 탭바 제거 — 홈 외 4개 탭이 목적지 없는 죽은 컨트롤이라 삭제. 로그인 전 랜딩이라 앱 네비 불필요) */}
 
     </div>
   );

@@ -138,13 +138,6 @@ export default function TypeMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: '#6D4CFF', color: '#fff',
-            borderRadius: 999, width: 36, height: 36,
-          }}>
-            <ChevronDown size={12} color="#fff" />
-          </div>
         </div>
       </header>
 

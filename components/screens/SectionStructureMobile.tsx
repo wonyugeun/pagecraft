@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  Menu, Zap, X, Lightbulb, GripVertical, ChevronUp, ChevronDown,
+  Zap, X, Lightbulb, GripVertical, ChevronUp, ChevronDown,
   Plus, ArrowLeft, ArrowRight, Trash2,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
@@ -107,7 +107,6 @@ export default function SectionStructureMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 

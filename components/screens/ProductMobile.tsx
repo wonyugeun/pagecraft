@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  Menu, Zap, Sparkles, ChevronUp, ChevronDown,
+  Zap, Sparkles, ChevronUp, ChevronDown,
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
@@ -217,7 +217,6 @@ export default function ProductMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 

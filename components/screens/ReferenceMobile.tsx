@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import {
-  Menu, Zap, Sparkles, Link2, Image as ImageIcon, Plus,
+  Zap, Sparkles, Link2, Image as ImageIcon, Plus,
   ArrowLeft, ArrowRight, Link as LinkIcon,
 } from 'lucide-react';
 import {
@@ -144,7 +144,6 @@ export default function ReferenceMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 

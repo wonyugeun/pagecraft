@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useApp, HistoryItem } from '@/store/AppContext';
 import {
-  Zap, Image as ImageIcon, ChevronRight, MoreVertical,
+  Zap, Image as ImageIcon, MoreVertical,
   Sparkles, BarChart3, ArrowRight, ChevronDown,
-  Home, FileText, LayoutGrid, BookOpen, Settings,
 } from 'lucide-react';
 
 /* ─── 헬퍼 ─── */
@@ -92,6 +91,11 @@ export default function DashboardMobile() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showAllWorks, setShowAllWorks] = useState(false);   // 최근작업 더보기(8→전체 최대 20). 표시만.
   const email = session?.user?.email ?? 'guest';
+  // ★유저명 동적화(데스크톱 DashboardScreen과 동일 로직) — '원사장님' 하드코딩 제거. 이름 없으면 '사장님' 폴백.
+  const rawName = session?.user?.name ?? '';
+  const displayName = rawName
+    ? (rawName.length > 4 ? rawName.slice(0, 4) + '님' : rawName + '님')
+    : '사장님';
 
   useEffect(() => {
     try {
@@ -107,7 +111,7 @@ export default function DashboardMobile() {
     <div style={{
       minHeight: '100vh', background: '#FAFAFC',
       fontFamily: 'Pretendard, sans-serif',
-      paddingBottom: '80px',
+      paddingBottom: '32px',
     }}>
 
       {/* 1) 상단 헤더 */}
@@ -135,23 +139,13 @@ export default function DashboardMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <button style={{
-            display: 'inline-flex', alignItems: 'center', gap: 2,
-            background: '#6D4CFF', color: '#fff',
-            border: 'none', borderRadius: 999,
-            width: 36, height: 36,
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}>
-            <ChevronDown size={12} color="#fff" />
-          </button>
         </div>
       </header>
 
       {/* 2) 인사말 */}
       <section style={{ padding: '4px 20px 16px' }}>
         <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#111' }}>
-          안녕하세요, 원사장님 <span>👋</span>
+          안녕하세요, {displayName} <span>👋</span>
         </h1>
         <p style={{ margin: '6px 0 0', fontSize: 13, color: '#666' }}>
           오늘은 어떤 상세페이지를 만들어볼까요?
@@ -377,25 +371,20 @@ export default function DashboardMobile() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Sparkles size={16} color="#6D4CFF" />
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>AI 추천 카테고리</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>카테고리 빠른 시작</span>
             </div>
-            <button style={{
-              display: 'inline-flex', alignItems: 'center', gap: 2,
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 600, color: '#6D4CFF',
-              fontFamily: 'inherit', padding: 0,
-            }}>
-              더보기 <ChevronRight size={12} />
-            </button>
           </div>
           <p style={{ margin: '4px 0 14px', fontSize: 11.5, color: '#666' }}>
             카테고리를 골라 빠르게 시작해보세요.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
             {PLATFORM_CATS.map(c => (
-              <div key={c.name} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-              }}>
+              <div key={c.name}
+                onClick={startDetail}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                  cursor: 'pointer',
+                }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
                   background: '#F4F0FF',
@@ -474,32 +463,7 @@ export default function DashboardMobile() {
         </div>
       </section>
 
-      {/* 10) 하단 고정 탭바 */}
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderTop: '1px solid #ECECF2',
-        padding: '10px 0',
-        display: 'flex', justifyContent: 'space-around',
-        zIndex: 100,
-      }}>
-        {[
-          { Icon: Home,       label: '홈',     active: true  },
-          { Icon: FileText,   label: '내 작업', active: false },
-          { Icon: LayoutGrid, label: '템플릿', active: false },
-          { Icon: BookOpen,   label: '가이드', active: false },
-          { Icon: Settings,   label: '설정',   active: false },
-        ].map(({ Icon, label, active }) => {
-          const color = active ? '#6D4CFF' : '#999';
-          return (
-            <div key={label} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            }}>
-              <Icon size={22} color={color} fill={active ? '#6D4CFF' : 'none'} />
-              <span style={{ fontSize: 11, color, fontWeight: active ? 700 : 400 }}>{label}</span>
-            </div>
-          );
-        })}
-      </nav>
+      {/* (하단 탭바 제거 — 홈 외 4개 탭이 목적지 없는 죽은 컨트롤이라 삭제. 기능 생기면 재도입) */}
 
     </div>
   );

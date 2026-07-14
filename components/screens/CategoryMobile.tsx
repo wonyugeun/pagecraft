@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   Sparkles, Package, Shirt, Sofa, Smartphone, Dog,
   Volleyball, Baby, Car, Dumbbell, Gift, Search,
-  Zap, ChevronDown, MessageCircle, MoreHorizontal,
+  Zap, MessageCircle, MoreHorizontal,
   ArrowRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -113,15 +113,6 @@ export default function CategoryMobile() {
             padding: '6px 10px', fontSize: 12, fontWeight: 700, color: '#111',
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
-          </div>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 2,
-            background: '#6D4CFF', color: '#fff',
-            border: 'none', borderRadius: 999,
-            width: 36, height: 36,
-            justifyContent: 'center',
-          }}>
-            <ChevronDown size={12} color="#fff" />
           </div>
         </div>
       </header>

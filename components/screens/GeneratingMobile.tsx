@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Menu, Zap, Sparkles, ArrowLeft,
+  Zap, Sparkles, ArrowLeft,
 } from 'lucide-react';
 import { useApp, Section } from '@/store/AppContext';
 import {
@@ -321,7 +321,6 @@ export default function GeneratingMobile() {
           }}>
             <Zap size={12} color="#F59E0B" fill="#F59E0B" /> {credits}
           </div>
-          <Menu size={24} color="#111" />
         </div>
       </header>
 
