@@ -383,7 +383,13 @@ export default function QuickScreen() {
         base64s = await Promise.all(images.slice(0, 3).map(img => toBase64(img.url)));
       }
 
-      const prompt = `${section!.imageDesc}. 텍스트 오버레이: "${section!.headline.replace(/\n/g, ' ')}"`;
+      // ★출력형태 반영(일반 생성과 동일 분기, ResultScreen: effectiveOut==='blog' ? imageDesc : baked)
+      //   blog=텍스트와 이미지 분리(오버레이 금지) · slide/html=이미지에 헤드라인 baked.
+      //   블로그형 토글을 골라도 헤드라인이 이미지에 baked되던 버그 수정.
+      const bakeText = outType !== 'blog';
+      const prompt = bakeText
+        ? `${section!.imageDesc}. 텍스트 오버레이: "${section!.headline.replace(/\n/g, ' ')}"`
+        : section!.imageDesc;
 
       const res = await fetch('/api/generate-image', {
         method: 'POST',
@@ -391,6 +397,7 @@ export default function QuickScreen() {
         body: JSON.stringify({
           prompt,
           sectionNum: selectedSection.num,
+          outputType: outType,   // ★blog면 서버 TEXT_RULES가 이미지 내 텍스트 렌더 억제(오버레이 금지)
           aspectRatio: aspectRatioFor(selectedSection.name, undefined, outType),   // ★out 전달 — 슬라이드 상품 4:5 강제(일반 생성과 동일)
           jobKey: jobKeyRef.current,   // ★결제된 키 — verifyPaidJob + img quota(img:{jobKey}) 통과
           ...(base64s.length > 0 ? { productImages: base64s } : {}),
@@ -508,7 +515,7 @@ export default function QuickScreen() {
                   </div>
 
                   <div className="q-fg">
-                    <div className="q-label">판매 채널 <span className="q-opt">선택</span></div>
+                    <div className="q-label">판매 채널 <span className="q-opt" style={{ color: '#6D4CFF', fontWeight: 700 }}>필수</span></div>
                     <div className="q-chips">
                       {CH_CHIPS.map(c => (
                         <button key={c} className={`q-chip${ch === c ? ' on' : ''}`} onClick={() => setCh(p => p === c ? '' : c)}>{c}</button>
@@ -610,11 +617,11 @@ export default function QuickScreen() {
             <div className="q-cta-inner">
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>선택한 섹션 {selectedSectionId ? 1 : 0}개 · 예상 차감 {estCost}크레딧</div>
-                <div style={{ fontSize: 12, color: '#8B8B99', marginTop: 2 }}>{selectedSectionId ? '다음 단계에서 세부 정보를 입력해요.' : '섹션을 선택하면 다음 단계로 진행할 수 있어요.'}</div>
+                <div style={{ fontSize: 12, color: '#8B8B99', marginTop: 2 }}>{!selectedSectionId ? '섹션을 선택하면 다음 단계로 진행할 수 있어요.' : !ch ? '판매 채널을 선택해주세요.' : '다음 단계에서 세부 정보를 입력해요.'}</div>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button className="q-cta-back" onClick={() => go('s-dash')}>← 뒤로</button>
-                <button className="q-cta-next" disabled={!selectedSectionId} onClick={() => { if (selectedSectionId) goToStep2(); }}>다음 →</button>
+                <button className="q-cta-next" disabled={!selectedSectionId || !ch} onClick={() => { if (selectedSectionId && ch) goToStep2(); }}>다음 →</button>
               </div>
             </div>
           </div>
@@ -666,18 +673,12 @@ export default function QuickScreen() {
             <button className="btn-back" onClick={handleBack}>← 이전</button>
             <button
               className="btn-next"
-              disabled={genStatus === 'text' || genStatus === 'image' || !ch}
+              disabled={genStatus === 'text' || genStatus === 'image'}
               onClick={handleGenerate}
-              title={!ch ? '채널을 선택해주세요' : undefined}
             >
               ✦ {selectedSection.name} 생성하기
             </button>
           </div>
-          {!ch && genStatus === 'idle' && (
-            <div style={{ fontSize: 12, color: '#b45309', textAlign: 'right', marginTop: -12, marginBottom: 8 }}>
-              💡 1단계로 돌아가 채널을 선택해주세요
-            </div>
-          )}
 
           {/* Result area */}
           {genStatus === 'idle' && (

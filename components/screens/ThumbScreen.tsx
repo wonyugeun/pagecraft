@@ -384,7 +384,9 @@ export default function ThumbScreen() {
             type: '썸네일',
             out: 'blog',
             secCnt: 1,
-            sections: [{ num: secNum, name: secName, headline: '', body: '', imageLabel: '', imageDesc: '' }],
+            // ★imageDesc 비우면 ResultScreen blog 경로(BlogSection)의 이미지 슬롯 게이트(sec.imageDesc)에 걸려 복원 시 백지.
+            //   secName으로 채워 복원 시 이미지가 뜨게(이미 IndexedDB에 영속돼 재생성·재과금 없음).
+            sections: [{ num: secNum, name: secName, headline: '', body: '', imageLabel: '', imageDesc: secName }],
             jobKey: jobKeyRef.current,
           });
           await updateLatestHistoryImages({ [secNum]: finalUrl });
