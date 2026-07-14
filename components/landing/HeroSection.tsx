@@ -32,7 +32,7 @@ export default function HeroSection() {
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             background: '#EDE8FF', border: '1px solid #D9D2FF',
             borderRadius: '100px', padding: '8px 16px',
-            fontSize: '13px', fontWeight: 600, color: '#6E5BFB',
+            fontSize: '13px', fontWeight: 600, color: '#6D4CFF',
             marginBottom: '32px',
           }}>
             <span>✨</span>
@@ -49,7 +49,7 @@ export default function HeroSection() {
             marginBottom: '24px',
           }}>
             AI가 만드는<br />
-            상세페이지, <span style={{ color: '#6E5BFB' }}>몇 분</span> 만에
+            상세페이지, <span style={{ color: '#6D4CFF' }}>몇 분</span> 만에
           </h1>
 
           {/* 부제 */}
@@ -70,12 +70,12 @@ export default function HeroSection() {
               onMouseEnter={() => setHoverCta(true)}
               onMouseLeave={() => setHoverCta(false)}
               style={{
-                background: hoverCta ? '#5447D9' : '#6E5BFB',
+                background: hoverCta ? '#5447D9' : '#6D4CFF',
                 border: 'none', borderRadius: '10px',
                 padding: '14px 28px', fontSize: '15px', fontWeight: 700,
                 color: '#fff', cursor: 'pointer', transition: 'all 150ms',
                 fontFamily: 'inherit',
-                boxShadow: '0 4px 16px rgba(110,91,251,0.32)',
+                boxShadow: '0 4px 16px rgba(109,76,255,0.32)',
                 transform: hoverCta ? 'translateY(-1px)' : 'none',
                 whiteSpace: 'nowrap',
               }}
@@ -89,7 +89,7 @@ export default function HeroSection() {
             {META_ITEMS.map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{
-                  width: '6px', height: '6px', background: '#6E5BFB',
+                  width: '6px', height: '6px', background: '#6D4CFF',
                   borderRadius: '50%', display: 'inline-block', flexShrink: 0,
                 }} />
                 <span style={{ fontSize: '13px', color: '#8B95A1' }}>{item}</span>

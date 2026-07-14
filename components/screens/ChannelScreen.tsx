@@ -126,7 +126,7 @@ export default function ChannelScreen() {
           <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
             <div style={{
               width: '64px', height: '64px', borderRadius: '50%',
-              background: 'conic-gradient(#7C3AED 0deg 190deg, #A78BFA 190deg 270deg, #DDD6FE 270deg 360deg)',
+              background: 'conic-gradient(#6D4CFF 0deg 190deg, #A78BFA 190deg 270deg, #DDD6FE 270deg 360deg)',
             }} />
             <div style={{
               position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',

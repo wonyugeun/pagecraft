@@ -6,7 +6,7 @@ import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset } from '@/lib/testPresets';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_OPTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
-import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, RefreshCw, X, Check, Star } from 'lucide-react';
+import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
    타입 정의
@@ -593,7 +593,7 @@ function ChipGroup({ opts, multi, value, onChange }: {
         <div
           key={cv}
           className="chip on"
-          style={{ borderColor: '#7c3aed', color: '#7c3aed', background: '#ede9fe', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+          style={{ borderColor: '#6D4CFF', color: '#6D4CFF', background: '#ede9fe', display: 'inline-flex', alignItems: 'center', gap: 3 }}
         >
           {cv}
           <span
@@ -609,7 +609,7 @@ function ChipGroup({ opts, multi, value, onChange }: {
       {!inputOpen && canAddCustom && (
         <div
           className="chip"
-          style={{ borderStyle: 'dashed', borderColor: '#a78bfa', color: '#7c3aed' }}
+          style={{ borderStyle: 'dashed', borderColor: '#a78bfa', color: '#6D4CFF' }}
           onClick={() => { setInputOpen(true); setTimeout(() => inputRef.current?.focus(), 30); }}
         >
           + 기타
@@ -638,7 +638,7 @@ function ChipGroup({ opts, multi, value, onChange }: {
           />
           <span
             onClick={submit}
-            style={{ fontSize: 11, padding: '4px 9px', background: '#ede9fe', color: '#7c3aed', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}
+            style={{ fontSize: 11, padding: '4px 9px', background: '#ede9fe', color: '#6D4CFF', borderRadius: 20, cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none' }}
           >확인</span>
           <span
             onClick={() => { setInputOpen(false); setInputVal(''); }}
@@ -812,12 +812,12 @@ const SLIDE_CONF: Record<string, { accent: string; tagline: string; sub: string;
   식품:     { accent: '#F59E0B', tagline: 'FRESH FOOD',   sub: '신선함을 그대로 식탁까지',     badge: '산지직송 · 신선 보장',         feats: [{ t: '신선함', d: '산지직송 새벽배송' }, { t: '엄선 원산지', d: '믿을 수 있는 원료' }, { t: '안심 먹거리', d: '인증·안전 관리' }] },
   패션:     { accent: '#6366F1', tagline: 'DAILY LOOK',   sub: '어디에나 잘 어울리는 데일리 핏', badge: '편안한 핏 & 좋은 소재',        feats: [{ t: '좋은 소재', d: '편안한 착용감' }, { t: '데일리 핏', d: '어디에나 잘 어울림' }, { t: '사이즈 가이드', d: '실측 치수 제공' }] },
   생활:     { accent: '#10B981', tagline: 'HOME LIVING',  sub: '공간을 바꾸는 작은 디테일',     badge: '좋은 품질 & 공간 활용',        feats: [{ t: '좋은 품질', d: '오래 쓰는 내구성' }, { t: '공간 활용', d: '어디든 잘 어울림' }, { t: '설치 간편', d: '누구나 쉽게' }] },
-  가전:     { accent: '#3B82F6', tagline: 'SMART LIFE',   sub: '더 똑똑하고 편리한 일상',       badge: '강력한 성능 & 안전 인증',      feats: [{ t: '핵심 성능', d: '강력한 기능' }, { t: '안전 인증', d: '믿을 수 있는 품질' }, { t: 'A/S 보증', d: '오래 안심' }] },
+  가전:     { accent: '#6D4CFF', tagline: 'SMART LIFE',   sub: '더 똑똑하고 편리한 일상',       badge: '강력한 성능 & 안전 인증',      feats: [{ t: '핵심 성능', d: '강력한 기능' }, { t: '안전 인증', d: '믿을 수 있는 품질' }, { t: 'A/S 보증', d: '오래 안심' }] },
   반려동물: { accent: '#CA8A04', tagline: 'FOR MY PET',   sub: '우리 아이를 위한 건강한 선택',   badge: '안전 원료 & 영양 균형',        feats: [{ t: '안전 원료', d: '우리 아이 안심' }, { t: '영양 균형', d: '건강한 한 끼' }, { t: '전문가 신뢰', d: '수의사 추천' }] },
   스포츠:   { accent: '#F97316', tagline: 'PERFORMANCE',  sub: '퍼포먼스를 한 단계 끌어올리다',  badge: '기능성 소재 & 편안한 착용',    feats: [{ t: '기능성 소재', d: '땀 걱정 끝' }, { t: '편안한 착용', d: '자유로운 움직임' }, { t: '가벼움', d: '부담 없는 무게' }] },
   유아:     { accent: '#8B5CF6', tagline: 'FOR BABY',     sub: '안심하고 쓰는 우리 아이 제품',   badge: '안전 인증 & 순한 소재',        feats: [{ t: '안전 인증', d: '까다로운 기준' }, { t: '순한 소재', d: '아이 피부 안심' }, { t: '발달 도움', d: '성장 단계 맞춤' }] },
   건강:     { accent: '#EF4444', tagline: 'HEALTH CARE',  sub: '매일의 건강을 꾸준히 챙기다',   badge: '검증 성분 & 임상 근거',        feats: [{ t: '검증 성분', d: '믿을 수 있는 함량' }, { t: '임상·인증', d: '과학적 근거' }, { t: '간편 섭취', d: '매일 꾸준히' }] },
-  자동차:   { accent: '#2563EB', tagline: 'CAR LIFE',     sub: '내 차에 딱 맞는 편리함',       badge: '차종 호환 & 간편 설치',        feats: [{ t: '차종 호환', d: '내 차에 딱' }, { t: '간편 설치', d: '누구나 쉽게' }, { t: '내구성', d: '오래 쓰는 품질' }] },
+  자동차:   { accent: '#6D4CFF', tagline: 'CAR LIFE',     sub: '내 차에 딱 맞는 편리함',       badge: '차종 호환 & 간편 설치',        feats: [{ t: '차종 호환', d: '내 차에 딱' }, { t: '간편 설치', d: '누구나 쉽게' }, { t: '내구성', d: '오래 쓰는 품질' }] },
   기타:     { accent: '#6D4CFF', tagline: 'PRODUCT',      sub: '당신의 상품을 특별하게',       badge: '핵심 강점 & 신뢰 요소',        feats: [{ t: '핵심 강점', d: '돋보이는 장점' }, { t: '신뢰 요소', d: '안심하고 구매' }, { t: '합리적 가치', d: '만족스러운 선택' }] },
 };
 
@@ -1707,16 +1707,8 @@ export default function ProductScreen() {
             borderBottom: '1px solid #F3F4F6',
             background: '#F7F5FF',
           }}>
+            {/* 미리보기는 입력 즉시 반영(실시간)이라 새로고침 불필요 — 빈 핸들러 버튼 제거 */}
             <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>✦ 실시간 미리보기</span>
-            <button
-              onClick={() => {}}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                color: '#9CA3AF', display: 'flex', alignItems: 'center',
-              }}
-            >
-              <RefreshCw size={14} />
-            </button>
           </div>
 
           {/* Tabs */}
@@ -1774,7 +1766,7 @@ export default function ProductScreen() {
               background: '#F7F5FF', borderRadius: 8, padding: '10px 12px', marginBottom: 16,
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#6D4CFF', marginBottom: 4 }}>✦ AI TIP</div>
-              <div style={{ fontSize: 11, color: '#7C3AED', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: '#6D4CFF', lineHeight: 1.6 }}>
                 필수 항목을 모두 채우면 AI가 더 정확한 상세페이지를 만들어드려요. 현재 완성도 {pct}%
               </div>
             </div>

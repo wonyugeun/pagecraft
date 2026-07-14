@@ -14,7 +14,7 @@ export default function CTASection() {
     }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #6E5BFB 0%, #5447D9 100%)',
+          background: 'linear-gradient(135deg, #6D4CFF 0%, #5447D9 100%)',
           borderRadius: '24px',
           padding: '64px 72px',
           display: 'grid',
@@ -75,7 +75,7 @@ export default function CTASection() {
                 background: hovered ? '#F4F2FF' : '#ffffff',
                 border: 'none', borderRadius: '10px',
                 padding: '14px 32px', fontSize: '15px', fontWeight: 700,
-                color: '#6E5BFB', cursor: 'pointer', transition: 'all 150ms',
+                color: '#6D4CFF', cursor: 'pointer', transition: 'all 150ms',
                 fontFamily: 'inherit', whiteSpace: 'nowrap',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                 transform: hovered ? 'translateY(-1px)' : 'none',

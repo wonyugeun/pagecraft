@@ -28,7 +28,7 @@ const CATEGORIES: CategoryItem[] = [
   { id: '반려동물', name: '반려동물', desc: '사료 · 간식 · 용품',          Icon: Dog,        bg: '#FFFBEA', color: '#EAB308' },
   { id: '스포츠',   name: '스포츠',   desc: '운동용품 · 아웃도어',        Icon: Volleyball, bg: '#EAF3DE', color: '#639922' },
   { id: '유아',     name: '유아',     desc: '유아용품 · 임산부',           Icon: Baby,       bg: '#EEEDFE', color: '#7F77DD' },
-  { id: '자동차',   name: '자동차',   desc: '차량용품 · 튜닝',             Icon: Car,        bg: '#DBEAFE', color: '#185FA5' },
+  { id: '자동차',   name: '자동차',   desc: '차량용품 · 튜닝',             Icon: Car,        bg: '#E6F1FB', color: '#185FA5' },
   { id: '건강',     name: '건강',     desc: '건강용품 · 의료기기',        Icon: Dumbbell,   bg: '#FCEBEB', color: '#E24B4A' },
 ];
 

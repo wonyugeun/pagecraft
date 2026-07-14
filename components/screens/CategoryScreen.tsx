@@ -18,7 +18,7 @@ const CATEGORIES = [
   { id: '반려동물', name: '반려동물', desc: '사료·간식·용품',          icon: Dog,        bgColor: '#FFFBEA', bgColorDark: '#FFF3B8', iconColor: '#EAB308' },
   { id: '스포츠',   name: '스포츠',   desc: '운동용품·아웃도어',      icon: Volleyball, bgColor: '#EAF3DE', bgColorDark: '#D0E5B8', iconColor: '#639922' },
   { id: '유아',     name: '유아',     desc: '유아용품·임산부',        icon: Baby,       bgColor: '#EEEDFE', bgColorDark: '#D8D5F5', iconColor: '#7F77DD' },
-  { id: '자동차',   name: '자동차',   desc: '차량용품·튜닝',          icon: Car,        bgColor: '#DBEAFE', bgColorDark: '#B8D4F5', iconColor: '#185FA5' },
+  { id: '자동차',   name: '자동차',   desc: '차량용품·튜닝',          icon: Car,        bgColor: '#E6F1FB', bgColorDark: '#B8D4F5', iconColor: '#185FA5' },
   { id: '건강',     name: '건강',     desc: '건강용품·의료기기',      icon: Dumbbell,   bgColor: '#FCEBEB', bgColorDark: '#FAD0D0', iconColor: '#E24B4A' },
   { id: '기타',     name: '기타',     desc: '그 외 카테고리',         icon: Gift,       bgColor: '#F1EFE8', bgColorDark: '#DDD9D0', iconColor: '#888780' },
 ];

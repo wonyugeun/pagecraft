@@ -24,7 +24,7 @@ function AnalyzeBtn({ loading, disabled, onClick, label = '🔍 분석하기' }:
   return (
     <button className="ref-analyze" onClick={onClick} disabled={loading || disabled} style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
       {loading
-        ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />분석 중...</>
+        ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 6, verticalAlign: 'middle' }} />분석 중...</>
         : label}
     </button>
   );
@@ -141,7 +141,7 @@ function SectionCrop({ src, yStart, yEnd }: { src: string; yStart: number; yEnd:
 
 /* ─── 섹션 타입 배지 색상 ─── */
 const TYPE_COLOR: Record<string, { bg: string; color: string }> = {
-  히어로:     { bg: '#ede9fe', color: '#7c3aed' },
+  히어로:     { bg: '#ede9fe', color: '#6D4CFF' },
   공감:       { bg: '#dbeafe', color: '#1d4ed8' },
   USP:        { bg: '#d1fae5', color: '#065f46' },
   사용법:     { bg: '#fef3c7', color: '#92400e' },
@@ -251,7 +251,7 @@ function CaptureProgress({ stage, chunkLabel }: { stage: CaptureStage; chunkLabe
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0 24px', gap: 20 }}>
-      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #e9d5ff', borderTopColor: '#7c3aed', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #e9d5ff', borderTopColor: '#6D4CFF', animation: 'spin 0.8s linear infinite' }} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 280 }}>
         {steps.map((s, i) => {
           const isDone = i < activeIdx;
@@ -262,7 +262,7 @@ function CaptureProgress({ stage, chunkLabel }: { stage: CaptureStage; chunkLabe
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 background: isDone ? '#d1fae5' : isActive ? '#ede9fe' : '#f3f4f6',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
-                border: isActive ? '2px solid #7c3aed' : 'none',
+                border: isActive ? '2px solid #6D4CFF' : 'none',
               }}>
                 {isDone ? '✓' : s.icon}
               </div>
@@ -875,10 +875,10 @@ export default function ReferenceScreen() {
                 </div>
 
                 {/* 안내 */}
-                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', lineHeight: 1.7, marginBottom: 14 }}>
+                <div style={{ background: '#F4F0FF', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', lineHeight: 1.7, marginBottom: 14 }}>
                   💡 <b>자사몰·해외몰</b>은 URL로 바로 분석 가능해요.{' '}
                   <b>스마트스토어·쿠팡·올리브영</b>은 봇 차단으로 크롤링이 제한됩니다 —{' '}
-                  <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>파일 업로드</button>를 이용해주세요.
+                  <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#6D4CFF', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', fontSize: 12, textDecoration: 'underline', padding: 0 }}>파일 업로드</button>를 이용해주세요.
                 </div>
 
                 {error && (

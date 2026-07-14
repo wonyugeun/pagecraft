@@ -44,7 +44,7 @@ export default function LandingNav() {
             key={l.href}
             href={l.href}
             style={{ fontSize: '14px', color: '#4E5968', textDecoration: 'none', fontWeight: 500, transition: 'color 150ms' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
+            onMouseEnter={e => (e.currentTarget.style.color = '#6D4CFF')}
             onMouseLeave={e => (e.currentTarget.style.color = '#4E5968')}
           >
             {l.label}
@@ -75,12 +75,12 @@ export default function LandingNav() {
           onMouseEnter={() => setHoverCta(true)}
           onMouseLeave={() => setHoverCta(false)}
           style={{
-            background: hoverCta ? '#5447D9' : '#6E5BFB',
+            background: hoverCta ? '#5447D9' : '#6D4CFF',
             border: 'none', borderRadius: '8px',
             padding: '8px 20px', fontSize: '14px', fontWeight: 600,
             color: '#fff', cursor: 'pointer', transition: 'background 150ms',
             fontFamily: 'inherit',
-            boxShadow: '0 2px 8px rgba(110,91,251,0.25)',
+            boxShadow: '0 2px 8px rgba(109,76,255,0.25)',
           }}
         >
           무료로 시작하기
@@ -123,7 +123,7 @@ export default function LandingNav() {
           <button
             onClick={() => { setMobileOpen(false); router.push('/login'); }}
             style={{
-              background: '#6E5BFB', border: 'none', borderRadius: '8px',
+              background: '#6D4CFF', border: 'none', borderRadius: '8px',
               padding: '12px', fontSize: '15px', fontWeight: 600,
               color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
             }}

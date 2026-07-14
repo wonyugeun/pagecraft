@@ -303,13 +303,13 @@ export default function ReferenceMobile() {
               </div>
               <div style={{
                 marginTop: 12,
-                background: '#eff6ff', border: '1px solid #bfdbfe',
+                background: '#F4F0FF', border: '1px solid #bfdbfe',
                 borderRadius: 10, padding: '10px 12px',
                 fontSize: 11.5, color: '#1e40af', lineHeight: 1.6,
               }}>
                 💡 <b>자사몰·해외몰</b>은 URL로 바로 분석 가능해요.{' '}
                 <b>스마트스토어·쿠팡·올리브영</b>은 봇 차단으로 크롤링이 제한됩니다 —{' '}
-                <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, textDecoration: 'underline', padding: 0 }}>파일 업로드</button>를 이용해주세요.
+                <button onClick={() => switchTab('capture')} style={{ fontWeight: 700, color: '#6D4CFF', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, textDecoration: 'underline', padding: 0 }}>파일 업로드</button>를 이용해주세요.
               </div>
               {error && (
                 <>

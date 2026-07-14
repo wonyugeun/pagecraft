@@ -33,7 +33,7 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
   if (cat?.includes('화장품') || cat?.includes('미용')) return { bg: '#FDF2F8', emoji: '🧴' };
   if (cat?.includes('식품') || cat?.includes('음식')) return { bg: '#FEF3C7', emoji: '🍲' };
   if (cat?.includes('가구') || cat?.includes('인테리어')) return { bg: '#F0FDF4', emoji: '🪑' };
-  if (cat?.includes('디지털') || cat?.includes('가전')) return { bg: '#EFF6FF', emoji: '📱' };
+  if (cat?.includes('디지털') || cat?.includes('가전')) return { bg: '#F4F0FF', emoji: '📱' };
   if (cat?.includes('패션') || cat?.includes('잡화')) return { bg: '#FAF5FF', emoji: '👗' };
   return { bg: '#F4F0FF', emoji: '📄' };
 }

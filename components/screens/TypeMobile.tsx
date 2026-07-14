@@ -3,7 +3,7 @@
 import {
   Sparkles, FileText, Check, ChevronDown, Lightbulb,
   ArrowLeft, ArrowRight, MoreHorizontal,
-  Zap, Clock, BarChart3, TrendingUp, Star,
+  Zap, Clock, BarChart3, TrendingUp, Star, StarHalf,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import { baseSectionCount } from '@/lib/sectionDepth';
@@ -61,16 +61,14 @@ function PowerRow({ icon, label, basicLevel, premiumLevel }: {
 function StarRow({ icon, label, basicStars, premiumStars }: {
   icon: React.ReactNode; label: string; basicStars: number; premiumStars: number;
 }) {
+  // ★반개 별점 — 이전 fill={`url(#half-${color})`}는 존재하지 않는 SVG defs를 참조해 렌더 실패.
+  //   lucide StarHalf(좌측 반 채움)로 교체해 실제 반개가 그려지게.
   const render = (n: number, color: string) =>
     Array.from({ length: 5 }).map((_, i) => {
       const full = i < Math.floor(n);
       const half = !full && i < n;
-      return (
-        <Star key={i} size={14}
-          color={full || half ? color : '#E5E5EC'}
-          fill={full ? color : half ? `url(#half-${color})` : '#E5E5EC'}
-        />
-      );
+      if (half) return <StarHalf key={i} size={14} color={color} fill={color} />;
+      return <Star key={i} size={14} color={full ? color : '#E5E5EC'} fill={full ? color : '#E5E5EC'} />;
     });
   return (
     <div style={{

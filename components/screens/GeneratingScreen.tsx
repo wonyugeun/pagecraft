@@ -383,7 +383,7 @@ export default function GeneratingScreen() {
     return (
       <div className="gen-shell">
         <div style={{ fontSize: 44, marginBottom: 16 }}>⚡</div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#7c3aed', marginBottom: 10 }}>크레딧이 부족해요</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#6D4CFF', marginBottom: 10 }}>크레딧이 부족해요</div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 8, textAlign: 'center' }}>
           현재 잔액 <b style={{ color: '#dc2626' }}>{credits} 크레딧</b>
         </div>

@@ -431,7 +431,7 @@ export default function ResultMobile() {
           if (!(node instanceof Element)) return true;
           const c = (node as HTMLElement).className;
           const cls = typeof c === 'string' ? c : '';
-          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel'));
+          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel') || cls.includes('img-slot-empty'));
         },
       };
       const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');

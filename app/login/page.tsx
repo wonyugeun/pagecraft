@@ -36,7 +36,7 @@ export default function LoginPage() {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <div style={{
-              width: '36px', height: '36px', background: '#6E5BFB',
+              width: '36px', height: '36px', background: '#6D4CFF',
               borderRadius: '9px', display: 'flex', alignItems: 'center',
               justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff',
             }}>
@@ -142,9 +142,9 @@ export default function LoginPage() {
           textAlign: 'center', lineHeight: 1.6,
         }}>
           로그인 시{' '}
-          <Link href="/terms" style={{ color: '#6E5BFB', textDecoration: 'none' }}>이용약관</Link>
+          <Link href="/terms" style={{ color: '#6D4CFF', textDecoration: 'none' }}>이용약관</Link>
           {' '}및{' '}
-          <Link href="/privacy" style={{ color: '#6E5BFB', textDecoration: 'none' }}>개인정보처리방침</Link>
+          <Link href="/privacy" style={{ color: '#6D4CFF', textDecoration: 'none' }}>개인정보처리방침</Link>
           에 동의하게 됩니다
         </p>
       </div>

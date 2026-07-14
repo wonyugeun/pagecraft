@@ -19,7 +19,7 @@ export default function ComingSoonPage({ title, description, emoji = '🚀' }: P
         <div style={{ fontSize: '64px', marginBottom: '24px', lineHeight: 1 }}>{emoji}</div>
         <div style={{
           display: 'inline-block',
-          background: '#F4F2FF', color: '#6E5BFB',
+          background: '#F4F2FF', color: '#6D4CFF',
           fontSize: '12px', fontWeight: 700,
           padding: '5px 14px', borderRadius: '100px',
           marginBottom: '20px', letterSpacing: '0.05em',

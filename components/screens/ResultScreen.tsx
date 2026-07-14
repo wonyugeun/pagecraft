@@ -589,20 +589,21 @@ function ImgSlot({
 
   return (
     <div
+      className="img-slot-empty"   /* ★미생성/실패/생성중 슬롯 — export 캡처에서 제외(셀러 결과물에 빈 슬롯 안 들어가게) */
       onClick={loading ? undefined : onGenerate}
       style={{ ...slotStyle, cursor: loading ? 'default' : 'pointer', transition: 'background .15s' }}
       title={loading ? '생성 중...' : '클릭하면 AI 이미지 재생성'}
     >
       {loading ? (
         <>
-          <div style={{ width: 32, height: 32, border: '3px solid #cbd5e1', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 32, height: 32, border: '3px solid #cbd5e1', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           <div style={{ fontSize: 12, color: labelColor, marginTop: 6 }}>이미지 생성 중...</div>
         </>
       ) : (
         <>
           <div style={{ fontSize: 28 }}>📸</div>
           <div style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>{sec.imageLabel}</div>
-          {!error && <div style={{ marginTop: 8, fontSize: 11, padding: '4px 12px', background: genBg, color: '#3b82f6', borderRadius: 20, fontWeight: 600 }}>✦ 클릭하여 재생성</div>}
+          {!error && <div style={{ marginTop: 8, fontSize: 11, padding: '4px 12px', background: genBg, color: '#6D4CFF', borderRadius: 20, fontWeight: 600 }}>✦ 클릭하여 재생성</div>}
           {error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4, padding: '0 12px', textAlign: 'center', lineHeight: 1.5 }}>{imgState.errorMsg ?? '생성 실패 — 클릭하여 재시도'}</div>}
         </>
       )}
@@ -744,7 +745,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
         {/* ── 재생성 버튼 — 텍스트는 전부 인라인 편집(클릭)이라 '수정' 패널/버튼 없음. bs-actions = 통이미지 캡처 시 제외 ── */}
         <div className="bs-actions" style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
           <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-            {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
+            {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
           </button>
         </div>
       </div>
@@ -778,13 +779,13 @@ export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLi
   return (
     <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
       <div style={{ padding: '10px 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#6D4CFF', background: '#ede9fe', padding: '2px 8px', borderRadius: 20 }}>{sec.num}</span>
         <span style={{ fontSize: 12, color: '#888' }}>{sec.name}</span>
       </div>
       <ImgSlot
         sec={sec} imgState={imgState} onGenerate={onGenerateImage}
         slotStyle={{ height: 240, background: index % 2 === 0 ? '#f5f3ff' : '#faf5ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, margin: '10px 0 0' }}
-        labelColor="#7c3aed" descColor="#a78bfa" genBg="#ede9fe"
+        labelColor="#6D4CFF" descColor="#a78bfa" genBg="#ede9fe"
         onLightbox={onLightbox}
       />
       <div style={{ padding: '16px 20px 14px' }}>
@@ -793,7 +794,7 @@ export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLi
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="bs-edit-btn" onClick={() => setEditOpen(p => !p)}>{editOpen ? '닫기' : '✏️ 수정'}</button>
           <button className="bs-regen-btn" onClick={handleRegen} disabled={regenLoading}>
-            {regenLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a78bfa', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 5, verticalAlign: 'middle' }} />생성 중...</> : '✦ 재생성'}
+            {regenLoading ? <><span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid #a78bfa', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 5, verticalAlign: 'middle' }} />생성 중...</> : '✦ 재생성'}
           </button>
         </div>
         {editOpen && (
@@ -819,9 +820,9 @@ export function ImageSection({ sec, imgState, onGenerateImage, index, accent, on
   accent: 'purple' | 'blue';
   onLightbox?: () => void;
 }) {
-  const accentColor = accent === 'purple' ? '#7c3aed' : '#2563eb';
-  const accentBg = accent === 'purple' ? '#ede9fe' : '#eff6ff';
-  const slotBg = accent === 'purple' ? (index % 2 === 0 ? '#f5f3ff' : '#faf5ff') : '#f0f6ff';
+  const accentColor = accent === 'purple' ? '#6D4CFF' : '#6D4CFF';
+  const accentBg = accent === 'purple' ? '#ede9fe' : '#F4F0FF';
+  const slotBg = accent === 'purple' ? (index % 2 === 0 ? '#f5f3ff' : '#faf5ff') : '#F4F0FF';
 
   return (
     <div style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', marginBottom: 12, boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
@@ -833,7 +834,7 @@ export function ImageSection({ sec, imgState, onGenerateImage, index, accent, on
         <ImgSlot
           sec={sec} imgState={imgState} onGenerate={onGenerateImage}
           slotStyle={{ height: 240, background: slotBg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-          labelColor={accentColor} descColor={accent === 'purple' ? '#a78bfa' : '#93c5fd'} genBg={accentBg}
+          labelColor={accentColor} descColor={accent === 'purple' ? '#a78bfa' : '#C4B5FD'} genBg={accentBg}
           onLightbox={onLightbox}
         />
       </div>
@@ -1021,7 +1022,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 
   return (
     <div>
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', marginBottom: 20, lineHeight: 1.7 }}>
+      <div style={{ background: '#F4F0FF', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1e40af', marginBottom: 20, lineHeight: 1.7 }}>
         📐 <b>{ch ?? '기본'} 권장 규격:</b> {size}px &nbsp;·&nbsp; 썸네일은 다운로드 전용이며 상세페이지에 추가되지 않아요
       </div>
 
@@ -1546,7 +1547,7 @@ export default function ResultScreen() {
           if (!(node instanceof Element)) return true;
           const c = (node as HTMLElement).className;
           const cls = typeof c === 'string' ? c : '';
-          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel'));
+          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel') || cls.includes('img-slot-empty'));
         },
       };
 
@@ -1703,7 +1704,7 @@ export default function ResultScreen() {
                   background: 'transparent', border: 'none',
                   borderBottom: t.active ? '2px solid #6D4CFF' : '2px solid transparent',
                   color: t.active ? '#6D4CFF' : '#999',
-                  cursor: t.active ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                  cursor: 'default', fontFamily: 'var(--f)',   // ★전부 disabled(출력형태 표시용 read-only)이므로 비활성에도 pointer 금지
                 }}
                 disabled
               >
@@ -1808,13 +1809,13 @@ export default function ResultScreen() {
             >
               {isGenerating && (
                 <div style={{
-                  background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8,
+                  background: '#F4F0FF', border: '1px solid #bfdbfe', borderRadius: 8,
                   padding: '10px 16px', fontSize: 12, color: '#1d4ed8',
                   marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                   <span style={{
                     display: 'inline-block', width: 14, height: 14,
-                    border: '2px solid #93c5fd', borderTopColor: '#3b82f6', borderRadius: '50%',
+                    border: '2px solid #C4B5FD', borderTopColor: '#6D4CFF', borderRadius: '50%',
                     animation: 'spin 0.8s linear infinite', flexShrink: 0,
                   }} />
                   이미지 자동 생성 중 ({doneCount}/{displaySections.length})

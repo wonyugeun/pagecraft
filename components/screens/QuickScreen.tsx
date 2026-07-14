@@ -8,7 +8,7 @@ import { calculateGenerationCost } from '@/lib/pricing';
 
 interface ImgFile { url: string; }
 
-// ★디자인 통일 — 구 토큰(파랑 #2563eb + 베이지)을 Flik 토큰(#6D4CFF 보라 + 화이트 카드톤)으로 스코프 오버라이드.
+// ★디자인 통일 — 구 토큰(파랑 #6D4CFF + 베이지)을 Flik 토큰(#6D4CFF 보라 + 화이트 카드톤)으로 스코프 오버라이드.
 //   globals.css의 var(--ac/--al/--bd/--sf/--r/--rs)를 루트에서 덮어써 하위 클래스 전체에 적용(전면 재작성 X).
 //   참고: DashboardScreen 카드(테두리 #ECECF2, radius 큼, 화이트).
 const FLIK_TOKENS = {
@@ -698,7 +698,7 @@ export default function QuickScreen() {
                   <div style={{ padding: '16px' }}>
                     {genStatus === 'text' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--tx3)', fontSize: 13 }}>
-                        <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
                         카피 생성 중...
                       </div>
                     )}
@@ -736,7 +736,7 @@ export default function QuickScreen() {
                   <div style={{ padding: '16px' }}>
                     {genStatus === 'image' && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--tx3)', fontSize: 13 }}>
-                        <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #c4b5fd', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+                        <span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
                         이미지 생성 중...
                       </div>
                     )}

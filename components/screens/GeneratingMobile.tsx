@@ -237,7 +237,7 @@ export default function GeneratingMobile() {
         textAlign: 'center',
       }}>
         <div style={{ fontSize: 44, marginBottom: 16 }}>⚡</div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#7c3aed', marginBottom: 10 }}>크레딧이 부족해요</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#6D4CFF', marginBottom: 10 }}>크레딧이 부족해요</div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 24 }}>
           상세페이지 생성에는 {calculateGenerationCost({ sectionCount: secCnt })} 크레딧이 필요해요.<br />
           현재 보유 크레딧: <b>{credits}</b>

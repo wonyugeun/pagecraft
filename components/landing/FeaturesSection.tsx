@@ -44,7 +44,7 @@ export default function FeaturesSection() {
         {/* 헤더 */}
         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
           <div style={{
-            fontSize: '12px', fontWeight: 700, color: '#6E5BFB',
+            fontSize: '12px', fontWeight: 700, color: '#6D4CFF',
             letterSpacing: '0.1em', marginBottom: '14px',
           }}>
             FEATURES
@@ -79,7 +79,7 @@ export default function FeaturesSection() {
                   padding: '28px 24px',
                   border: `1px solid ${isHov ? '#E8E5FF' : '#F0EEF8'}`,
                   boxShadow: isHov
-                    ? '0 8px 32px rgba(110,91,251,0.10)'
+                    ? '0 8px 32px rgba(109,76,255,0.10)'
                     : '0 1px 4px rgba(0,0,0,0.04)',
                   transform: isHov ? 'translateY(-2px)' : 'none',
                   transition: 'all 150ms ease',
@@ -90,7 +90,7 @@ export default function FeaturesSection() {
                 {f.badge && (
                   <div style={{
                     position: 'absolute', top: '16px', right: '16px',
-                    background: '#F4F2FF', color: '#6E5BFB',
+                    background: '#F4F2FF', color: '#6D4CFF',
                     fontSize: '10px', fontWeight: 700,
                     padding: '3px 8px', borderRadius: '100px',
                   }}>
@@ -104,7 +104,7 @@ export default function FeaturesSection() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   marginBottom: '16px',
                 }}>
-                  <Icon size={22} color="#6E5BFB" stroke={1.8} />
+                  <Icon size={22} color="#6D4CFF" stroke={1.8} />
                 </div>
                 <div style={{
                   fontSize: '16px', fontWeight: 700, color: '#191F28',

@@ -46,7 +46,7 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
   if (cat?.includes('화장품') || cat?.includes('미용')) return { bg: '#FDF2F8', emoji: '🧴' };
   if (cat?.includes('식품') || cat?.includes('음식')) return { bg: '#FEF3C7', emoji: '🍲' };
   if (cat?.includes('가구') || cat?.includes('인테리어')) return { bg: '#F0FDF4', emoji: '🪑' };
-  if (cat?.includes('디지털') || cat?.includes('가전')) return { bg: '#EFF6FF', emoji: '📱' };
+  if (cat?.includes('디지털') || cat?.includes('가전')) return { bg: '#F4F0FF', emoji: '📱' };
   if (cat?.includes('패션') || cat?.includes('잡화')) return { bg: '#FAF5FF', emoji: '👗' };
   if (cat?.includes('스포츠') || cat?.includes('아웃도어')) return { bg: '#FFF7ED', emoji: '🏃' };
   if (cat?.includes('반려') || cat?.includes('펫')) return { bg: '#FEF9EE', emoji: '🐾' };
@@ -169,7 +169,7 @@ function RobotIllust() {
       <line x1="40" y1="26" x2="40" y2="36" stroke="#6D4CFF" strokeWidth="2.5" strokeLinecap="round"/>
       <circle cx="40" cy="23" r="4" fill="#A78BFA"/>
       <circle cx="40" cy="23" r="2" fill="#6D4CFF"/>
-      <rect x="16" y="28" width="48" height="12" rx="6" fill="#7C3AED" opacity="0.5"/>
+      <rect x="16" y="28" width="48" height="12" rx="6" fill="#6D4CFF" opacity="0.5"/>
       <rect x="8" y="42" width="10" height="18" rx="5" fill="#6D4CFF" opacity="0.7"/>
       <rect x="62" y="42" width="10" height="18" rx="5" fill="#6D4CFF" opacity="0.7"/>
       <circle cx="65" cy="30" r="2" fill="#A78BFA" opacity="0.8"/>
@@ -590,7 +590,7 @@ export default function DashboardScreen() {
                 {/* CTA 배너 */}
                 <div style={{ padding: '16px 20px', background: '#FAFAFC', borderTop: '1px solid #F4F4F6', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 40, height: 40, background: '#EDE8FF', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Sparkles size={18} color="#7C3AED" />
+                    <Sparkles size={18} color="#6D4CFF" />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#444' }}>아직 작업이 없나요?</div>
@@ -662,7 +662,7 @@ export default function DashboardScreen() {
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>AI 도우미 얼지</div>
-                  <div style={{ fontSize: 11, color: '#7C3AED', fontWeight: 600, marginBottom: 8 }}>더 빠른 작업의 시작</div>
+                  <div style={{ fontSize: 11, color: '#6D4CFF', fontWeight: 600, marginBottom: 8 }}>더 빠른 작업의 시작</div>
                   <p style={{ fontSize: 11, color: '#666', lineHeight: 1.7, marginBottom: 14 }}>
                     AI 도우미에게 작업을 맡겨보세요.<br />원하는 결과물을 대화로 만들어드려요.
                   </p>

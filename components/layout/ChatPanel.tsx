@@ -52,7 +52,7 @@ export default function ChatPanel() {
         <div className="cp-av">✦</div>
         <div>
           <div className="cp-name">Flik AI 도우미</div>
-          <div className="cp-status"><span className="cp-dot" /> 온라인</div>
+          <div className="cp-status"><span className="cp-dot" /> AI 자동응답</div>
         </div>
         <button className="cp-close" onClick={toggleChat}>✕</button>
       </div>

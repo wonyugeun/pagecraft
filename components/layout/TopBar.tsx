@@ -73,7 +73,7 @@ export default function TopBar() {
                 </div>
                 <button
                   className="ud-item"
-                  style={{ paddingTop: 4, paddingBottom: 10, fontSize: 12, color: '#7c3aed' }}
+                  style={{ paddingTop: 4, paddingBottom: 10, fontSize: 12, color: '#6D4CFF' }}
                   onClick={() => { setOpen(false); setCreditModalOpen(true); }}
                 >
                   충전하기 →

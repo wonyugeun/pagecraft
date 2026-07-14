@@ -38,7 +38,7 @@ export default function HowItWorksSection() {
           {/* 좌: 단계 설명 */}
           <div>
             <div style={{
-              fontSize: '12px', fontWeight: 700, color: '#6E5BFB',
+              fontSize: '12px', fontWeight: 700, color: '#6D4CFF',
               letterSpacing: '0.1em', marginBottom: '14px',
             }}>
               HOW IT WORKS
@@ -62,7 +62,7 @@ export default function HowItWorksSection() {
                     width: '40px', height: '40px', flexShrink: 0,
                     background: '#F4F2FF', borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '13px', fontWeight: 800, color: '#6E5BFB',
+                    fontSize: '13px', fontWeight: 800, color: '#6D4CFF',
                   }}>
                     {step.num}
                   </div>

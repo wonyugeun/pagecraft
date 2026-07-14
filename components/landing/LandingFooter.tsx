@@ -12,6 +12,7 @@ const FOOTER_COLS: { title: string; links: { label: string; href: string; extern
   {
     title: '고객 지원',
     links: [
+      { label: '자주 묻는 질문', href: '/faq' },   // 콘텐츠 있는 /faq 라우트 연결(고아 페이지 해소)
       { label: '문의하기', href: `mailto:${CONTACT_EMAIL}`, external: true },
     ],
   },
@@ -70,7 +71,7 @@ export default function LandingFooter() {
                       key={link.href}
                       href={link.href}
                       style={linkStyle}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#6D4CFF')}
                       onMouseLeave={e => (e.currentTarget.style.color = '#8B95A1')}
                     >
                       {link.label}
@@ -80,7 +81,7 @@ export default function LandingFooter() {
                       key={link.href}
                       href={link.href}
                       style={linkStyle}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#6D4CFF')}
                       onMouseLeave={e => (e.currentTarget.style.color = '#8B95A1')}
                     >
                       {link.label}
@@ -137,7 +138,7 @@ export default function LandingFooter() {
                 key={t.href}
                 href={t.href}
                 style={{ fontSize: '12px', color: '#B0B8C1', textDecoration: 'none' }}
-                onMouseEnter={e => (e.currentTarget.style.color = '#6E5BFB')}
+                onMouseEnter={e => (e.currentTarget.style.color = '#6D4CFF')}
                 onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}
               >
                 {t.label}
