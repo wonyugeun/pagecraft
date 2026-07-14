@@ -39,12 +39,13 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
   return { bg: '#F4F0FF', emoji: '📄' };
 }
 
-const PLATFORM_CATS: { name: string; count: string; emoji: string }[] = [
-  { name: '화장품/미용',  count: '12,408개', emoji: '🧴' },
-  { name: '식품',         count: '8,721개',  emoji: '🥗' },
-  { name: '가구/인테리어', count: '6,531개',  emoji: '🪑' },
-  { name: '디지털/가전',  count: '4,982개',  emoji: '📱' },
-  { name: '패션/잡화',    count: '3,652개',  emoji: '👗' },
+// ★근거 없는 생성 수(12,408개 등) 제거 — 카테고리 빠른 시작 예시만.
+const PLATFORM_CATS: { name: string; emoji: string }[] = [
+  { name: '화장품/미용',  emoji: '🧴' },
+  { name: '식품',         emoji: '🥗' },
+  { name: '가구/인테리어', emoji: '🪑' },
+  { name: '디지털/가전',  emoji: '📱' },
+  { name: '패션/잡화',    emoji: '👗' },
 ];
 
 // (SAMPLE_HISTORY 목업 제거 — 신규 유저 가짜 작업 노출 방지. 실제 history만, 0개면 빈 상태 안내 표시)
@@ -388,24 +389,22 @@ export default function DashboardMobile() {
             </button>
           </div>
           <p style={{ margin: '4px 0 14px', fontSize: 11.5, color: '#666' }}>
-            요즘 많이 만드는 카테고리를 확인해보세요.
+            카테고리를 골라 빠르게 시작해보세요.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-            {PLATFORM_CATS.map((c, i) => (
+            {PLATFORM_CATS.map(c => (
               <div key={c.name} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
               }}>
-                <div style={{ fontSize: 10, color: '#999', fontWeight: 600 }}>{i + 1}</div>
                 <div style={{
-                  marginTop: 4, width: 36, height: 36, borderRadius: '50%',
+                  width: 40, height: 40, borderRadius: '50%',
                   background: '#F4F0FF',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 16,
+                  fontSize: 18,
                 }}>{c.emoji}</div>
                 <div style={{ marginTop: 6, fontSize: 10.5, fontWeight: 700, color: '#111' }}>
                   {c.name}
                 </div>
-                <div style={{ marginTop: 2, fontSize: 10, color: '#999' }}>{c.count}</div>
               </div>
             ))}
           </div>

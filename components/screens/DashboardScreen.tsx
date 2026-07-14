@@ -611,7 +611,7 @@ export default function DashboardScreen() {
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', padding: '18px 20px' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>✦ AI 추천 카테고리</div>
               <p style={{ fontSize: 12, color: '#AAA', marginBottom: 14, lineHeight: 1.5 }}>
-                요즘 많이 만드는 카테고리를 확인해보세요.
+                카테고리를 골라 빠르게 시작해보세요.
               </p>
               {PLATFORM_CATS.map((name, i) => (
                 <div key={name} style={{

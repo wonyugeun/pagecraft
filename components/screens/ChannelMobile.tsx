@@ -182,12 +182,13 @@ export default function ChannelMobile() {
             display: 'inline-flex', alignItems: 'center', gap: 4,
             fontSize: 12, fontWeight: 700, color: '#6D4CFF',
           }}>
-            <Sparkles size={12} /> AI 추천
+            <Sparkles size={12} /> 빠른 시작
           </span>
+          {/* ★상품 무관 고정 '가장 적합' 분석 문구 제거 — 근거 없는 주장. 처음 시작 채널 제안으로 중립화. */}
           <div style={{ marginTop: 14, fontSize: 18, fontWeight: 700, color: '#111', lineHeight: 1.4 }}>
-            입력하신 상품은<br />
-            <span style={{ color: '#6D4CFF', fontWeight: 800 }}>스마트스토어</span>에<br />
-            가장 적합해요
+            처음이라면<br />
+            <span style={{ color: '#6D4CFF', fontWeight: 800 }}>스마트스토어</span>부터<br />
+            시작해보세요
           </div>
           <button
             onClick={() => { onPick('스마트스토어'); go('s3'); }}

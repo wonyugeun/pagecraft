@@ -159,19 +159,12 @@ export default function TypeScreen() {
           <div>
             <div style={{ fontSize: '11px', fontWeight: 700, color: '#6D4CFF', marginBottom: '3px', letterSpacing: '0.02em' }}>AI 추천</div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em', marginBottom: '2px' }}>
-              <span style={{ color: '#6D4CFF' }}>프리미엄형</span>이 가장 많이 선택돼요!
+              정보가 풍부한 상품엔 <span style={{ color: '#6D4CFF' }}>프리미엄형</span>을 추천해요
             </div>
             <div style={{ fontSize: '12px', color: '#9B8EC4' }}>섹션 수는 다음 단계에서 AI가 구성해드려요.</div>
           </div>
         </div>
-        <div style={{
-          flexShrink: 0, textAlign: 'center',
-          background: '#fff', border: '1px solid #E4DCFF', borderRadius: '10px',
-          padding: '10px 16px',
-        }}>
-          <div style={{ fontSize: '10px', color: '#9B8EC4', marginBottom: '2px', fontWeight: 600 }}>선택 비율</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#6D4CFF', letterSpacing: '-0.03em' }}>78%</div>
-        </div>
+        {/* 근거 없는 '선택 비율 78%' 통계 제거 — 표시광고 리스크 */}
       </div>
 
       {/* 타입 카드 2열 (모바일 1열) */}
