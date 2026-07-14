@@ -1294,6 +1294,7 @@ export default function ResultScreen() {
             return;
           }
         }
+        persistedKeysRef.current.delete(sec.num);   // ★재생성 결과 재영속 허용 — 이미 저장된 키여도 새 이미지로 갱신되게(안 지우면 persist effect가 skip → 새로고침 시 원본 복귀)
         setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url, error: false, aspectRatio: aspect } }));
       } else {
         // ★402/429 코드 분기(최소 안내) — 코드가 있으면 친화 문구, 없으면 서버 안내문 그대로
@@ -1330,6 +1331,7 @@ export default function ResultScreen() {
       const data = await res.json();
       if (signal.aborted) return;
       if (data.imageBase64) {
+        persistedKeysRef.current.delete(key);   // ★재생성 결과 재영속 허용(위 섹션과 동일)
         setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
       } else {
         setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));

@@ -377,6 +377,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
       };
+      currentHistoryIdRef.current = newItem.id;   // ★이 신규 항목이 이후 updateLatestHistory*의 대상
       // 텍스트 메타만 — 이미지는 IndexedDB로 분리(updateLatestHistoryImages에서 처리)
       const updated = [newItem, ...existing].slice(0, 20);
       try {
@@ -408,7 +409,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       if (existing.length === 0) return Promise.resolve(false);
-      const id = existing[0].id;
+      // ★대상 = 현재 열린 항목(currentHistoryIdRef). 없거나 삭제됐으면 최신([0])로 폴백(기존 동작 호환).
+      const cur = currentHistoryIdRef.current;
+      const id = (cur && existing.some(h => h.id === cur)) ? cur : existing[0].id;
       // 이미지는 IndexedDB로 — 내부 키 단위 깊은 병합(mergeImages)으로 섹션별 '증분 저장' 지원.
       // (얕은 병합 patchImages는 1장씩 저장 시 앞 장을 덮어쓰므로 사용 불가. sectionOverrides 등 top-level은 보존됨.)
       return mergeImages(id, { sectionImages, blockImages }).then(
@@ -431,7 +434,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       if (existing.length === 0) return;
-      const id = existing[0].id;
+      // ★대상 = 현재 열린 항목(currentHistoryIdRef). 없거나 삭제됐으면 최신([0])로 폴백.
+      const cur = currentHistoryIdRef.current;
+      const id = (cur && existing.some(h => h.id === cur)) ? cur : existing[0].id;
       patchImages(id, { sectionOverrides }).catch(e => {
         console.warn('[updateLatestHistoryOverrides] IndexedDB 저장 실패:', e);
       });
@@ -441,6 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const loadFromHistory = (item: HistoryItem) => {
+    currentHistoryIdRef.current = item.id;   // ★이 항목을 편집/재생성 대상으로 고정(최신 항목 오염 방지)
     // 동기 텍스트 메타 먼저 — 화면 전환 직후 ResultScreen이 sections를 바로 읽을 수 있게
     setCatState(item.cat);
     setChState(item.ch);
@@ -543,6 +549,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ★복원이 끝나기 전엔 저장 금지 — 안 그러면 mount 시 저장 effect가 '기본값(빈값)'으로 먼저 덮어써서 복원이 무력화됨.
   const didRestoreRef = useRef(false);
+
+  // ★현재 열려있는(=편집/재생성 대상) 작업기록 id. 신규 생성 시 saveHistory가, 옛 항목 열 땐 loadFromHistory가 세팅.
+  //   updateLatestHistory*가 무조건 최신([0])에 쓰던 오염 버그 방지 — 이 id 항목에만 이미지/override를 씀.
+  const currentHistoryIdRef = useRef<string | null>(null);
 
   // ★새로고침 복원: 단계+입력값을 sessionStorage에 저장(변경 시마다). 크레딧·생성결과·이미지 제외.
   useEffect(() => {
@@ -705,6 +715,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAnswers({});
     setAiSelections([]);
     setGenerationJobKeyState(null);   // ★새 상품 = 새 결제 키(이전 작업 키 오염 방지)
+    currentHistoryIdRef.current = null;   // ★새 작업 = 아직 저장된 항목 없음(다음 saveHistory가 대상 세팅)
+    // ★교차상품 유출 차단 — 이전 상품의 '__session__' 제품사진 스냅샷 제거.
+    //   안 지우면 새 상품 입력 중 새로고침 시 이전 상품 사진이 복원돼 브랜드가 섞임(edits reference 오염).
+    //   새 상품 사진을 올리면 productImages effect가 이 탭 세션으로 다시 스냅샷을 남긴다.
+    deleteImages('__session__').catch(() => { /* IndexedDB 불가 — 무시 */ });
     go('s1');
   };
 
