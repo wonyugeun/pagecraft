@@ -2,7 +2,6 @@
 
 import LandingNav from './LandingNav';
 import HeroSection from './HeroSection';
-import BrandSection from './BrandSection';
 import FeaturesSection from './FeaturesSection';
 import HowItWorksSection from './HowItWorksSection';
 import CTASection from './CTASection';
@@ -69,7 +68,6 @@ export default function LandingPage() {
         <LandingNav />
         <main style={{ paddingTop: '64px' }}>
           <HeroSection />
-          <BrandSection />
           <FeaturesSection />
           <HowItWorksSection />
           <CTASection />
