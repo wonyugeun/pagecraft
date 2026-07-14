@@ -157,11 +157,14 @@ const CATS = [
 const CHANNELS = ['스마트스토어', '쿠팡', '와디즈', '자사몰'] as const;
 type Channel = typeof CHANNELS[number];
 
-const CH_SIZE: Record<Channel, string> = {
-  스마트스토어: '1000×1000',
-  쿠팡:         '1000×1000',
-  와디즈:       '1200×675',
-  자사몰:       '1200×630',
+// ★안내=산출물 일치 — gpt-image-2 실제 지원 규격은 1024²(1:1)·1536×1024(가로)·1024×1536(세로)뿐.
+//   따라서 채널별로 generate-image에 넘길 aspectRatio와, 그 결과 '실제로' 생성되는 px(out)를 함께 정의.
+//   과거엔 플랫폼 권장치(1200×675 등)를 안내했지만 산출물은 1024² 정사각이라 불일치 → out을 실제값으로 통일.
+const CH_SPEC: Record<Channel, { ratio: string; out: string; orient: string }> = {
+  스마트스토어: { ratio: '1:1',  out: '1024×1024', orient: '정사각' },
+  쿠팡:         { ratio: '1:1',  out: '1024×1024', orient: '정사각' },
+  와디즈:       { ratio: '16:9', out: '1536×1024', orient: '가로형' },
+  자사몰:       { ratio: '16:9', out: '1536×1024', orient: '가로형' },
 };
 
 /* ─── 썸네일 타입 ─── */
@@ -272,12 +275,14 @@ export default function ThumbScreen() {
   const needsRef = currentTypeDef?.needsRef ?? false;
   const isDisabled = !ch || !selectedType || loading || (needsRef && !refImg);
 
-  // 타입/채널 변경 = 새 썸네일 → 새 jobKey(새 charge). 동일 설정 재생성은 같은 키 = 무료 재시도(C정책).
-  useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch]);
+  // ★무과금 재생성 누수 차단 — 생성 입력(상품명·카테고리·채널·타입·상품사진·레퍼런스) 중 하나라도 바뀌면
+  //   새 jobKey 발급(=새 charge). 아무것도 안 바꾸고 '다시 생성'만 하면 deps 불변 → 같은 키 = 무료 재시도(C정책).
+  //   productImgs/refImg는 add·remove마다 참조가 바뀌므로 사진 교체도 새 과금으로 잡힘.
+  useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch, productName, cat, productImgs, refImg]);
 
   const estCost = selectedType ? calculateGenerationCost({ sectionCount: 1 }) : 0;   // 예상 차감(하드코딩 X, 서버와 동일 함수)
   const activeStep = resultUrl ? 3 : loading ? 2 : 1;   // 01 타입선택 → 02 이미지생성 → 03 결과확인
-  const recSize = ch ? CH_SIZE[ch as Channel] : null;
+  const recSpec = ch ? CH_SPEC[ch as Channel] : null;
 
   /* ─── helpers ─── */
   const toBase64 = (objectUrl: string): Promise<string> =>
@@ -341,19 +346,23 @@ export default function ThumbScreen() {
     }
 
     try {
-      const size   = ch ? CH_SIZE[ch as Channel] : '';
-      const prompt = `${currentTypeDef.prompt} 카테고리: ${cat || '미지정'}. 상품명: ${productName || '미지정'}. 채널: ${ch}. 권장 규격: ${size}px.`;
+      const spec   = CH_SPEC[ch as Channel];   // ch는 isDisabled 게이트에서 필수 검증됨
+      const prompt = `${currentTypeDef.prompt} 카테고리: ${cat || '미지정'}. 상품명: ${productName || '미지정'}. 채널: ${ch}. 생성 규격: ${spec.out}px (${spec.orient}).`;
 
       const sourceImgs = productImgs.slice(0, 5);
-      const base64s: string[] = sourceImgs.length > 0
+      const productBase64s: string[] = sourceImgs.length > 0
         ? await Promise.all(sourceImgs.map(img => toBase64(img.url)))
         : [];
 
-      if (needsRef && refImg) {
-        base64s.push(await toBase64(refImg.url));
-      }
+      // ★레퍼런스 전달 보장 — 서버가 MAX_REF_IMAGES(4)로 '앞에서부터' 자르므로 ref를 뒤에 push하면
+      //   상품사진 4장일 때 잘려 항상 누락됨(레퍼런스 타입인데 레퍼런스 없이 생성=기능 미작동+과금).
+      //   ref를 배열 맨 앞에 두어 잘림에서 우선 생존시킴.
+      const base64s: string[] = (needsRef && refImg)
+        ? [await toBase64(refImg.url), ...productBase64s]
+        : productBase64s;
 
-      const body: Record<string, unknown> = { prompt, sectionNum: `thumb_${selectedType}`, jobKey: jobKeyRef.current };
+      // ★채널 규격을 실제로 전달 — aspectRatio로 채널 비율(정사각/가로) 반영. 미전달 시 서버가 1:1 정사각 폴백.
+      const body: Record<string, unknown> = { prompt, sectionNum: `thumb_${selectedType}`, jobKey: jobKeyRef.current, aspectRatio: spec.ratio };
       if (base64s.length > 0) body.productImages = base64s;
 
       const res  = await fetch('/api/generate-image', {
@@ -447,7 +456,7 @@ export default function ThumbScreen() {
                     <button key={c} type="button" className={`q-chip${ch === c ? ' on' : ''}`} onClick={() => setCh(p => p === c ? '' : c)}>{c}</button>
                   ))}
                 </div>
-                {recSize && <div className="q-hint">💡 권장 규격 {recSize}px · PNG로 저장돼요</div>}
+                {recSpec && <div className="q-hint">💡 {recSpec.orient} {recSpec.out}px로 생성돼요 · PNG로 저장돼요</div>}
               </div>
 
               <div className="q-fg">
@@ -549,7 +558,7 @@ export default function ThumbScreen() {
               <div className="q-sum-row"><span className="q-sum-k">업로드 이미지</span><span className="q-sum-v">{productImgs.length}장</span></div>
               <div className="q-sum-row"><span className="q-sum-k">선택 타입</span><span className={`q-sum-v${selectedType ? '' : ' muted'}`}>{currentTypeDef ? currentTypeDef.label : '없음'}</span></div>
               <div className="q-sum-row"><span className="q-sum-k">예상 차감</span><span className="q-sum-v" style={{ color: '#6D4CFF' }}>{estCost} 크레딧</span></div>
-              <div className="q-sum-row"><span className="q-sum-k">생성 결과</span><span className="q-sum-v">썸네일 1장{recSize ? ` · ${recSize}` : ''}</span></div>
+              <div className="q-sum-row"><span className="q-sum-k">생성 결과</span><span className="q-sum-v">썸네일 1장{recSpec ? ` · ${recSpec.out}` : ''}</span></div>
 
               {error && (
                 <div style={{ marginTop: 14, background: '#FFF1F2', border: '1px solid #FECACA', borderRadius: 12, padding: '10px 14px', fontSize: 12.5, color: '#DC2626', lineHeight: 1.5 }}>⚠️ {error}</div>
