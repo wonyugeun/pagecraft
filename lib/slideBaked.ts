@@ -247,6 +247,29 @@ export function buildSlideBakedText(
   const noFakeLine =
     `Render ONLY the Korean copy provided above as text — do not invent logos, badges, certification marks, or any numbers/percentages/statistics that are not part of this copy.`;
 
+  // ── 브리프형 Hero baked 1차(2026-07-15, Direct Brief Baseline 검증 후) ──
+  // Direct Brief 테스트 실증: % 존·중앙 배치·록업·스트립 마이크로매니지먼트가 GPT의 광고 구도
+  // 판단을 막아 모든 식품 hero가 같은 중앙 포스터로 수렴. 브리프형은 "무엇을 설득할지"만 주고
+  // 구도·배치·아이콘 사용은 GPT에 위임. heroType은 레이아웃이 아니라 설득 포인트를 결정.
+  // 가드는 전부 유지: 제품 보존·레퍼런스 내용물 한정·수치는 카피/판매포인트 밖 날조 금지.
+  // model_proof(화장품 등)·cta는 기존 존 골격 그대로. 아래 구 존 텍스트 블록 2개는 롤백용 보존(도달 불가).
+  if (archetype === 'hero' && heroType !== 'model_proof') {
+    const pname = (productName ?? '').replace(/\s+/g, ' ').trim();
+    const facts = (knownFacts ?? '').replace(/\s*\n\s*/g, ' · ').trim();
+    const persuade = heroType === 'fresh_food_proof'
+      ? `Persuade with REAL-FOOD trust: the trimmed contents visible in the reference (through its transparent window) must look clean and appetizing, together with the sealed package as the proof of care — a plain "package alone on a surface" poster is NOT enough.`
+      : `Persuade with PRODUCT trust: the package presented naturally within its real usage context (table, ingredients, everyday scene) — never a floating studio poster.`;
+    return [
+      `This is the HERO (first screen) of a premium Korean e-commerce detail page. Product: ${pname || 'the product shown in the reference'}.`,
+      facts ? `Seller-verified selling points: ${facts}.` : '',
+      persuade,
+      `Mood: premium Korean commercial advertising — clean, fresh, high-end; keep the overall tone in the family of ${accent}. No people, no hands, product never held.`,
+      `Korean copy to render crisply with exact spelling — Headline: "${head}"${sub ? `, Subcopy: "${sub}"` : ''}. Place the copy wherever it works best (top block, left column, or elegant overlay) with clear size hierarchy.`,
+      `Composition is YOURS: design it like a top Korean detail-page designer — asymmetric editorial layout, layered staging, a small icon row built from the selling points, or an environmental backdrop are all welcome when they serve the ad. Do NOT follow a fixed centered-poster template. If a scene was described above, treat it as a starting suggestion, not a fixed layout.`,
+      `Hard guards: the product must exactly match the reference (pack shape, label structure, transparent window and its contents); do NOT re-typeset or invent small label text; show ONLY contents visible in the reference; text in the image is limited to the Korean copy above and short labels drawn from the selling points — never invent numbers, percentages, certifications, badges, or claims beyond them.`,
+    ].filter(Boolean).join(' ');
+  }
+
   // ── hero fresh_food_proof(식품 세분화 1차): 실물 신뢰가 주인공인 신선식품 히어로 —
   //   패키지 포스터가 아니라 투명창 속 실물(살결·색·손질 상태)과 진공 포장·냉기 연출이 신뢰 증거.
   //   ⚠️레퍼런스에 보이는 내용물만 — 꺼낸 실물·추가 원물 날조 금지(COMPONENT_RULES와 이중 가드).
