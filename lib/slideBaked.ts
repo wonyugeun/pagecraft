@@ -19,11 +19,31 @@ import { isProductHeroCategory } from '@/lib/imagePromptRules';
  * 배경: 비-히어로는 InfoLayout 11종으로 구조가 갈리는데 hero·cta는 제외(infoLayout.ts:231)돼
  * 항상 같은 4존 골격(헤드라인·사진·록업·3아이콘 스트립) → 페이지 첫인상이 전 제품 동일.
  *  - model_proof: 기존 hero 골격 그대로(기본값 — 화장품·패션·유아 등 무변화 보장)
- *  - product_statement: 식품 1차 — 제품 패키지+실제 맥락 장면이 주인공, 스트립·록업 존 제거/약화
- * 2차 확장(kpi_impact, 전 섹션 축 통합)은 이 함수(assignInfoLayouts 패턴)를 키우는 방식으로. */
-export type HeroVisualType = 'model_proof' | 'product_statement';
-export function selectHeroVisualType(cat: string | null | undefined): HeroVisualType {
-  return isProductHeroCategory(cat ?? '') ? 'product_statement' : 'model_proof';
+ *  - product_statement: 패키지형 식품 — 제품 패키지+실제 맥락 장면이 주인공, 스트립·록업 존 제거/약화
+ *  - fresh_food_proof: 신선식품/수산물(식품 세분화 1차, 2026-07-15) — 패키지 포스터가 아니라
+ *    투명창 속 실물(살결·손질 상태)+진공 포장이 신뢰 증거로 주인공. 그래놀라·은갈치가 같은
+ *    구조로 수렴하던 문제의 해소. ⚠️레퍼런스에 보이는 내용물만 — 꺼낸 실물 날조 금지.
+ * 2차 확장(cooking_scene, kpi_impact, 전 섹션 축 통합)은 이 함수(assignInfoLayouts 패턴)를 키우는 방식으로. */
+export type HeroVisualType = 'model_proof' | 'product_statement' | 'fresh_food_proof';
+
+/** 신선식품 신호 키워드 — knownFacts(productName+productExtra)+cat에서 감지. 결정적, 랜덤 금지.
+ *  짧거나 범용인 토큰('회'=1회/회원 오탐, '당일'=당일발송 범용)은 오분류 위험으로 제외. */
+const FRESH_FOOD_KEYS = [
+  // 수산
+  '갈치', '고등어', '새우', '오징어', '전복', '조개', '연어', '장어', '굴비', '생선', '수산', '횟감',
+  // 축산
+  '한우', '돼지', '삼겹', '목살', '닭가슴', '갈비', '축산', '정육',
+  // 농산/신선 일반 + 상태·처리
+  '과일', '채소', '농산', '원물', '신선', '냉동', '급냉', '산지직송', '산지', '손질', '가시', '무염', '진공',
+];
+
+/** Hero visual type 선택 — 식품이면 knownFacts의 신선 신호(≥2히트)로 fresh/packaged 세분화.
+ *  knownFacts 미전달(구 호출부·정보 부족) 시 packaged 폴백 = 기존 동작. */
+export function selectHeroVisualType(cat: string | null | undefined, knownFacts?: string): HeroVisualType {
+  if (!isProductHeroCategory(cat ?? '')) return 'model_proof';
+  const hay = `${cat ?? ''} ${knownFacts ?? ''}`;
+  const hits = FRESH_FOOD_KEYS.filter(k => hay.includes(k)).length;
+  return hits >= 2 ? 'fresh_food_proof' : 'product_statement';
 }
 
 /* ── 아키타입별 장면 지시(영문) — Claude 초안. 추후 GPT 최적화 문구로 교체 가능하도록 아키타입당 상수 1개. ── */
@@ -226,6 +246,23 @@ export function buildSlideBakedText(
   const copyLine = `Headline: "${head}"${sub ? `. Subcopy (smaller, lighter): "${sub}"` : ''}.`;
   const noFakeLine =
     `Render ONLY the Korean copy provided above as text — do not invent logos, badges, certification marks, or any numbers/percentages/statistics that are not part of this copy.`;
+
+  // ── hero fresh_food_proof(식품 세분화 1차): 실물 신뢰가 주인공인 신선식품 히어로 —
+  //   패키지 포스터가 아니라 투명창 속 실물(살결·색·손질 상태)과 진공 포장·냉기 연출이 신뢰 증거.
+  //   ⚠️레퍼런스에 보이는 내용물만 — 꺼낸 실물·추가 원물 날조 금지(COMPONENT_RULES와 이중 가드).
+  if (archetype === 'hero' && heroType === 'fresh_food_proof') {
+    const pname = (productName ?? '').replace(/\s+/g, ' ').trim();
+    return [
+      intro,
+      `${fillFragment(style.wash, { accent })} If any earlier instruction mentions a pure white or plain background, this unified page tone takes precedence.`,
+      `Vertical structure, top to bottom:`,
+      `— Headline zone (top ~20%): an OVERSIZED Korean display headline at poster scale — exactly ONE key word emphasized in ${accent}, the rest near-black; the subcopy much smaller and lighter directly beneath it (strong size contrast). Headline: "${head}"${sub ? `; subcopy: "${sub}"` : ''}.`,
+      `— Scene zone (the rest of the frame, ~75%): a FRESHNESS-PROOF scene — the vacuum-sealed product from the reference is the evidence itself. Keep its pack shape, label structure, seal marks and transparent window exactly as in the reference, and let the flesh visible THROUGH the transparent window read clearly and appetizingly — its color, texture and trimmed condition are the hero of trust. Show ONLY the contents visible in the reference image: do NOT invent unpacked pieces, extra fillets, or any raw food that is not visible in the reference. Stage it as a cold, pristine premium fresh-food presentation — a clean ice bed or chilled surface, subtle frost, an icy clean backdrop — with the product at its true real-world size (never held, never floating, never enlarged beyond realism), and the staging must never bury or obscure the product.`,
+      pname ? `— One quiet caption near the bottom of the scene: the Korean product name "${pname}" in small refined type on a naturally calm area — a subtle signature, never a separate title block.` : '',
+      noFakeLine,
+      style.design_tail,
+    ].filter(Boolean).join(' ');
+  }
 
   // ── hero product_statement(1차): 제품 패키지+실제 맥락 장면이 주인공인 히어로 —
   //   고정 4존 골격 대신 헤드라인+대형 장면 존. 3아이콘 스트립 제거, 록업은 하단 캡션 1행으로 약화.
