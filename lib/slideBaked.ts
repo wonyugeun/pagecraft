@@ -147,7 +147,8 @@ function extractFeatures(blocks: Block[] | undefined, allow: Set<string>): strin
  * 유지해 조명 지시 0개가 되지 않게 한다. 블로그형은 이 함수를 타지 않음(무접촉). */
 export function composeSlidePrompt(imageDesc: string, baked: string): string {
   let desc = (imageDesc ?? '').trim();
-  if (baked.includes('Lighting:')) {
+  let bk = baked;
+  if (bk.includes('Lighting:')) {
     desc = desc
       // Claude 구조 꼬리의 light: 세그먼트만 제거 — 스펙 예시가 세그먼트를 마침표로 구분하므로
       // 쉼표·마침표 양쪽 경계 처리(다음 라벨 mood:/palette:/props:/surface: 앞까지만, 나머지 세그먼트 보존)
@@ -156,7 +157,15 @@ export function composeSlidePrompt(imageDesc: string, baked: string): string {
       .replace(/^\s*Lighting:\s*.*$\n?/m, '')
       .trim();
   }
-  return `${desc}. ${baked}`;
+  // ★장면 서술 이중 제거(2차 검증, 2026-07-15) — 브리프가 이미 제품 특정 장면 자연문을 제공하면
+  //   baked의 제네릭 ARCHETYPE_SCENES 'Scene:' 문장을 제거. 같은 장면을 두 표현으로 두 번 지시하면
+  //   모델이 열거 선택지를 평균화(스와치+스미어+부유 방울 동시 렌더, A/B 실증)함. 장면 타입·구도·캡션은
+  //   baked의 Layout:/Lighting:이 계속 담당(역할: Stage4=무엇을, Stage5=어떻게). 브리프 자연문이
+  //   없으면(빈 imageDesc 등) ARCHETYPE_SCENES 유지 — 장면 소스 0개 방지.
+  if (/^[^|]{20,}/.test(desc)) {
+    bk = bk.replace(/\s*Scene:\s[^]*?(?=Color harmony:|Headline: "|Render ONLY)/, ' ');
+  }
+  return `${desc}. ${bk}`;
 }
 
 /**
