@@ -11,6 +11,18 @@
 export const IMAGE_DESC_FIELD_SPEC =
   '<natural English scene description, 1~2 sentences> | shot: <composition>, light: <lighting>, mood: <mood>, palette: <color tone>, props: <props>, surface: <background/surface>';
 
+/* ── Hero Model Policy — 카테고리 게이트(1차, 2026-07-15) ──
+ * 배경: hero가 4중 스택(L1 여기 peopleRule·L2 imagebrief 스펙·L3 HERO_SCENES 불변식·
+ * L4 composeBrief SUBJECT)으로 모델을 강제해, 갈치·그래놀라 같은 식품에서도
+ * "여성 모델+제품 들고+웃음" 구조가 반복(템플릿감)되고 제품이 손 크기에 맞춰 과대 렌더됨.
+ * 모델 hero 허용(착용·사용감 카테고리): 화장품·패션·유아 — 기존 동작 그대로.
+ * 제품 중심 hero(1차): 식품만. 2차 확장(가전·생활 등)은 식품 검증 후 별도 결정.
+ * 이 상수가 단일 정책 소스 — 여기(peopleRule)와 imagebrief(scene 선택 skip)가 함께 참조. */
+export const PRODUCT_HERO_CATEGORIES = new Set(['식품']);
+export function isProductHeroCategory(cat: string): boolean {
+  return PRODUCT_HERO_CATEGORIES.has((cat ?? '').split('/')[0].trim());
+}
+
 /**
  * Stage4 V2 전용 이미지 규칙 — image_mission(왜 이 사진인가) 우선 설계용.
  * 옛 엔진(generate/regen)이 쓰는 buildImagePromptRules는 그대로 두고, V2(imagebrief)만 이걸 쓴다.
@@ -22,8 +34,11 @@ export function buildV2ImageRules(cat: string, isSlide = false): string {
   const isCosmetics = cat.split('/')[0].trim() === '화장품';
 
   // ★슬라이드형은 모델을 "지시"(허용이 아님) — 메디힐식 에디토리얼 광고컷. 블로그는 기존(얼굴 화보 금지) 유지.
+  //   단 제품 중심 카테고리(식품 1차)는 hero에서 모델을 끄고 제품 패키지 중심으로(Hero Model Policy).
   const peopleRule = isSlide
-    ? `- [인물 정책 — 슬라이드형, ⚠️아래 감정별 변주 예시의 "no face" 문구보다 이 정책이 우선] archetype이 hero·cta인 섹션은 반드시 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 prompt에 명시적으로 묘사하세요 — 프리미엄 뷰티 광고 화보처럼. ⚠️단 cta는 hero와 다른 연출로 변주하세요(정면 응시+가슴 앞 홀딩 반복 금지): 자연스럽게 사용하는 동작, 창가 자연광 아래, 제품을 내미는 손, 시선을 화면 밖에 둔 컷, 옆모습 클로즈업 등에서 hero와 겹치지 않는 하나를 고르세요. 그 외 archetype(원료/제형/스튜디오/무드컷)은 모델 없이 지정된 장면 유지(empathy는 상황 연출상 인물 등장 가능하되 제품이 조연). 모델이 든 제품은 reference 제품과 동일해야 합니다. (지금 단계는 얼굴 일관성 불필요 — 컷마다 얼굴이 달라도 됩니다.)`
+    ? (isProductHeroCategory(cat)
+      ? `- [인물 정책 — 슬라이드형·제품 중심 카테고리(식품)] ★hero 섹션은 모델 없이 "제품 패키지가 주인공"인 히어로를 설계하세요: 실제 판매 페이지처럼 아침 식탁·산지·원물·신선함·포장 신뢰 무드를 보조 요소로(예: 식탁 위에 자연스럽게 놓인 제품 + 주변에 원물·그릇·섭취 장면 소품). 제품은 실제 크기감 그대로 — 손에 들리게 하지 말고, 화면을 과도하게 점유하지 않게 자연스러운 스케일로 배치하세요. cta 섹션은 기존대로 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 허용하되 hero와 겹치지 않는 연출로. 그 외 archetype(원료/제형/스튜디오/무드컷)은 모델 없이 지정된 장면 유지(empathy는 상황 연출상 인물 등장 가능하되 제품이 조연). 제품은 reference 제품과 동일해야 합니다.`
+      : `- [인물 정책 — 슬라이드형, ⚠️아래 감정별 변주 예시의 "no face" 문구보다 이 정책이 우선] archetype이 hero·cta인 섹션은 반드시 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 prompt에 명시적으로 묘사하세요 — 프리미엄 뷰티 광고 화보처럼. ⚠️단 cta는 hero와 다른 연출로 변주하세요(정면 응시+가슴 앞 홀딩 반복 금지): 자연스럽게 사용하는 동작, 창가 자연광 아래, 제품을 내미는 손, 시선을 화면 밖에 둔 컷, 옆모습 클로즈업 등에서 hero와 겹치지 않는 하나를 고르세요. 그 외 archetype(원료/제형/스튜디오/무드컷)은 모델 없이 지정된 장면 유지(empathy는 상황 연출상 인물 등장 가능하되 제품이 조연). 모델이 든 제품은 reference 제품과 동일해야 합니다. (지금 단계는 얼굴 일관성 불필요 — 컷마다 얼굴이 달라도 됩니다.)`)
     : `- [인물 정책] 얼굴 없는 피부 클로즈업(붉어진 볼·턱선·목), 손, 신체 일부, 따가운 순간·상황 연출은 허용합니다(감정 전달용). 단 식별되는 동일 인물의 얼굴 전체·브랜드 모델·착용 화보는 금지(향후 가상모델 시스템 담당).`;
 
   const cosmeticsGuide = isCosmetics

@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
-import { buildV2ImageRules } from '@/lib/imagePromptRules';
+import { buildV2ImageRules, isProductHeroCategory } from '@/lib/imagePromptRules';
 import {
   classifyCutArchetype, assignCompositions, type CutArchetype,
   ARCHETYPE_INTENSITY,
@@ -177,13 +177,19 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
 
   // ★Scene Library(hero·ingredient_macro만, 슬라이드만) — category/channel/palette/mood 점수 선택.
   //   Texture 이하 아키타입은 라이브러리 미구축 → selectScene이 null 반환 = 기존 동작 그대로.
+  // ★Hero Model Policy(1차): 제품 중심 카테고리(식품)는 hero scene을 선택하지 않음 —
+  //   HERO_SCENES 6종 전부 모델 불변식(model_ratio≥30)이라 scene이 붙는 순간 composeBrief가
+  //   모델 SUBJECT("A Korean model...")+held_by_model 배치를 강제. skip하면 Claude가
+  //   peopleRule(비모델 제품 히어로 지시)대로 쓴 prompt가 그대로 최종 브리프가 된다.
+  //   ingredient_macro는 원래 무모델 장면이라 정책 무관 — 기존 유지.
+  const productHero = isProductHeroCategory(category);
   const sceneInput = {
     category, channel,
     palette: visual?.palette,
     mood: [visual?.mood, typeof strategy.tone === 'string' ? strategy.tone : ''].filter(Boolean).join(' '),
   };
   const sceneByIdx = archetypeByIdx.map(a =>
-    USE_SCENE_LIBRARY && isSlideOut && (a === 'hero' || a === 'ingredient_macro')
+    USE_SCENE_LIBRARY && isSlideOut && ((a === 'hero' && !productHero) || a === 'ingredient_macro')
       ? selectScene(a, sceneInput)
       : null);
 
@@ -288,6 +294,8 @@ ${sectionList}
    - props: 비제품 소품만(식물·물방울·돌·천). reference에 없는 화장품 용기·구성품 금지.
    - prompt: 위를 종합한 영문 이미지 프롬프트. "<natural English scene, 1~2 sentences> | shot: ..., light: ..., mood: ..., palette: ..., props: ..., surface: ...". ${isBlogOutput
       ? '식별되는 동일 얼굴 금지(피부/손/신체일부는 허용).'
+      : isProductHeroCategory(category)
+      ? '★hero 섹션의 prompt는 모델 없이 "제품 패키지가 주인공"으로 묘사하세요 — 아침 식탁·산지·원물·포장 신뢰 무드를 보조로, 제품은 실제 크기감 그대로 자연스럽게 놓인 장면(손에 들리지 않게, 화면 과점유 금지. 예: "the granola pouch from the reference standing on a warm breakfast table beside a bowl of granola and scattered oats"). cta 섹션은 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 허용. 그 외 archetype 섹션은 지정된 장면을 유지하세요(원료/제형/스튜디오 등 — 모델 없이). prompt에 제품명·라벨 문구를 새로 지어 적지 마세요(라벨은 reference 이미지가 결정).'
       : '★archetype이 hero 또는 cta인 섹션의 prompt에는 "제품을 손에 든 한국인 모델(얼굴 포함, 상반신)"을 영문으로 명시적으로 묘사하세요(예: "a Korean woman in her 20s holding the toner bottle, upper body, facing camera"). 그 외 archetype 섹션은 지정된 장면을 유지하세요(원료/제형/스튜디오 등 — 모델 없이). prompt에 제품명·라벨 문구를 새로 지어 적지 마세요(라벨은 reference 이미지가 결정).'} 인증·수치·시험·EWG·배지 묘사 금지. "portrait/vertical/9:16/tall" 금지.
 
 [출력 형식] — 다른 텍스트 없이 JSON 배열만, 길이 정확히 ${items.length}개:
