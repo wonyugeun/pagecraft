@@ -6,7 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import { buildSlideBakedText, composeSlidePrompt } from '@/lib/slideBaked';
+import { buildSlideBakedText, composeSlidePrompt, selectHeroVisualType } from '@/lib/slideBaked';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { selectPageStyle } from '@/lib/pageStyleContract';
@@ -1260,7 +1260,7 @@ export default function ResultScreen() {
       // ★조명 일원화 — baked가 Lighting을 지시하면 브리프 쪽 light:/Lighting: 제거(이중 지시 = 무드 애매 원인 후보)
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting));
+        : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting, selectHeroVisualType(cat)));
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
       //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;

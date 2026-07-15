@@ -13,6 +13,18 @@ import type { CutArchetype } from '@/lib/sectionArchetype';
 import { STYLE_PRESETS, fillFragment, type PageStyleContract } from '@/lib/pageStyleContract';
 import type { InfoLayout } from '@/lib/infoLayout';
 import { fixNegativeTemps } from '@/lib/factScrub';
+import { isProductHeroCategory } from '@/lib/imagePromptRules';
+
+/* ── HeroVisualType(1차, 2026-07-15) — hero도 섹션 visual type을 갖게 하는 최소 축.
+ * 배경: 비-히어로는 InfoLayout 11종으로 구조가 갈리는데 hero·cta는 제외(infoLayout.ts:231)돼
+ * 항상 같은 4존 골격(헤드라인·사진·록업·3아이콘 스트립) → 페이지 첫인상이 전 제품 동일.
+ *  - model_proof: 기존 hero 골격 그대로(기본값 — 화장품·패션·유아 등 무변화 보장)
+ *  - product_statement: 식품 1차 — 제품 패키지+실제 맥락 장면이 주인공, 스트립·록업 존 제거/약화
+ * 2차 확장(kpi_impact, 전 섹션 축 통합)은 이 함수(assignInfoLayouts 패턴)를 키우는 방식으로. */
+export type HeroVisualType = 'model_proof' | 'product_statement';
+export function selectHeroVisualType(cat: string | null | undefined): HeroVisualType {
+  return isProductHeroCategory(cat ?? '') ? 'product_statement' : 'model_proof';
+}
 
 /* ── 아키타입별 장면 지시(영문) — Claude 초안. 추후 GPT 최적화 문구로 교체 가능하도록 아키타입당 상수 1개. ── */
 const SCENE_EMPATHY =
@@ -184,6 +196,8 @@ export function composeSlidePrompt(imageDesc: string, baked: string): string {
  * @param viewpoint 카메라 시점(assignViewpoints 배정, 영문 구) — 제품 중심 섹션의 시점 단조로움 제거. ''이면 미주입
  * @param treatment 상업 광고 연출(assignTreatments 배정 — 스플래시·부양·반사 등). ''이면 미주입
  * @param lighting 조명 연출(assignLighting 배정 — 페이지 내 조명 반복 차단). ''이면 미주입
+ * @param heroType Hero visual type(1차). 기본 model_proof = 기존 골격 그대로(하위 호환).
+ *                 product_statement는 archetype==='hero'에서만 발동(cta 무접촉).
  */
 export function buildSlideBakedText(
   headline: string,
@@ -198,6 +212,7 @@ export function buildSlideBakedText(
   viewpoint?: string,
   treatment?: string,
   lighting?: string,
+  heroType: HeroVisualType = 'model_proof',
 ): string {
   // ★음수 온도 부호 안전망 — copy 단계 scrub을 거치지 않은 경로(과거 히스토리 복원·인라인 편집) 방어.
   //   baked 최종 문자열 전체에 적용(수치+℃ 단위만 대상이라 % 존·가격 등 다른 숫자 무영향).
@@ -211,6 +226,24 @@ export function buildSlideBakedText(
   const copyLine = `Headline: "${head}"${sub ? `. Subcopy (smaller, lighter): "${sub}"` : ''}.`;
   const noFakeLine =
     `Render ONLY the Korean copy provided above as text — do not invent logos, badges, certification marks, or any numbers/percentages/statistics that are not part of this copy.`;
+
+  // ── hero product_statement(1차): 제품 패키지+실제 맥락 장면이 주인공인 히어로 —
+  //   고정 4존 골격 대신 헤드라인+대형 장면 존. 3아이콘 스트립 제거, 록업은 하단 캡션 1행으로 약화.
+  //   장면의 '내용물'(식탁·원물 등)은 Stage4 브리프가 결정(역할 분리: Stage4=무엇을, Stage5=어떻게).
+  //   cta는 기존 골격 유지(범위 밖). model_proof는 아래 기존 경로 그대로(바이트 동일 보장).
+  if (archetype === 'hero' && heroType === 'product_statement') {
+    const pname = (productName ?? '').replace(/\s+/g, ' ').trim();
+    return [
+      intro,
+      `${fillFragment(style.wash, { accent })} If any earlier instruction mentions a pure white or plain background, this unified page tone takes precedence.`,
+      `Vertical structure, top to bottom:`,
+      `— Headline zone (top ~20%): an OVERSIZED Korean display headline at poster scale — exactly ONE key word emphasized in ${accent}, the rest near-black; the subcopy much smaller and lighter directly beneath it (strong size contrast). Headline: "${head}"${sub ? `; subcopy: "${sub}"` : ''}.`,
+      `— Scene zone (the rest of the frame, ~75%): the PRODUCT PACKAGE is the hero of one real, lived-in scene — standing naturally at its true real-world size within its context (never held by anyone, never floating, never enlarged beyond realism), styled with the craft of a premium brand campaign. The scene breathes edge to edge below the headline — NO separate horizontal bands, NO icon strip, NO boxed panels, NO KPI row; the product label stays clearly readable and exactly matches the reference product.`,
+      pname ? `— One quiet caption near the bottom of the scene: the Korean product name "${pname}" in small refined type on a naturally calm area — a subtle signature, never a separate title block.` : '',
+      noFakeLine,
+      style.design_tail,
+    ].filter(Boolean).join(' ');
+  }
 
   // ── hero·cta: ★% 존 골격(테스트1~7로 검증) + Page Style Contract 속성값 — 골격은 전 스타일 공유,
   //   스타일별 차이(워시·전환·아이콘·타이포·구분선·수치 강조·스타일 키워드)는 계약 조각으로 주입.
