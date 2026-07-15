@@ -137,6 +137,28 @@ function extractFeatures(blocks: Block[] | undefined, allow: Set<string>): strin
   return out;
 }
 
+/* ── 슬라이드 최종 프롬프트 결합 — 조명 지시 일원화(1차 검증, 2026-07-15) ──
+ * 문제: Stage4 브리프(imageDesc)의 `light:` 세그먼트/composeBrief `Lighting:` 라인과
+ * Stage5 baked의 `Lighting:`(assignLighting)이 한 프롬프트에 공존 → 서로 다른 조명이
+ * 동시에 지시돼 제품 엣지·질감·무드가 애매해지는 원인 후보.
+ * 역할 분리: Stage4 = 무엇을(장면·제품·소품·배경), Stage5 = 어떻게(스타일·구도·조명).
+ * baked가 Lighting을 지시하는 경우에만 브리프 쪽 조명을 제거 — baked에 조명이 없는
+ * 경로(hero·cta의 계약 워시, big_numbers 등 타이포 주도 레이아웃)는 브리프 조명을
+ * 유지해 조명 지시 0개가 되지 않게 한다. 블로그형은 이 함수를 타지 않음(무접촉). */
+export function composeSlidePrompt(imageDesc: string, baked: string): string {
+  let desc = (imageDesc ?? '').trim();
+  if (baked.includes('Lighting:')) {
+    desc = desc
+      // Claude 구조 꼬리의 light: 세그먼트만 제거 — 스펙 예시가 세그먼트를 마침표로 구분하므로
+      // 쉼표·마침표 양쪽 경계 처리(다음 라벨 mood:/palette:/props:/surface: 앞까지만, 나머지 세그먼트 보존)
+      .replace(/[,.]?\s*\blight:\s*.*?(?=[,.]\s*(?:mood|palette|props|surface)\s*:|\n|$)/i, '')
+      // composeBrief STYLE 블록의 `Lighting: ...` 라인 제거(scene 섹션이 baked 조명과 겹칠 때)
+      .replace(/^\s*Lighting:\s*.*$\n?/m, '')
+      .trim();
+  }
+  return `${desc}. ${baked}`;
+}
+
 /**
  * 슬라이드 baked 프롬프트 생성 — archetype별 레이아웃 분기.
  *  - hero·cta: 3층(상단 카피 / 중앙 제품·모델 / 하단 특징 스트립) — 검증된 기존 문구 유지.

@@ -16,7 +16,7 @@ import {
   EnhancedLightbox, downloadHtml, downloadMergedImage,
   countGeneratingImages, confirmSkipGenerating,
 } from './ResultScreen';
-import { buildSlideBakedText } from '@/lib/slideBaked';
+import { buildSlideBakedText, composeSlidePrompt } from '@/lib/slideBaked';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { selectPageStyle } from '@/lib/pageStyleContract';
@@ -131,9 +131,10 @@ export default function ResultMobile() {
       const viewpoint = assignViewpoints(pageArchetypes, infoLayouts)[secIdx] || undefined;
       const treatment = assignTreatments(pageArchetypes, infoLayouts)[secIdx] || undefined;
       const lighting = assignLighting(pageArchetypes)[secIdx] || undefined;
+      // ★조명 일원화 — baked가 Lighting을 지시하면 브리프 쪽 light:/Lighting: 제거(데스크톱과 동일)
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting)}`;
+        : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting));
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트만, 셀러 포장 원본은 클라 코드 합성(픽셀 보존).
       //   ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
