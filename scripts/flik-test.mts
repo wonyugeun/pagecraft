@@ -2,8 +2,8 @@
  * Flik 헤드리스 테스트 하네스 — 브라우저 없이 16섹션 풀 생성을 재현한다.
  *
  * 브라우저와 동일 경로: pipelineJob(runJob)이 dev 서버의 /api/strategy·structure·copy(병렬 청크)·
- * imagebrief를 호출하고, ResultScreen과 동일한 조립(classifyCutArchetype + selectPageStyle +
- * assignInfoLayouts + buildSlideBakedText)으로 /api/generate-image를 워커 3개로 호출한다.
+ * imagebrief를 호출하고, ResultScreen과 동일한 Clean Baseline 조립(/api/director 1회 →
+ * buildSectionBrief 전 섹션)으로 /api/generate-image를 워커 3개로 호출한다(Phase C).
  *
  * 사용법 (dev 서버 켜진 상태에서):
  *   npx tsx scripts/flik-test.mts assets                  # 가상 제품 레퍼런스 사진 생성(없는 것만, 1회성)
@@ -22,9 +22,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { createJob, runJob, getJobResult } from '../lib/pipelineJob';
 import type { StageCall } from '../lib/pipelineJob';
 import { classifyCutArchetype } from '../lib/sectionArchetype';
-import { selectPageStyle } from '../lib/pageStyleContract';
-import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '../lib/infoLayout';
-import { buildSlideBakedText } from '../lib/slideBaked';
+import { buildSectionBrief } from '../lib/adBrief';
+import type { DirectorPlan } from '../lib/stages/director';
 import { selectRequiredAssetIndex, buildPlatePrompt } from '../lib/sectionReference';
 import { aspectRatioFor } from '../lib/sectionAspect';
 import { runPool } from '../lib/asyncPool';
@@ -207,18 +206,17 @@ async function runFull(presetKey: string, sectionCount: number) {
   }));
   console.log(`[run] 카피 완료 — ${sections.length}섹션, ${Math.round((Date.now() - t0) / 1000)}초`);
 
-  // ResultScreen과 동일 조립 — 계약·InfoLayout·baked
-  const knownFacts = [preset.productName, preset.productExtra].filter(Boolean).join('\n');
-  const pageStyle = selectPageStyle({ category: preset.cat, channel: preset.ch, moodText: knownFacts });
-  const infoLayouts = assignInfoLayouts(
-    sections.map((s, i) => ({ name: s.name, blocks: s.blocks, archetype: i === 0 ? 'hero' as const : classifyCutArchetype(s.name) })),
-    knownFacts,
-  );
-  const pageArchetypes = sections.map((s, i) => i === 0 ? 'hero' as const : classifyCutArchetype(s.name));
-  const viewpoints = assignViewpoints(pageArchetypes, infoLayouts);
-  const treatments = assignTreatments(pageArchetypes, infoLayouts);
-  const lightings = assignLighting(pageArchetypes);
-  console.log(`[run] 계약=${pageStyle.style_id} / 레이아웃: ${infoLayouts.join(' → ')}`);
+  // ResultScreen과 동일 조립(Phase C) — Creative Director 1회 → 섹션 브리프
+  const dirRes = await httpCall('/api/director', {
+    jobKey: job.input.jobKey, cat: preset.cat, ch: preset.ch,
+    productName: preset.productName, productExtra: preset.productExtra,
+    sections: sections.map(s => ({ name: s.name, headline: s.headline, subcopy: s.subcopy })),
+    productImage: refDataUrl,
+  }) as { plan?: DirectorPlan | null; error?: string };
+  const director = dirRes.plan ?? null;
+  console.log(director
+    ? `[run] 디렉터 컨셉: ${director.selected_concept.slice(0, 80)}... / 인물=${director.person?.use}`
+    : `[run] ⚠️디렉터 실패(${dirRes.error ?? '?'}) — 자유 브리프 폴백`);
 
   // ★Required Asset — 포장 계열 섹션은 플레이트 모드(ResultScreen 미러). 합성은 후처리(Python, 동일 파라미터).
   const packFile = preset.packagingRef ? path.join(ASSETS, preset.packagingRef) : null;
@@ -235,13 +233,18 @@ async function runFull(presetKey: string, sectionCount: number) {
   const promptLog: Record<string, unknown>[] = [];
   const t1 = Date.now();
   const tasks = sections.map((sec, i) => async () => {
-    const archetype = i === 0 ? 'hero' as const : classifyCutArchetype(sec.name);
     const aspect = aspectRatioFor(sec.name, undefined, 'slide');
     const isPlate = raIdx >= 0 && i === raIdx;
     const prompt = isPlate
       ? buildPlatePrompt(sec.headline, sec.subcopy, accent)
-      : `${sec.imageDesc}. ${buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, accent, preset.productName, pageStyle, infoLayouts[i], viewpoints[i] || undefined, treatments[i] || undefined, lightings[i] || undefined)}`;
-    promptLog.push({ idx: i + 1, name: sec.name, archetype, infoLayout: infoLayouts[i], viewpoint: viewpoints[i], treatment: treatments[i], lighting: lightings[i], plateMode: isPlate || undefined, prompt });
+      : buildSectionBrief({
+          productName: preset.productName, productForm: preset.productForm, productVolume: preset.productVolume,
+          productExtra: preset.productExtra,
+          headline: sec.headline, subcopy: sec.subcopy,
+          visual: result.visual ? { primary_color: result.visual.primary_color, accent_color: result.visual.accent_color, soft_color: result.visual.soft_color } : undefined,
+          director, sectionName: sec.name,
+        });
+    promptLog.push({ idx: i + 1, name: sec.name, plateMode: isPlate || undefined, prompt });
     const res = await fetch(`${BASE_URL}/api/generate-image`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(isPlate
@@ -253,7 +256,7 @@ async function runFull(presetKey: string, sectionCount: number) {
     const file = path.join(outDir, `sec${String(i + 1).padStart(2, '0')}${isPlate ? '.plate' : ''}.png`);
     if (data.imageBase64) {
       fs.writeFileSync(file, Buffer.from(data.imageBase64, 'base64'));
-      console.log(`  [img ${i + 1}/${sections.length}] ✅ ${sec.name} (${infoLayouts[i]}${isPlate ? ', PLATE' : ''})`);
+      console.log(`  [img ${i + 1}/${sections.length}] ✅ ${sec.name}${isPlate ? ' (PLATE)' : ''}`);
     } else {
       fs.writeFileSync(`${file}.error.txt`, data.error ?? 'unknown');
       console.log(`  [img ${i + 1}/${sections.length}] ❌ ${sec.name}: ${data.error}`);

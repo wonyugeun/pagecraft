@@ -6,13 +6,10 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import { buildSlideBakedText, composeSlidePrompt, selectHeroVisualType } from '@/lib/slideBaked';
 import { CLEAN_IMAGE_BRIEF, buildSectionBrief } from '@/lib/adBrief';
 import type { DirectorPlan } from '@/lib/stages/director';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
-import { selectPageStyle } from '@/lib/pageStyleContract';
-import { assignInfoLayouts, assignViewpoints, assignTreatments, assignLighting } from '@/lib/infoLayout';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
@@ -1261,33 +1258,13 @@ export default function ResultScreen() {
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      // 슬라이드 = baked: archetype별 레이아웃(hero·cta=3층+특징 스트립, 그 외=상단 타이틀+장면).
-      // 블로그: 텍스트 0 깨끗한 사진. knownFacts=원입력(수치 검증 기준).
-      const knownFacts = [productName, productExtra].filter(Boolean).join('\n');
-      const archetype = opts?.slideHero ? 'hero' as const : classifyCutArchetype(sec.name);
-      // 페이지 스타일 계약 — 결정적 선택(카테고리·무드·채널)이라 섹션마다 호출해도 페이지 내 항상 동일 = 전 섹션 상속
-      const pageStyle = selectPageStyle({ category: cat ?? undefined, channel: ch ?? undefined, moodText: knownFacts });
-      // InfoLayout 배정 — 페이지 전체 결정적 배정(인접 중복·고밀도 연속 방지)에서 이 섹션 몫을 조회
-      const infoLayouts = assignInfoLayouts(
-        sections.map((s, i) => ({ name: s.name, role: undefined, blocks: s.blocks, archetype: i === 0 ? 'hero' as const : classifyCutArchetype(s.name) })),
-        knownFacts,
-      );
       const secIdx = sections.findIndex(x => x.num === sec.num);
-      const infoLayout = infoLayouts[secIdx] ?? 'scene_title';
-      // Viewpoint 축 — 제품 중심 섹션의 카메라 시점 순회(레이아웃과 독립, 결정적)
-      const pageArchetypes = sections.map((s, i) => i === 0 ? 'hero' as const : classifyCutArchetype(s.name));
-      const viewpoint = assignViewpoints(pageArchetypes, infoLayouts)[secIdx] || undefined;
-      const treatment = assignTreatments(pageArchetypes, infoLayouts)[secIdx] || undefined;
-      const lighting = assignLighting(pageArchetypes)[secIdx] || undefined;
-      // ★조명 일원화 — baked가 Lighting을 지시하면 브리프 쪽 light:/Lighting: 제거(이중 지시 = 무드 애매 원인 후보)
-      // ★Clean Baseline Phase B(플래그, 기본 OFF) — 전 섹션·전 카테고리(비블로그): 디렉터 플랜+섹션
-      //   브리프가 promptText를 대체(Stage4 장면문·Stage5 baked 미사용). 디렉터 실패 시 기존 경로 폴백.
+      // ★Clean Baseline(Phase C 기본 경로) — 비블로그 전 섹션: 디렉터 플랜+섹션 브리프가 promptText.
+      //   디렉터 실패/플래그 OFF 시 buildSectionBrief(director:null) = 자유 브리프 폴백(구 디렉션 스택 삭제됨).
       const directorPlan = (CLEAN_IMAGE_BRIEF && effectiveOut !== 'blog') ? await ensureDirectorPlan() : null;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : directorPlan
-          ? buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name })
-          : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting, selectHeroVisualType(cat, knownFacts)));
+        : buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name });
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
       //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
