@@ -72,6 +72,21 @@ const PRESETS: Record<string, HarnessPreset> = {
     productForm: 'toner_bottle', productVolume: '250ml', productShapeProfile: 'slim_tall',
     refPrompt: 'Commercial product photo of a slim tall transparent toner bottle with pale green liquid, white flip cap, clean white label reading "LEAFGREEN" small at top and "CICA TONER" large in green, subline "Soothing & Hydrating", small centella leaf line icon, "250ml / 8.45 fl. oz." at bottom. Pure white studio background, soft shadow, crisp label text.',
   },
+  vitamin: {
+    cat: '건강', ch: '스마트스토어',
+    productName: '밸런스랩 데일리 멀티비타민 미네랄 90정',
+    productExtra: [
+      '브랜드: 밸런스랩 — 바쁜 일상을 위한 데일리 영양 설계',
+      '차별점: 하루 1정으로 비타민 12종 + 미네랄 4종을 한 번에, 삼키기 쉬운 작은 정제',
+      '기능성(식약처 고시형 원료): 비타민C·아연 — 정상적인 면역기능에 필요 / 비타민B1·B2 — 에너지 생성에 필요 / 비타민D — 칼슘과 인의 흡수와 이용에 필요',
+      '특징: 1일 1정, 90정(3개월분), 국내 GMP 인증 시설 제조, 무착향·무착색',
+      '가격: 정가 39000원 / 할인가 29000원',
+      '섭취방법: 1일 1회, 1정을 충분한 물과 함께 섭취',
+      '고객 후기: 아침에 한 알로 끝나서 꾸준히 먹게 돼요 - 박OO / 정제가 작아서 목넘김이 편해요 - 최OO',
+    ].join('\n'),
+    productForm: 'supplement_bottle', productVolume: '90정', productShapeProfile: 'squat_jar',
+    refPrompt: 'Commercial product photo of a clean white HDPE supplement bottle with a matte silver screw cap, modern minimal label reading "BALANCELAB" small at top and "MULTI VITAMIN & MINERAL" in bold dark navy, with a thin yellow-orange accent stripe and "90정 · 1일 1정" small at the bottom of the label. Pure white studio background, soft shadow, crisp label text, premium supplement packshot.',
+  },
   granola: {
     cat: '식품', ch: '스마트스토어',
     productName: '데일리핏 저당 오트 그래놀라 400g',
