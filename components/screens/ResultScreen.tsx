@@ -7,7 +7,8 @@ import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { buildSlideBakedText, composeSlidePrompt, selectHeroVisualType } from '@/lib/slideBaked';
-import { CLEAN_IMAGE_BRIEF, isCleanBriefTarget, buildAdBrief } from '@/lib/adBrief';
+import { CLEAN_IMAGE_BRIEF, buildSectionBrief } from '@/lib/adBrief';
+import type { DirectorPlan } from '@/lib/stages/director';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { selectPageStyle } from '@/lib/pageStyleContract';
@@ -1235,6 +1236,26 @@ export default function ResultScreen() {
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
 
+  // ★Clean Baseline Phase B — 디렉터 플랜(페이지당 1회, 결과 캐시). 플래그 ON일 때만 호출.
+  //   실패 시 null → 각 섹션이 기존 경로로 폴백(생성은 계속). 같은 jobKey면 같은 컨셉(결정적).
+  const directorPlanRef = useRef<Promise<DirectorPlan | null> | null>(null);
+  const ensureDirectorPlan = useCallback((): Promise<DirectorPlan | null> => {
+    if (!CLEAN_IMAGE_BRIEF) return Promise.resolve(null);
+    if (!directorPlanRef.current) {
+      directorPlanRef.current = fetch('/api/director', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobKey: jobKeyRef.current ?? undefined, cat, ch, productName, productExtra, diff, brand,
+          sections: sections.map(s => ({ name: s.name, headline: s.headline, subcopy: s.subcopy })),
+          productImage: productImagesRef.current[0] ?? null,
+        }),
+        signal: AbortSignal.timeout(120_000),
+      }).then(r => r.json()).then(d => (d?.plan ?? null) as DirectorPlan | null).catch(() => null);
+    }
+    return directorPlanRef.current;
+  }, [cat, ch, productName, productExtra, diff, brand, sections]);
+
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { slideHero?: boolean }) => {
     const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
@@ -1259,11 +1280,13 @@ export default function ResultScreen() {
       const treatment = assignTreatments(pageArchetypes, infoLayouts)[secIdx] || undefined;
       const lighting = assignLighting(pageArchetypes)[secIdx] || undefined;
       // ★조명 일원화 — baked가 Lighting을 지시하면 브리프 쪽 light:/Lighting: 제거(이중 지시 = 무드 애매 원인 후보)
+      // ★Clean Baseline Phase B(플래그, 기본 OFF) — 전 섹션·전 카테고리(비블로그): 디렉터 플랜+섹션
+      //   브리프가 promptText를 대체(Stage4 장면문·Stage5 baked 미사용). 디렉터 실패 시 기존 경로 폴백.
+      const directorPlan = (CLEAN_IMAGE_BRIEF && effectiveOut !== 'blog') ? await ensureDirectorPlan() : null;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : (CLEAN_IMAGE_BRIEF && archetype === 'hero' && isCleanBriefTarget(cat))
-          // ★Clean Baseline(플래그, 기본 OFF) — 화장품 Hero만 광고 브리프로 promptText 대체(Stage4 장면문·Stage5 baked 미사용). OFF면 아래 기존 경로 그대로.
-          ? buildAdBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual })
+        : directorPlan
+          ? buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name })
           : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting, selectHeroVisualType(cat, knownFacts)));
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
       //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. ★페이지당 최고점 1개 섹션만(과발동 핫픽스).

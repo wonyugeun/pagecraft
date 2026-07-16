@@ -19,9 +19,11 @@
  * 롤백 = 플래그 OFF (기존 Stage4/5 코드는 무수정).
  */
 
+import type { DirectorPlan } from '@/lib/stages/director';
+
 export const CLEAN_IMAGE_BRIEF = (process.env.NEXT_PUBLIC_CLEAN_IMAGE_BRIEF ?? '0') === '1';
 
-/** Clean 브리프 1차 적용 대상 — 화장품만(승인 범위). 확장은 검증 후 별도 승인. */
+/** (Phase B에서 전 카테고리로 확장 — 하위 호환용으로 유지, 신규 분기에선 미사용) */
 export function isCleanBriefTarget(cat: string | null | undefined): boolean {
   return (cat ?? '').split('/')[0].trim() === '화장품';
 }
@@ -90,5 +92,70 @@ export function buildAdBrief(i: AdBriefInput): string {
 - The product must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label.
 - Show only this product; no other containers or invented packaging.
 - Text in the image is limited to the Korean copy above — never invent numbers, percentages, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, or before/after comparisons; no medical-sounding expressions.`,
+  ].filter(Boolean).join('\n\n');
+}
+
+/* ═══════════ Phase B — 디렉터 플랜 결합 전 섹션 브리프 ═══════════ */
+
+export interface SectionBriefInput extends AdBriefInput {
+  /** Creative Director 출력(페이지당 1회) — null이면 디렉터 없는 v1 형식으로 폴백 */
+  director?: DirectorPlan | null;
+  /** 이 브리프가 만들 섹션 이름(디렉터 sections에서 show를 찾는 키) */
+  sectionName?: string;
+}
+
+/**
+ * 섹션 1개의 이미지 브리프 — 디렉터의 페이지 컨셉·섹션 목적·인물 결정을 결합한다.
+ * 전 섹션·전 카테고리 공용(Phase B). 구도·존·아이콘·조명·시점 지시는 여기서 생성하지 않는다.
+ * 카피가 없는 섹션은 "이미지 내 텍스트 금지"로 조립된다(비히어로 안전 기본값).
+ */
+export function buildSectionBrief(i: SectionBriefInput): string {
+  const name = (i.productName ?? '').trim();
+  const formVol = [i.productForm, i.productVolume]
+    .map(s => (s ?? '').trim()).filter(Boolean).join(' · ');
+  const facts = [
+    (i.productExtra ?? '').trim(),
+    (i.diff ?? '').trim() ? `차별점: ${(i.diff ?? '').trim()}` : '',
+  ].filter(Boolean).join('\n');
+  const brandLine = [(i.brand ?? '').trim(), (i.brandIntro ?? '').trim()].filter(Boolean).join(' — ');
+  const v = i.visual;
+  const colors = v?.primary_color
+    ? `Color family: main ${v.primary_color}${v.accent_color ? `, accent ${v.accent_color}` : ''}${v.soft_color ? `, soft ${v.soft_color}` : ''} — keep the whole ad's tone consistent with this family.`
+    : '';
+  const head = (i.headline ?? '').replace(/\s+$/, '');
+  const sub = (i.subcopy ?? '').trim();
+  const secName = (i.sectionName ?? '').trim();
+
+  const d = i.director ?? null;
+  const show = d?.sections?.find(s => s.name === secName)?.show ?? '';
+  const person = d
+    ? (d.person?.use && d.person.spec
+        ? `Person (this page's creative director decided): ${d.person.spec} — keep this same person consistent with the other sections of this page.`
+        : `No people in this page (creative director's decision).`)
+    : '';
+
+  const withCopy = !!head;
+
+  return [
+    `This is the "${secName || 'HERO'}" section of a Korean e-commerce detail page.`,
+    name
+      ? `Product: ${name}${formVol ? ` (${formVol})` : ''}.`
+      : formVol ? `Product: ${formVol}.` : '',
+    facts ? `Seller-provided product facts — the ONLY facts you may use:\n${facts}` : '',
+    d ? `Page ad concept (decided by this page's creative director — every section of this page lives in this one world):\n${d.selected_concept}` : '',
+    show ? `This section must show: ${show}` : '',
+    person,
+    withCopy
+      ? `Korean copy to render crisply with exact spelling — place and size it however serves the ad best:\nHeadline: "${head}"${sub ? `\nSubcopy: "${sub}"` : ''}`
+      : `No copy text is provided for this section — do not render any text in the image.`,
+    brandLine ? `Brand: ${brandLine}.` : '',
+    colors,
+    d
+      ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
+      : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
+    `Hard guards:
+- The product must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label.
+- Show only this product; no other containers or invented packaging.
+- ${withCopy ? 'Text in the image is limited to the Korean copy above' : 'No text in the image'} — never invent numbers, percentages, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, or before/after comparisons; no medical-sounding expressions.`,
   ].filter(Boolean).join('\n\n');
 }
