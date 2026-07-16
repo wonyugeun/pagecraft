@@ -229,9 +229,15 @@ async function runFull(presetKey: string, sectionCount: number) {
     productImage: refDataUrl,
   }) as { plan?: DirectorPlan | null; error?: string };
   const director = dirRes.plan ?? null;
-  console.log(director
-    ? `[run] 디렉터 컨셉: ${director.selected_concept.slice(0, 80)}... / 인물=${director.person?.use}`
-    : `[run] ⚠️디렉터 실패(${dirRes.error ?? '?'}) — 자유 브리프 폴백`);
+  if (director) {
+    fs.writeFileSync(path.join(outDir, 'director.json'), JSON.stringify(director, null, 2));
+    const matched = sections.filter((s, j) =>
+      director.sections?.some(ds => ds.idx === j + 1 || ds.name === s.name)).length;
+    console.log(`[run] 디렉터 컨셉: ${director.selected_concept.slice(0, 80)}... / 인물=${director.person?.use} / 섹션매칭 ${matched}/${sections.length}`);
+    if (matched < sections.length) console.log(`[run] ⚠️섹션 매칭 누락 ${sections.length - matched}건 — director.json 확인`);
+  } else {
+    console.log(`[run] ⚠️디렉터 실패(${dirRes.error ?? '?'}) — 자유 브리프 폴백`);
+  }
 
   // ★Required Asset — 포장 계열 섹션은 플레이트 모드(ResultScreen 미러). 합성은 후처리(Python, 동일 파라미터).
   const packFile = preset.packagingRef ? path.join(ASSETS, preset.packagingRef) : null;
@@ -257,7 +263,7 @@ async function runFull(presetKey: string, sectionCount: number) {
           productExtra: preset.productExtra,
           headline: sec.headline, subcopy: sec.subcopy,
           visual: result.visual ? { primary_color: result.visual.primary_color, accent_color: result.visual.accent_color, soft_color: result.visual.soft_color } : undefined,
-          director, sectionName: sec.name,
+          director, sectionName: sec.name, sectionIndex: i,
         });
     promptLog.push({ idx: i + 1, name: sec.name, plateMode: isPlate || undefined, prompt });
     const res = await fetch(`${BASE_URL}/api/generate-image`, {

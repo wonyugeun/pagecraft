@@ -52,6 +52,8 @@ export interface SectionBriefInput extends AdBriefInput {
   director?: DirectorPlan | null;
   /** 이 브리프가 만들 섹션 이름(디렉터 sections에서 show를 찾는 키) */
   sectionName?: string;
+  /** 섹션 순번(0-base) — 디렉터가 섹션명을 변형해 돌려줘도 idx 에코로 확실히 매칭(32섹션 복합명에서 이름 일치가 전멸한 사고의 재발 방지) */
+  sectionIndex?: number;
 }
 
 /**
@@ -77,7 +79,15 @@ export function buildSectionBrief(i: SectionBriefInput): string {
   const secName = (i.sectionName ?? '').trim();
 
   const d = i.director ?? null;
-  const dSec = d?.sections?.find(s => s.name === secName) ?? null;
+  /* 디렉터 섹션 매칭 — ①idx 에코(1-base) ②이름 정확 일치 ③공백 제거 이름 ④순번 위치. LLM이
+     "문제 정의1 — 개수" 같은 복합명을 축약해도 놓치지 않는다. */
+  const norm = (s: string) => s.replace(/\s+/g, '');
+  const bySecIdx = typeof i.sectionIndex === 'number'
+    ? d?.sections?.find(s => s.idx === (i.sectionIndex as number) + 1) ?? d?.sections?.[i.sectionIndex] ?? null
+    : null;
+  const dSec = d?.sections?.find(s => s.name === secName)
+    ?? d?.sections?.find(s => norm(s.name) === norm(secName))
+    ?? bySecIdx;
   const show = dSec?.show ?? '';
   const format = (dSec?.format ?? '').trim();
   /* 인물은 섹션별 결정(디렉터) — 스펙은 페이지 수준 공유(같은 사람). 구 플랜(person 필드 없음)은

@@ -14,7 +14,8 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = 'claude-sonnet-4-6';
-const MAX_TOKENS = 4000;
+/** 섹션당 show+format+person JSON이 대략 150~200토큰 — 32섹션까지 잘리지 않게 섹션 수 비례로 산정 */
+const maxTokensFor = (sectionCount: number) => Math.min(16000, 2500 + sectionCount * 220);
 
 export interface DirectorSectionIn { name: string; headline?: string; subcopy?: string }
 
@@ -24,6 +25,8 @@ export interface DirectorPlan {
   selected_concept: string;
   person: { use: boolean; spec?: string };
   sections: {
+    /** 입력 섹션 순번(1-base) 에코 — 이름 변형과 무관한 확실한 매칭 키 */
+    idx?: number;
     name: string;
     show: string;
     /** 이 섹션의 시각 단위(디렉터 결정) — 예: 질감 매크로, 제품+콜아웃, 타이포그래피 온리 */
@@ -90,7 +93,7 @@ export async function runDirector(input: DirectorInput): Promise<DirectorPlan> {
  "concept_candidates": ["이 제품에 가능한 서로 확연히 다른 페이지 광고 컨셉 3개 — 각 1문장. 장면·세계관 아이디어이지 구도·배치가 아님"],
  "selected_concept": "선택한 컨셉을 2~3문장으로 구체화 — 왜 이 제품·이 구매자에게 설득력 있는지 포함",
  "person": { "use": true 또는 false, "spec": "페이지에서 인물을 한 번이라도 쓴다면 누구인지(성별·연령대·상황·분위기) 1문장 — 성별을 명시하세요. 페이지 전체에서 안 쓰면 빈 문자열" },
- "sections": [ { "name": "섹션명(입력과 동일)", "show": "이 섹션이 컨셉 세계관 안에서 말할 것 1~2문장", "format": "이 섹션의 시각 단위 1문장", "person": 이 섹션에 인물이 등장하면 true, 아니면 false } ]
+ "sections": [ { "idx": 섹션 목록의 번호(1부터, 입력과 동일), "name": "섹션명(입력과 동일)", "show": "이 섹션이 컨셉 세계관 안에서 말할 것 1~2문장", "format": "이 섹션의 시각 단위 1문장", "person": 이 섹션에 인물이 등장하면 true, 아니면 false } ]
 }
 
 규칙:
@@ -121,7 +124,7 @@ ${sectionList}`;
     : [{ type: 'text', text: prompt }];
 
   const msg = await client.messages.create({
-    model: MODEL, max_tokens: MAX_TOKENS,
+    model: MODEL, max_tokens: maxTokensFor(sections.length),
     messages: [{ role: 'user', content }],
   });
   const raw = msg.content[0]?.type === 'text' ? msg.content[0].text : '';
