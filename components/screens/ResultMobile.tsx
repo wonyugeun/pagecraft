@@ -17,6 +17,7 @@ import {
   countGeneratingImages, confirmSkipGenerating,
 } from './ResultScreen';
 import { buildSlideBakedText, composeSlidePrompt, selectHeroVisualType } from '@/lib/slideBaked';
+import { CLEAN_IMAGE_BRIEF, isCleanBriefTarget, buildAdBrief } from '@/lib/adBrief';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { selectPageStyle } from '@/lib/pageStyleContract';
@@ -40,7 +41,7 @@ const STEPS = [
 export default function ResultMobile() {
   // 데스크탑 ResultScreen과 동일 useApp
   const {
-    cat, ch, type, out, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey,
+    cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey,
     go, restoredImages, restoredBlockImages, restoredOverrides,
     updateLatestHistoryImages, updateLatestHistoryOverrides,
     toggleChat, credits,
@@ -134,7 +135,10 @@ export default function ResultMobile() {
       // ★조명 일원화 — baked가 Lighting을 지시하면 브리프 쪽 light:/Lighting: 제거(데스크톱과 동일)
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting, selectHeroVisualType(cat, knownFacts)));
+        : (CLEAN_IMAGE_BRIEF && archetype === 'hero' && isCleanBriefTarget(cat))
+          // ★Clean Baseline(플래그, 기본 OFF) — 화장품 Hero만 광고 브리프로 promptText 대체(Stage4 장면문·Stage5 baked 미사용). OFF면 아래 기존 경로 그대로.
+          ? buildAdBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual })
+          : composeSlidePrompt(sec.imageDesc, buildSlideBakedText(sec.headline, sec.subcopy, knownFacts, sec.blocks, archetype, sec.visual?.accent_color, productName, pageStyle, infoLayout, viewpoint, treatment, lighting, selectHeroVisualType(cat, knownFacts)));
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트만, 셀러 포장 원본은 클라 코드 합성(픽셀 보존).
       //   ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
