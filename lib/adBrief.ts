@@ -111,7 +111,7 @@ export function buildSectionBrief(i: SectionBriefInput): string {
       : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
     `Hard guards:
 - If the product appears, it must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label. If this section's visual unit does not need the product, it is fine to not show it.
-- Never show any other branded or labeled container or invented packaging. Plain unlabeled generic containers are allowed only when this section's stated purpose is to depict the problem situation.
+- Never show any other branded or labeled container or invented packaging. Plain unlabeled generic containers are allowed only when this section's stated purpose is to depict the problem situation — and they must look clearly different from the reference product (different silhouette, cap and liquid color) so no one mistakes them for it.
 - ${withCopy ? 'Text in the image is limited to the Korean copy above' : 'No text in the image'} — never invent numbers, percentages, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, or before/after comparisons; no medical-sounding expressions.`,
   ].filter(Boolean).join('\n\n');
 }
