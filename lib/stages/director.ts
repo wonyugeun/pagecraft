@@ -23,7 +23,14 @@ export interface DirectorPlan {
   concept_candidates: string[];
   selected_concept: string;
   person: { use: boolean; spec?: string };
-  sections: { name: string; show: string }[];
+  sections: {
+    name: string;
+    show: string;
+    /** 이 섹션의 시각 단위(디렉터 결정) — 예: 질감 매크로, 제품+콜아웃, 타이포그래피 온리 */
+    format?: string;
+    /** 이 섹션에 인물이 등장하는가(섹션별 결정 — 인물 스펙은 페이지 수준 person.spec 공유) */
+    person?: boolean;
+  }[];
 }
 
 export interface DirectorInput {
@@ -82,13 +89,17 @@ export async function runDirector(input: DirectorInput): Promise<DirectorPlan> {
  "product_understanding": "제품이 무엇이고, 누가, 왜 사는지 2~3문장",
  "concept_candidates": ["이 제품에 가능한 서로 확연히 다른 페이지 광고 컨셉 3개 — 각 1문장. 장면·세계관 아이디어이지 구도·배치가 아님"],
  "selected_concept": "선택한 컨셉을 2~3문장으로 구체화 — 왜 이 제품·이 구매자에게 설득력 있는지 포함",
- "person": { "use": true 또는 false, "spec": "쓴다면 누구인지(성별·연령대·상황·분위기) 1문장 — 성별을 명시하세요. 안 쓰면 빈 문자열" },
- "sections": [ { "name": "섹션명(입력과 동일)", "show": "이 섹션이 컨셉 세계관 안에서 보여줄 것 1~2문장" } ]
+ "person": { "use": true 또는 false, "spec": "페이지에서 인물을 한 번이라도 쓴다면 누구인지(성별·연령대·상황·분위기) 1문장 — 성별을 명시하세요. 페이지 전체에서 안 쓰면 빈 문자열" },
+ "sections": [ { "name": "섹션명(입력과 동일)", "show": "이 섹션이 컨셉 세계관 안에서 말할 것 1~2문장", "format": "이 섹션의 시각 단위 1문장", "person": 이 섹션에 인물이 등장하면 true, 아니면 false } ]
 }
 
 규칙:
 - 상품정보에 없는 효능·수치·인증·성분을 만들지 마세요.
-- 구도·배치·중앙·좌우·존·아이콘·카메라 같은 화면 설계 용어를 쓰지 마세요 — 그것은 촬영 단계가 판단합니다.
+- 구도·배치·중앙·좌우·존·카메라 같은 화면 설계 용어를 쓰지 마세요 — 그것은 촬영 단계가 판단합니다. format은 '무엇으로 보여줄지'(시각 단위)이지 '어디에 배치할지'가 아닙니다.
+- ★각 섹션은 그 섹션의 질문 하나에 답하는 최소한의 시각 단위만 씁니다. 시각 단위의 예: 인물 화보 / 제품+성분·특징 콜아웃 / 질감·발림 매크로(손·표면, 얼굴 없음) / 문제 상태 증거 클로즈업 / 셀러 사실만으로 만든 도식·아이콘 정보그래픽 / 타이포그래피 온리(사진 없음) / 제품 단독 연출 — 이 예시에 없는 단위도 그 섹션에 더 적합하면 자유롭게 정하세요.
+- ★인물은 사용하는 순간의 감정을 파는 소수 섹션에만 등장시키세요(전체 섹션의 1/3 이하). 성분·근거·사용법·FAQ·가격 같은 정보 섹션에 인물이 있을 이유가 없습니다. 좋은 상세페이지는 섹션마다 시각 단위가 달라집니다 — 같은 장면의 반복은 실패입니다.
+- ★상품정보에 시험·임상 자료가 없는 한, 효능 실증형 비교 연출은 금지합니다 — 사용 전/후 피부 대비, 타제품 사용 시와의 피부 상태 대비 모두. '전후 비교' 같은 섹션명이 오더라도 그 섹션은 다른 방식(사용감·질감·저자극 처방의 근거 등)으로 재해석하세요.
+- 다른 브랜드·라벨이 있는 용기는 절대 연출하지 마세요. 문제 상황 묘사에 필요하면 라벨 없는 무지 용기만 허용됩니다.
 - 컨셉이 이 제품이어야만 하는 이유가 상품정보 안에 있어야 합니다(어느 제품에나 붙는 컨셉 금지).
 - ★이번 페이지의 컨셉 시드는 ${seed}번입니다: 후보 3개를 만든 뒤 ${seed}번째 후보를 선택해 구체화하세요. 단 ${seed}번째가 이 제품에 명백히 부적합하다면 더 적합한 후보를 선택해도 됩니다(그 사유를 selected_concept 안에 한 문장으로).
 - 섹션 목록의 모든 섹션에 대해 sections 항목을 만드세요.
@@ -120,6 +131,7 @@ ${sectionList}`;
   if (!plan.selected_concept || !Array.isArray(plan.sections) || plan.sections.length === 0) {
     throw new Error('디렉터 출력 형식 오류');
   }
-  console.log(`[director] cat=${cat} seed=${seed} person=${plan.person?.use} sections=${plan.sections.length} concept="${plan.selected_concept.slice(0, 50)}..."`);
+  const personSections = plan.sections.filter(s => s.person).length;
+  console.log(`[director] cat=${cat} seed=${seed} person=${plan.person?.use}(${personSections}/${plan.sections.length}섹션) concept="${plan.selected_concept.slice(0, 50)}..."`);
   return plan;
 }

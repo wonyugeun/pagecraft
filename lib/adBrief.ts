@@ -77,11 +77,16 @@ export function buildSectionBrief(i: SectionBriefInput): string {
   const secName = (i.sectionName ?? '').trim();
 
   const d = i.director ?? null;
-  const show = d?.sections?.find(s => s.name === secName)?.show ?? '';
+  const dSec = d?.sections?.find(s => s.name === secName) ?? null;
+  const show = dSec?.show ?? '';
+  const format = (dSec?.format ?? '').trim();
+  /* 인물은 섹션별 결정(디렉터) — 스펙은 페이지 수준 공유(같은 사람). 구 플랜(person 필드 없음)은
+     페이지 결정으로 폴백해 기존 히스토리 재생성과 호환. */
+  const personInSection = dSec && typeof dSec.person === 'boolean' ? dSec.person : (d?.person?.use ?? false);
   const person = d
-    ? (d.person?.use && d.person.spec
-        ? `Person (this page's creative director decided): ${d.person.spec} — keep this same person consistent with the other sections of this page.`
-        : `No people in this page (creative director's decision).`)
+    ? (personInSection && d.person?.spec
+        ? `Person (this page's creative director decided): ${d.person.spec} — the same person as in this page's other person sections.`
+        : `No people in this section (creative director's decision) — do not add a person, a face, or a reflection of one.`)
     : '';
 
   const withCopy = !!head;
@@ -92,8 +97,9 @@ export function buildSectionBrief(i: SectionBriefInput): string {
       ? `Product: ${name}${formVol ? ` (${formVol})` : ''}.`
       : formVol ? `Product: ${formVol}.` : '',
     facts ? `Seller-provided product facts — the ONLY facts you may use:\n${facts}` : '',
-    d ? `Page ad concept (decided by this page's creative director — every section of this page lives in this one world):\n${d.selected_concept}` : '',
-    show ? `This section must show: ${show}` : '',
+    d ? `Page ad concept (decided by this page's creative director — keep the same palette, mood and story as the rest of the page, but NOT the same scene: never repeat another section's setting or composition):\n${d.selected_concept}` : '',
+    show ? `This section must say: ${show}` : '',
+    format ? `Visual unit for this section (creative director's decision — build the image as this unit, nothing more): ${format}` : '',
     person,
     withCopy
       ? `Korean copy to render crisply with exact spelling — place and size it however serves the ad best:\nHeadline: "${head}"${sub ? `\nSubcopy: "${sub}"` : ''}`
@@ -104,8 +110,8 @@ export function buildSectionBrief(i: SectionBriefInput): string {
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
       : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
     `Hard guards:
-- The product must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label.
-- Show only this product; no other containers or invented packaging.
+- If the product appears, it must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label. If this section's visual unit does not need the product, it is fine to not show it.
+- Never show any other branded or labeled container or invented packaging. Plain unlabeled generic containers are allowed only when this section's stated purpose is to depict the problem situation.
 - ${withCopy ? 'Text in the image is limited to the Korean copy above' : 'No text in the image'} — never invent numbers, percentages, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, or before/after comparisons; no medical-sounding expressions.`,
   ].filter(Boolean).join('\n\n');
 }
