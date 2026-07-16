@@ -279,6 +279,9 @@ async function runFull(presetKey: string, sectionCount: number) {
   });
   await runPool(tasks, 3);
   fs.writeFileSync(path.join(outDir, 'prompts.json'), JSON.stringify(promptLog.sort((a, b) => (a.idx as number) - (b.idx as number)), null, 2));
+  // 상세페이지처럼 세로 스크롤로 보는 한 페이지 뷰어(브라우저로 열기)
+  const pageHtml = `<!doctype html><meta charset="utf-8"><title>Flik ${presetKey}</title><body style="margin:0;background:#eee"><div style="max-width:860px;margin:0 auto;box-shadow:0 0 24px rgba(0,0,0,.15)">${sections.map((s, i) => `<img src="sec${String(i + 1).padStart(2, '0')}.png" style="width:100%;display:block" alt="${s.name}">`).join('')}</div>`;
+  fs.writeFileSync(path.join(outDir, 'page.html'), pageHtml);
   console.log(`[run] 이미지 완료 — ${Math.round((Date.now() - t1) / 1000)}초. 출력: ${path.relative(ROOT, outDir)}`);
 }
 
