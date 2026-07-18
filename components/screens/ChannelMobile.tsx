@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { baseSectionCount } from '@/lib/sectionDepth';
 
 type ChannelKey = '스마트스토어' | '쿠팡' | '자사몰' | '와디즈';
 
@@ -36,15 +37,11 @@ const STEPS = [
   { num: 5, label: '상품정보' },
 ];
 
-const SECTION_COUNT_MAP: Record<ChannelKey, string> = {
-  '스마트스토어': '12 ~ 16개',
-  '쿠팡': '8 ~ 12개',
-  '자사몰': '10 ~ 14개',
-  '와디즈': '14 ~ 20개',
-};
+// (구 SECTION_COUNT_MAP 삭제 — 섹션 수는 채널이 아니라 카테고리+타입이 결정(lib/sectionDepth).
+//  채널별로 다르게 표기하던 것은 지어낸 정보라 실값으로 교체.)
 
 export default function ChannelMobile() {
-  const { ch, setCh, go, toggleChat, credits } = useApp();
+  const { cat, ch, setCh, go, toggleChat, credits } = useApp();
   const activeCh = (ch as ChannelKey | null) ?? '스마트스토어';
   const activeDef = CHANNELS.find(c => c.key === activeCh) ?? CHANNELS[0];
 
@@ -316,8 +313,9 @@ export default function ChannelMobile() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <span style={{ fontSize: 12, color: '#666' }}>예상 섹션 수</span>
+            {/* 실값 — 선택한 카테고리의 기본형~프리미엄형 범위(생성과 동일 소스: lib/sectionDepth) */}
             <span style={{ fontSize: 14, fontWeight: 700, color: '#6D4CFF' }}>
-              {SECTION_COUNT_MAP[activeCh]}
+              {baseSectionCount(cat, false)} ~ {baseSectionCount(cat, true)}개
             </span>
           </div>
         </div>
