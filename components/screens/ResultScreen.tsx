@@ -1219,7 +1219,11 @@ export default function ResultScreen() {
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button className="btn-back" onClick={() => go('s5')}>← 정보 수정</button>
-            <button className="btn-next" onClick={() => go('s6')}>↻ 다시 생성</button>
+            {/* ★크레딧 사고 방지 — 재생성은 새 jobKey = 새 선차감. 경고 없이 진행되지 않게 confirm */}
+            <button className="btn-next" onClick={() => {
+              if (!window.confirm('다시 생성하면 크레딧이 새로 차감됩니다(섹션 수만큼). 계속하시겠어요?')) return;
+              go('s6');
+            }}>↻ 다시 생성</button>
           </div>
         </div>
       </div>

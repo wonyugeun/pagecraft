@@ -482,7 +482,10 @@ export default function ResultMobile() {
         <div style={{ fontSize: 13, color: '#666', marginBottom: 24 }}>콘텐츠가 생성되지 않았어요.</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button onClick={() => go('s5')} style={{ background: '#fff', border: '1.5px solid #ECECF2', color: '#111', fontSize: 14, fontWeight: 700, padding: '14px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }}>← 정보 수정</button>
-          <button onClick={() => go('s6')} style={{ background: '#6D4CFF', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, padding: '14px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }}>↻ 다시 생성</button>
+          <button onClick={() => {
+            if (!window.confirm('다시 생성하면 크레딧이 새로 차감됩니다(섹션 수만큼). 계속하시겠어요?')) return;
+            go('s6');
+          }} style={{ background: '#6D4CFF', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, padding: '14px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }}>↻ 다시 생성</button>
         </div>
       </div>
     );
