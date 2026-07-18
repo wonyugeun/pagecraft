@@ -4,16 +4,25 @@ import Link from 'next/link';
 import { IconBrandKakoTalk } from '@tabler/icons-react';
 
 // ★문의 이메일(베타 운영). 법적 페이지·mailto 공통.
-const CONTACT_EMAIL = 'flik.support@gmail.com';
-
-// 실제 페이지 있는 것만(약관·개인정보) + 문의(mailto). 빈 페이지로 가던 죽은 링크(서비스소개·기능안내·
-// 템플릿·가이드·FAQ·회사소개)는 제거 — 페이지 생기면 다시 추가.
+// 2026-07-18: 콘텐츠 페이지가 전부 생겨 푸터 링크 복원. 문의하기는 mailto가 아니라 /contact로 —
+// flik.support@gmail.com은 소유 미확인 주소라 mailto 노출 위험(제3자 선점 시 고객 문의 유출).
+// 실제 문의 메일함 확정 시 /contact 페이지에 추가한다.
 const FOOTER_COLS: { title: string; links: { label: string; href: string; external?: boolean }[] }[] = [
+  {
+    title: '서비스',
+    links: [
+      { label: '서비스 소개', href: '/about' },
+      { label: '기능', href: '/features' },
+      { label: '템플릿', href: '/templates' },
+      { label: '사용 가이드', href: '/guide' },
+    ],
+  },
   {
     title: '고객 지원',
     links: [
-      { label: '자주 묻는 질문', href: '/faq' },   // 콘텐츠 있는 /faq 라우트 연결(고아 페이지 해소)
-      { label: '문의하기', href: `mailto:${CONTACT_EMAIL}`, external: true },
+      { label: '자주 묻는 질문', href: '/faq' },
+      { label: '문의하기', href: '/contact' },
+      { label: '회사 소개', href: '/company' },
     ],
   },
   {
