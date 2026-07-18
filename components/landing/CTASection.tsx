@@ -47,8 +47,8 @@ export default function CTASection() {
               지금 바로 AI 상세페이지를<br />경험해 보세요
             </h2>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
-              카드 등록 없이 무료로 시작하세요.<br />
-              처음 30 크레딧을 무료로 드립니다.
+              카드 등록 없이 바로 시작하세요.<br />
+              가입하면 체험 크레딧 16개 — 상세페이지 1회를 직접 만들어볼 수 있어요.
             </p>
           </div>
 

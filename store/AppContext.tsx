@@ -282,7 +282,7 @@ export const CHAT_A: Record<string, string> = {
   '카테고리 차이가 뭐예요?': '카테고리마다 기획 구조가 완전히 달라요! 화장품은 성분 신뢰·피부 고민 중심, 식품은 원산지·신선도 중심, 패션은 스타일·착용감 중심으로 자동 설계됩니다.',
   '블로그형이 뭐예요?': '스마트스토어 상세페이지에서 텍스트 카피와 이미지가 함께 나오는 블로그 스타일이에요. 네이버 SEO에 유리하고, 각 섹션마다 헤드라인 + 이미지 슬롯 + 본문이 세트로 구성돼요.',
   '이미지를 왜 여러 장 올려야 해요?': 'AI가 각 섹션마다 다른 이미지를 배치해야 제품 일관성이 유지돼요. 정면·45도·디테일 3가지만 있어도 퀄리티가 크게 올라가요!',
-  '크레딧은 어떻게 써요?': '상세페이지 1회 생성에 10크레딧이 차감돼요. 생성한 결과물은 다운로드까지 무료예요. 신규 가입 시 30크레딧을 무료로 드려요!',
+  '크레딧은 어떻게 써요?': '상세페이지 생성은 섹션 1개당 1크레딧이 차감돼요(16섹션이면 16크레딧). 생성한 결과물은 다운로드까지 추가 비용이 없어요. 신규 가입 시 체험 크레딧 16개를 드려요!',
 };
 
 export const STEP_MAP: Record<string, number> = {
@@ -315,7 +315,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* ── NextAuth 세션 기반 로그인 상태 ── */
   const { data: session, status } = useSession();
   const loggedIn = status === 'authenticated';
-  const [credits, setCreditsState] = useState<number>(30);
+  const [credits, setCreditsState] = useState<number>(16);
   const [creditsLoaded, setCreditsLoaded] = useState(false);   // ★서버 잔액 1회 로드 완료 여부(부족 오탐 게이트)
   const [creditModalOpen, setCreditModalOpenState] = useState(false);
   const [productName, setProductNameState] = useState('');

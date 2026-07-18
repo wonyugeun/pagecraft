@@ -47,12 +47,12 @@ export default function CreditModal() {
           padding: '14px 16px', marginBottom: 16,
         }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF', marginBottom: 4 }}>
-            🎁 지금은 베타 무료 기간이에요
+            🎁 신규 가입 체험 크레딧 16개
           </div>
           <div style={{ fontSize: 12, color: '#6b6860', lineHeight: 1.6 }}>
             {isLow
-              ? '무료 크레딧을 모두 사용하셨어요. 정식 요금제는 준비 중이며, 도입 시 미리 안내드릴게요.'
-              : '정식 요금제(크레딧 충전)는 준비 중이에요. 도입 시 미리 안내드릴게요.'}
+              ? '체험 크레딧을 모두 사용하셨어요. 크레딧 충전(정식 요금제)은 준비 중이며, 도입 시 미리 안내드릴게요.'
+              : '섹션 1개당 1크레딧이 차감돼요. 크레딧 충전(정식 요금제)은 준비 중이에요.'}
           </div>
         </div>
 

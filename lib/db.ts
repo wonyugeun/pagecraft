@@ -22,7 +22,7 @@ if (!connectionString) {
 export const sql = neon(connectionString ?? '');
 
 /** 신규 가입 기본 지급량 — 기존 로직(30)과 동일. */
-export const SIGNUP_GRANT = 30;
+export const SIGNUP_GRANT = 16;   // 신규 가입 체험 크레딧 — 일반 품질 16섹션 1회(원가 ~2,500원)
 
 // ★생성 비용 상수(고정가 10)는 제거됨 — 크레딧 금액은 lib/pricing.ts calculateGenerationCost(1섹션=1크레딧)가 단일 소스.
 //   서버 차감(strategy·generate)·클라 안내 모두 이 함수 경유. 고정 리터럴을 다시 두지 말 것.
@@ -266,20 +266,65 @@ export async function deductCreditsAtomic(
   return { status: 'insufficient', balance: current };                  // 잔액 부족 — 차감 안 함
 }
 
+/** 가입 지급 어뷰징용 이메일 정규화 — +태그 제거, gmail은 점 제거·googlemail 통일.
+ *  같은 실제 메일함으로 무한 재가입해 크레딧을 반복 수령하는 가장 싼 트릭을 차단한다.
+ *  (계정 식별은 원본 email 그대로 — 정규화는 '가입 지급 1회' 판정에만 사용) */
+export function normalizeEmailForGrant(email: string): string {
+  const [localRaw = '', domainRaw = ''] = email.trim().toLowerCase().split('@');
+  const domain = domainRaw === 'googlemail.com' ? 'gmail.com' : domainRaw;
+  let local = localRaw.split('+')[0];
+  if (domain === 'gmail.com') local = local.replace(/\./g, '');
+  return `${local}@${domain}`;
+}
+
+/** IP당 하루 가입 지급 상한 — 계정 갈아타기 파밍 방어. 공유 IP(회사·통신사 NAT) 오탐을
+ *  피하려고 여유 있게 3회(지급만 제한 — 가입·이용 자체는 막지 않음). */
+const SIGNUP_GRANTS_PER_IP_PER_DAY = 3;
+
 /**
- * 유저 잔액 조회. row 없으면 30 지급(grant) + ledger 기록 후 30 반환(신규 지급).
+ * 유저 잔액 조회. row 없으면 신규 지급(grant) + ledger 기록 후 반환.
  * ON CONFLICT DO NOTHING으로 동시요청에도 중복 지급 안 됨(멱등).
+ *
+ * ★가입 지급 어뷰징 가드(2단):
+ *  ① 정규화 이메일 기준 기지급이면 0 지급(ledger idempotency_key = signup:{norm})
+ *  ② 같은 IP에서 하루 3회 초과 지급이면 0 지급 (usage_counters 재사용)
+ *  0 지급이어도 계정 생성·서비스 접근은 정상 — 크레딧만 없음.
  */
-export async function getOrCreateBalance(email: string): Promise<number> {
+export async function getOrCreateBalance(email: string, ip?: string | null): Promise<number> {
+  const existing = await sql`SELECT balance FROM credits WHERE user_email = ${email}`;
+  if (existing.length) return (existing[0] as { balance: number }).balance;
+
+  // 신규 — 지급액 결정(어뷰징 가드)
+  let grant = SIGNUP_GRANT;
+  const normKey = `signup:${normalizeEmailForGrant(email)}`;
+  const already = await sql`SELECT 1 FROM credit_ledger WHERE idempotency_key = ${normKey} LIMIT 1`;
+  if (already.length) {
+    grant = 0;
+    console.warn(`[signup] 정규화 이메일 기지급 — 0 지급: ${email}`);
+  }
+  if (grant > 0 && ip) {
+    const day = new Date().toISOString().slice(0, 10);
+    try {
+      const q = await consumeUsageQuota(`signup-ip:${ip}:${day}`, 1, SIGNUP_GRANTS_PER_IP_PER_DAY);
+      if (!q.allowed) {
+        grant = 0;
+        console.warn(`[signup] IP 일일 지급 상한 초과 — 0 지급: ${email} ip=${ip}`);
+      }
+    } catch { /* 카운터 오류 시 fail-open(지급) — 보조 방어층 */ }
+  }
+
   const inserted = await sql`
-    INSERT INTO credits (user_email, balance) VALUES (${email}, ${SIGNUP_GRANT})
+    INSERT INTO credits (user_email, balance) VALUES (${email}, ${grant})
     ON CONFLICT (user_email) DO NOTHING
     RETURNING balance`;
   if (inserted.length > 0) {
-    await sql`
-      INSERT INTO credit_ledger (user_email, amount, type, reason)
-      VALUES (${email}, ${SIGNUP_GRANT}, 'grant', 'signup')`;
-    return SIGNUP_GRANT;
+    if (grant > 0) {
+      await sql`
+        INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+        VALUES (${email}, ${grant}, 'grant', 'signup', ${normKey})
+        ON CONFLICT (idempotency_key) DO NOTHING`;
+    }
+    return grant;
   }
   const rows = await sql`SELECT balance FROM credits WHERE user_email = ${email}`;
   return (rows[0] as { balance: number } | undefined)?.balance ?? 0;

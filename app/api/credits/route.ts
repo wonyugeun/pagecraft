@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOrCreateBalance } from '@/lib/db';
+import { getOrCreateBalance, clientIp } from '@/lib/db';
 import type { NextRequest } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
   }
   try {
-    const balance = await getOrCreateBalance(email);
+    const balance = await getOrCreateBalance(email, clientIp(req));
     return NextResponse.json({ balance });
   } catch (err) {
     console.error('[credits] DB 조회 오류:', err);
