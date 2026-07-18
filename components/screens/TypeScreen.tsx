@@ -238,7 +238,7 @@ export default function TypeScreen() {
                     {t.secLabel}
                   </span>
                   <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션
+                    <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션 · {t.secCount}크레딧
                   </span>
                 </div>
                 {/* 원래 스타일: 박스(소프트 배경) 안 큰 아이콘 + 아래 섹션명, 5열 격자. 박스 개수=실제 섹션수. */}
@@ -298,10 +298,10 @@ export default function TypeScreen() {
           </div>
           <div>
             <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.01em' }}>
-              어떤 구성이든 언제든 변경할 수 있어요
+              섹션 구성은 다음 단계에서 조정할 수 있어요
             </div>
             <div style={{ fontSize: '11.5px', color: '#7B6EA8', marginTop: '2px' }}>
-              선택 후에도 자유롭게 변경 가능하니 부담없이 시작하세요.
+              생성 전까지는 타입·섹션을 자유롭게 바꿀 수 있어요.
             </div>
           </div>
         </div>
@@ -312,7 +312,8 @@ export default function TypeScreen() {
           <Clock size={14} color="#6D4CFF" />
           <div>
             <div style={{ fontSize: '10px', color: '#9B8EC4', fontWeight: 600 }}>예상 소요 시간</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em' }}>약 2~5분</div>
+            {/* 실측 기준(카피+이미지 완료까지): 16섹션 ≈ 10분, 32섹션 ≈ 17분 — 과소 표기는 이탈 유발 */}
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.02em' }}>약 10~15분</div>
           </div>
         </div>
       </div>

@@ -206,8 +206,8 @@ export default function TypeMobile() {
             <Sparkles size={12} /> AI 추천
           </span>
           <div style={{ marginTop: 12, fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.45 }}>
-            대부분 판매자는<br />
-            <span style={{ fontWeight: 800 }}>프리미엄형을 선택해요!</span>
+            정보가 풍부한 상품엔<br />
+            <span style={{ fontWeight: 800 }}>프리미엄형을 추천해요!</span>
           </div>
           <p style={{ margin: '10px 0 0', fontSize: 12.5, color: '#666' }}>
             섹션 수는 AI가 카테고리·채널·상품을 보고 자동 추천해요.
@@ -272,7 +272,7 @@ export default function TypeMobile() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#92400E' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#B45309' }}>{premiumCount}</span>개 · 기본형의 약 2배
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#B45309' }}>{premiumCount}</span>개 · {premiumCount}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
@@ -349,7 +349,7 @@ export default function TypeMobile() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7B6FB4' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#9B8FD4' }}>{basicCount}</span>개
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#9B8FD4' }}>{basicCount}</span>개 · {basicCount}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
