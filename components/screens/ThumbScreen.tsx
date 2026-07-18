@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
+import { buildThumbBrief } from '@/lib/adBrief';
 
 // ★디자인 통일 — 구 토큰(파랑+베이지) → Flik 토큰(#6D4CFF 보라+화이트). QuickScreen과 동일 스코프 오버라이드.
 const FLIK_TOKENS = {
@@ -254,6 +255,7 @@ export default function ThumbScreen() {
   const jobKeyRef = useRef<string>('');   // ★결제 멱등키 — charge가 이 키로 원자 차감, 이후 verify-only. 타입/채널 바뀌면 새 키(새 과금).
 
   const [productName, setProductName]   = useState('');
+  const [copyText, setCopyText]         = useState('');   // ★썸네일 문구 — 이미지 내 유일 허용 텍스트
   const [cat, setCat]                   = useState('');
   const [ch, setCh]                     = useState<Channel | ''>('');
   const [selectedType, setSelectedType] = useState('');
@@ -278,7 +280,7 @@ export default function ThumbScreen() {
   // ★무과금 재생성 누수 차단 — 생성 입력(상품명·카테고리·채널·타입·상품사진·레퍼런스) 중 하나라도 바뀌면
   //   새 jobKey 발급(=새 charge). 아무것도 안 바꾸고 '다시 생성'만 하면 deps 불변 → 같은 키 = 무료 재시도(C정책).
   //   productImgs/refImg는 add·remove마다 참조가 바뀌므로 사진 교체도 새 과금으로 잡힘.
-  useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch, productName, cat, productImgs, refImg]);
+  useEffect(() => { jobKeyRef.current = ''; }, [selectedType, ch, productName, copyText, cat, productImgs, refImg]);
 
   const estCost = selectedType ? calculateGenerationCost({ sectionCount: 1 }) : 0;   // 예상 차감(하드코딩 X, 서버와 동일 함수)
   const activeStep = resultUrl ? 3 : loading ? 2 : 1;   // 01 타입선택 → 02 이미지생성 → 03 결과확인
@@ -347,7 +349,15 @@ export default function ThumbScreen() {
 
     try {
       const spec   = CH_SPEC[ch as Channel];   // ch는 isDisabled 게이트에서 필수 검증됨
-      const prompt = `${currentTypeDef.prompt} 카테고리: ${cat || '미지정'}. 상품명: ${productName || '미지정'}. 채널: ${ch}. 생성 규격: ${spec.out}px (${spec.orient}).`;
+      // ★Clean 전환(2026-07-18) — 구 한 줄 프롬프트를 buildThumbBrief로 교체:
+      //   텍스트=셀러 입력 문구만(카피·할인율 날조 차단), 제품 보존·수치 금지 가드 동일 적용.
+      const prompt = buildThumbBrief({
+        typeKey: selectedType,
+        productName,
+        cat,
+        copyText,
+        hasRef: needsRef && !!refImg,
+      });
 
       const sourceImgs = productImgs.slice(0, 5);
       const productBase64s: string[] = sourceImgs.length > 0
@@ -440,6 +450,14 @@ export default function ThumbScreen() {
               <div className="q-fg">
                 <div className="q-label">상품명 <span className="q-opt">선택</span></div>
                 <input className="q-input" type="text" placeholder="예: 제주 병풀 토너 200ml" value={productName} onChange={e => setProductName(e.target.value)} />
+              </div>
+
+              {/* ★썸네일 문구(Clean 전환) — 이미지에 들어갈 유일한 텍스트. 미입력이면 텍스트 없는 썸네일.
+                  (이전엔 텍스트오버레이·세일컷에서 모델이 카피·할인율을 지어냈음 — 날조 차단의 핵심 입력) */}
+              <div className="q-fg">
+                <div className="q-label">썸네일 문구 <span className="q-opt">선택</span></div>
+                <input className="q-input" type="text" placeholder="예: 출시 기념 특가 · 미입력 시 문구 없이 생성돼요" value={copyText} onChange={e => setCopyText(e.target.value)} />
+                <div className="q-hint">입력한 문구만 이미지에 들어가요 — 할인율·이벤트명은 실제 진행 중인 것만 적어주세요</div>
               </div>
 
               <div className="q-fg">

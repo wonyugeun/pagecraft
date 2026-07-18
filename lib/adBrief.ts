@@ -45,6 +45,56 @@ export interface AdBriefInput {
   visual?: { primary_color?: string; accent_color?: string; soft_color?: string } | null;
 }
 
+/* ═══════════ 썸네일 브리프 (ThumbScreen Clean 전환, 2026-07-18) ═══════════ */
+
+export interface ThumbBriefInput {
+  /** THUMB_TYPES key — white/concept/text_overlay/ref_copy/ref_vibe/sale */
+  typeKey: string;
+  productName?: string;
+  cat?: string;
+  /** 셀러가 입력한 썸네일 문구 — 이미지에 쓸 유일한 텍스트. 없으면 텍스트 0(문구 날조 방지) */
+  copyText?: string;
+  /** 레퍼런스 이미지가 첨부 배열 맨 앞에 있는가(ref_copy/ref_vibe) */
+  hasRef?: boolean;
+}
+
+const THUMB_DIRECTIONS: Record<string, string> = {
+  white: 'A clean e-commerce main thumbnail: the product alone on a pure white studio background, evenly lit, crisp and sharp so the product form reads instantly.',
+  concept: "A lifestyle/mood thumbnail: place the product naturally in a scene that fits the product's category and tone — colors and atmosphere in harmony with the product.",
+  text_overlay: 'A high-impact thumbnail with bold Korean copy overlaid on the product image — high contrast, extremely legible at small sizes.',
+  ref_copy: 'The FIRST attached image is a LAYOUT REFERENCE: keep its composition, background and prop placement as closely as possible, but replace the product in it with OUR product (shown in the other attached images).',
+  ref_vibe: 'The FIRST attached image is a MOOD REFERENCE ONLY: analyze its color palette and atmosphere, then create a NEW composition for our product in that mood — do not copy its layout.',
+  sale: 'A promotional sale thumbnail: bold, saturated high-energy backdrop (e.g. vivid red) with strong visual urgency around the product.',
+};
+
+/**
+ * 썸네일 1장용 Clean 브리프 — 구 방식(타입 한 줄 + "상품명: X")을 대체.
+ * 핵심: 텍스트는 셀러 입력 문구만(미입력 시 0) — 텍스트오버레이/세일컷에서 모델이
+ * 카피·할인율을 지어내던 날조 경로 차단. 제품 보존·수치 날조 금지 가드 동일 적용.
+ */
+export function buildThumbBrief(i: ThumbBriefInput): string {
+  const direction = THUMB_DIRECTIONS[i.typeKey] ?? THUMB_DIRECTIONS.white;
+  const name = (i.productName ?? '').trim();
+  const copy = (i.copyText ?? '').trim();
+  const productRefNote = i.hasRef
+    ? 'The remaining attached images show OUR product.'
+    : 'The attached images show OUR product.';
+
+  return [
+    `This is a single Korean e-commerce product THUMBNAIL image${name ? ` for "${name}"` : ''}${i.cat ? ` (category: ${i.cat})` : ''}.`,
+    direction,
+    productRefNote,
+    copy
+      ? `Korean copy to render crisply with exact spelling — this is the ONLY text allowed in the image:\n"${copy}"`
+      : 'No text in the image at all — do not invent any copy, discount rate, price, or event name.',
+    `Hard guards:
+- The product must exactly match its reference photos (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label.
+- Never invent numbers, percentages, discount rates, prices, star ratings, review counts, certifications, or badges${copy ? ' beyond the provided copy' : ''}.
+- Never draw interactive-looking UI: no buttons, no click prompts, no fake shopping interface.
+- Show only this product; no other branded containers or invented packaging.`,
+  ].filter(Boolean).join('\n\n');
+}
+
 /* ═══════════ Phase B — 디렉터 플랜 결합 전 섹션 브리프 ═══════════ */
 
 export interface SectionBriefInput extends AdBriefInput {

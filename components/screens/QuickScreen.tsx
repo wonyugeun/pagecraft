@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type CSSProperties } from 'react';
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
 import { aspectRatioFor } from '@/lib/sectionAspect';
+import { buildSectionBrief } from '@/lib/adBrief';
 import { calculateGenerationCost } from '@/lib/pricing';
 
 interface ImgFile { url: string; }
@@ -383,12 +384,20 @@ export default function QuickScreen() {
         base64s = await Promise.all(images.slice(0, 3).map(img => toBase64(img.url)));
       }
 
-      // ★출력형태 반영(일반 생성과 동일 분기, ResultScreen: effectiveOut==='blog' ? imageDesc : baked)
-      //   blog=텍스트와 이미지 분리(오버레이 금지) · slide/html=이미지에 헤드라인 baked.
-      //   블로그형 토글을 골라도 헤드라인이 이미지에 baked되던 버그 수정.
+      // ★Clean 전환(2026-07-18) — ResultScreen과 동일 분기: blog=imageDesc(텍스트 분리),
+      //   그 외=buildSectionBrief(셀러 사실 게이트·날조 가드·카피 배치 위임·보조컷 지시 포함).
+      //   구 방식(`imageDesc + "텍스트 오버레이:"`)은 가드 없는 옛 경로라 폐기.
       const bakeText = outType !== 'blog';
       const prompt = bakeText
-        ? `${section!.imageDesc}. 텍스트 오버레이: "${section!.headline.replace(/\n/g, ' ')}"`
+        ? buildSectionBrief({
+            productName,
+            productExtra: buildProductExtra(),
+            headline: section!.headline,
+            subcopy: section!.subcopy,
+            director: null,                       // 단일 섹션 — 페이지 디렉터 없이 자유 브리프(검증된 Clean 폴백)
+            sectionName: selectedSection.name,
+            auxRefCount: Math.max(0, base64s.length - 1),   // 첫 장=대표컷, 나머지=내용물 보조컷
+          })
         : section!.imageDesc;
 
       const res = await fetch('/api/generate-image', {
