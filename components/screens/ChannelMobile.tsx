@@ -45,9 +45,9 @@ export default function ChannelMobile() {
   const activeCh = (ch as ChannelKey | null) ?? '스마트스토어';
   const activeDef = CHANNELS.find(c => c.key === activeCh) ?? CHANNELS[0];
 
-  const onPick = (key: ChannelKey) => setCh(key);
+  // ★선택 즉시 이동(2026-07-18) — 데스크톱·카테고리 화면과 UX 통일
+  const onPick = (key: ChannelKey) => { setCh(key); go('s3'); };
   // ★데스크탑과 일치: 채널 미선택 시 자동 스마트스토어 금지 — 선택해야만 진행.
-  const onNext = () => { if (ch) go('s3'); };
 
   const renderIcon = (def: ChannelDef, size = 26) => {
     if (def.iconNode === 'N') {
@@ -181,7 +181,7 @@ export default function ChannelMobile() {
             시작해보세요
           </div>
           <button
-            onClick={() => { onPick('스마트스토어'); go('s3'); }}
+            onClick={() => onPick('스마트스토어')}
             style={{
               marginTop: 16,
               display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -218,6 +218,7 @@ export default function ChannelMobile() {
         <div style={{ fontSize: 15, fontWeight: 700, color: '#111', marginBottom: 12 }}>
           판매 채널 선택
         </div>
+        <p style={{ margin: '0 0 12px', fontSize: 11.5, color: '#999' }}>채널을 누르면 바로 다음 단계로 넘어가요</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {CHANNELS.map(c => {
             // ★실제 선택(ch)으로만 하이라이트 — 미선택 시 스마트스토어 자동 강조 안 함(데스크탑 일치).
@@ -290,7 +291,7 @@ export default function ChannelMobile() {
             {[
               { Icon: FileText,    title: '블로그형 구조',   desc: '정보 전달에 최적화' },
               { Icon: ShoppingBag, title: '구매전환형 카피', desc: '구매를 유도하는 구성' },
-              { Icon: ImageIcon,   title: '썸네일 자동 생성', desc: '3종 썸네일 제공' },
+              { Icon: ImageIcon,   title: '이미지 슬라이드', desc: '섹션별 이미지 생성' },
             ].map(({ Icon, title, desc }) => (
               <div key={title} style={{
                 display: 'flex', flexDirection: 'column', gap: 6,
@@ -329,28 +330,17 @@ export default function ChannelMobile() {
         display: 'flex', gap: 10,
         zIndex: 100,
       }}>
+        {/* ★다음 버튼 제거 — 채널 탭 즉시 이동. 이전만 유지 */}
         <button onClick={() => go('s1')} style={{
+          flex: 1,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           background: '#fff', border: '1.5px solid #ECECF2',
           color: '#111',
           fontSize: 14, fontWeight: 700,
           borderRadius: 14, padding: '14px 22px',
           cursor: 'pointer', fontFamily: 'inherit',
-          flexShrink: 0,
         }}>
           <ArrowLeft size={16} /> 이전 단계
-        </button>
-        <button onClick={onNext} disabled={!ch} style={{
-          flex: 1,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: ch ? '#6D4CFF' : '#EDE8FF', color: ch ? '#fff' : '#B0A0E8',
-          border: 'none',
-          fontSize: 15, fontWeight: 700,
-          borderRadius: 14, padding: '14px',
-          cursor: ch ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
-          boxShadow: ch ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
-        }}>
-          다음 단계 <ArrowRight size={16} />
         </button>
       </nav>
 
