@@ -473,8 +473,8 @@ export const CQ: Record<string, Question[]> = {
     },
     {
       id: 'ht6', label: '기타 추가 정보', req: false, mode: 'textarea',
-      placeholder: '예: 1일 1회 1정 식후 복용, 냉암소 보관, 임산부 복용 전 의사 상담 권장, 주요 원료 함량...',
-      hint: '복용법·금기사항·원료 상세 등 AI에게 전달할 추가 정보를 입력하세요',
+      placeholder: '예: 기능성 원료-기능 문구(식약처 고시형), 90정=3개월분, 무착향·무착색...',
+      hint: '위 선택지에 없는 정보만 적어주세요 — 이미 선택한 내용은 다시 쓰지 않아도 됩니다',
     },
   ],
 

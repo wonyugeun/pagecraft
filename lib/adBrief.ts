@@ -111,7 +111,7 @@ export function buildSectionBrief(i: SectionBriefInput): string {
       : formVol ? `Product: ${formVol}.` : '',
     facts ? `Seller-provided product facts — the ONLY facts you may use:\n${facts}` : '',
     d ? `Page ad concept (decided by this page's creative director — keep the same palette, mood and story as the rest of the page, but NOT the same scene: never repeat another section's setting or composition):\n${d.selected_concept}` : '',
-    show ? `This section must say: ${show}` : '',
+    show ? `What this section must communicate (a direction for you — never render this sentence as text in the image): ${show}` : '',
     format ? `Visual unit for this section (creative director's decision — build the image as this unit, nothing more): ${format}` : '',
     person,
     withCopy
