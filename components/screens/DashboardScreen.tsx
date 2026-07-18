@@ -54,12 +54,13 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
 }
 
 // 수정 5: 숫자 없이 카테고리명만
+// 실제 카테고리 키(CategoryScreen CATEGORIES.id)와 일치시킬 것 — 클릭 시 해당 카테고리로 바로 시작
 const PLATFORM_CATS = [
-  '화장품/미용',
+  '화장품',
+  '건강',
   '식품',
-  '가구/인테리어',
-  '디지털/가전',
-  '패션/잡화',
+  '패션',
+  '가전',
 ];
 
 // (SAMPLE_HISTORY 목업 제거 — 신규 유저에게 가짜 작업이 뜨던 문제. 실제 history만 표시, 0개면 CTA 배너가 빈 상태 안내)
@@ -181,7 +182,7 @@ function RobotIllust() {
 // ── 메인 ─────────────────────────────────────────────────
 export default function DashboardScreen() {
   const isMobile = useIsMobile();
-  const { startDetail, go, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
+  const { startDetail, go, setCat, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
   const { data: session } = useSession();
   // ★빠른제작·썸네일 모두 결제 배관(quick/charge·thumb/charge 선차감+jobKey) 완비 → 프로덕션 항상 활성.
   //   서버 게이트(verifyPaidJob) 불변 — 통과 자격(paid jobKey)만 charge에서 발급.
@@ -609,16 +610,24 @@ export default function DashboardScreen() {
 
             {/* 수정 5: AI 추천 카테고리 - 숫자 제거 */}
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', padding: '18px 20px' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>✦ AI 추천 카테고리</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 4 }}>✦ 카테고리로 바로 시작</div>
               <p style={{ fontSize: 12, color: '#AAA', marginBottom: 14, lineHeight: 1.5 }}>
-                카테고리를 골라 빠르게 시작해보세요.
+                카테고리를 누르면 바로 시작돼요.
               </p>
+              {/* ★죽은 목록 → 실동작: 클릭 시 새 작업 시작 + 해당 카테고리 선택 상태로 채널 화면 진입 */}
               {PLATFORM_CATS.map((name, i) => (
-                <div key={name} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 0',
-                  borderBottom: i < 4 ? '1px solid #F5F5F7' : 'none',
-                }}>
+                <div
+                  key={name}
+                  onClick={() => { startDetail(); setCat(name); go('s2'); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 6px', margin: '0 -6px',
+                    borderBottom: i < PLATFORM_CATS.length - 1 ? '1px solid #F5F5F7' : 'none',
+                    cursor: 'pointer', borderRadius: 8, transition: 'background 120ms',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#F8F6FF')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
                   <div style={{
                     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                     background: i === 0 ? '#6D4CFF' : '#F4F0FF',
@@ -626,7 +635,8 @@ export default function DashboardScreen() {
                     fontSize: 11, fontWeight: 700,
                     color: i === 0 ? '#fff' : '#6D4CFF',
                   }}>{i + 1}</div>
-                  <span style={{ fontSize: 13, color: '#333' }}>{name}</span>
+                  <span style={{ fontSize: 13, color: '#333', flex: 1 }}>{name}</span>
+                  <ArrowRight size={13} color="#C9C2E8" />
                 </div>
               ))}
             </div>
@@ -661,10 +671,11 @@ export default function DashboardScreen() {
             }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>AI 도우미 얼지</div>
-                  <div style={{ fontSize: 11, color: '#6D4CFF', fontWeight: 600, marginBottom: 8 }}>더 빠른 작업의 시작</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 2 }}>AI 도우미</div>
+                  <div style={{ fontSize: 11, color: '#6D4CFF', fontWeight: 600, marginBottom: 8 }}>궁금한 건 바로 물어보세요</div>
+                  {/* ★과장 카피 정리 — 챗봇 실능력(이용 안내·FAQ)에 맞게. "결과물을 만들어드려요"는 오해 유발 */}
                   <p style={{ fontSize: 11, color: '#666', lineHeight: 1.7, marginBottom: 14 }}>
-                    AI 도우미에게 작업을 맡겨보세요.<br />원하는 결과물을 대화로 만들어드려요.
+                    크레딧·생성·다운로드까지,<br />이용 중 궁금한 점을 바로 답해드려요.
                   </p>
                   <button
                     onClick={toggleChat}

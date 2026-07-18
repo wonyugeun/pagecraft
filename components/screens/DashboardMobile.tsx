@@ -39,12 +39,13 @@ function getCatStyle(cat: string): { bg: string; emoji: string } {
 }
 
 // ★근거 없는 생성 수(12,408개 등) 제거 — 카테고리 빠른 시작 예시만.
+// 실제 카테고리 키(CategoryScreen CATEGORIES.id)와 일치 — 클릭 시 해당 카테고리 선택 상태로 시작
 const PLATFORM_CATS: { name: string; emoji: string }[] = [
-  { name: '화장품/미용',  emoji: '🧴' },
-  { name: '식품',         emoji: '🥗' },
-  { name: '가구/인테리어', emoji: '🪑' },
-  { name: '디지털/가전',  emoji: '📱' },
-  { name: '패션/잡화',    emoji: '👗' },
+  { name: '화장품', emoji: '🧴' },
+  { name: '건강',   emoji: '💊' },
+  { name: '식품',   emoji: '🥗' },
+  { name: '패션',   emoji: '👗' },
+  { name: '가전',   emoji: '📱' },
 ];
 
 // (SAMPLE_HISTORY 목업 제거 — 신규 유저 가짜 작업 노출 방지. 실제 history만, 0개면 빈 상태 안내 표시)
@@ -85,7 +86,7 @@ function formatTime(iso: string) {
 
 /* ─── 메인 ─── */
 export default function DashboardMobile() {
-  const { startDetail, loadFromHistory, toggleChat, credits, go } = useApp();
+  const { startDetail, setCat, loadFromHistory, toggleChat, credits, go } = useApp();
   // ★빠른제작·썸네일 모두 결제 배관(quick/charge·thumb/charge) 완비 → 프로덕션 항상 활성. 서버 게이트 불변.
   const { data: session } = useSession();
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -380,7 +381,7 @@ export default function DashboardMobile() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
             {PLATFORM_CATS.map(c => (
               <div key={c.name}
-                onClick={startDetail}
+                onClick={() => { startDetail(); setCat(c.name); go('s2'); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
                   cursor: 'pointer',
