@@ -290,29 +290,60 @@ const SIGNUP_GRANTS_PER_IP_PER_DAY = 3;
  *  ② 같은 IP에서 하루 3회 초과 지급이면 0 지급 (usage_counters 재사용)
  *  0 지급이어도 계정 생성·서비스 접근은 정상 — 크레딧만 없음.
  */
-export async function getOrCreateBalance(email: string, ip?: string | null): Promise<number> {
-  const existing = await sql`SELECT balance FROM credits WHERE user_email = ${email}`;
-  if (existing.length) return (existing[0] as { balance: number }).balance;
-
-  // 신규 — 지급액 결정(어뷰징 가드)
-  let grant = SIGNUP_GRANT;
-  const normKey = `signup:${normalizeEmailForGrant(email)}`;
-  const already = await sql`SELECT 1 FROM credit_ledger WHERE idempotency_key = ${normKey} LIMIT 1`;
+/** 가입 지급 가드 통과 여부 — 정규화 이메일 기지급·IP 일일 상한 검사. 통과 시 지급액, 차단 시 0. */
+async function decideSignupGrant(email: string, ip: string | null | undefined, normKey: string): Promise<number> {
+  // 기지급 검사 2중: ①정규화 이메일 키(신규 방식) ②본인 email의 signup 기록(키 없는 레거시 지급분 —
+  //   없으면 잔액 0까지 쓴 레거시 유저가 지연 지급 경로로 재수령하는 구멍이 생김)
+  const already = await sql`
+    SELECT 1 FROM credit_ledger
+    WHERE idempotency_key = ${normKey} OR (user_email = ${email} AND reason = 'signup')
+    LIMIT 1`;
   if (already.length) {
-    grant = 0;
-    console.warn(`[signup] 정규화 이메일 기지급 — 0 지급: ${email}`);
+    console.warn(`[signup] 기지급 — 0 지급: ${email}`);
+    return 0;
   }
-  if (grant > 0 && ip) {
+  if (ip) {
     const day = new Date().toISOString().slice(0, 10);
     try {
       const q = await consumeUsageQuota(`signup-ip:${ip}:${day}`, 1, SIGNUP_GRANTS_PER_IP_PER_DAY);
       if (!q.allowed) {
-        grant = 0;
-        console.warn(`[signup] IP 일일 지급 상한 초과 — 0 지급: ${email} ip=${ip}`);
+        console.warn(`[signup] IP 일일 지급 상한 — 지연 지급 대상: ${email} ip=${ip}`);
+        return 0;
       }
     } catch { /* 카운터 오류 시 fail-open(지급) — 보조 방어층 */ }
   }
+  return SIGNUP_GRANT;
+}
 
+export async function getOrCreateBalance(email: string, ip?: string | null): Promise<number> {
+  const normKey = `signup:${normalizeEmailForGrant(email)}`;
+  const existing = await sql`SELECT balance FROM credits WHERE user_email = ${email}`;
+  if (existing.length) {
+    const bal = (existing[0] as { balance: number }).balance;
+    // ★지연 지급 — IP 상한 때문에 0으로 시작한 계정은 이후 방문에서 자동 수령(박탈→지연).
+    //   가드가 그대로 다시 돌므로: 기지급 메일함은 여전히 0, 어뷰저 파밍 속도도 IP 상한 그대로.
+    //   (크레딧을 다 쓴 유저는 signup ledger가 있어 기지급 검사에서 걸림 — 재지급 없음)
+    if (bal === 0) {
+      const grant = await decideSignupGrant(email, ip, normKey);
+      if (grant > 0) {
+        const rows = await sql`
+          WITH l AS (
+            INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+            VALUES (${email}, ${grant}, 'grant', 'signup', ${normKey})
+            ON CONFLICT (idempotency_key) DO NOTHING
+            RETURNING id
+          )
+          UPDATE credits SET balance = balance + ${grant}, updated_at = now()
+          WHERE user_email = ${email} AND EXISTS (SELECT 1 FROM l)
+          RETURNING balance`;
+        if (rows.length) return (rows[0] as { balance: number }).balance;
+      }
+    }
+    return bal;
+  }
+
+  // 신규 — 지급액 결정(어뷰징 가드) 후 생성
+  const grant = await decideSignupGrant(email, ip, normKey);
   const inserted = await sql`
     INSERT INTO credits (user_email, balance) VALUES (${email}, ${grant})
     ON CONFLICT (user_email) DO NOTHING
