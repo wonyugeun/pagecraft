@@ -6,7 +6,7 @@ import ResultMobile from './ResultMobile';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import { CLEAN_IMAGE_BRIEF, buildSectionBrief } from '@/lib/adBrief';
+import { CLEAN_IMAGE_BRIEF, buildSectionBrief, buildThumbBrief } from '@/lib/adBrief';
 import type { DirectorPlan } from '@/lib/stages/director';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
@@ -469,11 +469,11 @@ ${sectionsHtml}
 /* ─── 썸네일 타입 ─── */
 type ThumbTypeId = 'white' | 'concept' | 'text_overlay' | 'ref_copy';
 
-const THUMB_TYPES: Array<{ id: ThumbTypeId; label: string; desc: string; prompt: string }> = [
-  { id: 'white', label: '흰배경 단독컷', desc: '화이트 배경 · 제품 단독', prompt: '순백색 배경에 제품만 중앙에 배치한 이커머스 썸네일. 제품 형태가 선명하게 보이도록 고른 조명 처리.' },
-  { id: 'concept', label: '컨셉컷', desc: '브랜드 무드 배경 합성', prompt: '브랜드 무드와 카테고리에 어울리는 감성 배경에 제품을 자연스럽게 합성한 이커머스 썸네일. 색감과 분위기를 제품과 조화롭게 연출.' },
-  { id: 'text_overlay', label: '텍스트오버레이컷', desc: '핵심 카피 텍스트 강조', prompt: '제품 이미지 위에 한국어 핵심 카피를 굵은 폰트로 오버레이한 이커머스 썸네일. 고대비 배경과 명확한 가독성 강조.' },
-  { id: 'ref_copy', label: '레퍼런스 카피컷', desc: '레퍼런스 스타일 참고', prompt: '업로드된 레퍼런스 이미지의 레이아웃·색감·구도를 참고하여 제품에 맞게 재해석한 이커머스 썸네일.' },
+const THUMB_TYPES: Array<{ id: ThumbTypeId; label: string; desc: string }> = [
+  { id: 'white', label: '흰배경 단독컷', desc: '화이트 배경 · 제품 단독' },
+  { id: 'concept', label: '컨셉컷', desc: '브랜드 무드 배경 합성' },
+  { id: 'text_overlay', label: '텍스트오버레이컷', desc: '핵심 카피 텍스트 강조' },
+  { id: 'ref_copy', label: '레퍼런스 카피컷', desc: '레퍼런스 스타일 참고' },
 ];
 
 const THUMB_SIZES: Record<string, string> = {
@@ -962,6 +962,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
   const [selectedType, setSelectedType] = useState<ThumbTypeId | null>(null);
   const [thumbResults, setThumbResults] = useState<Partial<Record<ThumbTypeId, ImgState>>>({});
   const [refImage, setRefImage] = useState<string | null>(null);
+  const [thumbCopyText, setThumbCopyText] = useState('');   // ★썸네일 문구 — 이미지 내 유일 허용 텍스트(날조 차단)
   const refFileRef = useRef<HTMLInputElement>(null);
 
   const size = THUMB_SIZES[ch ?? ''] ?? '1080×1080';
@@ -985,14 +986,17 @@ function ThumbnailPanel({ ch, productName, productImages }: {
     if (!selectedType || !typeDef) return;
     setThumbResults(p => ({ ...p, [selectedType]: { loading: true, url: null, error: false } }));
     try {
-      const images = selectedType === 'ref_copy' && refImage
-        ? [...productImages, refImage]
+      // ★Clean 전환(2026-07-19) — ThumbScreen과 동일 buildThumbBrief: 텍스트=셀러 입력 문구만
+      //   (카피 날조 차단), 레퍼런스는 배열 맨 앞(브리프 FIRST=레이아웃 참조 규약).
+      const hasRef = selectedType === 'ref_copy' && !!refImage;
+      const images = hasRef && refImage
+        ? [refImage, ...productImages]
         : productImages;
       const res = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `${typeDef.prompt} 상품명: ${productName}. 판매 채널: ${ch ?? ''}. 권장 규격: ${size}.`,
+          prompt: buildThumbBrief({ typeKey: selectedType, productName, copyText: thumbCopyText, hasRef }),
           sectionNum: `thumb_${selectedType}`,
           productImages: images.length > 0 ? images : undefined,
           jobKey: thumbJobKey ?? undefined,   // ★결제 검증(P0 2차)
@@ -1062,6 +1066,18 @@ function ThumbnailPanel({ ch, productName, productImages }: {
             </button>
           )}
           <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 8, lineHeight: 1.5 }}>스타일을 참고할 경쟁사·레퍼런스 썸네일 이미지를 업로드하세요</div>
+        </div>
+      )}
+
+      {selectedType && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--tx2)', marginBottom: 6 }}>썸네일 문구 <span style={{ fontWeight: 400, color: 'var(--tx3)' }}>(선택)</span></div>
+          <input
+            value={thumbCopyText}
+            onChange={e => setThumbCopyText(e.target.value)}
+            placeholder="예: 출시 기념 특가 · 미입력 시 문구 없이 생성"
+            style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--bd)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--f)', outline: 'none' }}
+          />
         </div>
       )}
 
