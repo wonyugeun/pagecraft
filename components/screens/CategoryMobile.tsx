@@ -21,7 +21,7 @@ interface CategoryItem {
 
 const CATEGORIES: CategoryItem[] = [
   { id: '화장품',   name: '화장품',   desc: '스킨케어 · 색조 · 선케어',  Icon: Sparkles,   bg: '#F4F0FF', color: '#6D4CFF' },
-  { id: '식품',     name: '식품',     desc: '신선 · 가공 · 건강식',       Icon: Package,    bg: '#FFF0F5', color: '#FF4D8D' },
+  { id: '식품',     name: '식품',     desc: '신선 · 가공식품 · 간편식',       Icon: Package,    bg: '#FFF0F5', color: '#FF4D8D' },
   { id: '패션',     name: '패션',     desc: '의류 · 신발 · 가방',         Icon: Shirt,      bg: '#E6F1FB', color: '#378ADD' },
   { id: '생활',     name: '생활',     desc: '가구 · 소품 · 청소',         Icon: Sofa,       bg: '#FFF4DD', color: '#F59E0B' },
   { id: '가전',     name: '가전',     desc: '전자기기 · 주방기기',        Icon: Smartphone, bg: '#E0F7F1', color: '#1D9E75' },
@@ -29,7 +29,7 @@ const CATEGORIES: CategoryItem[] = [
   { id: '스포츠',   name: '스포츠',   desc: '운동용품 · 아웃도어',        Icon: Volleyball, bg: '#EAF3DE', color: '#639922' },
   { id: '유아',     name: '유아',     desc: '유아용품 · 임산부',           Icon: Baby,       bg: '#EEEDFE', color: '#7F77DD' },
   { id: '자동차',   name: '자동차',   desc: '차량용품 · 튜닝',             Icon: Car,        bg: '#E6F1FB', color: '#185FA5' },
-  { id: '건강',     name: '건강',     desc: '건강용품 · 의료기기',        Icon: Dumbbell,   bg: '#FCEBEB', color: '#E24B4A' },
+  { id: '건강',     name: '건강',     desc: '영양제 · 건강기능식품 · 헬스',        Icon: Dumbbell,   bg: '#FCEBEB', color: '#E24B4A' },
 ];
 
 const ETC: CategoryItem = {

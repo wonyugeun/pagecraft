@@ -11,7 +11,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 const CATEGORIES = [
   { id: '화장품',   name: '화장품',   desc: '스킨케어·색조·선케어',  icon: Sparkles,   bgColor: '#F4F0FF', bgColorDark: '#E5DEFF', iconColor: '#6D4CFF' },
-  { id: '식품',     name: '식품',     desc: '신선·가공·건강식',       icon: Package,    bgColor: '#FFF0F5', bgColorDark: '#FFD9E5', iconColor: '#FF4D8D' },
+  { id: '식품',     name: '식품',     desc: '신선·가공식품·간편식',       icon: Package,    bgColor: '#FFF0F5', bgColorDark: '#FFD9E5', iconColor: '#FF4D8D' },
   { id: '패션',     name: '패션',     desc: '의류·신발·가방',         icon: Shirt,      bgColor: '#E6F1FB', bgColorDark: '#C7E0F5', iconColor: '#378ADD' },
   { id: '생활',     name: '생활',     desc: '가구·소품·청소',         icon: Sofa,       bgColor: '#FFF4DD', bgColorDark: '#FFE5B5', iconColor: '#F59E0B' },
   { id: '가전',     name: '가전',     desc: '전자기기·주변기기',      icon: Smartphone, bgColor: '#E0F7F1', bgColorDark: '#B8EBDA', iconColor: '#1D9E75' },
@@ -19,7 +19,7 @@ const CATEGORIES = [
   { id: '스포츠',   name: '스포츠',   desc: '운동용품·아웃도어',      icon: Volleyball, bgColor: '#EAF3DE', bgColorDark: '#D0E5B8', iconColor: '#639922' },
   { id: '유아',     name: '유아',     desc: '유아용품·임산부',        icon: Baby,       bgColor: '#EEEDFE', bgColorDark: '#D8D5F5', iconColor: '#7F77DD' },
   { id: '자동차',   name: '자동차',   desc: '차량용품·튜닝',          icon: Car,        bgColor: '#E6F1FB', bgColorDark: '#B8D4F5', iconColor: '#185FA5' },
-  { id: '건강',     name: '건강',     desc: '건강용품·의료기기',      icon: Dumbbell,   bgColor: '#FCEBEB', bgColorDark: '#FAD0D0', iconColor: '#E24B4A' },
+  { id: '건강',     name: '건강',     desc: '영양제·건강기능식품·헬스',      icon: Dumbbell,   bgColor: '#FCEBEB', bgColorDark: '#FAD0D0', iconColor: '#E24B4A' },
   { id: '기타',     name: '기타',     desc: '그 외 카테고리',         icon: Gift,       bgColor: '#F1EFE8', bgColorDark: '#DDD9D0', iconColor: '#888780' },
 ];
 
