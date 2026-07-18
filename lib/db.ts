@@ -277,9 +277,11 @@ export function normalizeEmailForGrant(email: string): string {
   return `${local}@${domain}`;
 }
 
-/** IP당 하루 가입 지급 상한 — 계정 갈아타기 파밍 방어. 공유 IP(회사·통신사 NAT) 오탐을
- *  피하려고 여유 있게 3회(지급만 제한 — 가입·이용 자체는 막지 않음). */
-const SIGNUP_GRANTS_PER_IP_PER_DAY = 3;
+/** IP당 하루 가입 지급 상한 — 계정 갈아타기 파밍 방어. ★1회(강경책, 2026-07-18 유근님 결정):
+ *  같은 IP는 하루 1명만 지급 — 같은 사무실 동료는 각자 폰(LTE=개별 IP)으로 가입하거나
+ *  다음날 접속 시 지연 지급으로 수령. 영구 1회가 아닌 일 단위인 이유: 통신사 동적 IP가
+ *  재할당되면 무고한 신규 유저가 영영 차단되는 오탐을 피하기 위함(파밍 속도는 IP당 일 1개로 동일). */
+const SIGNUP_GRANTS_PER_IP_PER_DAY = 1;
 
 /**
  * 유저 잔액 조회. row 없으면 신규 지급(grant) + ledger 기록 후 반환.
