@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   Bot, Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, Car, Dumbbell,
   Gift, ChevronRight,
@@ -8,6 +9,23 @@ import {
 import { useApp } from '@/store/AppContext';
 import CategoryMobile from './CategoryMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
+
+/** 최근 사용 카테고리 — 히스토리(localStorage) 최신 항목의 cat. 재방문 셀러는 보통 같은 카테고리를 또 만든다. */
+export function useRecentCat(): string | null {
+  const { data: session } = useSession();
+  const [recent, setRecent] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const email = session?.user?.email ?? 'guest';
+      const s = localStorage.getItem(`pc_history_${email}`);
+      if (!s) return;
+      const items = JSON.parse(s) as { cat?: string }[];
+      const cat = items.find(i => i.cat)?.cat;
+      if (cat) setRecent(cat);
+    } catch { /* 표시용 — 실패 무시 */ }
+  }, [session?.user?.email]);
+  return recent;
+}
 
 const CATEGORIES = [
   { id: '화장품',   name: '화장품',   desc: '스킨케어·색조·선케어',  icon: Sparkles,   bgColor: '#F4F0FF', bgColorDark: '#E5DEFF', iconColor: '#6D4CFF' },
@@ -26,6 +44,7 @@ const CATEGORIES = [
 export default function CategoryScreen() {
   const isMobile = useIsMobile();
   const { cat, setCat, go, toggleChat } = useApp();
+  const recentCat = useRecentCat();
 
   if (isMobile) return <CategoryMobile />;
 
@@ -67,6 +86,7 @@ export default function CategoryScreen() {
                 key={c.id}
                 category={c}
                 selected={cat === c.id}
+                recent={recentCat === c.id}
                 onClick={() => handleCatClick(c.id)}
               />
             ))}
@@ -118,7 +138,7 @@ export default function CategoryScreen() {
 
 type Category = typeof CATEGORIES[number];
 
-function CategoryCard({ category, selected, onClick }: { category: Category; selected: boolean; onClick: () => void }) {
+function CategoryCard({ category, selected, recent, onClick }: { category: Category; selected: boolean; recent?: boolean; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const Icon = category.icon;
 
@@ -173,6 +193,17 @@ function CategoryCard({ category, selected, onClick }: { category: Category; sel
       }}>
         <ChevronRight size={16} />
       </div>
+
+      {/* 최근 사용 배지 — 선택 체크와 겹치지 않게 좌상단 */}
+      {recent && !selected && (
+        <div style={{
+          position: 'absolute', top: '10px', left: '10px',
+          background: '#F4F0FF', border: '1px solid #DDD4FF', borderRadius: 999,
+          padding: '2px 8px', fontSize: '10px', fontWeight: 700, color: '#6D4CFF',
+        }}>
+          최근
+        </div>
+      )}
 
       {/* 선택 표시 */}
       {selected && (

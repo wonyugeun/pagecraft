@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { useRecentCat } from './CategoryScreen';
 
 interface CategoryItem {
   id: string;
@@ -46,6 +47,7 @@ const STEPS = [
 
 export default function CategoryMobile() {
   const { setCat, go, toggleChat, credits } = useApp();
+  const recentCat = useRecentCat();
   const [query, setQuery] = useState('');
 
   const onPick = (id: string) => {
@@ -59,11 +61,22 @@ export default function CategoryMobile() {
       onClick={() => onPick(c.id)}
       style={{
         background: '#fff', borderRadius: 16,
-        border: '1px solid #F0F0F4',
+        border: `1px solid ${recentCat === c.id ? '#DDD4FF' : '#F0F0F4'}`,
         padding: 16,
         cursor: 'pointer',
+        position: 'relative',
       }}
     >
+      {/* 최근 사용 배지(데스크톱과 동일) */}
+      {recentCat === c.id && (
+        <div style={{
+          position: 'absolute', top: 8, right: 8,
+          background: '#F4F0FF', border: '1px solid #DDD4FF', borderRadius: 999,
+          padding: '2px 7px', fontSize: 9.5, fontWeight: 700, color: '#6D4CFF',
+        }}>
+          최근
+        </div>
+      )}
       <div style={{
         width: 44, height: 44, borderRadius: '50%',
         background: c.bg,
