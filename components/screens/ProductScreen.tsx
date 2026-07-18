@@ -934,7 +934,7 @@ export const SECTION_DEFS = [
 
 const AI_RECS: Record<string, {label:string; chips:string[]}[]> = {
   화장품: [
-    { label:'추천 키워드', chips:['수분케어','트러블진정','미백','피부결개선','수분충전'] },
+    { label:'추천 키워드', chips:['수분케어','저자극','데일리','산뜻한 사용감','촉촉함'] },
     { label:'추천 핵심 성분', chips:['히알루론산','세라마이드','판테놀','알란토인','나이아신아마이드'] },
     { label:'추천 타겟', chips:['건성피부','민감성피부','20대 여성','피부 고민 있는 분','뷰티 관심층'] },
   ],
@@ -1624,7 +1624,7 @@ export default function ProductScreen() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
               <Sparkles size={15} color="#6D4CFF" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>AI가 추천한 추가 정보</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>카테고리 추천 키워드</span>
               <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 4 }}>선택하면 생성 품질이 올라가요</span>
             </div>
             {aiRecs.map(rec => (

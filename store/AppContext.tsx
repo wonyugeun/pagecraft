@@ -205,7 +205,7 @@ export const CH_CFG: Record<string, { note: string; rec: string }> = {
   스마트스토어: { note: '💡 스마트스토어는 블로그형(글+그림) 구성이 SEO와 전환율에 핵심입니다.', rec: '기본형' },
   쿠팡: { note: '💡 쿠팡은 이미지 중심 구성이 핵심입니다. 기본형과 프리미엄형 모두 사용 가능해요.', rec: '기본형' },
   자사몰: { note: '💡 자사몰은 브랜드 세계관과 감성 카피가 중요합니다. 프리미엄형을 추천해요.', rec: '프리미엄형' },
-  와디즈: { note: '💡 와디즈는 50장+ 긴 스크롤 스토리텔링이 기본입니다. 프리미엄형을 강력 추천해요.', rec: '프리미엄형' },
+  와디즈: { note: '💡 와디즈는 긴 스크롤 스토리텔링이 기본입니다. 프리미엄형을 강력 추천해요.', rec: '프리미엄형' },
 };
 
 export const CH_OUT_AUTO: Record<string, { out: string; label: string }> = {
