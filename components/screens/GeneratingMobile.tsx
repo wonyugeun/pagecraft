@@ -47,6 +47,7 @@ export default function GeneratingMobile() {
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
   const jobKeyRef = useRef<string>('');   // ★멱등키 — 생성 1회당 1개(이중차감 방지)
+  const refundedRef = useRef(false);      // ★환불된 jobKey 표시 — retry가 새 키를 만들게(데스크톱과 동일)
 
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -124,7 +125,10 @@ export default function GeneratingMobile() {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ jobKey: jobKeyRef.current }),
             }).then(r => r.json()).then(d => {
-              if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+              if (d?.status === 'refunded' && typeof d.balance === 'number') {
+                setCredits(d.balance);
+                refundedRef.current = true;   // 환불된 키는 죽은 키 — retry가 새 키를 만들게 표시
+              }
             }).catch(() => {});
           }
         });
@@ -236,6 +240,11 @@ export default function GeneratingMobile() {
     go('s6');
   };
   const retry = () => {
+    // ★환불된 jobKey는 미결제 취급(402) — 새 키로 재차감(데스크톱과 동일). 미환불 실패는 같은 키 무료 재시도.
+    if (refundedRef.current) {
+      jobKeyRef.current = '';
+      refundedRef.current = false;
+    }
     setApiError('');
     setStepIdx(-1);
     setPct(0);

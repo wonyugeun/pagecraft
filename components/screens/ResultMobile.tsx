@@ -42,7 +42,7 @@ export default function ResultMobile() {
     cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey,
     go, restoredImages, restoredBlockImages, restoredOverrides,
     updateLatestHistoryImages, updateLatestHistoryOverrides,
-    toggleChat, credits,
+    toggleChat, credits, setCredits,
   } = useApp();
 
   // 데스크탑과 동일 state
@@ -100,6 +100,17 @@ export default function ResultMobile() {
   useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
   const jobKeyRef = useRef(generationJobKey);
   useEffect(() => { jobKeyRef.current = generationJobKey; }, [generationJobKey]);
+
+  // ★빈 결과 자동 환불 시도(데스크톱과 동일) — 서버가 이미지 0장을 원장으로 재검증, 멱등
+  useEffect(() => {
+    if (sections.length > 0 || !generationJobKey) return;
+    fetch('/api/credits/refund-failed', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobKey: generationJobKey }),
+    }).then(r => r.json()).then(d => {
+      if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+    }).catch(() => {});
+  }, [sections.length, generationJobKey]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const displaySections = sections;
   const effectiveOut = resolveOutputType(ch, out);

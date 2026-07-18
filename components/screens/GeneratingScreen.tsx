@@ -186,6 +186,7 @@ export default function GeneratingScreen() {
   const abortRef    = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
   const jobKeyRef   = useRef<string>('');   // ★멱등키 — 생성 1회당 1개(이중차감 방지)
+  const refundedRef = useRef(false);        // ★이 jobKey가 환불됐는가 — 환불된 키는 서버가 미결제 취급하므로 재시도 시 새 키 필요
 
   const isDev = process.env.NODE_ENV === 'development';
 
@@ -274,7 +275,10 @@ export default function GeneratingScreen() {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ jobKey: jobKeyRef.current }),
             }).then(r => r.json()).then(d => {
-              if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+              if (d?.status === 'refunded' && typeof d.balance === 'number') {
+                setCredits(d.balance);
+                refundedRef.current = true;   // 환불된 키는 죽은 키 — retry가 새 키를 만들게 표시
+              }
             }).catch(() => {});
           }
         });
@@ -388,6 +392,12 @@ export default function GeneratingScreen() {
   };
 
   const retry = () => {
+    // ★환불된 jobKey는 서버가 미결제 취급(402) — 같은 키 재시도는 영구 실패하므로 새 키로 재차감.
+    //   환불이 안 된 실패(네트워크 순단 등)는 기존대로 같은 키 = 무료 재시도(strategy duplicate).
+    if (refundedRef.current) {
+      jobKeyRef.current = '';
+      refundedRef.current = false;
+    }
     setApiError('');
     setStepIdx(-1);
     setPct(0);

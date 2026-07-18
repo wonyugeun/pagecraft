@@ -1118,7 +1118,7 @@ function ThumbnailPanel({ ch, productName, productImages }: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1206,6 +1206,18 @@ export default function ResultScreen() {
   useEffect(() => { packagingRefRef.current = packagingRefImage; }, [packagingRefImage]);
   const jobKeyRef = useRef(generationJobKey);
   useEffect(() => { jobKeyRef.current = generationJobKey; }, [generationJobKey]);
+
+  // ★빈 결과 = 차감됐는데 산출물 0 유형 — 도착 즉시 자동 환불 시도(서버가 원장으로 이미지 0장 재검증,
+  //   이미지가 나갔거나 기환불이면 서버가 거절하므로 언제 호출돼도 안전. 멱등)
+  useEffect(() => {
+    if (sections.length > 0 || !generationJobKey) return;
+    fetch('/api/credits/refund-failed', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobKey: generationJobKey }),
+    }).then(r => r.json()).then(d => {
+      if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+    }).catch(() => {});
+  }, [sections.length, generationJobKey]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // 빈 sections fallback ── 기존 유지
   if (sections.length === 0) {
