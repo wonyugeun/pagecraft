@@ -44,6 +44,17 @@ export const PRODUCT_FORM_OPTIONS: { value: ProductForm; label: string }[] = [
 export const PRODUCT_VOLUME_OPTIONS = ['10ml', '30ml', '50ml', '100ml', '150ml', '200ml', '250ml', '300ml', '500ml', '1L'] as const;
 export type ProductVolume = typeof PRODUCT_VOLUME_OPTIONS[number];
 
+/** UI 자유 입력의 제안 목록 — 액체(ml/L)는 크기 엔진이 치수 보정에 사용, 그 외 단위(정/캡슐/포/g)는
+ *  엔진에서 형태 대표 크기로 폴백(getPhysicalSize의 includes 가드)하고 브리프 텍스트로만 전달된다.
+ *  영양제 90정처럼 ml이 아닌 제품이 용량을 입력 못 하던 폼 구멍의 해법. */
+export const PRODUCT_VOLUME_SUGGESTIONS = [
+  ...PRODUCT_VOLUME_OPTIONS,
+  '30정', '60정', '90정', '120정', '180정',
+  '30캡슐', '60캡슐', '90캡슐',
+  '30포', '60포',
+  '200g', '400g', '500g', '1kg',
+] as const;
+
 /* ── 제품 형태 프로필 (같은 용량이라도 실루엣이 다름 — 상품정보 드롭다운) ── */
 export type ProductShapeProfile =
   | 'slim_tall'   // 슬림 롱(길쭉한 원통)

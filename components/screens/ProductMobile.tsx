@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import { pickTestPreset } from '@/lib/testPresets';
-import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_OPTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
+import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import {
   CQ, SECTION_MAP, SECTION_DEFS, QuestionField,
 } from './ProductScreen';
@@ -531,10 +531,13 @@ export default function ProductMobile() {
           </div>
           <div className="fg" style={{ flex: 1 }}>
             <div className="fl">제품 용량 <span className="fopt">선택</span></div>
-            <select className="finp" value={productVolume} onChange={e => setProductVolume(e.target.value)} style={{ height: 44 }}>
-              <option value="">선택 안 함</option>
-              {PRODUCT_VOLUME_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
+            {/* 자유 입력 + 제안 — ml/L 외 정·캡슐·포·g 단위 입력 가능(데스크톱과 동일) */}
+            <input className="finp" list="volume-suggestions-m" value={productVolume}
+              onChange={e => setProductVolume(e.target.value)}
+              placeholder="예: 250ml, 90정, 400g" style={{ height: 44 }} />
+            <datalist id="volume-suggestions-m">
+              {PRODUCT_VOLUME_SUGGESTIONS.map(v => <option key={v} value={v} />)}
+            </datalist>
           </div>
         </div>
         <div className="fg" style={{ marginTop: 10 }}>

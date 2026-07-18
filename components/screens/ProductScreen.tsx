@@ -5,7 +5,7 @@ import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset } from '@/lib/testPresets';
-import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_OPTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
+import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
 
 /* ─────────────────────────────────────────────
@@ -1580,17 +1580,20 @@ export default function ProductScreen() {
               </div>
               <div className="fg" style={{ flex: 1 }}>
                 <div className="fl">제품 용량 <span className="fopt">선택</span></div>
-                <select
+                {/* 자유 입력 + 제안(datalist) — ml/L 외에 정·캡슐·포·g 단위도 입력 가능(영양제 90정 등) */}
+                <input
                   className="finp"
+                  list="volume-suggestions"
                   value={productVolume}
                   onChange={e => setProductVolume(e.target.value)}
-                  style={{ height: 44, cursor: 'pointer' }}
-                >
-                  <option value="">선택 안 함</option>
-                  {PRODUCT_VOLUME_OPTIONS.map(v => (
-                    <option key={v} value={v}>{v}</option>
+                  placeholder="예: 250ml, 90정, 400g"
+                  style={{ height: 44 }}
+                />
+                <datalist id="volume-suggestions">
+                  {PRODUCT_VOLUME_SUGGESTIONS.map(v => (
+                    <option key={v} value={v} />
                   ))}
-                </select>
+                </datalist>
               </div>
             </div>
             {/* 형태 프로필 — 같은 용량이라도 실루엣(슬림 롱/와이드/단지형 등)이 달라 크기 지시가 바뀜 */}
