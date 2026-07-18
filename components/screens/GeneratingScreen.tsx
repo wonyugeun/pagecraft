@@ -175,7 +175,7 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 
 export default function GeneratingScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile } = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile } = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -192,14 +192,21 @@ export default function GeneratingScreen() {
   // Use a ref so the effect always reads the latest credits without re-triggering on credit changes
   const creditsRef = useRef(credits);
   useEffect(() => { creditsRef.current = credits; }, [credits]);
+  const creditsLoadedRef = useRef(creditsLoaded);
+  useEffect(() => { creditsLoadedRef.current = creditsLoaded; }, [creditsLoaded]);
 
   useEffect(() => {
     // ★모바일 이중 실행 차단(P0-1) — useIsMobile은 첫 렌더에 false라 이 effect가 모바일 분기
     //   재렌더보다 먼저 발화한다. 뷰포트를 직접 확인해 모바일이면 여기서는 시작하지 않는다
     //   (모바일은 GeneratingMobile이 유일한 시작점 — 파이프라인·멱등키·차감·히스토리 1회 보장).
     if (window.innerWidth < MOBILE_BREAKPOINT) return;
+    // ★재개 의도는 크레딧 체크보다 먼저 소비 — 재개는 이미 선차감된 job(같은 jobKey=서버 duplicate)이라
+    //   크레딧 체크 대상이 아니다(2026-07-18: 새로고침 재개가 로드 전 기본값 30<32로 "부족" 오탐하던 사고).
+    const resume = USE_NEW_ENGINE ? consumeResumeIntent() : false;
     const generationCost = calculateGenerationCost({ sectionCount: secCnt });   // 1섹션=1크레딧(서버와 동일 함수)
-    if (!isDev && creditsRef.current < generationCost) {
+    // ★클라 체크는 UX용 사전 안내일 뿐(실집행은 서버 선차감) — 서버 잔액 로드 전(creditsLoaded=false)에는
+    //   기본값으로 오탐하지 않도록 판정을 건너뛰고 진행(부족이면 서버가 402로 막음).
+    if (!isDev && !resume && creditsLoadedRef.current && creditsRef.current < generationCost) {
       setCreditInsufficient(true);
       return;
     }
@@ -211,7 +218,6 @@ export default function GeneratingScreen() {
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
       cancelledRef.current = false;
-      const resume = consumeResumeIntent();
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
@@ -258,6 +264,9 @@ export default function GeneratingScreen() {
           if (cancelledRef.current) return;
           console.error('[GeneratingScreen] 새 엔진 오류:', err);
           setApiError(err?.message || '생성 중 오류가 발생했어요. 다시 시도해주세요.');
+          // ★실패 job 마커 정리 — 안 지우면 새로고침마다 자동 재개(s7 강제 이동) 무한 루프
+          //   (2026-07-18: 실패 job이 남아 모든 화면 새로고침이 생성 화면으로 튀던 사고)
+          clearActiveJobId();
           // ★산출물 0장 자동 환불 — 선차감 후 실패 시 크레딧 증발 방지(서버가 이미지 0장을 원장으로 재검증).
           //   이미지가 나간 부분 실패는 서버가 not_eligible로 거절 — 호출 자체는 언제나 안전.
           if (jobKeyRef.current) {

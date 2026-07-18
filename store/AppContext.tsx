@@ -131,6 +131,7 @@ interface AppState {
   sectionStructure: string[];
   originalSections: string[];   // ★처음 받은 AI/레퍼런스 추천 원본(되돌리기용) — 화면 이동에도 보존
   credits: number;
+  creditsLoaded: boolean;
   creditModalOpen: boolean;
   restoredImages: Record<string, string>;
   restoredBlockImages: Record<string, string>;
@@ -315,6 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const loggedIn = status === 'authenticated';
   const [credits, setCreditsState] = useState<number>(30);
+  const [creditsLoaded, setCreditsLoaded] = useState(false);   // ★서버 잔액 1회 로드 완료 여부(부족 오탐 게이트)
   const [creditModalOpen, setCreditModalOpenState] = useState(false);
   const [productName, setProductNameState] = useState('');
   const [productExtra, setProductExtraState] = useState('');
@@ -355,6 +357,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!cancelled && typeof data.balance === 'number') setCreditsState(data.balance);
       } catch {
         // 네트워크 실패 등 — 기본값 유지
+      } finally {
+        // ★서버 잔액 로드 완료 표시 — 로드 전 기본값(30)으로 "크레딧 부족" 오탐하는
+        //   화면(GeneratingScreen 진입 게이트)이 이 플래그로 판정을 미룬다(2026-07-18 새로고침 부족 오탐 사고).
+        if (!cancelled) setCreditsLoaded(true);
       }
     })();
     return () => { cancelled = true; };
@@ -736,7 +742,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
-      credits, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
+      credits, creditsLoaded, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
       go,
       setCat: setCatState,

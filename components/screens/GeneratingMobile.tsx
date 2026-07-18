@@ -31,7 +31,7 @@ export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
     referenceAnalysis, captureAnalysis, sectionStructure,
-    go, setSections, credits, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
+    go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     setOut, setCat, setCh, setType, setProductName, setProductExtra,
     toggleChat, productForm, productVolume, productShapeProfile,
   } = useApp();
@@ -52,11 +52,16 @@ export default function GeneratingMobile() {
 
   const creditsRef = useRef(credits);
   useEffect(() => { creditsRef.current = credits; }, [credits]);
+  const creditsLoadedRef = useRef(creditsLoaded);
+  useEffect(() => { creditsLoadedRef.current = creditsLoaded; }, [creditsLoaded]);
 
   // 데스크탑 useEffect 그대로 복제
   useEffect(() => {
+    // ★재개 의도는 크레딧 체크보다 먼저 소비(데스크톱과 동일) — 재개는 선차감된 job이라 체크 대상 아님
+    const resume = USE_NEW_ENGINE ? consumeResumeIntent() : false;
     const generationCost = calculateGenerationCost({ sectionCount: secCnt });   // 1섹션=1크레딧(서버와 동일 함수)
-    if (!isDev && creditsRef.current < generationCost) {
+    // ★서버 잔액 로드 전에는 기본값 오탐 방지 위해 판정 보류(부족이면 서버 402가 실집행)
+    if (!isDev && !resume && creditsLoadedRef.current && creditsRef.current < generationCost) {
       setCreditInsufficient(true);
       return;
     }
@@ -67,7 +72,6 @@ export default function GeneratingMobile() {
     // ── 새 엔진(분할 호출 + 중간상태 저장/재개) ── (플래그 OFF 시 아래 기존 generate 경로 사용)
     if (USE_NEW_ENGINE) {
       cancelledRef.current = false;
-      const resume = consumeResumeIntent();
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
@@ -112,6 +116,8 @@ export default function GeneratingMobile() {
           if (cancelledRef.current) return;
           console.error('[GeneratingMobile] 새 엔진 오류:', err);
           setApiError(err?.message || '생성 중 오류가 발생했어요. 다시 시도해주세요.');
+          // ★실패 job 마커 정리 — 새로고침마다 자동 재개 루프 차단(데스크톱과 동일)
+          clearActiveJobId();
           // ★산출물 0장 자동 환불(데스크톱과 동일) — 서버가 이미지 0장을 원장으로 재검증
           if (jobKeyRef.current) {
             fetch('/api/credits/refund-failed', {
