@@ -117,6 +117,52 @@ export default function LandingPageMobile() {
         </div>
       </section>
 
+      {/* 4b) 실제 결과물 쇼케이스 — 완성 페이지 2종 자동 스크롤(데스크톱 ShowcaseSection의 모바일판) */}
+      <section style={{ padding: '0 16px', marginTop: '44px' }}>
+        <style>{`
+          @keyframes showcaseScrollM {
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(calc(-100% + 440px)); }
+          }
+        `}</style>
+        <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#111', letterSpacing: '-0.02em' }}>
+          <span style={{ color: '#6D4CFF' }}>Flik</span>이 실제로 만든 페이지
+        </h2>
+        <p style={{ fontSize: '12.5px', color: '#666', marginTop: '6px', lineHeight: 1.6 }}>
+          상품 정보와 사진 한 장으로 생성된 무편집 결과물 — 섹션마다 구성이 다릅니다.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}>
+          {[
+            { src: '/images/landing/showcase-leafgreen.jpg', name: '리프그린 시카 카밍 토너', cat: '화장품' },
+            { src: '/images/landing/showcase-vitamin.jpg', name: '밸런스랩 멀티비타민', cat: '건강기능식품' },
+          ].map(s => (
+            <div key={s.name} style={{
+              position: 'relative', height: '440px', overflow: 'hidden',
+              borderRadius: '18px', border: '1px solid #ECECF2', background: '#fff',
+              boxShadow: '0 8px 20px rgba(25,31,40,0.07)',
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.src} alt={`${s.name} 상세페이지 — Flik 생성 결과물`} loading="lazy"
+                style={{ width: '100%', display: 'block', animation: 'showcaseScrollM 50s linear infinite alternate', willChange: 'transform' }} />
+              <div style={{
+                position: 'absolute', top: '10px', left: '10px',
+                display: 'flex', alignItems: 'center', gap: '6px',
+                background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(8px)',
+                border: '1px solid #ECECF2', borderRadius: '999px', padding: '5px 11px',
+              }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#191F28' }}>{s.name}</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#6D4CFF', background: '#F4F2FF', borderRadius: '999px', padding: '2px 7px' }}>{s.cat}</span>
+              </div>
+              <div style={{
+                position: 'absolute', left: 0, right: 0, bottom: 0, height: '48px',
+                background: 'linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.9))',
+                pointerEvents: 'none',
+              }} />
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* 5) 신뢰배지 */}
       <section style={{ padding: '0 16px', marginTop: '40px' }}>
         <div style={{
