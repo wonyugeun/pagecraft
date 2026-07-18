@@ -258,6 +258,16 @@ export default function GeneratingScreen() {
           if (cancelledRef.current) return;
           console.error('[GeneratingScreen] 새 엔진 오류:', err);
           setApiError(err?.message || '생성 중 오류가 발생했어요. 다시 시도해주세요.');
+          // ★산출물 0장 자동 환불 — 선차감 후 실패 시 크레딧 증발 방지(서버가 이미지 0장을 원장으로 재검증).
+          //   이미지가 나간 부분 실패는 서버가 not_eligible로 거절 — 호출 자체는 언제나 안전.
+          if (jobKeyRef.current) {
+            fetch('/api/credits/refund-failed', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jobKey: jobKeyRef.current }),
+            }).then(r => r.json()).then(d => {
+              if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+            }).catch(() => {});
+          }
         });
 
       return () => { cancelledRef.current = true; };
@@ -356,6 +366,15 @@ export default function GeneratingScreen() {
     timerRef.current.forEach(clearTimeout);
     abortRef.current?.abort();
     if (USE_NEW_ENGINE) clearActiveJobId();
+    // ★취소 = 산출물 0장 이탈 — 선차감 크레딧 자동 환불 시도(이미지가 나갔으면 서버가 거절)
+    if (jobKeyRef.current) {
+      fetch('/api/credits/refund-failed', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobKey: jobKeyRef.current }),
+      }).then(r => r.json()).then(d => {
+        if (d?.status === 'refunded' && typeof d.balance === 'number') setCredits(d.balance);
+      }).catch(() => {});
+    }
     go('s6');
   };
 

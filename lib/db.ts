@@ -124,14 +124,71 @@ export async function verifyPaidJob(email: string | null | undefined, jobKey: un
 }
 
 /** 멱등키(jobKey)로 결제된 섹션 수 조회 — credit_ledger.reason 규약 "generation:{count}" 파싱.
- *  본인(user_email) 차감 기록만 인정(타인 키 재사용 차단). 기록 없거나 규약 불일치면 null. */
+ *  본인(user_email) 차감 기록만 인정(타인 키 재사용 차단). 기록 없거나 규약 불일치면 null.
+ *  ★환불된 jobKey는 미결제 취급 — 산출물 0장 환불(refundZeroOutputJob) 후 그 키로
+ *  이미지를 계속 뽑는 악용(환불+산출물 이중 수취) 차단. */
 export async function getPaidSections(email: string, idempotencyKey: string): Promise<number | null> {
+  const refundKey = `refund:zero-output:${idempotencyKey}`;
   const rows = await sql`
     SELECT reason FROM credit_ledger
     WHERE idempotency_key = ${idempotencyKey} AND user_email = ${email} AND type = 'deduct'
+      AND NOT EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${refundKey})
     LIMIT 1` as Array<{ reason: string | null }>;
   if (!rows.length) return null;
   return parseGenerationReason(rows[0].reason);
+}
+
+export interface RefundResult {
+  status: 'refunded' | 'not_eligible' | 'duplicate';
+  balance: number;
+}
+
+/**
+ * ★산출물 0장 환불 — 선차감(strategy) 후 파이프라인 실패·이탈로 이미지가 한 장도
+ * 생성되지 않은 jobKey의 크레딧을 자동 환불한다(2026-07-18 크레딧 증발 사고 재발 방지).
+ *
+ * 단일 SQL 원자 검증 3중:
+ *  ① 본인 차감 기록 존재(generation:%) ② img:{jobKey} 카운터 0 또는 없음 ③ 기환불 없음.
+ * 이미지가 1장이라도 나갔으면 not_eligible(카피+이미지 일부를 받은 생성은 환불 없음 —
+ * 정책상 부분 실패는 재생성 쿼터로 해결). 환불 후 해당 jobKey는 getPaidSections에서
+ * 미결제 취급되어 추가 이미지 생성이 402로 막힌다.
+ */
+export async function refundZeroOutputJob(email: string, jobKey: string): Promise<RefundResult> {
+  const refundKey = `refund:zero-output:${jobKey}`;
+  const imgKey = `img:${jobKey}`;
+  const rows = await sql`
+    WITH ded AS (
+      SELECT -amount AS refund FROM credit_ledger
+      WHERE idempotency_key = ${jobKey} AND user_email = ${email}
+        AND type = 'deduct' AND reason LIKE 'generation%' AND amount < 0
+      LIMIT 1
+    ),
+    eligible AS (
+      SELECT refund FROM ded
+      WHERE NOT EXISTS (SELECT 1 FROM usage_counters WHERE scope_key = ${imgKey} AND count > 0)
+        AND NOT EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${refundKey})
+    ),
+    r AS (
+      UPDATE credits SET balance = balance + (SELECT refund FROM eligible), updated_at = now()
+      WHERE user_email = ${email} AND EXISTS (SELECT 1 FROM eligible)
+      RETURNING balance
+    ),
+    l AS (
+      INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+      SELECT ${email}, (SELECT refund FROM eligible), 'grant', 'refund:zero-output-generation', ${refundKey}
+      WHERE EXISTS (SELECT 1 FROM r)
+      RETURNING id
+    )
+    SELECT
+      (SELECT balance FROM r) AS refunded_balance,
+      (SELECT balance FROM credits WHERE user_email = ${email}) AS current_balance,
+      EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${refundKey}) AS already`;
+  const r = rows[0] as { refunded_balance: number | null; current_balance: number | null; already: boolean };
+  if (r.refunded_balance !== null && r.refunded_balance !== undefined) {
+    return { status: 'refunded', balance: r.refunded_balance };
+  }
+  if (r.already) return { status: 'duplicate', balance: r.current_balance ?? 0 };
+  return { status: 'not_eligible', balance: r.current_balance ?? 0 };
 }
 
 /** 테이블 생성/마이그레이션(IF NOT EXISTS) — db-init 스크립트에서 1회 실행. 재실행 안전(멱등). */
