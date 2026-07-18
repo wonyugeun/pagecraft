@@ -42,9 +42,17 @@ export default function ImageScreen() {
   const isMobile = useIsMobile();
   const { setProductImages, go, sectionStructure } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
+  // 보조컷(선택, 최대 2) — 내용물·질감 실물. 대표컷만으로는 병 속 알약 등 내용물 모양을
+  // 모델이 매 섹션 지어내므로, 실물 컷을 레퍼런스로 함께 전달해 일관성을 잡는다.
+  const [auxPreviews, setAuxPreviews] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const auxFileRef = useRef<HTMLInputElement>(null);
+
+  const MAX_AUX = 2;
+  const syncImages = (main: string | null, aux: string[]) =>
+    setProductImages(main ? [main, ...aux] : []);
 
   if (isMobile) return <ImageMobile />;
 
@@ -65,10 +73,31 @@ export default function ImageScreen() {
     try {
       const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
-      setProductImages([dataUrl]);
+      syncImages(dataUrl, auxPreviews);
     } catch (err) {
       console.error('[ImageScreen] 이미지 업로드 실패:', err);
     }
+  };
+
+  const handleAuxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || auxPreviews.length >= MAX_AUX) return;
+    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    try {
+      const dataUrl = await compressUpload(await fileToBase64(file));
+      const next = [...auxPreviews, dataUrl];
+      setAuxPreviews(next);
+      syncImages(preview, next);
+    } catch (err) {
+      console.error('[ImageScreen] 보조컷 업로드 실패:', err);
+    }
+  };
+
+  const removeAux = (idx: number) => {
+    const next = auxPreviews.filter((_, i) => i !== idx);
+    setAuxPreviews(next);
+    syncImages(preview, next);
   };
 
   // 드래그&드롭 업로드 (모바일과 동일 패턴)
@@ -81,7 +110,7 @@ export default function ImageScreen() {
     try {
       const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
-      setProductImages([dataUrl]);
+      syncImages(dataUrl, auxPreviews);
     } catch (err) {
       console.error('[ImageScreen] drop 실패:', err);
     }
@@ -89,6 +118,7 @@ export default function ImageScreen() {
 
   const removePreview = () => {
     setPreview(null);
+    setAuxPreviews([]);
     setProductImages([]);
   };
 
@@ -166,6 +196,63 @@ export default function ImageScreen() {
               </button>
             </div>
           )}
+
+          {/* 보조컷(선택) — 내용물·질감 실물 레퍼런스. 알약·내용물 섹션 모양 일관성용 */}
+          <div style={{
+            border: '1px solid #ECECF2', borderRadius: 16, background: '#fff', padding: '16px 20px',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>
+              보조컷 <span style={{ color: '#999', fontWeight: 400 }}>(선택, 최대 {MAX_AUX}장)</span>
+            </div>
+            <div style={{ fontSize: 12.5, color: '#666', marginTop: 4, lineHeight: 1.5 }}>
+              알약·내용물·질감이 섹션에 자주 나오는 제품이라면 <b>실물 컷</b>을 올려주세요 — 없으면 AI가 내용물 모양을 추측해 섹션마다 달라질 수 있어요
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              {auxPreviews.map((src, i) => (
+                <div key={i} style={{
+                  position: 'relative', width: 88, height: 88, borderRadius: 12,
+                  border: '1px solid #D8D2FF', overflow: 'hidden', background: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`보조컷 ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                  <button
+                    onClick={() => removeAux(i)}
+                    aria-label={`보조컷 ${i + 1} 제거`}
+                    style={{
+                      position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              {auxPreviews.length < MAX_AUX && (
+                <label
+                  title={preview ? '보조컷 업로드' : '대표컷을 먼저 올려주세요'}
+                  style={{
+                    width: 88, height: 88, borderRadius: 12,
+                    border: `2px dashed ${preview ? '#D8D2FF' : '#ECECF2'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: preview ? 'pointer' : 'not-allowed',
+                    color: preview ? '#6D4CFF' : '#C4C4CC', background: '#FDFCFF',
+                  }}
+                >
+                  <UploadCloud size={22} />
+                  <input
+                    ref={auxFileRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    disabled={!preview}
+                    onChange={handleAuxUpload}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
 
           {/* 누끼컷 생성 안내 */}
           <div style={{

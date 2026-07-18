@@ -54,6 +54,9 @@ export interface SectionBriefInput extends AdBriefInput {
   sectionName?: string;
   /** 섹션 순번(0-base) — 디렉터가 섹션명을 변형해 돌려줘도 idx 에코로 확실히 매칭(32섹션 복합명에서 이름 일치가 전멸한 사고의 재발 방지) */
   sectionIndex?: number;
+  /** 대표컷 외 보조 레퍼런스 개수(내용물·질감 실물 컷) — >0이면 내용물 재현 지시를 추가.
+   *  알약·내용물이 레퍼런스에 없으면 모델이 매 섹션 다른 모양을 지어내는 문제의 해법. */
+  auxRefCount?: number;
 }
 
 /**
@@ -120,8 +123,11 @@ export function buildSectionBrief(i: SectionBriefInput): string {
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
       : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
     `Hard guards:
-- If the product appears, it must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label. If this section's visual unit does not need the product, it is fine to not show it.
+- If the product appears, it must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label. If this section's visual unit does not need the product, it is fine to not show it.${(i.auxRefCount ?? 0) > 0 ? `
+- The ${i.auxRefCount === 1 ? 'additional reference image shows' : `${i.auxRefCount} additional reference images show`} the product's actual contents/detail (e.g. the tablet, texture, or inner packaging). Whenever the contents appear in this section, reproduce them exactly as photographed — same shape, color and proportions. Never invent a different-looking tablet or contents.` : ''}
 - Never show any other branded or labeled container or invented packaging. Plain unlabeled generic containers are allowed only when this section's stated purpose is to depict the problem situation — and they must look clearly different from the reference product (different silhouette, cap and liquid color) so no one mistakes them for it.
-- ${withCopy ? 'Text in the image is limited to the Korean copy above' : 'No text in the image'} — never invent numbers, percentages, star ratings, review/sales/repurchase figures, rankings, sizes or weights, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, prices other than those provided, shipping/exchange/refund policies, or before/after comparisons; no medical-sounding expressions. If the section's stated purpose implies data that is not in the seller facts above, express the idea qualitatively without inventing the data.`,
+- ${withCopy ? 'Text in the image is limited to the Korean copy above' : 'No text in the image'} — never invent numbers, percentages, star ratings, review/sales/repurchase figures, rankings, sizes or weights, certifications, test results, pH or fragrance claims, ingredient lists, efficacy claims, prices other than those provided, shipping/exchange/refund policies, or before/after comparisons; no medical-sounding expressions. If the section's stated purpose implies data that is not in the seller facts above, express the idea qualitatively without inventing the data.
+- Never invent customer quotes, reviewer names or initials — the ONLY customer reviews that may appear are the ones quoted verbatim in the seller facts above, at most once each.
+- Never draw interactive-looking UI: no buttons, no button-shaped boxes with click prompts (e.g. "지금 시작하기", "구매하기", "장바구니"), no fake toggles or checkout elements — the real buy button lives on the store platform outside this image.`,
   ].filter(Boolean).join('\n\n');
 }

@@ -46,9 +46,15 @@ export default function ImageMobile() {
 
   // 데스크탑과 동일 state
   const [preview, setPreview] = useState<string | null>(null);
+  // 보조컷(선택, 최대 2) — 내용물·질감 실물 레퍼런스(데스크탑과 동일 패턴)
+  const [auxPreviews, setAuxPreviews] = useState<string[]>([]);
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const MAX_AUX = 2;
+  const syncImages = (main: string | null, aux: string[]) =>
+    setProductImages(main ? [main, ...aux] : []);
 
   const secCount = sectionStructure.length > 0 ? sectionStructure.length : 9;
 
@@ -67,13 +73,34 @@ export default function ImageMobile() {
     try {
       const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
-      setProductImages([dataUrl]);
+      syncImages(dataUrl, auxPreviews);
     } catch (err) {
       console.error('[ImageMobile] 이미지 업로드 실패:', err);
     }
   };
 
-  const removePreview = () => { setPreview(null); setProductImages([]); };
+  const handleAuxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || auxPreviews.length >= MAX_AUX) return;
+    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    try {
+      const dataUrl = await compressUpload(await fileToBase64(file));
+      const next = [...auxPreviews, dataUrl];
+      setAuxPreviews(next);
+      syncImages(preview, next);
+    } catch (err) {
+      console.error('[ImageMobile] 보조컷 업로드 실패:', err);
+    }
+  };
+
+  const removeAux = (idx: number) => {
+    const next = auxPreviews.filter((_, i) => i !== idx);
+    setAuxPreviews(next);
+    syncImages(preview, next);
+  };
+
+  const removePreview = () => { setPreview(null); setAuxPreviews([]); setProductImages([]); };
 
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -84,7 +111,7 @@ export default function ImageMobile() {
     try {
       const dataUrl = await compressUpload(await fileToBase64(file));   // ★413 방지: 업로드 즉시 압축(1280px/0.82)
       setPreview(dataUrl);
-      setProductImages([dataUrl]);
+      syncImages(dataUrl, auxPreviews);
     } catch (err) {
       console.error('[ImageMobile] drop 실패:', err);
     }
@@ -231,6 +258,47 @@ export default function ImageMobile() {
         )}
         <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload}
           style={{ display: 'none' }} />
+      </section>
+
+      {/* 4b) 보조컷(선택) — 내용물·질감 실물 레퍼런스 */}
+      <section style={{ padding: '14px 20px 0' }}>
+        <div style={{ background: '#fff', border: '1.5px solid #ECECF2', borderRadius: 18, padding: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>
+            보조컷 <span style={{ color: '#999', fontWeight: 400 }}>(선택, 최대 {MAX_AUX}장)</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.55 }}>
+            알약·내용물·질감이 자주 나오는 제품은 실물 컷을 올려야 섹션마다 모양이 일관돼요
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            {auxPreviews.map((src, i) => (
+              <div key={i} style={{
+                position: 'relative', width: 76, height: 76, borderRadius: 12,
+                border: '1px solid #DDD6FE', overflow: 'hidden', background: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={`보조컷 ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                <button onClick={() => removeAux(i)} aria-label={`보조컷 ${i + 1} 제거`} style={{
+                  position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}><X size={11} /></button>
+              </div>
+            ))}
+            {auxPreviews.length < MAX_AUX && (
+              <label style={{
+                width: 76, height: 76, borderRadius: 12,
+                border: `2px dashed ${preview ? '#DDD6FE' : '#ECECF2'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: preview ? '#6D4CFF' : '#C4C4CC', background: '#FDFCFF',
+              }}>
+                <UploadCloud size={20} />
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  disabled={!preview} onChange={handleAuxUpload} />
+              </label>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* 5) 이미지 가이드 */}
