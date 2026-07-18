@@ -1,4 +1,5 @@
 import MarketingPage from '@/components/landing/MarketingPage';
+import GuideDemo from '@/components/landing/GuideDemo';
 
 /**
  * 사용 가이드 — 실제 생성 플로우(카테고리→상품정보→이미지→생성→결과) 기준으로만 작성.
@@ -20,6 +21,9 @@ export default function Page() {
       title="사용 가이드"
       intro="가입부터 다운로드까지 10분이면 충분합니다. 순서대로 따라오시면 첫 상세페이지가 완성돼요."
     >
+      {/* 30초 인터랙티브 데모 — 입력→생성→완성 흐름 자동 재생(모바일<760px 미표시) */}
+      <GuideDemo />
+
       <h2 style={sectionTitle}>1. 카테고리·채널 선택</h2>
       <p style={body}>
         판매하는 상품의 카테고리(화장품·식품·건강 등)와 판매 채널(스마트스토어 등)을 고르면,
