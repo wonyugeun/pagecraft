@@ -1688,7 +1688,7 @@ export default function ResultScreen() {
   }> = [
     {
       icon: Type, title: '카피(텍스트) 수정', desc: '문구, 제목, 설명을 수정할 수 있어요',
-      onClick: () => showHint("미리보기의 '✏️ 수정' 버튼으로 각 섹션 텍스트를 바로 고칠 수 있어요"),
+      onClick: () => showHint("텍스트를 클릭하거나 섹션의 '✏️ 수정' 버튼으로 바로 고칠 수 있어요"),
     },
     {
       icon: ImageIcon, title: '이미지 교체 / 재생성', desc: '이미지, 배경을 교체하거나 AI로 재생성',
