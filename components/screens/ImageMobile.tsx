@@ -52,6 +52,8 @@ export default function ImageMobile() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [dropHover, setDropHover] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const auxFileRef = useRef<HTMLInputElement>(null);
+  const packFileRef = useRef<HTMLInputElement>(null);
 
   const MAX_AUX = 2;
   const syncImages = (main: string | null, aux: string[]) =>
@@ -283,7 +285,7 @@ export default function ImageMobile() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 6, padding: '2px 7px' }}>보조컷</span>
-            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>최대 {MAX_AUX}장 · 알약·내용물·질감 실물</span>
+            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>최대 {MAX_AUX}장 · 알약·제형·조리컷 등 포장 밖 실물</span>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {auxPreviews.map((src, i) => (
@@ -302,22 +304,26 @@ export default function ImageMobile() {
               </div>
             ))}
             {auxPreviews.length < MAX_AUX && (
-              <label style={{
-                width: 76, height: 76, borderRadius: 12,
-                border: `2px dashed ${preview ? '#DDD6FE' : '#ECECF2'}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: preview ? '#6D4CFF' : '#C4C4CC', background: '#FDFCFF',
-              }}>
+              <button type="button"
+                onClick={() => {
+                  if (!preview) { alert('대표컷을 먼저 올려주세요 — 보조컷은 대표컷과 함께 전달돼요.'); return; }
+                  auxFileRef.current?.click();
+                }}
+                style={{
+                  width: 76, height: 76, borderRadius: 12,
+                  border: `2px dashed ${preview ? '#DDD6FE' : '#ECECF2'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: preview ? '#6D4CFF' : '#C4C4CC', background: '#FDFCFF',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>
                 <UploadCloud size={20} />
-                <input type="file" accept="image/*" style={{ display: 'none' }}
-                  disabled={!preview} onChange={handleAuxUpload} />
-              </label>
+              </button>
             )}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14 }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, color: '#D97706', background: '#FFF7E6', borderRadius: 6, padding: '2px 7px' }}>포장컷</span>
-            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>1장 · 원본 그대로 포장 섹션에 실려요 (본인 상품만)</span>
+            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>1장 · 배송박스·구성품 등 원본 그대로 실려요 (본인 상품만)</span>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {packagingRefImage ? (
@@ -334,17 +340,20 @@ export default function ImageMobile() {
                 }}><X size={11} /></button>
               </div>
             ) : (
-              <label style={{
+              <button type="button" onClick={() => packFileRef.current?.click()} style={{
                 width: 76, height: 76, borderRadius: 12,
                 border: '2px dashed #FDE1B5',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: '#D97706', background: '#FFFDF7',
+                cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 <UploadCloud size={20} />
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
-              </label>
+              </button>
             )}
           </div>
+          {/* 숨은 파일 입력 — 명시적 ref 클릭 방식 */}
+          <input ref={auxFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAuxUpload} />
+          <input ref={packFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
         </div>
       </section>
 
