@@ -180,6 +180,7 @@ export default function GeneratingScreen() {
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
   const [apiError,         setApiError]         = useState('');
+  const [refunded,         setRefunded]         = useState(false);   // ★자동 환불 발생 여부 — 에러 화면 문구 조건부
   const [retryKey,         setRetryKey]         = useState(0);
   const [creditInsufficient, setCreditInsufficient] = useState(false);
   const timerRef    = useRef<NodeJS.Timeout[]>([]);
@@ -278,6 +279,7 @@ export default function GeneratingScreen() {
               if (d?.status === 'refunded' && typeof d.balance === 'number') {
                 setCredits(d.balance);
                 refundedRef.current = true;   // 환불된 키는 죽은 키 — retry가 새 키를 만들게 표시
+                setRefunded(true);
               }
             }).catch(() => {});
           }
@@ -375,6 +377,8 @@ export default function GeneratingScreen() {
   }, [retryKey]);
 
   const cancel = () => {
+    // ★실수 클릭 방어 — 진행 중 취소는 카피 생성 시간(수 분)이 날아감. 크레딧은 자동 환불되지만 시간은 못 돌려줌.
+    if (pct > 0 && pct < 100 && !window.confirm('생성을 취소할까요? 사용한 크레딧은 자동 환불되지만, 진행된 작업은 사라져요.')) return;
     cancelledRef.current = true;
     timerRef.current.forEach(clearTimeout);
     abortRef.current?.abort();
@@ -398,6 +402,7 @@ export default function GeneratingScreen() {
       jobKeyRef.current = '';
       refundedRef.current = false;
     }
+    setRefunded(false);
     setApiError('');
     setStepIdx(-1);
     setPct(0);
@@ -434,7 +439,7 @@ export default function GeneratingScreen() {
             className="btn-next"
             onClick={() => { cancel(); setCreditModalOpen(true); }}
           >
-            ⚡ 크레딧 충전하기
+            ⚡ 크레딧 안내 보기
           </button>
         </div>
       </div>
@@ -450,7 +455,9 @@ export default function GeneratingScreen() {
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32, textAlign: 'center', maxWidth: 320 }}>
           {apiError}
         </div>
-        <div style={{ fontSize: 12.5, color: '#16a34a', fontWeight: 600, marginBottom: 16 }}>추가 차감 없이 다시 시도할 수 있어요</div>
+        <div style={{ fontSize: 12.5, color: '#16a34a', fontWeight: 600, marginBottom: 16 }}>
+          {refunded ? '사용한 크레딧은 자동 환불됐어요 — 다시 시도하면 새로 차감돼요' : '추가 차감 없이 다시 시도할 수 있어요'}
+        </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button className="btn-back" onClick={cancel}>← 이전으로</button>
           <button className="btn-next" onClick={retry}>↻ 다시 시도</button>
@@ -526,9 +533,9 @@ export default function GeneratingScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           <Lightbulb size={22} color="#FBBF24" style={{ flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>더 좋은 결과를 위해 잠시 기다려주세요!</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>카피 완성까지 약 4~5분 걸려요</div>
             <div style={{ fontSize: 13, color: '#666', marginTop: 4, lineHeight: 1.6 }}>
-              AI가 고객의 시선을 사로잡는 최고의 상세페이지를 만들어 드릴게요.
+              완료되면 결과 화면으로 이동하고, 이미지는 거기서 섹션별로 이어서 생성돼요. 새로고침해도 진행 상황은 유지됩니다.
             </div>
           </div>
         </div>
