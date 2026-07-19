@@ -7,7 +7,7 @@ import ImageMobile from './ImageMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
   UploadCloud, Sparkles, ChevronDown, Lightbulb,
-  Image as ImageIcon, Sun, Palette, FileText, X,
+  Image as ImageIcon, Sun, Palette, FileText, X, Plus,
 } from 'lucide-react';
 
 // 아래는 "어떤 이미지가 만들어지나요" 드롭다운의 예시(컷 종류 안내)용. 실제 섹션 수는 sectionStructure로 동적 표시.
@@ -38,9 +38,51 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.readAsDataURL(file);
   });
 
+/* ── 추가 사진 슬롯 공용(보조컷·포장컷) — 채워진 상태 ── */
+function PhotoSlot({ src, alt, onRemove }: { src: string; alt: string; onRemove: () => void }) {
+  return (
+    <div style={{
+      position: 'relative', width: 84, height: 84, borderRadius: 14,
+      border: '1.5px solid #D8D2FF', overflow: 'hidden', background: '#fff',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 2px 8px rgba(109,76,255,0.08)',
+    }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <button onClick={onRemove} aria-label={`${alt} 제거`} style={{
+        position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%',
+        background: 'rgba(17,17,17,0.62)', color: '#fff', border: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+      }}>
+        <X size={11} />
+      </button>
+    </div>
+  );
+}
+
+/* ── 빈 슬롯 — + 아이콘과 슬롯 안 라벨(용도가 한눈에) ── */
+function EmptySlot({ enabled, hint, label, children }: {
+  enabled: boolean; hint: string; label: string; children: React.ReactNode;
+}) {
+  return (
+    <label title={hint} style={{
+      width: 84, height: 84, borderRadius: 14,
+      border: `1.5px dashed ${enabled ? '#C9BAFF' : '#ECECF2'}`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+      cursor: enabled ? 'pointer' : 'not-allowed',
+      color: enabled ? '#6D4CFF' : '#C4C4CC', background: enabled ? '#FBFAFF' : '#FAFAFA',
+      transition: 'border-color .15s, background .15s',
+    }}>
+      <Plus size={18} />
+      <span style={{ fontSize: 10, fontWeight: 600 }}>{label}</span>
+      {children}
+    </label>
+  );
+}
+
 export default function ImageScreen() {
   const isMobile = useIsMobile();
-  const { setProductImages, go, sectionStructure } = useApp();
+  const { setProductImages, go, sectionStructure, packagingRefImage, setPackagingRefImage } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
   // 보조컷(선택, 최대 2) — 내용물·질감 실물. 대표컷만으로는 병 속 알약 등 내용물 모양을
   // 모델이 매 섹션 지어내므로, 실물 컷을 레퍼런스로 함께 전달해 일관성을 잡는다.
@@ -91,6 +133,19 @@ export default function ImageScreen() {
       syncImages(preview, next);
     } catch (err) {
       console.error('[ImageScreen] 보조컷 업로드 실패:', err);
+    }
+  };
+
+  // 포장컷 — 실제 포장·구성 사진 1장. 픽셀 보존 플레이트 합성(Required Asset) 입력.
+  const handlePackUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    try {
+      setPackagingRefImage(await compressUpload(await fileToBase64(file)));
+    } catch (err) {
+      console.error('[ImageScreen] 포장컷 업로드 실패:', err);
     }
   };
 
@@ -197,60 +252,68 @@ export default function ImageScreen() {
             </div>
           )}
 
-          {/* 보조컷(선택) — 내용물·질감 실물 레퍼런스. 알약·내용물 섹션 모양 일관성용 */}
+          {/* 추가 사진(선택) — ①보조컷: 내용물·질감(AI가 모양을 지어내지 않게) ②포장컷: 실제
+              포장·구성(픽셀 보존 플레이트 합성 — packagingRefImage, 2026-07-19 입구 신설·역할 분리) */}
           <div style={{
-            border: '1px solid #ECECF2', borderRadius: 16, background: '#fff', padding: '16px 20px',
+            border: '1px solid #ECECF2', borderRadius: 16, background: '#fff', padding: '18px 20px',
           }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>
-              보조컷 <span style={{ color: '#999', fontWeight: 400 }}>(선택, 최대 {MAX_AUX}장)</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>추가 사진</span>
+              <span style={{ fontSize: 12, color: '#999' }}>선택 — 올릴수록 결과가 정확해져요</span>
             </div>
-            <div style={{ fontSize: 12.5, color: '#666', marginTop: 4, lineHeight: 1.5 }}>
-              알약·내용물·질감이 섹션에 자주 나오는 제품이라면 <b>실물 컷</b>을 올려주세요 — 없으면 AI가 내용물 모양을 추측해 섹션마다 달라질 수 있어요
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-              {auxPreviews.map((src, i) => (
-                <div key={i} style={{
-                  position: 'relative', width: 88, height: 88, borderRadius: 12,
-                  border: '1px solid #D8D2FF', overflow: 'hidden', background: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={`보조컷 ${i + 1}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                  <button
-                    onClick={() => removeAux(i)}
-                    aria-label={`보조컷 ${i + 1} 제거`}
-                    style={{
-                      position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%',
-                      background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    }}
-                  >
-                    <X size={12} />
-                  </button>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+              {/* ── 보조컷 그룹 ── */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: '#6D4CFF',
+                    background: '#F4F0FF', borderRadius: 6, padding: '2px 7px',
+                  }}>보조컷</span>
+                  <span style={{ fontSize: 11, color: '#B8B8C7' }}>최대 {MAX_AUX}장</span>
                 </div>
-              ))}
-              {auxPreviews.length < MAX_AUX && (
-                <label
-                  title={preview ? '보조컷 업로드' : '대표컷을 먼저 올려주세요'}
-                  style={{
-                    width: 88, height: 88, borderRadius: 12,
-                    border: `2px dashed ${preview ? '#D8D2FF' : '#ECECF2'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: preview ? 'pointer' : 'not-allowed',
-                    color: preview ? '#6D4CFF' : '#C4C4CC', background: '#FDFCFF',
-                  }}
-                >
-                  <UploadCloud size={22} />
-                  <input
-                    ref={auxFileRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    disabled={!preview}
-                    onChange={handleAuxUpload}
-                  />
-                </label>
-              )}
+                <div style={{ fontSize: 11.5, color: '#8B8B99', lineHeight: 1.5, marginBottom: 10, minHeight: 34 }}>
+                  알약·내용물·질감 실물 — AI가 모양을 지어내지 않게 잡아줘요
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {auxPreviews.map((src, i) => (
+                    <PhotoSlot key={i} src={src} alt={`보조컷 ${i + 1}`} onRemove={() => removeAux(i)} />
+                  ))}
+                  {auxPreviews.length < MAX_AUX && (
+                    <EmptySlot
+                      enabled={!!preview}
+                      hint={preview ? '보조컷 업로드' : '대표컷을 먼저 올려주세요'}
+                      label="내용물"
+                    >
+                      <input ref={auxFileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                        disabled={!preview} onChange={handleAuxUpload} />
+                    </EmptySlot>
+                  )}
+                </div>
+              </div>
+
+              {/* ── 포장컷 그룹 ── */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: '#D97706',
+                    background: '#FFF7E6', borderRadius: 6, padding: '2px 7px',
+                  }}>포장컷</span>
+                  <span style={{ fontSize: 11, color: '#B8B8C7' }}>1장</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: '#8B8B99', lineHeight: 1.5, marginBottom: 10, minHeight: 34 }}>
+                  실제 포장·구성 사진 — <b>원본 그대로</b> 포장 섹션에 실려요 (본인 상품 사진만)
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {packagingRefImage ? (
+                    <PhotoSlot src={packagingRefImage} alt="포장컷" onRemove={() => setPackagingRefImage(null)} />
+                  ) : (
+                    <EmptySlot enabled hint="포장컷 업로드" label="포장·구성">
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
+                    </EmptySlot>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

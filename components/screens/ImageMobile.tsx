@@ -42,6 +42,7 @@ export default function ImageMobile() {
     setProductImages, go,
     sectionStructure,
     toggleChat, credits,
+    packagingRefImage, setPackagingRefImage,
   } = useApp();
 
   // 데스크탑과 동일 state
@@ -91,6 +92,19 @@ export default function ImageMobile() {
       syncImages(preview, next);
     } catch (err) {
       console.error('[ImageMobile] 보조컷 업로드 실패:', err);
+    }
+  };
+
+  // 포장컷 — 실제 포장·구성 사진 1장(픽셀 보존 플레이트 합성 입력, 데스크톱과 동일)
+  const handlePackUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    try {
+      setPackagingRefImage(await compressUpload(await fileToBase64(file)));
+    } catch (err) {
+      console.error('[ImageMobile] 포장컷 업로드 실패:', err);
     }
   };
 
@@ -260,16 +274,18 @@ export default function ImageMobile() {
           style={{ display: 'none' }} />
       </section>
 
-      {/* 4b) 보조컷(선택) — 내용물·질감 실물 레퍼런스 */}
+      {/* 4b) 추가 사진(선택) — 보조컷(내용물·질감) + 포장컷(실제 포장·구성, 원본 그대로) */}
       <section style={{ padding: '14px 20px 0' }}>
         <div style={{ background: '#fff', border: '1.5px solid #ECECF2', borderRadius: 18, padding: 16 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>
-            보조컷 <span style={{ color: '#999', fontWeight: 400 }}>(선택, 최대 {MAX_AUX}장)</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>추가 사진</span>
+            <span style={{ fontSize: 11, color: '#999' }}>선택 — 올릴수록 정확해져요</span>
           </div>
-          <div style={{ fontSize: 12, color: '#666', marginTop: 4, lineHeight: 1.55 }}>
-            알약·내용물·질감이 자주 나오는 제품은 실물 컷을 올려야 섹션마다 모양이 일관돼요
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 6, padding: '2px 7px' }}>보조컷</span>
+            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>최대 {MAX_AUX}장 · 알약·내용물·질감 실물</span>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             {auxPreviews.map((src, i) => (
               <div key={i} style={{
                 position: 'relative', width: 76, height: 76, borderRadius: 12,
@@ -295,6 +311,37 @@ export default function ImageMobile() {
                 <UploadCloud size={20} />
                 <input type="file" accept="image/*" style={{ display: 'none' }}
                   disabled={!preview} onChange={handleAuxUpload} />
+              </label>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: '#D97706', background: '#FFF7E6', borderRadius: 6, padding: '2px 7px' }}>포장컷</span>
+            <span style={{ fontSize: 10.5, color: '#B8B8C7' }}>1장 · 원본 그대로 포장 섹션에 실려요 (본인 상품만)</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {packagingRefImage ? (
+              <div style={{
+                position: 'relative', width: 76, height: 76, borderRadius: 12,
+                border: '1px solid #FDE1B5', overflow: 'hidden', background: '#fff',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={packagingRefImage} alt="포장컷" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <button onClick={() => setPackagingRefImage(null)} aria-label="포장컷 제거" style={{
+                  position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                }}><X size={11} /></button>
+              </div>
+            ) : (
+              <label style={{
+                width: 76, height: 76, borderRadius: 12,
+                border: '2px dashed #FDE1B5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#D97706', background: '#FFFDF7',
+              }}>
+                <UploadCloud size={20} />
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
               </label>
             )}
           </div>

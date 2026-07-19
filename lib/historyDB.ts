@@ -20,6 +20,7 @@ export interface HistoryImagesPayload {
   blockImages?: Record<string, string>;
   sectionOverrides?: Record<string, unknown>;   // 인라인 편집(텍스트 override) 영속화 — 가벼움(압축 불필요)
   productImages?: string[];                     // 셀러 제품 사진(edits reference) — 재진입 시 소실 방지(압축 저장)
+  packagingRefImage?: string | null;            // 포장컷(Required Asset 원본) — '__session__' 새로고침 보존
   sessionId?: string;                           // '__session__' 레코드 전용 — 같은 탭 세션에서만 복원(타 제품 오염 방지)
 }
 

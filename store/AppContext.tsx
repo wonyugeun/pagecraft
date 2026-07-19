@@ -462,6 +462,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductNameState(item.productName);
     setProductExtraState('');
     setProductImagesState([]);
+    setPackagingRefImageState(null);   // ★포장컷도 초기화 — 이전 상품 포장이 새 상품에 새는 것 방지
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
@@ -621,23 +622,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   //   경쟁 브랜드를 그리던 붕괴의 재발 방지.
   useEffect(() => {
     if (!didRestoreRef.current) return;          // 복원 완료 전 저장 차단(기존 didRestoreRef 패턴과 동일)
-    if (productImages.length === 0) return;
+    if (productImages.length === 0 && !packagingRefImage) return;
     (async () => {
       try {
         const compressed = await compressProductImages(productImages);
-        await patchImages('__session__', { productImages: compressed, sessionId: getSessionId() });
+        await patchImages('__session__', { productImages: compressed, packagingRefImage, sessionId: getSessionId() });
       } catch { /* 시크릿 모드 등 IndexedDB 불가 — 무시(다른 방어층이 있음) */ }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productImages]);
+  }, [productImages, packagingRefImage]);
 
   // 복원(mount 1회) — 같은 탭 세션(sessionId 일치)일 때만. 새 탭/다른 날 방문에 이전 제품 사진이 새면 안 됨.
   useEffect(() => {
     (async () => {
       try {
         const stored = await getImages('__session__');
-        if (stored?.productImages?.length && stored.sessionId === getSessionId()) {
-          setProductImagesState(prev => (prev.length ? prev : stored.productImages!));
+        if (stored?.sessionId === getSessionId()) {
+          if (stored.productImages?.length) {
+            setProductImagesState(prev => (prev.length ? prev : stored.productImages!));
+          }
+          if (stored.packagingRefImage) {
+            setPackagingRefImageState(prev => prev ?? stored.packagingRefImage ?? null);
+          }
         }
       } catch { /* no-op */ }
     })();
@@ -698,6 +704,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductNameState('');
     setProductExtraState('');
     setProductImagesState([]);
+    setPackagingRefImageState(null);   // ★포장컷도 초기화 — 이전 상품 포장이 새 상품에 새는 것 방지
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
