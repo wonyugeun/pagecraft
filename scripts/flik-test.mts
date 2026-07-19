@@ -257,7 +257,7 @@ async function runFull(presetKey: string, sectionCount: number) {
     const aspect = aspectRatioFor(sec.name, undefined, 'slide');
     const isPlate = raIdx >= 0 && i === raIdx;
     const prompt = isPlate
-      ? buildPlatePrompt(sec.headline, sec.subcopy, accent)
+      ? buildPlatePrompt(sec.headline, sec.subcopy, accent, { concept: director?.selected_concept, productName: preset.productName, sectionName: sec.name })
       : buildSectionBrief({
           productName: preset.productName, productForm: preset.productForm, productVolume: preset.productVolume,
           productExtra: preset.productExtra,

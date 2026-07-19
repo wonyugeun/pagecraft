@@ -72,18 +72,43 @@ export const PLATE_STAGE = {
  * 플레이트 프롬프트 — 증거 섹션용 중간 강도 배경판. GPT에는 제품·포장 생성을 전면 금지하고
  * 입력 카피(헤드라인·서브카피)만 타이포로 허용. 페이지 액센트 컬러로 전체 톤과 연결.
  */
-export function buildPlatePrompt(headline: string, subcopy?: string, accentHex?: string): string {
-  const accent = accentHex || '#5BA3D9';
+export interface PlateBriefInput {
+  headline: string;
+  subcopy?: string;
+  /** 브랜드 팔레트(Stage1 큐레이션) — 페이지 톤 일관성 */
+  visual?: { primary_color?: string; accent_color?: string; soft_color?: string } | null;
+  /** 디렉터의 페이지 컨셉(selected_concept) — 무대가 이 세계관 안에서 연출되게 */
+  concept?: string | null;
+  productName?: string;
+  sectionName?: string;
+}
+
+/**
+ * Required Asset 플레이트 브리프 — Clean 재작성(2026-07-19, 유근님: "정형화된 템플릿, 시스템 구조가 아니다").
+ *
+ * 구 버전은 3존 고정 레이아웃(상단 카피밴드/중앙 빈 무대/하단 여백)+무난한 워시 배경을 하드코딩 —
+ * 페이지 컨셉·제품과 무관하게 똑같이 나왔다. 재작성 원칙:
+ *  - 고정은 딱 하나: 사진이 합성될 스테이지 영역(PLATE_STAGE 좌표)을 비워두는 것(픽셀 보존 합성의 물리 제약).
+ *  - 나머지 전부 위임: 배경 연출·질감·조명·가장자리 소품·카피 배치를 페이지 컨셉+팔레트로 판단하게.
+ */
+export function buildPlatePrompt(headline: string, subcopy?: string, accentHex?: string, opts?: Omit<PlateBriefInput, 'headline' | 'subcopy'>): string {
   const sub = (subcopy ?? '').trim();
-  return (
-    `Korean e-commerce detail page section background plate — a calm "proof" section that sits naturally inside a longer page, NOT a standalone hero poster. Quiet-medium editorial intensity, consistent with the rest of the page.\n` +
-    `STRICT: no products, no packaging, no boxes, no fish, no food, no people, no hands, no icons, no badges, no certification marks, no tables, no charts, and no text of any kind beyond the exact Korean lines below.\n` +
-    `Layout top to bottom:\n` +
-    `(1) Top ~26%: a compact headline band — the Korean headline "${headline}" in bold near-black modern sans-serif (Pretendard style), sized like a regular section title (clearly smaller than a hero headline)${sub ? `, and beneath it one smaller, lighter Korean subcopy line "${sub}"` : ''}. Crisp, correctly spelled, perfectly legible.\n` +
-    `(2) Middle band (from ~${Math.round(PLATE_STAGE.topRatio * 100)}% down to ~85% of the height): a completely EMPTY photo stage reserved for a real photograph placed later — a soft, softly-lit flat area with a very subtle ambient shadow hint at its center; absolutely nothing rendered inside.\n` +
-    `(3) Bottom: quiet negative space fading out; nothing else.\n` +
-    `Background: a soft full-page wash in a muted tone of ${accent} (pale, airy — matching the page's shared color family), subtle vertical gradient, generous breathing room, clean premium commerce finish. Soft studio light from the upper left.`
-  );
+  const v = opts?.visual;
+  const colors = v?.primary_color
+    ? `main ${v.primary_color}${v.accent_color ? `, accent ${v.accent_color}` : ''}${v.soft_color ? `, soft ${v.soft_color}` : ''}`
+    : (accentHex || '#5BA3D9');
+  const concept = (opts?.concept ?? '').trim();
+  const topPct = Math.round(PLATE_STAGE.topRatio * 100);
+
+  return [
+    `This is the "${opts?.sectionName || '포장·구성'}" section of a Korean e-commerce detail page${opts?.productName ? ` for "${opts.productName}"` : ''}.`,
+    `A REAL photograph of the seller's actual packaging will be placed onto this image later (pixel-perfect, by code) — your job is to design the STAGE it will sit on, as the page's art director.`,
+    concept ? `Page ad concept (every section of this page lives in this world — design the stage to belong to it):\n${concept}` : '',
+    `The ONLY fixed constraint (compositing geometry): the horizontal band from ~${topPct}% down to ~85% of the height, centered at ~78% width, must be a completely EMPTY, softly-lit receiving area — render nothing inside it (the photo lands exactly there).`,
+    `Everything else is yours: express the concept and the color family (${colors}) through the backdrop — surface texture, lighting mood, subtle ambient props at the EDGES outside the stage (fabric, plants, ice, light patterns… whatever fits THIS product's world), gradients or quiet graphic accents. Make it feel like a designed section of THIS page, not a generic template.`,
+    `Korean copy to render crisply with exact spelling, placed and sized however serves the section best (outside the stage area, typically above it):\nHeadline: "${headline}"${sub ? `\nSubcopy: "${sub}"` : ''}`,
+    `STRICT: nothing rendered inside the stage band. No products, no packaging, no boxes, no labeled items, no people, no badges or certification marks, and no text beyond the exact Korean lines above.`,
+  ].filter(Boolean).join('\n\n');
 }
 
 /** 합성 파라미터 — 라운드 카드 + 2겹 소프트 섀도 + 헤어라인 보더(원본 픽셀 무수정) */

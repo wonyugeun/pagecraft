@@ -1401,7 +1401,7 @@ export default function ResultScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color) : promptText,
+          prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color, { visual: sec.visual, concept: directorPlan?.selected_concept, productName, sectionName: sec.name }) : promptText,
           sectionNum: sec.num,
           productImages: isPlate ? undefined : (images.length > 0 ? images : undefined),
           outputType: effectiveOut,
