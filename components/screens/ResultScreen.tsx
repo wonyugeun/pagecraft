@@ -1292,6 +1292,30 @@ export default function ResultScreen() {
   const jobKeyRef = useRef(generationJobKey);
   useEffect(() => { jobKeyRef.current = generationJobKey; }, [generationJobKey]);
 
+  // ── 우측 패널 스크롤 추적(fixed 전환) — CSS sticky가 조상 컨텍스트에 막혀 미동작, JS로 확실하게. ──
+  //   외곽(그리드 아이템) rect를 재서 상단(118px)을 지나면 내부 패널을 fixed로 전환. 데스크톱 그리드(>768px)에서만.
+  const panelOuterRef = useRef<HTMLDivElement>(null);
+  const [panelFixed, setPanelFixed] = useState<{ left: number; width: number } | null>(null);
+  useEffect(() => {
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const el = panelOuterRef.current;
+      if (!el || window.innerWidth <= 768) { setPanelFixed(null); return; }
+      const r = el.getBoundingClientRect();
+      if (r.top <= 118) {
+        setPanelFixed(prev => (prev && Math.abs(prev.left - r.left) < 1 && Math.abs(prev.width - r.width) < 1) ? prev : { left: r.left, width: r.width });
+      } else {
+        setPanelFixed(null);
+      }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(measure); };
+    measure();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+
   // ★빈 결과 = 차감됐는데 산출물 0 유형 — 도착 즉시 자동 환불 시도(서버가 원장으로 이미지 0장 재검증,
   //   이미지가 나갔거나 기환불이면 서버가 거절하므로 언제 호출돼도 안전. 멱등)
   useEffect(() => {
@@ -1983,13 +2007,16 @@ export default function ResultScreen() {
           </div>
         </div>
 
-        {/* ── 우측 패널 — sticky: 미리보기를 길게 스크롤해도 목록·액션이 화면에 붙어 따라옴.
-            패널이 뷰포트보다 길면 패널 안에서 자체 스크롤(얇은 스크롤바). top=상단 크롬(106px)+여백. ── */}
+        {/* ── 우측 패널 — JS 스크롤 추적으로 화면 상단에 고정 따라옴(sticky 미동작 환경 대응).
+            고정 시 패널이 뷰포트보다 길면 패널 안에서만 얇게 스크롤. ── */}
+        <div ref={panelOuterRef}>
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 20,
-          position: 'sticky', top: 118,
-          maxHeight: 'calc(100vh - 138px)', overflowY: 'auto',
-          scrollbarWidth: 'thin', paddingRight: 2,
+          ...(panelFixed ? {
+            position: 'fixed' as const, top: 118, left: panelFixed.left, width: panelFixed.width,
+            maxHeight: 'calc(100vh - 138px)', overflowY: 'auto' as const,
+            scrollbarWidth: 'thin' as const, paddingRight: 2,
+          } : {}),
         }}>
 
           {/* 1. 페이지 정보 */}
@@ -2250,6 +2277,7 @@ export default function ResultScreen() {
               상단의 각 단계를 돌아가면 더 세밀한 설정과 재생성이 가능합니다.
             </div>
           </div>
+        </div>
         </div>
       </div>
 
