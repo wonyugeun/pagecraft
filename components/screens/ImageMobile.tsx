@@ -213,7 +213,7 @@ export default function ImageMobile() {
           letterSpacing: '-0.03em', lineHeight: 1.25,
         }}>제품 사진 한 장만 주세요</h1>
         <p style={{ margin: '12px 0 0', fontSize: 13, color: '#666', lineHeight: 1.6 }}>
-          누끼컷(흰 배경 정면)을 기준으로<br />
+          제품이 잘 보이는 사진이면 충분해요 —<br />
           AI가 <span style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</span>에 필요한 이미지를 전부 만들어요.
         </p>
       </section>
@@ -387,43 +387,6 @@ export default function ImageMobile() {
         </div>
       </section>
 
-      {/* 6) 누끼컷 만들기 안내 */}
-      <section style={{ padding: '12px 20px 0' }}>
-        <div style={{
-          background: '#fff', border: '1.5px solid #ECECF2',
-          borderRadius: 18, padding: 16,
-          display: 'flex', alignItems: 'center', gap: 12,
-        }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: '#F4F0FF', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Sparkles size={20} color="#6D4CFF" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>누끼컷이 없으세요?</div>
-            <div style={{ marginTop: 4, fontSize: 11.5, color: '#666', lineHeight: 1.4 }}>
-              배경 있는 제품 사진을 올리면 AI가<br />누끼를 따드려요
-            </div>
-          </div>
-          <button
-            disabled
-            title="곧 추가될 기능이에요"
-            style={{
-              flexShrink: 0,
-              background: '#F4F4F6', border: '1.5px solid #E5E7EB',
-              color: '#A0A0AB',
-              fontSize: 12, fontWeight: 700,
-              borderRadius: 10, padding: '10px 14px',
-              cursor: 'not-allowed', fontFamily: 'inherit',
-            }}
-          >
-            누끼컷 만들기 (준비 중)
-          </button>
-        </div>
-      </section>
-
       {/* 7) 어떤 이미지가 만들어지나요? 토글 */}
       <section style={{ padding: '12px 20px 0' }}>
         <div style={{
@@ -454,7 +417,7 @@ export default function ImageMobile() {
               borderTop: '1px solid #F4F4F7',
               fontSize: 12, color: '#666', lineHeight: 1.7,
             }}>
-              제공해주신 한 장의 누끼컷을 기준으로 AI가 섹션별로 필요한 이미지를 자동 생성합니다. 메인 후킹, 성분 클로즈업, 사용 장면, 비교, 후기 등 결과물 단계에서 각 섹션 옆에 함께 만들어져요.
+              제공해주신 대표컷을 기준으로 AI가 섹션별로 필요한 이미지를 자동 생성합니다. 메인 후킹, 성분 클로즈업, 사용 장면, 비교, 후기 등 결과물 단계에서 각 섹션 옆에 함께 만들어져요.
             </div>
           )}
         </div>

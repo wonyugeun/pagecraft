@@ -201,7 +201,7 @@ export default function ImageScreen() {
           제품 사진 한 장만 주세요
         </h1>
         <p style={{ fontSize: 15, color: '#666', marginTop: 8, lineHeight: 1.6 }}>
-          누끼컷(흰 배경 정면)을 기준으로 AI가{' '}
+          제품이 잘 보이는 사진이면 충분해요 — AI가{' '}
           <span style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</span>에 필요한 이미지를 전부 만들어요
         </p>
       </div>
@@ -234,7 +234,7 @@ export default function ImageScreen() {
                 <UploadCloud size={32} color="#6D4CFF" />
               </div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>클릭하거나 드래그해서 업로드</div>
-              <div style={{ fontSize: 13, color: '#999', marginTop: 6 }}>PNG, JPG · 최대 10MB</div>
+              <div style={{ fontSize: 13, color: '#999', marginTop: 6 }}>PNG, JPG · 최대 10MB · 배경 있는 사진도 괜찮아요</div>
               <input
                 ref={fileRef}
                 type="file"
@@ -351,38 +351,6 @@ export default function ImageScreen() {
             {/* 숨은 파일 입력 — 명시적 ref 클릭 방식(라벨 연결보다 신뢰성↑) */}
             <input ref={auxFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAuxUpload} />
             <input ref={packFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
-          </div>
-
-          {/* 누끼컷 생성 안내 */}
-          <div style={{
-            border: '1px solid #ECECF2', borderRadius: 16, background: '#fff',
-            padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 12, background: '#F4F0FF',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Sparkles size={20} color="#6D4CFF" />
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#111' }}>누끼컷이 없으세요?</div>
-                <div style={{ fontSize: 12.5, color: '#666', marginTop: 2, lineHeight: 1.5 }}>
-                  배경 있는 제품 사진을 올리면 AI가 누끼를 따드려요
-                </div>
-              </div>
-            </div>
-            <button
-              disabled
-              title="곧 추가될 기능이에요"
-              style={{
-                height: 40, border: '1px solid #E5E7EB', background: '#F4F4F6', color: '#A0A0AB',
-                fontWeight: 700, fontSize: 13, borderRadius: 12, padding: '0 16px',
-                whiteSpace: 'nowrap', cursor: 'not-allowed', flexShrink: 0, fontFamily: 'var(--f)',
-              }}
-            >
-              누끼컷 만들기 (준비 중)
-            </button>
           </div>
 
           {/* 접힌 안내: 어떤 이미지가 만들어지나요 */}
