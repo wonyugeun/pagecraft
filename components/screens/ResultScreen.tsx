@@ -1983,8 +1983,14 @@ export default function ResultScreen() {
           </div>
         </div>
 
-        {/* ── 우측 패널 ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* ── 우측 패널 — sticky: 미리보기를 길게 스크롤해도 목록·액션이 화면에 붙어 따라옴.
+            패널이 뷰포트보다 길면 패널 안에서 자체 스크롤(얇은 스크롤바). top=상단 크롬(106px)+여백. ── */}
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 20,
+          position: 'sticky', top: 118,
+          maxHeight: 'calc(100vh - 138px)', overflowY: 'auto',
+          scrollbarWidth: 'thin', paddingRight: 2,
+        }}>
 
           {/* 1. 페이지 정보 */}
           <div style={{
