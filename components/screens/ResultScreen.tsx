@@ -754,13 +754,14 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
 }
 
 /* ─── 슬라이드형 카드 ─── */
-export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLightbox }: {
+export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLightbox, onEditRequest }: {
   sec: Section;
   onRegen: (s: Section) => Promise<Section | null>;
   imgState: ImgState;
   onGenerateImage: () => void;
   index: number;
   onLightbox?: () => void;
+  onEditRequest?: (req: string) => void;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [headline, setHeadline] = useState(sec.headline);
@@ -787,6 +788,7 @@ export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLi
         labelColor="#6D4CFF" descColor="#a78bfa" genBg="#ede9fe"
         onLightbox={onLightbox}
       />
+      {onEditRequest && imgState.url && <div style={{ marginTop: 10 }}><EditRequestBar onApply={onEditRequest} loading={imgState.loading} /></div>}
       <div style={{ padding: '16px 20px 14px' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.5, marginBottom: 8, whiteSpace: 'pre-line' }}>{headline}</div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.85, marginBottom: 12 }}>{saved}</div>
@@ -810,14 +812,59 @@ export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLi
   );
 }
 
+/* ─── 자연어 수정 요청 바 — 셀러가 말로 시키는 이미지·카피 수정(재생성 1회, 추가 크레딧 없음·한도 내) ─── */
+export function EditRequestBar({ onApply, loading }: { onApply: (req: string) => void; loading: boolean }) {
+  const [req, setReq] = useState('');
+  const submit = () => {
+    const t = req.trim();
+    if (!t || loading) return;
+    onApply(t);
+    setReq('');
+  };
+  return (
+    <div style={{ display: 'flex', gap: 6, padding: '0 14px 12px' }}>
+      <input
+        value={req}
+        onChange={e => setReq(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && submit()}
+        disabled={loading}
+        placeholder="AI에게 수정 요청 — 예: 모델을 오른쪽으로 · 카피 오타 고쳐줘"
+        style={{
+          flex: 1, minWidth: 0, height: 34, padding: '0 12px',
+          border: '1.5px solid #ECECF2', borderRadius: 10,
+          fontSize: 12, color: '#111', fontFamily: 'var(--f)', outline: 'none',
+          background: loading ? '#FAFAFC' : '#fff',
+        }}
+        onFocus={e => (e.currentTarget.style.borderColor = '#C9BAFF')}
+        onBlur={e => (e.currentTarget.style.borderColor = '#ECECF2')}
+      />
+      <button
+        onClick={submit}
+        disabled={loading || !req.trim()}
+        style={{
+          height: 34, padding: '0 14px', borderRadius: 10, border: 'none', flexShrink: 0,
+          background: loading || !req.trim() ? '#EDE8FF' : '#6D4CFF',
+          color: loading || !req.trim() ? '#B0A0E8' : '#fff',
+          fontSize: 12, fontWeight: 700, cursor: loading || !req.trim() ? 'default' : 'pointer',
+          fontFamily: 'var(--f)',
+        }}
+      >
+        {loading ? '반영 중…' : '✦ 반영'}
+      </button>
+    </div>
+  );
+}
+
 /* ─── 이미지 전용 섹션 ─── */
-export function ImageSection({ sec, imgState, onGenerateImage, index, accent, onLightbox }: {
+export function ImageSection({ sec, imgState, onGenerateImage, index, accent, onLightbox, onEditRequest }: {
   sec: Section;
   imgState: ImgState;
   onGenerateImage: () => void;
   index: number;
   accent: 'purple' | 'blue';
   onLightbox?: () => void;
+  /** 자연어 수정 요청 → 요청 반영 재생성(브리프 editRequest 주입) */
+  onEditRequest?: (req: string) => void;
 }) {
   const accentColor = accent === 'purple' ? '#6D4CFF' : '#6D4CFF';
   const accentBg = accent === 'purple' ? '#ede9fe' : '#F4F0FF';
@@ -837,6 +884,7 @@ export function ImageSection({ sec, imgState, onGenerateImage, index, accent, on
           onLightbox={onLightbox}
         />
       </div>
+      {onEditRequest && imgState.url && <EditRequestBar onApply={onEditRequest} loading={imgState.loading} />}
     </div>
   );
 }
@@ -1285,7 +1333,7 @@ export default function ResultScreen() {
     return directorPlanRef.current;
   }, [cat, ch, productName, productExtra, diff, brand, sections]);
 
-  const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { slideHero?: boolean }) => {
+  const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { slideHero?: boolean; editRequest?: string }) => {
     const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
@@ -1296,7 +1344,7 @@ export default function ResultScreen() {
       const directorPlan = (CLEAN_IMAGE_BRIEF && effectiveOut !== 'blog') ? await ensureDirectorPlan() : null;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name, sectionIndex: secIdx >= 0 ? secIdx : undefined, auxRefCount: Math.max(0, images.length - 1) });
+        : buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name, sectionIndex: secIdx >= 0 ? secIdx : undefined, auxRefCount: Math.max(0, images.length - 1), editRequest: opts?.editRequest });
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트(배경판+입력 카피 타이포)만 생성,
       //   셀러 포장 원본은 클라 코드 합성으로 픽셀 보존. ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
@@ -1909,6 +1957,7 @@ export default function ResultScreen() {
                     sec={sec}
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                     onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: displayIdx === 0 })}
+                    onEditRequest={req => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: displayIdx === 0, editRequest: req })}
                     index={displayIdx} accent="purple"
                     onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                   />

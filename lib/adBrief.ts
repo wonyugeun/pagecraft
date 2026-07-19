@@ -107,6 +107,9 @@ export interface SectionBriefInput extends AdBriefInput {
   /** 대표컷 외 보조 레퍼런스 개수(내용물·질감 실물 컷) — >0이면 내용물 재현 지시를 추가.
    *  알약·내용물이 레퍼런스에 없으면 모델이 매 섹션 다른 모양을 지어내는 문제의 해법. */
   auxRefCount?: number;
+  /** 셀러의 자연어 수정 요청(재생성 1회분) — "모델을 오른쪽으로", "카피 오타 '카밍'으로 수정" 등.
+   *  셀러 입력 = 셀러 책임 원칙: 구도·장면 조정과 카피 교정을 허용하되 나머지 가드는 그대로. */
+  editRequest?: string;
 }
 
 /**
@@ -172,6 +175,9 @@ export function buildSectionBrief(i: SectionBriefInput): string {
     d
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
       : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
+    (i.editRequest ?? '').trim()
+      ? `★Seller's revision request for THIS regeneration — apply it faithfully (it comes from the seller and takes priority for what it addresses; it may adjust the composition/scene, or correct the Korean copy's wording — if it corrects wording, render the corrected wording instead of the copy above):\n"${(i.editRequest ?? '').trim()}"`
+      : '',
     `Hard guards:
 - If the product appears, it must exactly match the reference image (shape, proportions, cap/closure, label layout and lettering) — never redesign or re-typeset the label. If this section's visual unit does not need the product, it is fine to not show it.${(i.auxRefCount ?? 0) > 0 ? `
 - The ${i.auxRefCount === 1 ? 'additional reference image shows' : `${i.auxRefCount} additional reference images show`} the product's actual contents/detail (e.g. the tablet, texture, or inner packaging). Whenever the contents appear in this section, reproduce them exactly as photographed — same shape, color and proportions. Never invent a different-looking tablet or contents.` : ''}

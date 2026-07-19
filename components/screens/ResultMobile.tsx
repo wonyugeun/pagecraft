@@ -138,7 +138,7 @@ export default function ResultMobile() {
   }, [cat, ch, productName, productExtra, diff, brand, sections]);
 
   // 데스크탑과 동일한 이미지 생성 함수
-  const generateImage = useCallback(async (sec: Section, signal: AbortSignal) => {
+  const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { editRequest?: string }) => {
     const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
@@ -148,7 +148,7 @@ export default function ResultMobile() {
       const directorPlan = (CLEAN_IMAGE_BRIEF && effectiveOut !== 'blog') ? await ensureDirectorPlan() : null;
       const promptText = effectiveOut === 'blog'
         ? sec.imageDesc
-        : buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name, sectionIndex: secIdx >= 0 ? secIdx : undefined, auxRefCount: Math.max(0, images.length - 1) });
+        : buildSectionBrief({ productName, productForm, productVolume, productExtra, diff, brand, brandIntro, headline: sec.headline, subcopy: sec.subcopy, visual: sec.visual, director: directorPlan, sectionName: sec.name, sectionIndex: secIdx >= 0 ? secIdx : undefined, auxRefCount: Math.max(0, images.length - 1), editRequest: opts?.editRequest });
       // ★Required Asset(포장/구성 = 증거 섹션) — GPT는 플레이트만, 셀러 포장 원본은 클라 코드 합성(픽셀 보존).
       //   ★페이지당 최고점 1개 섹션만(과발동 핫픽스).
       const packRef = packagingRefRef.current;
@@ -692,6 +692,7 @@ export default function ResultMobile() {
                 onRegen={regenFn}
                 imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                 onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                onEditRequest={req => generateImage(sec, AbortSignal.timeout(130_000), { editRequest: req })}
                 index={displayIdx}
                 onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
               />
