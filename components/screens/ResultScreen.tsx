@@ -815,6 +815,7 @@ export function SlideCard({ sec, onRegen, imgState, onGenerateImage, index, onLi
 /* ─── 자연어 수정 요청 바 — 셀러가 말로 시키는 이미지·카피 수정(재생성 1회, 추가 크레딧 없음·한도 내) ─── */
 export function EditRequestBar({ onApply, loading }: { onApply: (req: string) => void; loading: boolean }) {
   const [req, setReq] = useState('');
+  const [focus, setFocus] = useState(false);
   const submit = () => {
     const t = req.trim();
     if (!t || loading) return;
@@ -822,35 +823,55 @@ export function EditRequestBar({ onApply, loading }: { onApply: (req: string) =>
     setReq('');
   };
   return (
-    <div style={{ display: 'flex', gap: 6, padding: '0 14px 12px' }}>
-      <input
-        value={req}
-        onChange={e => setReq(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && submit()}
-        disabled={loading}
-        placeholder="AI에게 수정 요청 — 예: 모델을 오른쪽으로 · 카피 오타 고쳐줘"
-        style={{
-          flex: 1, minWidth: 0, height: 34, padding: '0 12px',
-          border: '1.5px solid #ECECF2', borderRadius: 10,
-          fontSize: 12, color: '#111', fontFamily: 'var(--f)', outline: 'none',
-          background: loading ? '#FAFAFC' : '#fff',
-        }}
-        onFocus={e => (e.currentTarget.style.borderColor = '#C9BAFF')}
-        onBlur={e => (e.currentTarget.style.borderColor = '#ECECF2')}
-      />
-      <button
-        onClick={submit}
-        disabled={loading || !req.trim()}
-        style={{
-          height: 34, padding: '0 14px', borderRadius: 10, border: 'none', flexShrink: 0,
-          background: loading || !req.trim() ? '#EDE8FF' : '#6D4CFF',
-          color: loading || !req.trim() ? '#B0A0E8' : '#fff',
-          fontSize: 12, fontWeight: 700, cursor: loading || !req.trim() ? 'default' : 'pointer',
-          fontFamily: 'var(--f)',
-        }}
-      >
-        {loading ? '반영 중…' : '✦ 반영'}
-      </button>
+    <div style={{ padding: '0 14px 14px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        background: 'linear-gradient(180deg,#FBFAFF 0%,#F6F3FF 100%)',
+        border: `1.5px solid ${focus ? '#B49CFF' : '#E6E0F8'}`,
+        borderRadius: 14, padding: '6px 6px 6px 12px',
+        boxShadow: focus ? '0 0 0 3px rgba(109,76,255,0.10)' : 'inset 0 1px 2px rgba(109,76,255,0.05)',
+        transition: 'border-color .15s, box-shadow .15s',
+      }}>
+        <span style={{
+          width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+          background: 'linear-gradient(135deg,#6D4CFF,#9C6BFF)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 6px rgba(109,76,255,0.30)',
+        }}>
+          <Sparkles size={13} color="#fff" />
+        </span>
+        <input
+          value={req}
+          onChange={e => setReq(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          disabled={loading}
+          placeholder="AI에게 수정 요청 — 예: 모델을 오른쪽으로 · 카피 오타 고쳐줘"
+          style={{
+            flex: 1, minWidth: 0, height: 30, border: 'none', outline: 'none',
+            fontSize: 12.5, color: '#111', fontFamily: 'var(--f)', background: 'transparent',
+          }}
+        />
+        <button
+          onClick={submit}
+          disabled={loading || !req.trim()}
+          style={{
+            height: 32, padding: '0 16px', borderRadius: 10, border: 'none', flexShrink: 0,
+            background: loading || !req.trim()
+              ? '#E9E4F8'
+              : 'linear-gradient(120deg,#6D4CFF,#8B5FFF)',
+            color: loading || !req.trim() ? '#B0A0E8' : '#fff',
+            fontSize: 12.5, fontWeight: 700,
+            cursor: loading || !req.trim() ? 'default' : 'pointer',
+            fontFamily: 'var(--f)',
+            boxShadow: loading || !req.trim() ? 'none' : '0 3px 10px rgba(109,76,255,0.30)',
+            transition: 'all .15s',
+          }}
+        >
+          {loading ? '반영 중…' : '반영'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1775,27 +1796,18 @@ export default function ResultScreen() {
 
         {/* ── 좌측: 미리보기 ── */}
         <div>
-          {/* 출력형태 탭 */}
-          <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #ECECF2', marginBottom: 16 }}>
-            {[
-              { id: 'blog',  label: '블로그형',   active: isBlog  },
-              { id: 'slide', label: '슬라이드형', active: isSlide },
-              { id: 'html',  label: 'HTML형',    active: isHtml  },
-            ].map(t => (
-              <button
-                key={t.id}
-                style={{
-                  padding: '10px 16px', fontSize: 14, fontWeight: 700,
-                  background: 'transparent', border: 'none',
-                  borderBottom: t.active ? '2px solid #6D4CFF' : '2px solid transparent',
-                  color: t.active ? '#6D4CFF' : '#999',
-                  cursor: 'default', fontFamily: 'var(--f)',   // ★전부 disabled(출력형태 표시용 read-only)이므로 비활성에도 pointer 금지
-                }}
-                disabled
-              >
-                {t.label}
-              </button>
-            ))}
+          {/* 현재 출력형태 배지 — 구 3탭(전부 disabled 가짜 탭, 클릭 안 되는데 탭처럼 보임)은
+              혼란 유발이라 제거(2026-07-19 유근님 지적). 형태 변경은 출력형태 단계에서. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: '#F4F0FF', border: '1px solid #E4DCFF', borderRadius: 999,
+              padding: '7px 14px', fontSize: 13, fontWeight: 700, color: '#6D4CFF',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
+              {outputTypeLabel}
+            </span>
+            <span style={{ fontSize: 12, color: '#B8B8C7' }}>출력 형태는 생성 전 단계에서 선택돼요</span>
           </div>
 
           {/* 미리보기 컨트롤 바 */}
@@ -1910,8 +1922,8 @@ export default function ResultScreen() {
               {isBlog && (
                 <div ref={captureRef} style={{ background: '#fff' }}>
                   {orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
+                    <div key={realIdx} id={`pv-sec-${realIdx}`}>
                     <BlogSection
-                      key={realIdx}
                       sec={sec}
                       onRegen={() => handleRegenSection(realIdx)}
                       regenLoading={regenLoadingSet.has(realIdx)}
@@ -1924,27 +1936,30 @@ export default function ResultScreen() {
                       blockImages={blockImages}
                       onLightboxBlock={(key: string) => setLightboxSecNum(key)}
                     />
+                    </div>
                   ))}
                 </div>
               )}
 
               {isHtml && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
+                <div key={realIdx} id={`pv-sec-${realIdx}`}>
                 <ImageSection
-                  key={realIdx}
                   sec={sec}
                   imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                   onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
+                  onEditRequest={req => generateImage(sec, AbortSignal.timeout(130_000), { editRequest: req })}
                   index={displayIdx} accent="blue"
                   onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                 />
+                </div>
               ))}
 
               {/* baked 채택: Hero도 텍스트가 이미지에 합성되므로 ImageSection(이미지만)으로 렌더.
                   overlay 보류 — SLIDE_HERO_OVERLAY=true로 롤백하면 Hero가 SlideHero(진짜폰트 overlay)로 돌아감. */}
               {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
-                SLIDE_HERO_OVERLAY && displayIdx === 0 ? (
+                <div key={realIdx} id={`pv-sec-${realIdx}`}>
+                {SLIDE_HERO_OVERLAY && displayIdx === 0 ? (
                   <SlideHero
-                    key={realIdx}
                     sec={sec}
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                     onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: true })}
@@ -1953,7 +1968,6 @@ export default function ResultScreen() {
                   />
                 ) : (
                   <ImageSection
-                    key={realIdx}
                     sec={sec}
                     imgState={sectionImages[sec.num] ?? EMPTY_IMG}
                     onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000), { slideHero: displayIdx === 0 })}
@@ -1961,7 +1975,8 @@ export default function ResultScreen() {
                     index={displayIdx} accent="purple"
                     onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                   />
-                )
+                )}
+                </div>
               ))}
             </div>
             </div>
@@ -2059,9 +2074,11 @@ export default function ResultScreen() {
                     onDragEnd={handleDragEnd}
                     onMouseEnter={() => setHoveredIdx(realIdx)}
                     onMouseLeave={() => setHoveredIdx(p => p === realIdx ? null : p)}
+                    onClick={() => document.getElementById(`pv-sec-${realIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    title="클릭하면 미리보기가 이 섹션으로 이동해요"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10,
-                      padding: 10, borderRadius: 12,
+                      padding: 10, borderRadius: 12, cursor: 'pointer',
                       background: isHovered ? '#FAFAFC' : 'transparent',
                       opacity: isHidden ? 0.5 : isDragging ? 0.4 : 1,
                       transition: 'opacity .15s, background .15s',
