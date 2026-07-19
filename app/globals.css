@@ -15,7 +15,7 @@
   --r:12px;--rs:8px;
   --f:'Pretendard','Noto Sans KR',sans-serif;
 }
-body{background:var(--bg);color:var(--tx);font-family:var(--f);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{background:var(--bg);color:var(--tx);font-family:var(--f);min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:clip}
 
 .tb{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(248,247,244,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--bd)}
 .tb-logo{font-size:15px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
