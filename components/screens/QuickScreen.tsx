@@ -318,6 +318,24 @@ export default function QuickScreen() {
       reader.readAsDataURL(blob);
     }));
 
+  // ★산출물 0장 자동 환불(2026-07-21) — 차감 후 텍스트/이미지 단계가 실패하면 서버가 원장으로
+  //   재검증(이미지 나갔으면 거절, 멱등)해 1크레딧을 돌려준다. 환불되면 키 폐기 → 다음 시도는 새 키(새 차감).
+  //   미환불(이미지 존재 등)이면 키 유지 = 같은 키 무료 재시도(C정책) 그대로.
+  const tryRefundOnFailure = async () => {
+    const key = jobKeyRef.current;
+    if (!key) return;
+    try {
+      const r = await fetch('/api/credits/refund-failed', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobKey: key }),
+      }).then(res => res.json());
+      if (r?.status === 'refunded') {
+        if (typeof r.balance === 'number') setCredits(r.balance);
+        jobKeyRef.current = '';   // 환불된 키는 미결제 취급(402) — 재사용 금지
+      }
+    } catch { /* 환불 실패 — 무료 재시도 경로(같은 키)로 폴백 */ }
+  };
+
   const handleGenerate = async () => {
     if (!selectedSection) return;
     // ★결제 게이트 — 생성의 첫 동작. jobKey 발급(1회) → charge가 유일 차감·발급 지점(단일 CTE 원자성).
@@ -371,10 +389,12 @@ export default function QuickScreen() {
         setGenStatus('image');
       } else {
         setGenStatus('text_err');
+        await tryRefundOnFailure();   // 차감됐는데 산출물 0 — 자동 환불 시도
         return;
       }
     } catch {
       setGenStatus('text_err');
+      await tryRefundOnFailure();
       return;
     }
 
@@ -435,9 +455,11 @@ export default function QuickScreen() {
         } catch { /* 영속화 실패 — 화면 결과는 유지 */ }
       } else {
         setGenStatus('img_err');
+        await tryRefundOnFailure();   // 이미지 0장 실패 — 자동 환불 시도(서버가 원장 재검증, 멱등)
       }
     } catch {
       setGenStatus('img_err');
+      await tryRefundOnFailure();
     }
   };
 
@@ -688,6 +710,7 @@ export default function QuickScreen() {
               ✦ {selectedSection.name} 생성하기
             </button>
           </div>
+          <div className="fhint" style={{ marginTop: 8, textAlign: 'right' }}>이미지 1장당 1크레딧 · 실패 시 자동 환불 · 같은 설정 재생성은 무료</div>
 
           {/* Result area */}
           {genStatus === 'idle' && (

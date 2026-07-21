@@ -200,8 +200,9 @@ export async function POST(req: NextRequest) {
 
   // ── 4. 사이즈/퀄리티 ──
   const size = mapSize(aspectRatio);
-  // ★테스트 모드: 개발 중엔 전 섹션 medium(장당 ~90원, high의 1/4) — 구도·레이아웃·색은 동일, 미세 디테일만 차이.
-  //   완성도 확정 후 출시 시 이 상수를 null로 되돌리면 기존 규칙(4:5=high) 복원. 명시 quality 요청은 항상 우선.
+  // ★운영 품질 정책(2026-07-21 유근님 확정): 오픈 시점에도 medium 유지 — 결과 품질이 충분히 좋고
+  //   high 전환 시 이미지 원가가 ~4배(장당 ~90원 → ~350원)라 마진 구조를 재검토한 뒤 결정하기로 함.
+  //   고품질 전환 시 이 상수를 null로(기존 규칙: 4:5=high 복원). 명시 quality 요청은 항상 우선.
   const QUALITY_TEST_OVERRIDE: string | null = 'medium';
   const quality = qualityIn ?? QUALITY_TEST_OVERRIDE ?? (size === '1024x1536' ? 'high' : 'medium');
 

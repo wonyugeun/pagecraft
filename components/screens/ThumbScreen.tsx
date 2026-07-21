@@ -320,6 +320,23 @@ export default function ThumbScreen() {
     setRefImg(null);
   };
 
+  // ★산출물 0장 자동 환불(2026-07-21) — 차감 후 이미지 생성 실패 시 서버가 원장으로 재검증(멱등)해
+  //   1크레딧 반환. 환불되면 키 폐기(미결제 취급) → 다음 시도는 새 키. 미환불이면 같은 키 무료 재시도 유지.
+  const tryRefundOnFailure = async () => {
+    const key = jobKeyRef.current;
+    if (!key) return;
+    try {
+      const r = await fetch('/api/credits/refund-failed', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobKey: key }),
+      }).then(res => res.json());
+      if (r?.status === 'refunded') {
+        if (typeof r.balance === 'number') setCredits(r.balance);
+        jobKeyRef.current = '';
+      }
+    } catch { /* 환불 실패 — 무료 재시도 경로(같은 키)로 폴백 */ }
+  };
+
   /* ─── generate ─── */
   const generate = async () => {
     if (isDisabled || !currentTypeDef) return;
@@ -403,10 +420,12 @@ export default function ThumbScreen() {
         } catch { /* 영속화 실패 — 화면 결과는 유지 */ }
       } else {
         setError(data.error || '이미지 생성에 실패했어요. 다시 시도해주세요.');
+        await tryRefundOnFailure();   // 이미지 0장 실패 — 자동 환불 시도
       }
     } catch (e) {
       console.error('[ThumbScreen] generate error:', e);
       setError('생성 중 오류가 발생했어요. 다시 시도해주세요.');
+      await tryRefundOnFailure();
     } finally {
       setLoading(false);
     }
