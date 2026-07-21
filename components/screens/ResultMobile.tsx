@@ -13,7 +13,7 @@ import { compressMap } from '@/lib/imageCompress';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
-  EnhancedLightbox, downloadHtml, downloadMergedImage,
+  EnhancedLightbox, downloadHtml, downloadMergedImage, downloadFullLongImage,
   countGeneratingImages, confirmSkipGenerating,
 } from './ResultScreen';
 import { CLEAN_IMAGE_BRIEF, buildSectionBrief } from '@/lib/adBrief';
@@ -447,51 +447,21 @@ export default function ResultMobile() {
     });
   };
 
-  // 블로그형 섹션별 PNG 다운로드 — 데스크탑 handleFullCapture 이식(섹션당 1080폭 1장, AI 재호출 0).
+  // ★블로그형 통이미지(전체 1장) — 데스크탑 downloadFullLongImage 공유(2026-07-21 유근님: 모바일은
+  //   통이미지→사진첩 저장→스마트스토어 앱 업로드 플로우. HTML 등록은 PC 전용이라 안내만).
   const handleFullCapture = async () => {
     if (captureLoading) return;
     // ★생성 중 이미지 가드 — 캡처는 화면 그대로라 미완성 섹션이 찍히므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
     if (!container) { alert('캡처할 본문이 없습니다.'); return; }
-    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
-    if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
     setCaptureLoading(true);
     try {
-      const { domToCanvas } = await import('modern-screenshot');
-      const TARGET_W = 1080;
-      const opts = {
-        backgroundColor: '#ffffff', scale: 1,
-        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },
-        // 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처에서 제외
-        filter: (node: Node) => {
-          if (!(node instanceof Element)) return true;
-          const c = (node as HTMLElement).className;
-          const cls = typeof c === 'string' ? c : '';
-          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel') || cls.includes('img-slot-empty'));
-        },
-      };
-      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
-      if (units.length > 1) {
-        alert(`${units.length}장(섹션별)으로 저장됩니다. 밴드/인스타엔 원하는 섹션만 골라 올리세요.`);
-      }
-      for (let idx = 0; idx < units.length; idx++) {
-        const canvas = await domToCanvas(units[idx], opts);
-        const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
-        if (!blob) continue;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${safeName}_${String(idx + 1).padStart(2, '0')}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-        await new Promise(r => setTimeout(r, 350)); // 다중 다운로드 간 텀
-      }
+      const ok = await downloadFullLongImage(container, productName);
+      if (!ok) alert('내보낼 섹션이 없습니다.');
     } catch (err) {
-      console.error('[섹션이미지]', err);
-      alert('섹션별 이미지 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+      console.error('[통이미지]', err);
+      alert('통이미지 저장 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
       setCaptureLoading(false);
     }
@@ -871,21 +841,26 @@ export default function ResultMobile() {
         }}>
           <Upload size={16} /> {ch ?? '스토어'} 업로드 (준비 중)
         </button>
-        <button onClick={handleHtmlDownload} disabled={htmlLoading} style={{
-          width: '100%', height: 50,
-          background: '#fff', color: '#111',
-          border: '1px solid #ECECF2', borderRadius: 14,
-          fontSize: 14, fontWeight: 700,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          cursor: htmlLoading ? 'default' : 'pointer', fontFamily: 'inherit',
-          opacity: htmlLoading ? 0.7 : 1,
-        }}>
-          <Download size={16} /> {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
-        </button>
-        <p style={{ margin: '-4px 4px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55 }}>
-          자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
-        </p>
-        {/* 통이미지 — 슬라이드/HTML만 */}
+        {/* HTML 다운로드 — 슬라이드/HTML형만(자사몰용). 블로그형 모바일은 통이미지 중심(HTML 등록은 PC 전용) */}
+        {!isBlog && (
+          <>
+            <button onClick={handleHtmlDownload} disabled={htmlLoading} style={{
+              width: '100%', height: 50,
+              background: '#fff', color: '#111',
+              border: '1px solid #ECECF2', borderRadius: 14,
+              fontSize: 14, fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              cursor: htmlLoading ? 'default' : 'pointer', fontFamily: 'inherit',
+              opacity: htmlLoading ? 0.7 : 1,
+            }}>
+              <Download size={16} /> {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
+            </button>
+            <p style={{ margin: '-4px 4px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55 }}>
+              자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
+            </p>
+          </>
+        )}
+        {/* 통이미지 — 슬라이드/HTML만(AI 섹션 이미지 스택) */}
         {!isBlog && (
           <button onClick={handleMergeDownload} disabled={mergeLoading} style={{
             width: '100%', height: 50,
@@ -910,8 +885,13 @@ export default function ResultMobile() {
             cursor: captureLoading ? 'default' : 'pointer', fontFamily: 'inherit',
             opacity: captureLoading ? 0.7 : 1,
           }}>
-            <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '섹션별 이미지 다운로드 (밴드/인스타용)'}
+            <ImageIcon size={16} /> {captureLoading ? '통이미지 만드는 중...' : '통이미지 다운로드 (전체 1장)'}
           </button>
+        )}
+        {isBlog && (
+          <p style={{ margin: '-4px 4px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55 }}>
+            사진첩에 저장해 스마트스토어 앱에서 그대로 업로드하세요. 텍스트가 검색에 잡히는 <b>스마트스토어 HTML 등록은 PC에서</b> 이용할 수 있어요.
+          </p>
         )}
         <button onClick={onRegen} style={{
           width: '100%', height: 50,
