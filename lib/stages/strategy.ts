@@ -54,7 +54,7 @@ ${universalFactGuard}
     "cta_angle": "마지막 구매 유도 전략"
   },
   "visual": {
-    "palette": "이 제품에 가장 어울리는 색 팔레트 키 하나만 — green|blue|yellow|pink|brown|purple|gray 중. (성분·카테고리·무드 기준: 병풀·자연·진정→green, 청량·수분·기술→blue, 비타민·활력→yellow, 뷰티·부드러움→pink, 내추럴·따뜻→brown, 프리미엄·럭셔리→purple, 미니멀·테크→gray). hex를 직접 쓰지 말고 키만 고르세요.",
+    "palette": "이 제품에 가장 어울리는 색 팔레트 키 하나만 — green|blue|yellow|pink|brown|purple|gray 중. ⭐1순위 기준은 '제품 실물의 색'입니다: 상세페이지 사진 속 제품·재료와 나란히 놓였을 때 어울려야 하므로, 제품 자체가 띠는 색조를 먼저 따르세요 (예: 곡물·오트·그래놀라·견과·빵·커피는 실물이 베이지·갈색이므로 '건강 식품'이어도 green이 아니라 brown). 실물 색이 애매할 때만 무드 기준: 병풀·자연·진정→green, 청량·수분·기술→blue, 비타민·활력→yellow, 뷰티·부드러움→pink, 내추럴·따뜻→brown, 프리미엄·럭셔리→purple, 미니멀·테크→gray. hex를 직접 쓰지 말고 키만 고르세요.",
     "mood": "비주얼 분위기 한 단어 (clean/warm/natural/bold/soft 등)"
   }
 }`;
