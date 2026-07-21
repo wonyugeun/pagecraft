@@ -38,6 +38,8 @@ interface SectionPlan {
   mission?: string;
   emotion_goal?: string;
   writing_style?: string;
+  /** 콘텐츠 디렉터 블록 계획(structure 산출, 블로그형) — '글만' 또는 블록 타입 1~2개 + 이유 */
+  block_plan?: string;
 }
 export interface CopyOut {
   name: string;
@@ -167,8 +169,17 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 ⚠️셀러에게 말을 거는 안내문·메타 문구를 headline/subcopy/body/blocks 어디에도 절대 쓰지 마세요(예: "실제 후기를 입력하면 이 섹션이 강해집니다", "~를 추가해 주세요") — 슬라이드 카피는 전부 이미지에 박혀 고객에게 그대로 노출됩니다. 후기가 없으면 후기 섹션은 기대형 카피("이런 분들께 맞습니다")로 쓰세요.`
     : `[출력형태 = 블로그형] 글이 설득의 주인공입니다(이미지는 텍스트 없는 사진). headline은 검색 키워드를 머금은 제목형, subcopy는 짧은 후킹 1줄. body는 v5 호흡 — 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르듯 이어지는 대화체(설명문·산문 덩어리 금지), 공감→상황→감정→설명 순서로 독자가 emotion_goal을 느끼도록. 섹션 끝은 다음 섹션으로 자연스럽게 이어지는 흐름.`;
 
-  // 블록 강제 — 섹션마다 적절한 블록 1개 이상으로 설명문을 차단. 스키마는 AppContext의 Block 타입과 동일.
-  const blockSpec = `[블록(blocks) — 설명문을 막기 위해, 각 섹션은 아래 블록 중 그 섹션 역할에 맞는 것을 최소 1개 포함하세요]
+  // 블록 지시 — ★디렉터 계획(block_plan)이 있으면(2026-07-21 정형화 해소) 그 계획을 따르고,
+  //   없으면(구 데이터·정답지 없는 재생성 경로) 기존 역할→블록 고정 매핑으로 폴백.
+  //   스크래치 검증: runs/블로그디렉터-202607210243 — 계획형이 제품별로 다른 구조 생성, '글만' 섹션 품질 우수.
+  const hasBlockPlan = !isSlide && items.some(s => typeof s.block_plan === 'string' && s.block_plan.trim().length > 0);
+  const blockGuide = hasBlockPlan
+    ? `[블록(blocks) — 콘텐츠 디렉터의 블록 계획(block_plan)을 따르세요. 페이지 리듬은 이미 설계되어 있습니다]
+- 각 섹션 목록에 적힌 block_plan이 그 섹션의 블록 지시입니다.
+- block_plan이 '글만'이면 blocks를 빈 배열([])로 두고 body의 글(v5 호흡)로만 설득하세요 — 단, 설명문 덩어리 금지는 동일하게 적용됩니다.
+- block_plan에 블록 타입이 지정된 섹션은 그 타입을 중심으로 최소 1개 만드세요. 계획에 없는 블록을 임의로 추가해 페이지 리듬을 깨지 마세요.
+- 첫 섹션 계획에 iconcards가 있으면 그 카드(2~3개)는 하단 지표 스트립의 재료가 됩니다.`
+    : `[블록(blocks) — 설명문을 막기 위해, 각 섹션은 아래 블록 중 그 섹션 역할에 맞는 것을 최소 1개 포함하세요]
 역할 → 권장 블록 매핑:
 - ★첫 번째(히어로) 섹션 → iconcards 필수 (핵심 특징 2~3개: title=짧은 키워드, desc=짧은 보조설명 — 하단 지표 스트립의 재료가 됩니다)
 - 공감/고민 섹션 → checklist (독자가 "맞아" 하고 체크할 상황 목록)
@@ -178,7 +189,9 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 - 후기/리뷰 섹션 → quote (인용 후기)
 - Q&A/구매장벽 → faq
 - 가격/수치 강조 → stats
-- 그 외 강조가 필요하면 → heading 또는 cta
+- 그 외 강조가 필요하면 → heading 또는 cta`;
+
+  const blockSpec = `${blockGuide}
 
 블록 스키마(type별 필드 — 정확히 따를 것. 추가 필드 금지):
 - { "type": "checklist", "items": ["...", "..."] }
@@ -189,7 +202,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 - { "type": "quote", "text": "..." }   ← author·rating은 셀러가 입력한 실제 후기가 있을 때만 채우세요. 실제 후기가 없으면 quote 블록 자체를 만들지 마세요(가짜 후기·별점 금지 — 표시광고법).
 - { "type": "faq", "items": [{ "q": "...", "a": "..." }] }
 - { "type": "heading", "text": "..." }
-- { "type": "cta", "text": "...", "button": "..." }
+- { "type": "cta", "text": "...(마무리 행동 촉구 문구)" }   ← button 필드 금지 — 상세페이지 안의 '주문하기/구매하기' 모양 가짜 버튼은 클릭되지 않아 기만 소지. 실제 구매 버튼은 스토어 플랫폼이 제공하므로 문구로만 마무리.
 블록 안에서도 copyGuards를 동일하게 지키세요(미입력 사실·과장 금지, 효능은 헤지). 실제 후기가 입력되지 않았다면 단정적 후기를 지어내지 말고 quote 블록은 생략하고 body에서 기대 시나리오로 처리하세요.
 ⚠️경쟁사·타사 브랜드 실명 금지(비방광고·상표 리스크): 비교가 필요하면 "일반 토너", "기존 제품", "시중 제품"처럼 일반명사로만. 셀러가 입력하지 않은 타 브랜드명(예: 다이슨, 메디힐)·타 산지명을 카피 어디에도 쓰지 마세요.`;
 
@@ -212,7 +225,8 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
    역할: ${s.role || '(미정)'}
    임무(mission — 이 제품의 main_weapon을 미는 각도, 반드시 카피에 반영): ${s.mission || '(미정)'}
    ★독자가 느껴야 할 것(emotion_goal — 이 섹션을 읽은 독자가 이 문장을 속으로 떠올리게 만드는 게 목표): ${s.emotion_goal || '(미정)'}
-   ★문체(writing_style — 이 섹션은 이 방식으로 쓰되, 바닥 브랜드 톤은 공유): ${s.writing_style || '(미정)'}`;
+   ★문체(writing_style — 이 섹션은 이 방식으로 쓰되, 바닥 브랜드 톤은 공유): ${s.writing_style || '(미정)'}${hasBlockPlan && s.block_plan ? `
+   ★블록 계획(block_plan — 이 섹션의 블록 지시, 그대로 따를 것): ${s.block_plan}` : ''}`;
   }).join('\n\n');
 
   // 셀러가 입력한 실제 고객 후기 — knownFacts의 "고객 후기:" 블록만 추출(전체 facts 주입 아님 = strategy_summary 설계 유지).
@@ -252,7 +266,7 @@ ${COPY_PRINCIPLES}
     "headline": "헤드라인 카피${isSlide ? ' (12자 내외)' : ' (제목형)'}",
     "subcopy": "서브카피 1줄",
     "body": "본문 카피${isSlide ? ' — 1~2문장으로 최소화' : ' — v5 호흡: 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르는 대화체. 공감→상황→감정→설명. 정보·수치·성분은 그대로'}",
-    "blocks": [ /* 이 섹션 역할에 맞는 블록 최소 1개 (위 블록 스키마 준수) */ ]
+    "blocks": [ /* ${hasBlockPlan ? "block_plan을 따를 것 — '글만'이면 빈 배열 []" : '이 섹션 역할에 맞는 블록 최소 1개 (위 블록 스키마 준수)'} */ ]
   }
 ]`;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Check, Star, Quote as QuoteIcon, ChevronDown, ArrowRight,
+  Check, Star, Quote as QuoteIcon, ChevronDown,
   Leaf, Droplets, Sparkles, ShieldCheck, Image as ImageIcon,
   Calendar, Coins, Package,
 } from 'lucide-react';
@@ -551,6 +551,8 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
 // 명세: soft 배경 컨테이너 + 중앙 대형 headline + 버튼.
 // Subcopy는 cta 블록 데이터에 없어 생략. Trust Row(무료배송/안심포장/간편교환)는 셀러가 입력한
 // 약속이 아니면 표시광고법상 허위 → 데이터 없으면 생략(임의 생성 금지).
+// ⚠️가짜 버튼 제거(2026-07-21 유근님) — 상세페이지 안의 '주문하기/구매하기' 모양 버튼은 클릭되지 않는
+//   장식이라 혼란·기만 소지. 실제 구매 버튼은 스토어 플랫폼이 제공. button 값은 강조 마감 문구로만 표시.
 function CtaBlock({ text, button, isMobile, onChange }: { text: string; button: string; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
@@ -568,20 +570,11 @@ function CtaBlock({ text, button, isMobile, onChange }: { text: string; button: 
       }}>
         <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'cta', text: v, button }) : undefined} />
       </h2>
-      <button
-        onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.95)'; }}
-        onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}
-        style={{
-          marginTop: 40, height: 60,
-          width: isMobile ? '100%' : 320,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          borderRadius: 18, background: t.primary, color: COLORS.white,
-          border: 'none', fontSize: 18, fontWeight: 700, cursor: 'pointer',
-          fontFamily: FONT_FAMILY,
-        }}>
-        <Editable value={button} onCommit={onChange ? v => onChange({ type: 'cta', text, button: v }) : undefined} />
-        <ArrowRight size={18} />
-      </button>
+      {!!button && (
+        <div style={{ marginTop: 28, fontSize: isMobile ? 16 : 19, fontWeight: 700, color: t.primary, letterSpacing: '-0.2px' }}>
+          <Editable value={button} onCommit={onChange ? v => onChange({ type: 'cta', text, button: v }) : undefined} />
+        </div>
+      )}
     </div>
   );
 }

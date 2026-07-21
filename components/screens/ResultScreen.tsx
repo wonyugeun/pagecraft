@@ -244,9 +244,10 @@ function blocksToHtml(
           : '';
       }
       case 'cta':
+        // ⚠️가짜 버튼 제거(2026-07-21) — 클릭 안 되는 '구매하기' 모양 요소는 기만 소지. 마감 문구로만.
         return `<div class="cta">
   <h2>${escHtml(b.text).replace(/\n/g, '<br>')}</h2>
-  <a class="cta-btn">${escHtml(b.button)} →</a>
+  ${b.button ? `<p class="cta-close">${escHtml(b.button)}</p>` : ''}
 </div>`;
       default:
         return '';
@@ -311,7 +312,7 @@ const HTML_BLOCKS_CSS = `
 
 .cta { border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 32px; text-align: center; margin-bottom: 32px; }
 .cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
-.cta-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 24px; height: 48px; padding: 0 24px; border-radius: 16px; background: var(--p,#6D4CFF); color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+.cta-close { margin-top: 20px; font-size: 17px; font-weight: 700; color: var(--p,#6D4CFF); letter-spacing: -0.2px; }
 `;
 
 /* ─── HTML 다운로드 ─── */
