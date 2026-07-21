@@ -615,26 +615,33 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
       {blocks.map((b, i) => {
         // 이 블록을 새 블록으로 교체해 onBlocksChange로 올림(인라인 편집 영속화)
         const oc = onBlocksChange ? (nb: Block) => onBlocksChange(blocks.map((bb, j) => (j === i ? nb : bb))) : undefined;
-        switch (b.type) {
-          case 'hero':      return <HeroBlock      key={i} headline={b.title} subcopy={b.subtitle} primary={theme.primary} accent={theme.accent} soft={theme.soft} softBorder={theme.softBorder} />;
-          case 'heading':   return <HeadingBlock   key={i} text={b.text} onChange={oc} />;
-          case 'paragraph': return <ParagraphBlock key={i} text={b.text} onChange={oc} />;
-          case 'checklist': return <ChecklistBlock key={i} items={b.items} onChange={oc} />;
-          case 'steps':     return <StepsBlock     key={i} items={b.items} onChange={oc} />;
-          case 'iconcards': return <IconCardsBlock key={i} cards={b.cards} isMobile={isMobile} onChange={oc} />;
-          case 'stats':     return <StatsBlock     key={i} items={b.items} isMobile={isMobile} onChange={oc} />;
-          case 'compare':   return <CompareBlock   key={i} headers={b.headers} rows={b.rows} isMobile={isMobile} onChange={oc} />;
-          case 'quote':     return <QuoteBlock     key={i} text={b.text} author={b.author} rating={b.rating} onChange={oc} />;
-          case 'faq':       return <FaqBlock       key={i} items={b.items} onChange={oc} />;
-          case 'image': {
-            const key = sectionNum ? `${sectionNum}#${i}` : '';
-            const imgState = blockImages && key ? blockImages[key] : undefined;
-            const onLightbox = imgState?.url && onLightboxBlock && key ? () => onLightboxBlock(key) : undefined;
-            return <ImageBlock key={i} label={b.label} imgState={imgState} onLightbox={onLightbox} overlay={i === firstImageIdx ? regenOverlay : undefined} />;
+        const inner = (() => {
+          switch (b.type) {
+            case 'hero':      return <HeroBlock      headline={b.title} subcopy={b.subtitle} primary={theme.primary} accent={theme.accent} soft={theme.soft} softBorder={theme.softBorder} />;
+            case 'heading':   return <HeadingBlock   text={b.text} onChange={oc} />;
+            case 'paragraph': return <ParagraphBlock text={b.text} onChange={oc} />;
+            case 'checklist': return <ChecklistBlock items={b.items} onChange={oc} />;
+            case 'steps':     return <StepsBlock     items={b.items} onChange={oc} />;
+            case 'iconcards': return <IconCardsBlock cards={b.cards} isMobile={isMobile} onChange={oc} />;
+            case 'stats':     return <StatsBlock     items={b.items} isMobile={isMobile} onChange={oc} />;
+            case 'compare':   return <CompareBlock   headers={b.headers} rows={b.rows} isMobile={isMobile} onChange={oc} />;
+            case 'quote':     return <QuoteBlock     text={b.text} author={b.author} rating={b.rating} onChange={oc} />;
+            case 'faq':       return <FaqBlock       items={b.items} onChange={oc} />;
+            case 'image': {
+              const key = sectionNum ? `${sectionNum}#${i}` : '';
+              const imgState = blockImages && key ? blockImages[key] : undefined;
+              const onLightbox = imgState?.url && onLightboxBlock && key ? () => onLightboxBlock(key) : undefined;
+              return <ImageBlock label={b.label} imgState={imgState} onLightbox={onLightbox} overlay={i === firstImageIdx ? regenOverlay : undefined} />;
+            }
+            case 'cta':       return <CtaBlock       text={b.text} button={b.button} isMobile={isMobile} />;
+            default:          return null;
           }
-          case 'cta':       return <CtaBlock       key={i} text={b.text} button={b.button} isMobile={isMobile} />;
-          default:          return null;
-        }
+        })();
+        if (!inner) return null;
+        // ★조립 키트 내보내기 핸들(2026-07-21) — 디자인 블록을 개별 PNG로 캡처할 수 있게 마킹.
+        //   image 블록은 원본이 blockImages에 있으므로 제외. 스타일 없는 래퍼라 레이아웃 영향 0.
+        const exportKey = (b.type !== 'image' && sectionNum) ? `${sectionNum}#${i}#${b.type}` : undefined;
+        return <div key={i} data-export-block={exportKey}>{inner}</div>;
       })}
     </div>
     </ThemeCtx.Provider>

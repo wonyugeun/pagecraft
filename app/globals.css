@@ -592,6 +592,14 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   .img-regen-overlay.is-loading { opacity: 1; pointer-events: auto; }
 }
 
+/* ── 내보내기 캡처 클린 모드 — 블록 캡처 시 그림자 제거(흰 배경 순수 유지).
+   그림자가 캡처에 회색 번짐으로 찍혀 네이버 에디터 흰 배경 위에서 "카드 사이 색조"로 보이던 문제(2026-07-21). ── */
+.export-capture-clean * { box-shadow: none !important; }
+/* 캡처 흡수 여백 — 블록 상자 밖으로 튀어나오는 요소(비교표 '추천' 배지 top:-14 등)와 2배 스케일의
+   경계 라운딩이 캡처에서 잘리지 않게, 캡처 동안만 라이브 래퍼에 여백을 줘 측정 크기에 포함시킨다.
+   (⚠️클론에만 padding을 주입하면 캔버스가 원래 크기로 잡혀 오히려 잘림 — 라이브에 줘야 함) */
+.export-capture-clean [data-export-block] { padding: 22px 6px 10px; }
+
 /* ── 블로그 섹션 카피 재생성(플로팅) — 하단 중앙 버튼이 읽는 흐름을 끊어 우상단 hover 표시로 이동 ── */
 .bs-sec-regen-wrap { position: absolute; top: 12px; right: 12px; z-index: 3; }
 .bs-sec-regen {

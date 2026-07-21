@@ -14,6 +14,7 @@ import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
+import { buildSmartstoreHtml } from '@/lib/smartstoreHtml';
 import {
   Sparkles, Smartphone, Monitor, Eye, GripVertical, Upload, RefreshCw,
   Type, Image as ImageIcon, ArrowUpDown, EyeOff, PenLine,
@@ -172,6 +173,97 @@ export async function downloadMergedImage(
       resolve();
     }, 'image/png');
   });
+}
+
+/* ─── 채널 맞춤 내보내기(2026-07-21 최종) — 블로그형 산출물 2종으로 확정(유근님) ───
+   ① 스마트스토어 HTML 복사: 글=텍스트(검색 노출) + 디자인 블록=Flik 화면 캡처 이미지 임베드.
+      HTML 작성 탭 붙여넣기 → SmartEditor ONE 변환 → 이미지·디자인·텍스트 전부 한 방.
+      (변환기가 border-radius 등을 벗겨내 CSS로는 블록 디자인 재현 불가 — 이미지는 완벽 보존됨을 실검증)
+   ② 통이미지 다운로드: 전체 페이지를 세로 1장 PNG로(슬라이드형 통이미지와 동일한 경험).
+   ※ 폐기 이력: 임의 높이 슬라이스(블록 중간 잘림), 섹션별 ZIP·조립 키트·텍스트 복사(조립 불편) — 전부 유근님 반려. */
+
+const EXPORT_W = 860;    // 스마트스토어 상세 관행 폭 — 실업로드 확인됨
+
+/** 캡처 공통 제외 필터 — 앱 내부 UI(재생성 버튼·오버레이·편집패널·빈 슬롯)는 산출물에서 제외 */
+function exportCaptureFilter(node: Node): boolean {
+  if (!(node instanceof Element)) return true;
+  const c = (node as HTMLElement).className;
+  const cls = typeof c === 'string' ? c : '';
+  return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel') || cls.includes('img-slot-empty'));
+}
+
+const EXPORT_CAPTURE_OPTS = {
+  backgroundColor: '#ffffff', scale: 1,
+  style: { width: `${EXPORT_W}px`, maxWidth: `${EXPORT_W}px` },
+  filter: exportCaptureFilter,
+};
+
+function sanitizeFileName(s: string): string {
+  return (s || 'flik').replace(/[\\/:*?"<>|]/g, '').trim() || 'flik';
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('toBlob 실패'))), 'image/png'));
+}
+
+/** ★통이미지(전체 1장) — 본문 전체를 세로로 이어붙인 단일 PNG(슬라이드형 통이미지와 동일한 경험).
+ *  섹션 단위로 캡처해 순서대로 붙이므로 중간 잘림 없음. */
+export async function downloadFullLongImage(container: HTMLElement, productName: string): Promise<boolean> {
+  const { domToCanvas } = await import('modern-screenshot');
+  const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
+  if (units.length === 0) return false;
+  const canvases: HTMLCanvasElement[] = [];
+  for (const u of units) canvases.push(await domToCanvas(u, EXPORT_CAPTURE_OPTS));
+  const totalH = canvases.reduce((s, c) => s + c.height, 0);
+  const merged = document.createElement('canvas');
+  merged.width = EXPORT_W;
+  merged.height = totalH;
+  const ctx = merged.getContext('2d')!;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, merged.width, merged.height);
+  let y = 0;
+  for (const c of canvases) {
+    ctx.drawImage(c, 0, y, EXPORT_W, c.height);
+    y += c.height;
+  }
+  const blob = await canvasToBlob(merged);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFileName(productName)}_상세페이지.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+/** ★스마트스토어 HTML용 블록 캡처 — [data-export-block] 마커의 디자인 블록들을 개별 data URL로.
+ *  키: `${secNum}#${blockIdx}`. 캡처 실패 블록은 맵에서 빠지고 인라인 HTML로 폴백된다.
+ *  화질: 2배 해상도(레티나·네이버 재압축 대비). 그림자: export-capture-clean으로 제거(흰 배경 순수 유지 —
+ *  그림자 번짐이 에디터 흰 배경 위에서 '카드 사이 색조'로 보이던 문제, 2026-07-21 유근님). */
+export async function captureBlockShots(container: HTMLElement): Promise<Record<string, string>> {
+  const { domToCanvas } = await import('modern-screenshot');
+  const shots: Record<string, string> = {};
+  const els = Array.from(container.querySelectorAll<HTMLElement>('[data-export-block]'));
+  const opts = { ...EXPORT_CAPTURE_OPTS, scale: 2 };   // 2배 해상도 — 표시 폭 860 대비 선명
+  container.classList.add('export-capture-clean');     // 캡처 동안만 그림자 제거
+  try {
+    for (const el of els) {
+      const key = el.dataset.exportBlock ?? '';   // `${num}#${idx}#${type}`
+      const [num, idx] = key.split('#');
+      if (!num || idx === undefined) continue;
+      try {
+        const canvas = await domToCanvas(el, opts);
+        shots[`${num}#${idx}`] = canvas.toDataURL('image/png');
+      } catch (e) {
+        console.warn('[스마트스토어HTML] 블록 캡처 실패 — 인라인 폴백:', key, e);
+      }
+    }
+  } finally {
+    container.classList.remove('export-capture-clean');
+  }
+  return shots;
 }
 
 /* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
@@ -702,7 +794,9 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
             />
           </div>
         ) : (
-          <>
+          /* ★조립 키트 제목 컷 핸들(data-export-head) — pill+헤드라인+서브카피를 디자인 그대로 개별 캡처.
+             스타일 없는 래퍼라 레이아웃 영향 0 (2026-07-21 유근님: 텍스트 복사로는 pill·글씨 크기를 못 살림) */
+          <div data-export-head={sec.num}>
             {/* 디자인 블록 태그(Problem/Feature) — soft 배경 pill, 색은 제품 테마 */}
             {designKind && (
               <div style={{ padding: '40px 36px 0' }}>
@@ -720,7 +814,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
                 <Editable value={sec.subcopy ?? ''} onCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined} />
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* ── 본문(body) — 인라인 편집(멀티라인 contentEditable). pre-wrap이 v5 호흡 유지(단일 \n=줄바꿈, 이중 \n\n=문단 띄움).
@@ -1216,7 +1310,10 @@ export default function ResultScreen() {
   const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
-  const [captureLoading, setCaptureLoading] = useState(false);
+  // ★채널 맞춤 내보내기(2026-07-21 최종) — 스마트스토어 HTML 복사 + 통이미지(전체 1장) 2종만
+  const [smartHtmlLoading, setSmartHtmlLoading] = useState(false);
+  const [smartHtmlCopied,  setSmartHtmlCopied]  = useState(false);
+  const [longImgLoading,   setLongImgLoading]   = useState(false);
   const captureRef = useRef<HTMLDivElement>(null);   // 결과물 본문(BlogSection들) — 통이미지 캡처 대상
   const [createdAt] = useState(() => {
     const d = new Date();
@@ -1678,78 +1775,52 @@ export default function ResultScreen() {
     }
   };
 
-  // 결과물 본문을 "섹션별 개별 PNG"로 다운로드 — 밴드/인스타용(섹션 단위라 각 장이 짧아 크게 보임 + 셀러가 원하는 섹션만 선택).
-  // 섹션 1개 = PNG 1장(섹션 중간 안 잘림 자동 보장). 폭 1080. 사이드바/빠른수정/섹션목록은 captureRef 밖이라 미포함.
-  // 수정/재생성 버튼·이미지 오버레이·편집패널은 캡처 시 제외. AI 재호출 0.
-  const handleFullCapture = async () => {
-    if (captureLoading) return;
-    // ★생성 중 이미지 가드 — 캡처는 화면 그대로라 미완성 섹션이 찍히므로, 지금 받을지/기다릴지 확인.
+  // ★통이미지(전체 1장) — 슬라이드형 통이미지와 동일한 경험(섹션 나누지 않음)
+  const handleLongImage = async () => {
+    if (longImgLoading) return;
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
-    if (!container) { alert('캡처할 본문이 없습니다.'); return; }
-    // 직계 자식 중 실제 섹션 div만(자식 있는 것). 56px 빈 스페이서는 children 0이라 제외.
-    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
-    if (units.length === 0) { alert('캡처할 섹션이 없습니다.'); return; }
-    setCaptureLoading(true);
+    if (!container) { alert('내보낼 본문이 없습니다.'); return; }
+    setLongImgLoading(true);
     try {
-      // 캡처 엔진: modern-screenshot(getComputedStyle 기반) — Tailwind v4 oklch() 색도 처리(html2canvas 1.4.1은 throw).
-      const { domToCanvas } = await import('modern-screenshot');
-      // 밴드용: 출력 폭을 1080px로 고정. 방법 A — 캡처 클론에만 width 1080 적용(라이브 DOM 미변경=깜빡임 0).
-      // 1080 기준으로 reflow되어 레이아웃이 1080폭으로 깔끔히 잡힘. scale 1 → PNG 폭 정확히 1080.
-      const TARGET_W = 1080;
-      const scale = 1;  // 폭 1080 × scale 1 = PNG 폭 정확히 1080
-      const opts = {
-        backgroundColor: '#ffffff', scale,
-        style: { width: `${TARGET_W}px`, maxWidth: `${TARGET_W}px` },  // 캡처 클론 폭 = 1080(섹션이 1080폭으로 reflow)
-        // 제외 대상(수정/재생성 버튼 행·이미지 재생성 오버레이·편집패널): filter는 false 반환 시 노드 제외
-        filter: (node: Node) => {
-          if (!(node instanceof Element)) return true;
-          const c = (node as HTMLElement).className;
-          const cls = typeof c === 'string' ? c : '';
-          return !(cls.includes('bs-actions') || cls.includes('img-regen-overlay') || cls.includes('edit-panel') || cls.includes('img-slot-empty'));
-        },
-      };
-
-      const safeName = (productName || '상세페이지').replace(/[\\/:*?"<>|]/g, '');
-      console.log('[섹션이미지] 시작 — 섹션:', units.length);
-      if (units.length > 1) {
-        alert(`${units.length}장(섹션별)으로 저장됩니다. 밴드/인스타엔 원하는 섹션만 골라 올리세요.`);
-      }
-
-      // 섹션 하나씩 → PNG 1장 (섹션 중간 안 잘림 자동 보장)
-      for (let idx = 0; idx < units.length; idx++) {
-        const u = units[idx];
-        console.log(`[섹션이미지] ${idx + 1}/${units.length} 캡처 시작 (${u.offsetWidth}x${u.offsetHeight})`);
-        let canvas: HTMLCanvasElement;
-        try {
-          canvas = await domToCanvas(u, opts);
-          console.log(`[섹션이미지] ${idx + 1} 완료: ${canvas.width}x${canvas.height}`);
-        } catch (e) {
-          console.error(`[섹션이미지] ⚠️섹션 ${idx + 1} 캡처 실패 — 진짜 원인:`, e);
-          throw e;
-        }
-        const blob: Blob | null = await new Promise(res => canvas.toBlob(b => res(b), 'image/png'));
-        if (!blob) continue;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${safeName}_${String(idx + 1).padStart(2, '0')}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-        await new Promise(r => setTimeout(r, 350)); // 다중 다운로드 간 텀(브라우저 차단 완화)
-      }
+      const ok = await downloadFullLongImage(container, productName);
+      if (!ok) alert('내보낼 섹션이 없습니다.');
     } catch (err) {
-      const e = err as Error;
-      console.error('[통이미지] ❌ 최종 에러 메시지:', e?.message);
-      console.error('[통이미지] ❌ 스택:', e?.stack);
-      console.error('[통이미지] ❌ 원본 객체:', err);
-      alert('통이미지 캡처 실패 (진짜 원인): ' + (e?.message || String(err)));
+      console.error('[통이미지]', err);
+      alert('통이미지 저장 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
-      setCaptureLoading(false);
+      setLongImgLoading(false);
     }
   };
+
+  // ★스마트스토어 HTML 복사 — 글=텍스트(검색 노출), 디자인 블록=Flik 화면 캡처 이미지(변환기에서 완벽 보존).
+  //   HTML 작성 탭 붙여넣기 → SmartEditor ONE 변환하기 → 저장.
+  const handleCopySmartstoreHtml = async () => {
+    if (smartHtmlLoading) return;
+    if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
+    setSmartHtmlLoading(true);
+    try {
+      const container = captureRef.current;
+      const shots = container ? await captureBlockShots(container) : {};
+      const html = buildSmartstoreHtml(
+        finalSectionsForExport,
+        num => sectionImages[num]?.url ?? null,
+        (num, bi) => blockImages[`${num}#${bi}`]?.url ?? null,
+        (num, bi) => shots[`${num}#${bi}`] ?? null,
+      );
+      await navigator.clipboard.writeText(html);
+      setSmartHtmlCopied(true);
+      setTimeout(() => setSmartHtmlCopied(false), 2500);
+    } catch (err) {
+      console.error('[스마트스토어HTML]', err);
+      alert('복사에 실패했어요. 브라우저 권한을 확인해주세요.');
+    } finally {
+      setSmartHtmlLoading(false);
+    }
+  };
+
+  // (구)섹션별 개별 PNG 저장(handleFullCapture)은 '업로드 이미지 ZIP'(downloadSectionImagesZip)이 대체 — 2026-07-21 제거.
+  //  같은 섹션 단위 컷을 ZIP+번호로 묶어 한 번에 받게 됨(다중 다운로드 차단·순서 혼동 해소).
 
   // ── 섹션 순서 + 숨김 적용 ──
   // sectionOrder가 비어있으면(초기 마운트 직후) sections 그대로 사용
@@ -2253,24 +2324,68 @@ export default function ResultScreen() {
               <Upload size={16} /> {ch ?? '스토어'} 업로드 (준비 중)
             </button>
 
-            {/* HTML 다운로드 — 모든 출력형태에서 노출 */}
-            <button
-              onClick={handleHtmlDownload}
-              disabled={htmlLoading}
-              style={{
-                width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
-                background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
-                cursor: htmlLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
-                opacity: htmlLoading ? 0.7 : 1,
-              }}
-            >
-              {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
-            </button>
-            <p style={{
-              margin: '-2px 2px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55,
-            }}>
-              자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
-            </p>
+            {/* ★블로그형 — 내보내기 최종 2종(2026-07-21 유근님 확정): 스마트스토어 HTML + 통이미지 1장 */}
+            {isBlog && (
+              <>
+                {/* 스마트스토어 HTML 복사 — 글=텍스트(검색 노출) + 디자인 블록=Flik 캡처 이미지 */}
+                <button
+                  onClick={handleCopySmartstoreHtml}
+                  disabled={smartHtmlLoading}
+                  style={{
+                    width: '100%', height: 48, borderRadius: 14, border: 'none',
+                    background: smartHtmlCopied ? '#16a34a' : 'var(--ac)', fontWeight: 700, fontSize: 14,
+                    color: '#fff',
+                    cursor: smartHtmlLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    opacity: smartHtmlLoading ? 0.7 : 1,
+                    transition: 'all .15s',
+                  }}
+                >
+                  <Type size={15} /> {smartHtmlLoading ? '디자인 블록 캡처 중...' : smartHtmlCopied ? '복사됐어요 ✓ HTML 작성 탭에 붙여넣으세요' : '스마트스토어 HTML 복사 (추천)'}
+                </button>
+                <p style={{ margin: '-2px 2px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55 }}>
+                  상품등록 → 상세설명 → <b>HTML 작성</b> 탭에 붙여넣고 <b>SmartEditor ONE으로 변환하기</b>를 누르세요. 디자인·이미지는 화면 그대로, 글은 텍스트라 검색에도 잡혀요.
+                </p>
+
+                {/* 통이미지(전체 1장) — 슬라이드형 통이미지와 동일한 경험 */}
+                <button
+                  onClick={handleLongImage}
+                  disabled={longImgLoading}
+                  style={{
+                    width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                    background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                    cursor: longImgLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    opacity: longImgLoading ? 0.7 : 1,
+                  }}
+                >
+                  <ImageIcon size={16} /> {longImgLoading ? '통이미지 만드는 중...' : '통이미지 다운로드 (전체 1장)'}
+                </button>
+              </>
+            )}
+
+            {/* HTML 다운로드 — 슬라이드/HTML형에서만(자사몰·와디즈용) */}
+            {!isBlog && (
+              <>
+                <button
+                  onClick={handleHtmlDownload}
+                  disabled={htmlLoading}
+                  style={{
+                    width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
+                    background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
+                    cursor: htmlLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
+                    opacity: htmlLoading ? 0.7 : 1,
+                  }}
+                >
+                  {htmlLoading ? '저장 중...' : 'HTML 다운로드'}
+                </button>
+                <p style={{
+                  margin: '-2px 2px 0', fontSize: 11.5, color: '#666', lineHeight: 1.55,
+                }}>
+                  자사몰은 HTML을 그대로 사용하세요. 스마트스토어는 HTML을 열어 텍스트는 복사하고 이미지는 저장해 올려주세요.
+                </p>
+              </>
+            )}
 
             {/* 통이미지 다운로드 — 슬라이드/HTML형: AI 섹션 이미지 스택 */}
             {!isBlog && (
@@ -2289,22 +2404,8 @@ export default function ResultScreen() {
               </button>
             )}
 
-            {/* 섹션별 이미지(본문 캡처) — 블로그형: 각 섹션을 1080폭 PNG 1장씩(밴드/인스타용, 원하는 섹션만 선택 업로드) */}
-            {isBlog && (
-              <button
-                onClick={handleFullCapture}
-                disabled={captureLoading}
-                style={{
-                  width: '100%', height: 48, borderRadius: 14, border: '1px solid #ECECF2',
-                  background: '#fff', fontWeight: 700, fontSize: 14, color: '#111',
-                  cursor: captureLoading ? 'default' : 'pointer', fontFamily: 'var(--f)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  opacity: captureLoading ? 0.7 : 1,
-                }}
-              >
-                <ImageIcon size={16} /> {captureLoading ? '이미지 만드는 중...' : '섹션별 이미지 다운로드 (밴드/인스타용)'}
-              </button>
-            )}
+            {/* 섹션별 이미지 개별 저장 버튼은 '업로드 이미지 ZIP'이 대체(같은 섹션 단위 컷 + ZIP + 번호,
+                SNS·밴드 용도는 ZIP에서 원하는 섹션만 골라 쓰면 됨 — 가이드 txt에 안내) */}
 
             {/* 다시 생성하기 — go('s6') with confirm */}
             <button
