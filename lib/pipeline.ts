@@ -51,8 +51,18 @@ export interface PipelineSection {
   subcopy: string;
   body: string;
   blocks?: Block[];
+  altCopy?: AltCopy;           // ★블로그형 카피 2안(B안·감성형) — 없으면 단일 안
   imageBrief?: Brief;          // Stage4 촬영 브리프(ratio/shot_type/mood/palette/props/prompt)
   image: string | null;        // Gemini 결과 자리 — 1단계에선 항상 null
+}
+
+/** 블로그형 카피 2안 — variant는 이 묶음이 어떤 안인지(현재 파이프라인은 항상 'B'=감성형) */
+export interface AltCopy {
+  variant: 'A' | 'B';
+  headline: string;
+  subcopy?: string;
+  body: string;
+  blocks?: Block[];
 }
 
 export interface PipelineResult {

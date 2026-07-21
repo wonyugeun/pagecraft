@@ -125,6 +125,7 @@ export async function runClientPipeline(
     imageLabel: ps.imageBrief?.shot_type ? `📸 ${ps.imageBrief.shot_type}` : '📸 이미지 슬롯',
     imageDesc:  ps.imageBrief?.prompt || ps.imageBrief?.mood || '',
     blocks:     ps.blocks,
+    altCopy:    ps.altCopy,              // ★블로그형 카피 2안(B안) — 히스토리·스냅샷 자동 보존
     bodyFlow:   true,                    // body + blocks 공존 렌더 지시(ResultScreen 분기)
     visual,                              // 제품별 색(전 섹션 동일) — history 저장/복원에도 보존
   }));

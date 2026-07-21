@@ -33,6 +33,7 @@ export interface CopyChunkState {
   startIndex: number;   // 전체 섹션에서 이 청크의 시작 인덱스
   count: number;        // 이 청크의 섹션 수
   result?: CopyOut[];
+  resultB?: CopyOut[];  // ★블로그형 카피 2안(B안·감성형) — 없으면 단일 안(슬라이드형 또는 B안 실패)
   error?: string;
 }
 
@@ -214,6 +215,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
       if (r?.error) throw new Error(r.error);
       chunk.status = 'done';
       chunk.result = (r.sections as CopyOut[]) ?? [];
+      chunk.resultB = (r.sectionsB as CopyOut[] | undefined) ?? undefined;   // ★카피 2안(블로그형)
       chunk.error = undefined;
       await save({ stage: 'copy', status: 'done', chunkStartIndex: chunk.startIndex });
     } catch (e) {
@@ -267,9 +269,16 @@ export function getJobResult(job: JobState): {
   const copySections: CopyOut[] = sg.copy.chunks.flatMap(c => c.result ?? []);
   const briefs: Brief[] = (sg.imagebrief.result as ImagebriefResult | undefined)?.briefs ?? [];
 
+  // ★카피 2안(B안) — 청크별 startIndex 기준으로 정렬 배치(일부 청크 B안 실패 시 그 구간만 없음)
+  const copyBSections: (CopyOut | undefined)[] = new Array(plan.length);
+  for (const c of sg.copy.chunks) {
+    (c.resultB ?? []).forEach((s, j) => { copyBSections[c.startIndex + j] = s; });
+  }
+
   const sections: PipelineSection[] = plan.map((p, i) => {
     const c = copySections[i];
     const b = briefs[i];
+    const cb = copyBSections[i];
     return {
       num:           String(i + 1),
       name:          c?.name || p.name || `섹션 ${i + 1}`,
@@ -281,6 +290,7 @@ export function getJobResult(job: JobState): {
       subcopy:       c?.subcopy ?? '',
       body:          c?.body ?? '',
       blocks:        c?.blocks,
+      altCopy:       cb ? { variant: 'B', headline: cb.headline, subcopy: cb.subcopy, body: cb.body, blocks: cb.blocks } : undefined,
       imageBrief:    b,
       image:         null,
     };

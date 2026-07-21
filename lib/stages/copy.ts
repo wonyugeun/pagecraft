@@ -87,8 +87,8 @@ export interface CopyChunkInput {
   knownFacts?: string;       // 셀러 원입력(productName+productExtra) — 후처리 날조 그물의 허용 기준
 }
 
-/** 한 청크(≤16섹션)의 카피를 LLM 1회 호출로 생성 — 통합 분할 호출의 기본 단위 */
-export async function runCopyChunk(input: CopyChunkInput): Promise<CopyOut[]> {
+/** 청크 프롬프트 구성 — 모델 호출부와 분리(카피 모델 A/B 하네스가 동일 프롬프트를 재사용). 프롬프트 내용은 기존 그대로. */
+export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: string; userPrompt: string } {
   const { strategySummary: ss, sections: items, startIndex, totalSections, cat, ch, out, knownFacts } = input;
 
   const category = cat || '화장품';
@@ -256,21 +256,37 @@ ${COPY_PRINCIPLES}
   }
 ]`;
 
+  return { composedSystem, userPrompt };
+}
+
+/** 카피 기본 모델(A안) — 2026-07 A/B 검증: v5 호흡·헤지·규격 최상, 비용 4.6 동급 */
+export const COPY_MODEL = 'claude-sonnet-5';
+/** 카피 B안 모델(블로그형 전용 감성·장면형) — A/B 검증: 감성 카피 최고, 수치 충실 */
+export const COPY_MODEL_ALT = 'claude-opus-4-8';
+
+/** 한 청크(≤16섹션)의 카피를 LLM 1회 호출로 생성 — 통합 분할 호출의 기본 단위.
+ *  model 인자로 B안(Opus) 생성에도 재사용. Sonnet 5/Opus 4.8 공통 규칙:
+ *  temperature 미전송(Opus는 400) + thinking adaptive 명시(Opus는 명시해야 켜짐). */
+export async function runCopyChunk(input: CopyChunkInput, model: string = COPY_MODEL): Promise<CopyOut[]> {
+  const { sections: items, startIndex, knownFacts } = input;
+  const { composedSystem, userPrompt } = buildCopyChunkPrompts(input);
+
   // 잘림(max_tokens) 또는 JSON 파싱 실패 시 1회 자동 재시도 (strategy/imagebrief와 동일 패턴).
   // userPrompt·composedSystem(strategy_summary 7필드 포함)은 동일 입력으로 그대로 재주입한다.
   let parsed: unknown = null;
   let lastErr = '';
   for (let attempt = 1; attempt <= COPY_MAX_ATTEMPTS; attempt++) {
     const message = await client.messages.create({
-      model:       'claude-sonnet-4-6',
-      max_tokens:  16000,
-      temperature: 1,   // 크리에이티브 변주 최대(API 기본값이나 의도 명시) — 팩트는 프롬프트 가드+factScrub이 지킴
-      system:      composedSystem,
-      messages:    [{ role: 'user', content: userPrompt }],
+      model,
+      max_tokens: 16000,   // thinking 포함 상한 — A/B 실측 청크당 사고+출력 합 8K 미만으로 여유
+      thinking:   { type: 'adaptive' },
+      system:     composedSystem,
+      messages:   [{ role: 'user', content: userPrompt }],
     });
 
-    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-    console.log(`[copy] chunk@${startIndex} (${items.length}섹션) attempt=${attempt}/${COPY_MAX_ATTEMPTS} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
+    // adaptive thinking에선 content[0]이 thinking 블록일 수 있음 — text 블록을 찾아서 추출
+    const raw = message.content.find(b => b.type === 'text')?.text ?? '';
+    console.log(`[copy] chunk@${startIndex} (${items.length}섹션) model=${model} attempt=${attempt}/${COPY_MAX_ATTEMPTS} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
 
     if (message.stop_reason === 'max_tokens') {
       lastErr = `청크(${startIndex}~)가 max_tokens(16000)에 도달해 잘렸어요`;

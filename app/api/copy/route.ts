@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runCopy, runCopyChunk, type StrategySummary } from '@/lib/stages/copy';
+import { runCopy, runCopyChunk, COPY_MODEL_ALT, type StrategySummary } from '@/lib/stages/copy';
+import { resolveOutputType } from '@/lib/outputType';
 import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
@@ -70,8 +71,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '청크 모드: sections(이 청크 섹션들)는 필수입니다.' }, { status: 400 });
     }
     try {
-      const out_ = await runCopyChunk({ strategySummary, sections, startIndex, totalSections, cat, ch, out, depth, knownFacts });
-      return NextResponse.json({ sections: out_, chunk: { startIndex, count: out_.length } });
+      const chunkInput = { strategySummary, sections, startIndex, totalSections, cat, ch, out, depth, knownFacts };
+      // ★블로그형 카피 2안 — A안(기본 모델)과 B안(감성형 모델)을 병렬 생성.
+      //   카피는 텍스트뿐이라 원가가 페이지당 수백 원 수준 + 블로그형은 이미지에 텍스트가 없어 이미지 재생성 불필요.
+      //   B안 실패는 전체 실패로 번지지 않게 무시(A안만으로 정상 진행).
+      const isBlog = resolveOutputType(ch ?? null, out ?? null) === 'blog';
+      const [out_, outB] = await Promise.all([
+        runCopyChunk(chunkInput),
+        isBlog
+          ? runCopyChunk(chunkInput, COPY_MODEL_ALT).catch(err => {
+              console.warn(`[copy] B안(${COPY_MODEL_ALT}) chunk@${startIndex} 실패 — A안만 진행:`, err instanceof Error ? err.message : err);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+      return NextResponse.json({ sections: out_, sectionsB: outB ?? undefined, chunk: { startIndex, count: out_.length } });
     } catch (err) {
       console.error('Copy(chunk) error:', err);
       const msg = err instanceof Error ? err.message : '알 수 없는 오류';
