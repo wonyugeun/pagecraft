@@ -24,7 +24,6 @@ export interface TestPreset {
   salePrice: string;
   showPrice: boolean;
   productOptions: { name: string; values: string }[];
-  aiSelections: string[];
   answers: Record<string, string | string[]>;
 }
 
@@ -45,7 +44,6 @@ export const TEST_PRESETS: TestPreset[] = [
     salePrice: '24000',
     showPrice: true,
     productOptions: [{ name: '용량', values: '200ml, 300ml' }],
-    aiSelections: [],
     answers: {
       c1: ['스킨/토너'],
       c2: ['민감성/자극 잦은', '트러블/여드름성', '건조함/수분 부족'],
@@ -71,7 +69,6 @@ export const TEST_PRESETS: TestPreset[] = [
     salePrice: '13900',
     showPrice: true,
     productOptions: [{ name: '구성', values: '400g 단품, 400g 2개세트' }],
-    aiSelections: [],
     answers: {
       f1: ['곡물/견과/건과'],
       f2: ['다이어터/건강관리', '1인가구'],

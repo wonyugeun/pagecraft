@@ -932,63 +932,7 @@ export const SECTION_DEFS = [
   { id:'s8', title:'기타 추가 정보' },
 ];
 
-const AI_RECS: Record<string, {label:string; chips:string[]}[]> = {
-  화장품: [
-    { label:'추천 키워드', chips:['수분케어','저자극','데일리','산뜻한 사용감','촉촉함'] },
-    { label:'추천 핵심 성분', chips:['히알루론산','세라마이드','판테놀','알란토인','나이아신아마이드'] },
-    { label:'추천 타겟', chips:['건성피부','민감성피부','20대 여성','피부 고민 있는 분','뷰티 관심층'] },
-  ],
-  식품: [
-    { label:'추천 키워드', chips:['신선식품','건강간식','다이어트식','가족반찬','집밥'] },
-    { label:'추천 인증', chips:['HACCP인증','국내산','무첨가','유기농','산지직송'] },
-    { label:'추천 타겟', chips:['1인가구','다이어터','가족','시니어','건강관리'] },
-  ],
-  패션: [
-    { label:'추천 키워드', chips:['트렌디','베이직','데일리룩','모던','편안함'] },
-    { label:'추천 소재', chips:['면100%','스트레치','흡습속건','항균','친환경소재'] },
-    { label:'추천 타겟', chips:['20대','30대','직장인','대학생','패션관심층'] },
-  ],
-  생활: [
-    { label:'추천 키워드', chips:['인테리어','공간활용','모던','북유럽','심플'] },
-    { label:'추천 특징', chips:['국내제조','친환경','항균','내구성','사용편의'] },
-    { label:'추천 타겟', chips:['신혼부부','1인가구','인테리어관심','반려동물가정','B2B'] },
-  ],
-  가전: [
-    { label:'추천 키워드', chips:['스마트가전','에너지절약','저소음','고성능','편의성'] },
-    { label:'추천 기능', chips:['앱연동','자동청소','저소음','에너지절약','원격제어'] },
-    { label:'추천 타겟', chips:['맞벌이부부','1인가구','청소관심','스마트홈','시니어'] },
-  ],
-  반려동물: [
-    { label:'추천 키워드', chips:['천연원료','무첨가','고단백','소화건강','관절케어'] },
-    { label:'추천 특징', chips:['휴먼그레이드','무방부제','수의사추천','HACCP','국내산'] },
-    { label:'추천 타겟', chips:['강아지보호자','고양이보호자','펫맘','노령견보호자','건강케어'] },
-  ],
-  스포츠: [
-    { label:'추천 키워드', chips:['기능성','경량','고성능','트레이닝','운동성능'] },
-    { label:'추천 기능', chips:['흡습속건','압박','경량','항균','UV차단'] },
-    { label:'추천 타겟', chips:['헬스인','러너','요가인','입문자','20~30대'] },
-  ],
-  유아: [
-    { label:'추천 키워드', chips:['안전인증','유아용','신생아','발달','친환경'] },
-    { label:'추천 인증', chips:['KC인증','무형광','BPA프리','오가닉코튼','소아과추천'] },
-    { label:'추천 타겟', chips:['신생아','영아','1세아기','임산부','선물용'] },
-  ],
-  건강: [
-    { label:'추천 키워드', chips:['영양보충','피로회복','면역력','에너지충전','건강관리'] },
-    { label:'추천 핵심 성분', chips:['비타민B군','비타민C','비타민D','아연','셀레늄'] },
-    { label:'추천 타겟', chips:['직장인','학생','운동하는 사람','육아맘','건강관리 중인 분'] },
-  ],
-  자동차: [
-    { label:'추천 키워드', chips:['차량용품','안전','고성능','편의성','스마트'] },
-    { label:'추천 기능', chips:['무선충전','야간시인성','방수','쉬운설치','앱연동'] },
-    { label:'추천 타겟', chips:['직장인운전자','신차구매자','안전중시','장거리운전','스마트카'] },
-  ],
-  기타: [
-    { label:'추천 키워드', chips:['실용적','선물용','고품질','국내제조','특별한'] },
-    { label:'추천 특징', chips:['수공예','친환경','맞춤제작','한정판','독창적'] },
-    { label:'추천 타겟', chips:['선물구매자','일반소비자','취미인','수집가','B2B'] },
-  ],
-};
+// (제거됨 2026-07-21) AI_RECS 카테고리 추천 칩 — 날조 우회·일반론 유도로 폐기
 
 /* ─────────────────────────────────────────────
    ProgressCircle 컴포넌트
@@ -1085,14 +1029,14 @@ export default function ProductScreen() {
   const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews,
     productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
-    answers, setAnswers, aiSelections, setAiSelections } = useApp();
+    answers, setAnswers } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
   const brandPlaceholder = BRAND_NAME_PLACEHOLDERS[cat ?? '']   ?? '예: 브랜드명을 입력해주세요';
   const diffPlaceholder  = DIFF_PLACEHOLDERS[cat ?? '']         ?? '예: 경쟁 제품 대비 차별점을 입력해주세요';
 
-  // 폼 입력값(brand/diff/extraNote/brandIntro/answers/aiSelections)은 store로 승격됨
+  // 폼 입력값(brand/diff/extraNote/brandIntro/answers)은 store로 승격됨
   // → 화면 전환(s5↔s5-5 등)으로 컴포넌트가 unmount돼도 유지됨
   const setAnswer = (id: string, val: string | string[]) =>
     setAnswers(p => ({ ...p, [id]: val }));
@@ -1172,7 +1116,6 @@ export default function ProductScreen() {
     setShowPrice(p.showPrice);
     setProductOptions(p.productOptions);
     setAnswers(p.answers);
-    setAiSelections(p.aiSelections);
     setAgreed(true);   // 실측 동의도 자동 체크(생성 게이트 통과)
   };
 
@@ -1229,14 +1172,12 @@ export default function ProductScreen() {
     if (brandIntro.trim())                lines.push(`브랜드 소개: ${brandIntro.trim()}`);
     // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews가 확실히 true(키워드 의존 X) + 후기 섹션 재료로 전달
     if (reviews.trim())                   lines.push(`고객 후기: ${reviews.trim()}`);
-    if (aiSelections.length)              lines.push(`AI 추천 키워드: ${aiSelections.join(', ')}`);
     setProductExtra(lines.join('\n'));
     go('s5-5');
   };
 
   const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';
 
-  const aiRecs = AI_RECS[cat ?? '기타'] ?? AI_RECS['기타'];
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
@@ -1616,35 +1557,8 @@ export default function ProductScreen() {
             </div>
           </AccordionSection>
 
-          {/* AI 추천 추가 정보 */}
-          <div style={{
-            border: '1.5px solid #DDD6FE',
-            borderRadius: 10, padding: '16px 18px', marginTop: 16,
-            background: '#FAFAFF',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
-              <Sparkles size={15} color="#6D4CFF" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>카테고리 추천 키워드</span>
-              <span style={{ fontSize: 11, color: '#9CA3AF', marginLeft: 4 }}>선택하면 생성 품질이 올라가요</span>
-            </div>
-            {aiRecs.map(rec => (
-              <div key={rec.label} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 7 }}>{rec.label}</div>
-                <div className="chips">
-                  {rec.chips.map(chip => {
-                    const on = aiSelections.includes(chip);
-                    return (
-                      <div
-                        key={chip}
-                        className={`chip${on ? ' on' : ''}`}
-                        onClick={() => setAiSelections(p => on ? p.filter(x => x !== chip) : [...p, chip])}
-                      >{chip}</div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* (제거됨 2026-07-21 유근님) 카테고리 추천 키워드 칩 — 일반 키워드는 전략을 일반론으로 끌고,
+              '추천 성분' 칩은 제품에 없는 성분을 셀러 입력 사실로 만들어 날조 가드를 우회하는 구멍이었음 */}
 
           {/* 경고 배너 */}
           <div style={{

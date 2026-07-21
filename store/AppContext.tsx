@@ -158,7 +158,6 @@ interface AppState {
   productVolume: string;  // 제품 용량(200ml 등)
   productShapeProfile: string;  // 제품 형태 프로필(slim_tall/wide/jar 등 실루엣)
   answers: Record<string, string | string[]>;
-  aiSelections: string[];
 }
 
 interface AppContextType extends AppState {
@@ -204,7 +203,6 @@ interface AppContextType extends AppState {
   setProductVolume: (v: string) => void;
   setProductShapeProfile: (v: string) => void;
   setAnswers: React.Dispatch<React.SetStateAction<Record<string, string | string[]>>>;
-  setAiSelections: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -349,7 +347,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [productVolume, setProductVolume] = useState(''); // 제품 용량
   const [productShapeProfile, setProductShapeProfile] = useState(''); // 형태 프로필(실루엣)
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
-  const [aiSelections, setAiSelections] = useState<string[]>([]);
 
   /* 크레딧 조회 — ★서버(/api/credits)에서 잔액을 가져옴. 신규 30 지급도 서버가 처리.
    * 이 effect는 로그인/세션 변경 시 1회만 실행(초기 스냅샷). 차감은 서버 선차감(strategy)이 원자적으로 하고,
@@ -484,7 +481,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductVolume('');
     setProductShapeProfile('');
     setAnswers({});
-    setAiSelections([]);
     setGenerationJobKeyState(item.jobKey ?? null);
     setSections(item.sections);
 
@@ -612,11 +608,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         screen, cat, ch, type, out, imgMode, secCnt,
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
-        brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
+        brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
         generationJobKey,
       }));
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections, generationJobKey]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -655,7 +651,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.productVolume === 'string') setProductVolume(p.productVolume);
     if (typeof p.productShapeProfile === 'string') setProductShapeProfile(p.productShapeProfile);
     if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
-    if (Array.isArray(p.aiSelections)) setAiSelections(p.aiSelections as string[]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -768,7 +763,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductVolume('');
     setProductShapeProfile('');
     setAnswers({});
-    setAiSelections([]);
     setGenerationJobKeyState(null);   // ★새 상품 = 새 결제 키(이전 작업 키 오염 방지)
     currentHistoryIdRef.current = null;   // ★새 작업 = 아직 저장된 항목 없음(다음 saveHistory가 대상 세팅)
     // ★교차상품 유출 차단 — 이전 상품의 '__session__' 제품사진 스냅샷 제거.
@@ -792,7 +786,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditsLoaded, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
-      brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, aiSelections,
+      brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
       go,
       setCat: setCatState,
       setCh: setChState,
@@ -835,7 +829,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProductVolume,
       setProductShapeProfile,
       setAnswers,
-      setAiSelections,
     }}>
       {children}
     </AppContext.Provider>

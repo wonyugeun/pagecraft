@@ -49,7 +49,7 @@ export default function ProductMobile() {
     brand, setBrand, diff, setDiff, extraNote, setExtraNote,
     brandIntro, setBrandIntro, reviews, setReviews,
     productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
-    answers, setAnswers, aiSelections, setAiSelections,
+    answers, setAnswers,
     toggleChat, credits,
   } = useApp();
 
@@ -120,7 +120,6 @@ export default function ProductMobile() {
     setShowPrice(p.showPrice);
     setProductOptions(p.productOptions);
     setAnswers(p.answers);
-    setAiSelections(p.aiSelections);
     setAgreed(true);
   };
 
@@ -178,7 +177,6 @@ export default function ProductMobile() {
     if (brandIntro.trim())         lines.push(`브랜드 소개: ${brandIntro.trim()}`);
     // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews 확실히 true + 후기 섹션 재료
     if (reviews.trim())            lines.push(`고객 후기: ${reviews.trim()}`);
-    if (aiSelections.length)       lines.push(`AI 추천 키워드: ${aiSelections.join(', ')}`);
     setProductExtra(lines.join('\n'));
     go('s5-5');
   };
