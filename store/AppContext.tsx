@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, ReactNod
 import { useSession } from 'next-auth/react';
 import { saveImages, patchImages, mergeImages, getImages, deleteImages } from '@/lib/historyDB';
 import { compressMap } from '@/lib/imageCompress';
+import { getActiveJobId } from '@/lib/activeJob';
 
 /** 제품 사진(reference) 압축 헬퍼 — compressMap(Record 기반)을 배열에 씌움. 실패 시 원본 유지(보수적). */
 async function compressProductImages(images: string[]): Promise<string[]> {
@@ -567,6 +568,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ★현재 열려있는(=편집/재생성 대상) 작업기록 id. 신규 생성 시 saveHistory가, 옛 항목 열 땐 loadFromHistory가 세팅.
   //   updateLatestHistory*가 무조건 최신([0])에 쓰던 오염 버그 방지 — 이 id 항목에만 이미지/override를 씀.
   const currentHistoryIdRef = useRef<string | null>(null);
+
+  // ── 결과 화면(s8) 새로고침 복귀(2026-07-21) — s8에 있는 동안만 sessionStorage 마커 유지.
+  //    새로고침(같은 탭) 시 마지막 작업기록을 자동으로 다시 열어 결과 화면으로 복귀한다.
+  //    sessionStorage = 탭 닫으면 소멸 → 다음 날 접속 때 갑자기 결과 화면으로 점프하는 부작용 없음.
+  const RESULT_MARKER = 'pc_last_result';
+  const resultRestoreTriedRef = useRef(false);
+  useEffect(() => {
+    // 마커 유지/정리 — 복귀 시도 전에는 초기 화면 전환이 마커를 지우지 않게 가드
+    if (typeof window === 'undefined' || !resultRestoreTriedRef.current) return;
+    try {
+      if (screen === 's8' && currentHistoryIdRef.current) {
+        sessionStorage.setItem(RESULT_MARKER, JSON.stringify({ email: session?.user?.email ?? 'guest', id: currentHistoryIdRef.current }));
+      } else {
+        sessionStorage.removeItem(RESULT_MARKER);
+      }
+    } catch { /* no-op */ }
+  }, [screen, session?.user?.email]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || resultRestoreTriedRef.current || status === 'loading') return;
+    resultRestoreTriedRef.current = true;
+    try {
+      if (getActiveJobId()) return;   // 진행 중 생성 job은 s7 자동 재개(page.tsx)에 양보
+      const raw = sessionStorage.getItem(RESULT_MARKER);
+      if (!raw) return;
+      const marker = JSON.parse(raw) as { email?: string; id?: string };
+      const email = session?.user?.email ?? 'guest';
+      if (!marker.id || marker.email !== email) { sessionStorage.removeItem(RESULT_MARKER); return; }
+      const list: HistoryItem[] = JSON.parse(localStorage.getItem(`pc_history_${email}`) || '[]');
+      const item = list.find(h => h.id === marker.id);
+      if (item) loadFromHistory(item);   // 내부에서 이미지·override 복원 후 go('s8')
+      else sessionStorage.removeItem(RESULT_MARKER);
+    } catch { /* no-op */ }
+  }, [status]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // ★새로고침 복원: 단계+입력값을 sessionStorage에 저장(변경 시마다). 크레딧·생성결과·이미지 제외.
   useEffect(() => {
