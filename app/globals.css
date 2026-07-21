@@ -2,7 +2,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 @import "tailwindcss";
 
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* 전역 리셋 — @layer base로 감쌈(2026-07-21). 레이어 없이 두면 CSS 캐스케이드 규칙상
+   Tailwind 유틸리티(@layer utilities)를 항상 이겨서 mt-·p- 계열 스페이싱 클래스가 전부 무력화됨
+   (블로그 히어로 헤드/서브/본문이 붙어 보이던 원인). base 레이어면 유틸리티가 정상적으로 이김. */
+@layer base {
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+}
 :root{
   --bg:#f8f7f4;--white:#fff;--sf:#f2f1ed;--sf2:#eae9e4;
   --bd:#e0ded7;--bd2:#c8c6be;
@@ -585,4 +590,24 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   .img-regen-overlay { opacity: 0; pointer-events: none; transition: opacity .15s; }
   .img-regen-wrap:hover .img-regen-overlay,
   .img-regen-overlay.is-loading { opacity: 1; pointer-events: auto; }
+}
+
+/* ── 블로그 섹션 카피 재생성(플로팅) — 하단 중앙 버튼이 읽는 흐름을 끊어 우상단 hover 표시로 이동 ── */
+.bs-sec-regen-wrap { position: absolute; top: 12px; right: 12px; z-index: 3; }
+.bs-sec-regen {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 13px; border: 1px solid #ECECF2; border-radius: 999px;
+  background: rgba(255,255,255,.96); color: #6D4CFF;
+  font-family: var(--f); font-size: 12px; font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+  cursor: pointer; position: relative;
+}
+.bs-sec-regen:disabled { cursor: default; opacity: .8; }
+/* 터치 타겟 확장 — img-regen-overlay와 동일 규칙 */
+.bs-sec-regen::before { content: ''; position: absolute; inset: -8px; border-radius: 999px; }
+/* 데스크탑: 평소 숨김, 섹션 hover 시 표시. 생성 중엔 고정 표시 */
+@media (hover: hover) and (pointer: fine) {
+  .bs-sec-regen-wrap { opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .bs-sec:hover .bs-sec-regen-wrap,
+  .bs-sec-regen-wrap.is-loading { opacity: 1; pointer-events: auto; }
 }

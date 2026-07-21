@@ -55,7 +55,7 @@ export default function ResultMobile() {
   });
   const [sectionOrder, setSectionOrder] = useState<number[]>([]);
   const [hiddenSections, setHiddenSections] = useState<Set<number>>(new Set());
-  const [sectionOverrides, setSectionOverrides] = useState<Record<number, Partial<Section>>>({});
+  const [sectionOverrides, setSectionOverrides] = useState<Record<string, Partial<Section>>>({});
   const [regenLoadingSet, setRegenLoadingSet] = useState<Set<number>>(new Set());
   const [viewMode, setViewMode] = useState<'mobile' | 'pc'>('mobile');
   const [zoom, setZoom] = useState(100);
@@ -75,24 +75,44 @@ export default function ResultMobile() {
     setSectionOverrides({});
   }, [sections.length]);
 
-  const getEffectiveSection = (realIdx: number): Section => ({
-    ...sections[realIdx],
-    ...sectionOverrides[realIdx],
-  });
+  // ★카피 2안 — 데스크톱(ResultScreen)과 동일 로직. override 키를 안별로 분리(A안: "3", B안: "B:3").
+  const [copyVariant, setCopyVariant] = useState<'A' | 'B'>('A');
+  const ovKey = (realIdx: number) => (copyVariant === 'B' ? `B:${realIdx}` : String(realIdx));
+
+  const getEffectiveSection = (realIdx: number): Section => {
+    const base = sections[realIdx];
+    const alt = base?.altCopy;
+    const variantBase = (copyVariant === 'B' && alt)
+      ? { ...base, headline: alt.headline, subcopy: alt.subcopy, body: alt.body, blocks: alt.blocks }
+      : base;
+    return { ...variantBase, ...sectionOverrides[ovKey(realIdx)] };
+  };
   const updateSection = (realIdx: number, patch: Partial<Section>) => {
     setSectionOverrides(prev => {
-      const next = { ...prev, [realIdx]: { ...prev[realIdx], ...patch } };
+      const key = ovKey(realIdx);
+      const next = { ...prev, [key]: { ...prev[key], ...patch } };
       // 편집값 IndexedDB 영속화(디바운스 600ms, AI 호출 0) — 새로고침/재방문에도 유지 (데스크탑 동일)
       if (overridesPersistTimer.current) clearTimeout(overridesPersistTimer.current);
-      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides(next as Record<string, unknown>), 600);
+      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides({ ...next, __copyVariant: copyVariant } as Record<string, unknown>), 600);
       return next;
     });
   };
 
-  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override)을 state로 복원
+  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override) + 선택한 카피 안을 state로 복원
   useEffect(() => {
-    setSectionOverrides({ ...(restoredOverrides as Record<number, Partial<Section>>) });
+    const raw = { ...(restoredOverrides as Record<string, Partial<Section>>) };
+    const savedVariant = raw.__copyVariant as unknown;
+    delete raw.__copyVariant;
+    setSectionOverrides(raw);
+    setCopyVariant(savedVariant === 'B' ? 'B' : 'A');
   }, [restoredOverrides]);
+
+  // ★카피 안 전환 — 표시 레이어만 변경(원본 sections 불변). 선택 즉시 영속화.
+  const switchCopyVariant = (v: 'A' | 'B') => {
+    if (v === copyVariant) return;
+    setCopyVariant(v);
+    updateLatestHistoryOverrides({ ...sectionOverrides, __copyVariant: v } as Record<string, unknown>);
+  };
 
   const productImagesRef = useRef(productImages);
   useEffect(() => { productImagesRef.current = productImages; }, [productImages]);
@@ -114,6 +134,8 @@ export default function ResultMobile() {
 
   const displaySections = sections;
   const effectiveOut = resolveOutputType(ch, out);
+  // ★카피 2안 존재 여부 — 블로그형 + altCopy 보유 섹션이 있을 때만 토글 노출
+  const hasCopyVariants = sections.some(s => !!s.altCopy);
   const isSlide = effectiveOut === 'slide';
   const isHtml = effectiveOut === 'html';
   const isBlog = !isSlide && !isHtml;
@@ -644,6 +666,33 @@ export default function ResultMobile() {
           </div>
         </div>
       </section>
+
+      {/* ★카피 2안 토글(블로그형 전용) — 디바이스 라인과 같은 라이트 세그먼트 스타일. 카피만 A/B 전환 */}
+      {isBlog && hasCopyVariants && (
+        <section style={{ padding: '10px 20px 0' }}>
+          <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 12, background: '#F4F0FF' }}>
+            {([['A', 'A안', '리듬형'], ['B', 'B안', '감성형']] as const).map(([v, vName, vDesc]) => (
+              <button
+                key={v}
+                onClick={() => switchCopyVariant(v)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '6px 12px', borderRadius: 8, border: 'none',
+                  background: copyVariant === v ? '#fff' : 'transparent',
+                  fontSize: 12.5, fontWeight: 700,
+                  color: copyVariant === v ? '#6D4CFF' : '#999',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  boxShadow: copyVariant === v ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all .15s',
+                }}
+              >
+                ✍️ {vName}
+                <span style={{ fontSize: 10.5, fontWeight: 600, color: copyVariant === v ? '#A08FE0' : '#BBB' }}>{vDesc}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 6) 미리보기 캔버스 — 모바일 grid는 BlockRenderer에서 isMobile로 처리 */}
       <section style={{ padding: '14px 16px 0' }}>

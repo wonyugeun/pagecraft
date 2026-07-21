@@ -109,13 +109,13 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
           <Editable value={headline} onCommit={onHeadlineCommit} />
         </h1>
         {(subcopy || onSubcopyCommit) && (
-          <p className="mt-5 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
+          <p className="mt-7 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
             <Editable value={subcopy ?? ''} onCommit={onSubcopyCommit} />
           </p>
         )}
-        {/* 설명 본문 — 헤드라인 → 설명 → 이미지. 왼쪽 정렬 */}
+        {/* 설명 본문 — 헤드라인 → 설명 → 이미지. 왼쪽 정렬. 헤드/서브/본문 3층이 확실히 띄어 보이게(2026-07-21 유근님) */}
         {bodySlot && (
-          <div className="mt-5 text-left">{bodySlot}</div>
+          <div className="mt-9 text-left">{bodySlot}</div>
         )}
         {kpis.length > 0 && (
           <div className="mt-10 grid grid-cols-3 gap-3">

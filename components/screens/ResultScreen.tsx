@@ -16,7 +16,7 @@ import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } fro
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
   Sparkles, Smartphone, Monitor, Eye, GripVertical, Upload, RefreshCw,
-  Type, Image as ImageIcon, ArrowUpDown, EyeOff,
+  Type, Image as ImageIcon, ArrowUpDown, EyeOff, PenLine,
 } from 'lucide-react';
 
 const DEFAULT_SECTIONS: Section[] = [
@@ -667,7 +667,16 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
 
   return (
     <>
-      <div style={{ background: '#fff' }}>
+      <div className="bs-sec" style={{ background: '#fff', position: 'relative' }}>
+        {/* ── 카피 재생성(플로팅) — 섹션 우상단 hover 표시. 하단 중앙 버튼이 읽는 흐름을 끊던 문제 해소(2026-07-21 유근님).
+            bs-actions = 통이미지 캡처 제외 ── */}
+        <div className={`bs-actions bs-sec-regen-wrap${regenLoading ? ' is-loading' : ''}`}>
+          <button className="bs-sec-regen" onClick={onRegen} disabled={regenLoading} aria-label="카피 재생성">
+            {regenLoading
+              ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #c4b5fd', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />생성 중</>
+              : <><Sparkles size={12} /> 카피 재생성</>}
+          </button>
+        </div>
         {/* ── 카피 헤더(headline + subcopy) — 분기 무관 항상 렌더. 첫 섹션만 Hero가 담당(기존 유지) ──
             기존엔 bodyFlow 미설정/블록 섹션에서 headline·subcopy·body가 통째로 사라졌음(분기② 블록만, 분기③ subcopy 누락).
             이제 카피를 먼저 항상 렌더하고, 이미지/블록은 그 아래 공존시킨다. */}
@@ -741,14 +750,10 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
           </div>
         )}
 
-        {/* ── 재생성 버튼 — 텍스트는 전부 인라인 편집(클릭)이라 '수정' 패널/버튼 없음. bs-actions = 통이미지 캡처 시 제외 ── */}
-        <div className="bs-actions" style={{ padding: '18px 36px 40px', display: 'flex', justifyContent: 'center', gap: 8 }}>
-          <button className="bs-regen-btn" onClick={onRegen} disabled={regenLoading}>
-            {regenLoading ? <><span style={{ display: 'inline-block', width: 11, height: 11, border: '2px solid #a78bfa', borderTopColor: '#6D4CFF', borderRadius: '50%', animation: 'spin 0.7s linear infinite', marginRight: 4, verticalAlign: 'middle' }} />생성 중</> : '✦ 재생성'}
-          </button>
-        </div>
+        {/* ── 섹션 하단 여백 — 섹션 간 밀착 조정(40→20, 2026-07-21). bs-actions = 캡처 제외 동일 ── */}
+        <div className="bs-actions" style={{ height: 20 }} />
       </div>
-      {!isLast && <div style={{ height: 56 }} />}
+      {!isLast && <div style={{ height: 12 }} />}   {/* 섹션 간 간격 — 56→28→12 (2026-07-21 유근님: 더 밀착) */}
     </>
   );
 }
@@ -1221,8 +1226,10 @@ export default function ResultScreen() {
   const [hiddenSections,   setHiddenSections]   = useState<Set<number>>(new Set());
   const [dragIdx,          setDragIdx]          = useState<number | null>(null);
   const [hoveredIdx,       setHoveredIdx]       = useState<number | null>(null);
-  const [sectionOverrides, setSectionOverrides] = useState<Record<number, Partial<Section>>>({});
+  const [sectionOverrides, setSectionOverrides] = useState<Record<string, Partial<Section>>>({});
   const [regenLoadingSet,  setRegenLoadingSet]  = useState<Set<number>>(new Set());
+  // ★블로그형 카피 2안 — 'A'(기본·리듬형) / 'B'(감성형, sec.altCopy). 인라인 편집은 안별로 분리 보관(ovKey).
+  const [copyVariant, setCopyVariant] = useState<'A' | 'B'>('A');
   // 뷰모드 / 줌
   const [viewMode, setViewMode] = useState<'mobile' | 'pc'>('mobile');
   const [zoom,     setZoom]     = useState(100);
@@ -1263,26 +1270,45 @@ export default function ResultScreen() {
     setSectionOverrides({});
   }, [sections.length]);
 
-  // 최종 섹션 단일 소스: 원본 + override(headline/body 수정 + 재생성 결과)
-  const getEffectiveSection = (realIdx: number): Section => ({
-    ...sections[realIdx],
-    ...sectionOverrides[realIdx],
-  });
+  // ★카피 2안 — override 키를 안별로 분리(A안: "3", B안: "B:3"). A안에서 고친 텍스트가 B안 위에 얹히는 오염 방지.
+  const ovKey = (realIdx: number) => (copyVariant === 'B' ? `B:${realIdx}` : String(realIdx));
 
-  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override)을 state로 복원
+  // 최종 섹션 단일 소스: 원본 → (B안이면 altCopy 카피 치환) → 현재 안의 override(수정/재생성 결과)
+  const getEffectiveSection = (realIdx: number): Section => {
+    const base = sections[realIdx];
+    const alt = base?.altCopy;
+    const variantBase = (copyVariant === 'B' && alt)
+      ? { ...base, headline: alt.headline, subcopy: alt.subcopy, body: alt.body, blocks: alt.blocks }
+      : base;
+    return { ...variantBase, ...sectionOverrides[ovKey(realIdx)] };
+  };
+
+  // 복원: 작업기록 재방문/새로고침 시 저장된 인라인 편집(override) + 선택한 카피 안(__copyVariant)을 state로 복원
   useEffect(() => {
-    setSectionOverrides({ ...(restoredOverrides as Record<number, Partial<Section>>) });
+    const raw = { ...(restoredOverrides as Record<string, Partial<Section>>) };
+    const savedVariant = raw.__copyVariant as unknown;
+    delete raw.__copyVariant;
+    setSectionOverrides(raw);
+    setCopyVariant(savedVariant === 'B' ? 'B' : 'A');
   }, [restoredOverrides]);
 
   const overridesPersistTimer = useRef<NodeJS.Timeout | null>(null);
   const updateSection = (realIdx: number, patch: Partial<Section>) => {
     setSectionOverrides(prev => {
-      const next = { ...prev, [realIdx]: { ...prev[realIdx], ...patch } };
-      // 편집값 IndexedDB 영속화(디바운스 600ms, AI 호출 0) — 새로고침/재방문에도 유지
+      const key = ovKey(realIdx);
+      const next = { ...prev, [key]: { ...prev[key], ...patch } };
+      // 편집값 IndexedDB 영속화(디바운스 600ms, AI 호출 0) — 새로고침/재방문에도 유지. 선택한 안도 함께 저장.
       if (overridesPersistTimer.current) clearTimeout(overridesPersistTimer.current);
-      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides(next as Record<string, unknown>), 600);
+      overridesPersistTimer.current = setTimeout(() => updateLatestHistoryOverrides({ ...next, __copyVariant: copyVariant } as Record<string, unknown>), 600);
       return next;
     });
+  };
+
+  // ★카피 안 전환 — 표시 레이어만 바뀜(원본 sections 불변). 선택 즉시 영속화(새로고침·재방문 유지).
+  const switchCopyVariant = (v: 'A' | 'B') => {
+    if (v === copyVariant) return;
+    setCopyVariant(v);
+    updateLatestHistoryOverrides({ ...sectionOverrides, __copyVariant: v } as Record<string, unknown>);
   };
 
   const productImagesRef = useRef(productImages);
@@ -1357,6 +1383,8 @@ export default function ResultScreen() {
   const isSlide = effectiveOut === 'slide';
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
+  // ★카피 2안 존재 여부 — 블로그형 + B안(altCopy) 보유 섹션이 있을 때만 토글 노출(구 기록·슬라이드형은 그대로)
+  const hasCopyVariants = isBlog && displaySections.some(s => !!s.altCopy);
 
   // ★Clean Baseline Phase B — 디렉터 플랜(페이지당 1회, 결과 캐시). 플래그 ON일 때만 호출.
   //   실패 시 null → 각 섹션이 기존 경로로 폴백(생성은 계속). 같은 jobKey면 같은 컨셉(결정적).
@@ -1873,6 +1901,32 @@ export default function ResultScreen() {
                 <Monitor size={14} /> PC
               </button>
             </div>
+
+            {/* ★카피 2안 토글(블로그형 전용) — 모바일/PC 라인에 맞춘 라이트 세그먼트. 카피만 A/B 전환, 수정본은 안별 분리 보관 */}
+            {hasCopyVariants && (
+              <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, background: '#F4F0FF' }}>
+                {([['A', 'A안', '리듬형'], ['B', 'B안', '감성형']] as const).map(([v, vName, vDesc]) => (
+                  <button
+                    key={v}
+                    onClick={() => switchCopyVariant(v)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '6px 12px', borderRadius: 8,
+                      background: copyVariant === v ? '#fff' : 'transparent',
+                      border: 'none',
+                      fontSize: 13, fontWeight: 700,
+                      color: copyVariant === v ? '#6D4CFF' : '#999',
+                      cursor: 'pointer', fontFamily: 'var(--f)',
+                      boxShadow: copyVariant === v ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                      transition: 'all .15s',
+                    }}
+                  >
+                    <PenLine size={13} /> {vName}
+                    <span style={{ fontSize: 11, fontWeight: 600, color: copyVariant === v ? '#A08FE0' : '#BBB' }}>{vDesc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* 줌 / 전체화면 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
