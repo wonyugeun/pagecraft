@@ -222,8 +222,22 @@ export default function GeneratingScreen() {
       cancelledRef.current = false;
       setPct(8);
       setEngineLabel('전략 분석 중…');
+      // ★레퍼런스 스타일 힌트(2026-07-21) — s5-5 분석의 톤·패턴·강조 포인트를 전략 tone/hero_angle 결정에
+      //   '스타일 참고'로 주입. 기존엔 섹션 구조만 반영되고 분석 카드에 보여준 톤은 미반영(기대 불일치)이었음.
+      const referenceStyle = referenceAnalysis
+        ? [
+            referenceAnalysis.tone ? `카피 톤: ${referenceAnalysis.tone}` : '',
+            referenceAnalysis.headlinePattern ? `헤드라인 패턴: ${referenceAnalysis.headlinePattern}` : '',
+            referenceAnalysis.emphasisPoints?.length ? `강조 포인트: ${referenceAnalysis.emphasisPoints.join(', ')}` : '',
+          ].filter(Boolean).join('\n') || undefined
+        : captureAnalysis
+          ? [
+              captureAnalysis.전체톤 ? `전체 톤: ${captureAnalysis.전체톤}` : '',
+              captureAnalysis.브랜드무드 ? `브랜드 무드: ${captureAnalysis.브랜드무드}` : '',
+            ].filter(Boolean).join('\n') || undefined
+          : undefined;
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
         {
           resume,
           isCancelled: () => cancelledRef.current,

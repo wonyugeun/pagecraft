@@ -26,6 +26,9 @@ export interface PipelineInput {
   sectionCount?: number;
   /** 사용자가 s7에서 선택/편집한 섹션 이름 목록(순서·이름·개수). 있으면 structure가 이 목록을 '정답지'로 강제. */
   sectionStructure?: string[];
+  /** ★레퍼런스 스타일 힌트(2026-07-21) — s5-5 분석의 톤·헤드라인 패턴·강조 포인트 요약.
+   *  strategy의 tone·hero_angle 결정에 '스타일 참고'로만 주입(사실·성분·수치 출처 아님). */
+  referenceStyle?: string;
   /** 파이프라인 로직엔 쓰이지 않으나 job에 보관해 재개 시 작업기록 저장에 사용(타입 라벨) */
   type?: string;
   /** ★크레딧 멱등키(P0) — 생성 1회 1키. strategy 선차감·structure 결제 검증에 사용.

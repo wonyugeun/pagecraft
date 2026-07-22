@@ -15,6 +15,8 @@ export interface StrategyInput {
   ch?: string;
   productName?: string;
   productExtra?: string;
+  /** ★레퍼런스 스타일 힌트(s5-5 분석) — 톤·헤드라인 패턴·강조 포인트 요약. 스타일 참고 전용(사실 출처 아님) */
+  referenceStyle?: string;
 }
 
 export interface StrategyResult {
@@ -60,7 +62,7 @@ ${universalFactGuard}
 }`;
 
 export async function runStrategy(input: StrategyInput): Promise<StrategyResult> {
-  const { cat, ch, productName, productExtra } = input;
+  const { cat, ch, productName, productExtra, referenceStyle } = input;
 
   const userPrompt = `다음 상품 정보를 분석해 DNA와 전략 JSON을 출력하세요.
 
@@ -68,7 +70,7 @@ export async function runStrategy(input: StrategyInput): Promise<StrategyResult>
 - 카테고리: ${cat || '(미입력)'}
 - 판매 채널: ${ch || '(미입력)'}
 - 상품명: ${productName || '(미입력)'}
-${productExtra ? `\n[상세 정보 — 차별점·성분·기타 요청사항 등이 포함됨. "기타 요청사항:" 라인이 있으면 전략의 1순위로 반영하세요]\n${productExtra}\n` : '\n(상세 정보 미입력 — 상품명·카테고리만으로 분석하되, 없는 사실을 지어내지 마세요)\n'}`;
+${productExtra ? `\n[상세 정보 — 차별점·성분·기타 요청사항 등이 포함됨. "기타 요청사항:" 라인이 있으면 전략의 1순위로 반영하세요]\n${productExtra}\n` : '\n(상세 정보 미입력 — 상품명·카테고리만으로 분석하되, 없는 사실을 지어내지 마세요)\n'}${referenceStyle ? `\n[셀러가 참고한 레퍼런스 페이지의 스타일 분석 — ⚠️스타일 힌트로만 참고하세요. 사실·성분·수치의 출처가 아니며, 여기 있는 표현을 근거로 새 사실을 만들지 마세요. tone·hero_angle 결정에 참고하되, 이 제품 고유의 차별점이 항상 우선입니다]\n${referenceStyle}\n` : ''}`;
 
   console.log(`[strategy] cat=${cat} ch=${ch} name=${productName} extraLen=${productExtra?.length ?? 0}`);
 

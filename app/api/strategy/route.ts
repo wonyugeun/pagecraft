@@ -18,9 +18,9 @@ import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const { cat, ch, productName, productExtra, sectionCount, jobKey } = await req.json() as {
+  const { cat, ch, productName, productExtra, referenceStyle, sectionCount, jobKey } = await req.json() as {
     cat?: string; ch?: string; productName?: string; productExtra?: string;
-    sectionCount?: number; jobKey?: string;
+    referenceStyle?: string; sectionCount?: number; jobKey?: string;
   };
 
   // ── 크레딧 선차감(외부 API 호출 전) ──
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runStrategy({ cat, ch, productName, productExtra });
+    const result = await runStrategy({ cat, ch, productName, productExtra, referenceStyle });
     return NextResponse.json(credit ? { ...result, credit } : result);
   } catch (err) {
     console.error('Strategy error:', err);
