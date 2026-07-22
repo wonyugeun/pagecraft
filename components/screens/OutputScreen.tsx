@@ -170,7 +170,7 @@ export default function OutputScreen() {
           display: 'inline-block', padding: '4px 13px', marginBottom: '16px',
           border: '1.5px solid #D8CFFF', borderRadius: '100px',
           fontSize: '11.5px', fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.04em',
-        }}>STEP 4 / 10</span>
+        }}>STEP 4 / 9</span>
         <h1 style={{
           fontSize: '28px', fontWeight: 800, color: '#111',
           letterSpacing: '-0.04em', lineHeight: 1.3, marginBottom: '10px',

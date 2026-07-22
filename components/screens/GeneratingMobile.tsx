@@ -20,11 +20,10 @@ const STEPS = [
   { num: 3, label: '타입' },
   { num: 4, label: '출력형태' },
   { num: 5, label: '상품정보' },
-  { num: 6, label: '레퍼런스' },
-  { num: 7, label: '섹션구조' },
-  { num: 8, label: '이미지' },
-  { num: 9, label: '생성' },
-  { num: 10, label: '결과물' },
+  { num: 6, label: '섹션구조' },
+  { num: 7, label: '이미지' },
+  { num: 8, label: '생성' },
+  { num: 9, label: '결과물' },
 ];
 
 export default function GeneratingMobile() {
@@ -368,8 +367,8 @@ export default function GeneratingMobile() {
       <section style={{ padding: '8px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
           {STEPS.map((s, i) => {
-            const active = s.num === 9;
-            const done = s.num < 9;
+            const active = s.num === 8;
+            const done = s.num < 8;
             const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
             const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
             return (

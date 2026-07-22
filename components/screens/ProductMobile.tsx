@@ -178,7 +178,8 @@ export default function ProductMobile() {
     // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews 확실히 true + 후기 섹션 재료
     if (reviews.trim())            lines.push(`고객 후기: ${reviews.trim()}`);
     setProductExtra(lines.join('\n'));
-    go('s5-5');
+    // ★래퍼런스 독립 단계 폐지(2026-07-22) — 상품정보 다음은 곧장 섹션구조(데스크탑 동일)
+    go('s5b');
   };
 
   const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';
@@ -267,7 +268,7 @@ export default function ProductMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 5 / 10</span>
+        }}>STEP 5 / 9</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',

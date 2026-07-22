@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import {
-  Zap, Sparkles, Link2, Image as ImageIcon, Plus,
+  Zap, Sparkles, Link2, Image as ImageIcon,
   ArrowLeft, ArrowRight, Link as LinkIcon,
 } from 'lucide-react';
 import {
@@ -11,41 +11,43 @@ import {
 import { inferOutFromSections } from '@/lib/outputType';
 import { AnalysisResult, CaptureTab, ErrorBox } from './ReferenceScreen';
 
-type Tab = 'url' | 'capture' | 'skip';
+type Tab = 'url' | 'capture';
 
+// ★래퍼런스형 전용 화면(2026-07-22) — 타입(3단계)의 한 갈래라 브레드크럼도 타입 활성으로 표시.
 const STEPS = [
   { num: 1, label: '카테고리' },
   { num: 2, label: '채널' },
   { num: 3, label: '타입' },
   { num: 4, label: '출력형태' },
   { num: 5, label: '상품정보' },
-  { num: 6, label: '레퍼런스' },
-  { num: 7, label: '섹션구조' },
-  { num: 8, label: '이미지' },
-  { num: 9, label: '생성' },
-  { num: 10, label: '결과물' },
 ];
 
 export default function ReferenceMobile() {
   const {
     go, setReferenceAnalysis, setCaptureAnalysis,
     captureAnalysis, referenceAnalysis,
-    setSectionStructure, ch, setOut,
+    setSectionStructure, setOriginalSections, ch, setOut,
+    setType, goAfterReference,
     toggleChat, credits,
   } = useApp();
 
-  // 데스크탑 ReferenceScreen과 동일한 state
-  const [tab, setTab] = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
+  // 데스크탑 ReferenceScreen과 동일한 state — 기본 탭 = 파일 업로드(주요 채널이 URL 크롤링 차단)
+  const [tab, setTab] = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'capture');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReferenceAnalysis | null>(null);
   const [error, setError] = useState('');
+  const [weakRef, setWeakRef] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-  const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); };
+  const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); setWeakRef(false); };
   const switchTab = (t: Tab) => { setTab(t); reset(); };
+
+  // 참고 가치 판정 — 데스크탑과 동일 기준(섹션 4개 미만·타입 2종 이하 = 재료 부족)
+  const isWeakReference = (sections: string[]) =>
+    sections.length < 4 || new Set(sections).size <= 2;
 
   // 데스크탑 callApi 로직 그대로
   const callApi = async (body: Record<string, string>) => {
@@ -71,6 +73,7 @@ export default function ReferenceMobile() {
       setCaptureAnalysis(null);
       const refSections: string[] = data.analysis.sections ?? [];
       setSectionStructure(refSections);
+      setWeakRef(isWeakReference(refSections));
       const inferred = inferOutFromSections(refSections);
       if (inferred && !CH_OUT_AUTO[ch || '']) setOut(inferred);
     } catch (err) {
@@ -101,15 +104,22 @@ export default function ReferenceMobile() {
     setReferenceAnalysis(null);
     const capSections = analysis.섹션목록.map(s => s.타입);
     setSectionStructure(capSections);
+    setWeakRef(isWeakReference(capSections));
     const inferred = inferOutFromSections(capSections);
     if (inferred && !CH_OUT_AUTO[ch || '']) setOut(inferred);
   };
 
-  const onPrev = () => go('s5');
-  const onNextSkip = () => {
-    if (tab === 'capture') { setCaptureAnalysis(null); setReferenceAnalysis(null); }
-    else setReferenceAnalysis(null);
-    go('s5b');
+  const hasAnalysis = Boolean(referenceAnalysis || captureAnalysis);
+
+  const onPrev = () => go('s3');
+  // 래퍼런스 없이 진행 — 분석 자산 정리 후 기본형 전환(데스크탑과 동일)
+  const proceedWithoutReference = () => {
+    setCaptureAnalysis(null);
+    setReferenceAnalysis(null);
+    setSectionStructure([]);
+    setOriginalSections([]);
+    setType('기본형');
+    goAfterReference();
   };
 
   return (
@@ -147,12 +157,12 @@ export default function ReferenceMobile() {
         </div>
       </header>
 
-      {/* 2) 진행 단계 1~10 */}
+      {/* 2) 진행 단계 — 래퍼런스는 타입(3)의 갈래 */}
       <section style={{ padding: '8px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
           {STEPS.map((s, i) => {
-            const active = s.num === 6;
-            const done = s.num < 6;
+            const active = s.num === 3;
+            const done = s.num < 3;
             const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
             const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
             return (
@@ -178,25 +188,25 @@ export default function ReferenceMobile() {
         </div>
       </section>
 
-      {/* 3) STEP 6/10 + 타이틀 + 일러스트 */}
+      {/* 3) 래퍼런스형 칩 + 타이틀 + 일러스트 */}
       <section style={{ padding: '20px 20px 0', position: 'relative' }}>
         <span style={{
           display: 'inline-block',
-          background: '#F4F0FF', color: '#6D4CFF',
+          background: '#F0FBF9', color: '#0B7A6E',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 6 / 10</span>
+        }}>래퍼런스형</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',
           letterSpacing: '-0.03em', lineHeight: 1.25,
         }}>
-          참고할 <span style={{ color: '#6D4CFF' }}>상세페이지</span>가<br />
-          있나요?
+          닮고 싶은 <span style={{ color: '#6D4CFF' }}>상세페이지</span>를<br />
+          보여주세요
         </h1>
         <p style={{ margin: '12px 0 0', fontSize: 13, color: '#666', lineHeight: 1.6 }}>
-          레퍼런스를 분석하면 AI가 더 정확한<br />
-          구조와 디자인을 제안해드려요.
+          구조와 카피 톤을 분석해 따라가요.<br />
+          복제가 아니라 내 제품 이야기로 다시 씁니다.
         </p>
         {/* GPT 일러스트 자리 */}
         <div style={{
@@ -217,14 +227,13 @@ export default function ReferenceMobile() {
         </div>
       </section>
 
-      {/* 4) 3 탭 (데스크탑과 동일) */}
+      {/* 4) 2 탭 (데스크탑과 동일 — 파일 업로드 우선) */}
       <section style={{ padding: '24px 20px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
           {[
+            { id: 'capture' as Tab, Icon: ImageIcon, label: '파일 업로드' },
             { id: 'url' as Tab,     Icon: Link2,     label: 'URL 분석' },
-            { id: 'capture' as Tab, Icon: ImageIcon, label: '파일 업로드', badge: 'NEW' },
-            { id: 'skip' as Tab,    Icon: Plus,      label: '직접 만들기' },
-          ].map(({ id, Icon, label, badge }) => {
+          ].map(({ id, Icon, label, badge }: { id: Tab; Icon: typeof Link2; label: string; badge?: string }) => {
             const isActive = tab === id;
             return (
               <button
@@ -346,35 +355,34 @@ export default function ReferenceMobile() {
           )}
 
           {tab === 'capture' && <CaptureTab onDone={handleCaptureDone} />}
+        </div>
 
-          {tab === 'skip' && (
-            <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>⚡</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#111', marginBottom: 6 }}>
-                레퍼런스 없이 바로 생성할게요
-              </div>
-              <div style={{ fontSize: 12, color: '#666', lineHeight: 1.7, marginBottom: 18 }}>
-                카테고리·채널·상품 정보를 기반으로<br />
-                전문 카피라이터 AI가 최적의 구조로 설계해드려요.
-              </div>
-              <button
-                onClick={() => { setReferenceAnalysis(null); go('s5b'); }}
-                style={{
-                  background: '#6D4CFF', color: '#fff',
-                  border: 'none', fontSize: 13, fontWeight: 700,
-                  borderRadius: 12, padding: '11px 22px',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: '0 8px 20px rgba(109,76,255,0.3)',
-                }}
-              >
-                바로 생성하기 →
-              </button>
-            </div>
-          )}
+        {/* ★품질 게이트 경고 — 분석 성공했지만 참고 가치가 낮은 페이지(데스크탑 동일) */}
+        {weakRef && hasAnalysis && (
+          <div style={{
+            marginTop: 12, background: '#FFFBEB', border: '1px solid #FDE68A',
+            borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#92400E', lineHeight: 1.7,
+          }}>
+            ⚠️ 이 페이지는 뽑아낼 섹션 구조가 적어요. 부족한 부분은 AI가 기본 구조로 보완해드릴게요.
+          </div>
+        )}
+
+        {/* 래퍼런스 없이 진행 링크 */}
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <button
+            onClick={proceedWithoutReference}
+            style={{
+              fontSize: 12, color: '#9CA3AF', background: 'transparent',
+              border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              textDecoration: 'underline', padding: '4px 8px',
+            }}
+          >
+            래퍼런스 없이 기본형으로 진행
+          </button>
         </div>
       </section>
 
-      {/* 6) 하단 버튼 (skip 탭은 자체 버튼이 있으므로 동일하게 노출) */}
+      {/* 6) 하단 버튼 */}
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: '#fff', borderTop: '1px solid #ECECF2',
@@ -393,17 +401,21 @@ export default function ReferenceMobile() {
         }}>
           <ArrowLeft size={16} /> 이전 단계
         </button>
-        <button onClick={onNextSkip} style={{
-          flex: 1,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: '#6D4CFF', color: '#fff',
-          border: 'none',
-          fontSize: 15, fontWeight: 700,
-          borderRadius: 14, padding: '14px',
-          cursor: 'pointer', fontFamily: 'inherit',
-          boxShadow: '0 8px 20px rgba(109,76,255,0.3)',
-        }}>
-          다음 단계로 <ArrowRight size={16} />
+        <button
+          onClick={() => hasAnalysis && goAfterReference()}
+          disabled={!hasAnalysis}
+          style={{
+            flex: 1,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            background: hasAnalysis ? '#6D4CFF' : '#EDE8FF',
+            color: hasAnalysis ? '#fff' : '#B0A0E8',
+            border: 'none',
+            fontSize: 15, fontWeight: 700,
+            borderRadius: 14, padding: '14px',
+            cursor: hasAnalysis ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            boxShadow: hasAnalysis ? '0 8px 20px rgba(109,76,255,0.3)' : 'none',
+          }}>
+          {hasAnalysis ? '이 구조로 다음 단계' : '분석하면 진행할 수 있어요'} <ArrowRight size={16} />
         </button>
       </nav>
 

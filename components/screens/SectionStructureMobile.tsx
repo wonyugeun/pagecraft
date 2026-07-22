@@ -15,11 +15,10 @@ const STEPS = [
   { num: 3, label: '타입' },
   { num: 4, label: '출력형태' },
   { num: 5, label: '상품정보' },
-  { num: 6, label: '레퍼런스' },
-  { num: 7, label: '섹션구조' },
-  { num: 8, label: '이미지' },
-  { num: 9, label: '생성' },
-  { num: 10, label: '결과물' },
+  { num: 6, label: '섹션구조' },
+  { num: 7, label: '이미지' },
+  { num: 8, label: '생성' },
+  { num: 9, label: '결과물' },
 ];
 
 export default function SectionStructureMobile() {
@@ -114,8 +113,8 @@ export default function SectionStructureMobile() {
       <section style={{ padding: '8px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
           {STEPS.map((s, i) => {
-            const active = s.num === 7;
-            const done = s.num < 7;
+            const active = s.num === 6;
+            const done = s.num < 6;
             const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
             const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
             return (
@@ -148,7 +147,7 @@ export default function SectionStructureMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 7 / 10</span>
+        }}>STEP 6 / 9</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',
@@ -401,7 +400,7 @@ export default function SectionStructureMobile() {
         display: 'flex', gap: 10,
         zIndex: 100,
       }}>
-        <button onClick={() => go('s5-5')} style={{
+        <button onClick={() => go('s5')} style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           background: '#fff', border: '1.5px solid #ECECF2',
           color: '#111',

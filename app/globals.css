@@ -527,6 +527,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
 
 /* 카드 그리드 — 데스크톱 N열, 모바일 1열 */
 .cards-2col { display: grid; grid-template-columns: 1fr 1fr;          gap: 14px; }
+.cards-3col { display: grid; grid-template-columns: repeat(3, 1fr);   gap: 14px; }
 .cards-5col { display: grid; grid-template-columns: repeat(5, 1fr);   gap: 8px;  }
 
 @media (max-width: 768px) {
@@ -539,6 +540,7 @@ html, body { max-width: 100vw; overflow-x: hidden; }
     gap: 20px !important;
   }
   .cards-2col { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .cards-3col { grid-template-columns: 1fr !important; gap: 10px !important; }
   .cards-5col { grid-template-columns: repeat(3, 1fr) !important; }
 
   /* 그리드 자식이 자체 width:300/340/etc 고정이어도 본문 폭에 맞춤 */

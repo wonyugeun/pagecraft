@@ -15,11 +15,10 @@ const STEPS = [
   { num: 3, label: '타입' },
   { num: 4, label: '출력형태' },
   { num: 5, label: '상품정보' },
-  { num: 6, label: '레퍼런스' },
-  { num: 7, label: '섹션구조' },
-  { num: 8, label: '이미지' },
-  { num: 9, label: '생성' },
-  { num: 10, label: '결과물' },
+  { num: 6, label: '섹션구조' },
+  { num: 7, label: '이미지' },
+  { num: 8, label: '생성' },
+  { num: 9, label: '결과물' },
 ];
 
 const GUIDES = [
@@ -172,8 +171,8 @@ export default function ImageMobile() {
       <section style={{ padding: '8px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
           {STEPS.map((s, i) => {
-            const active = s.num === 8;
-            const done = s.num < 8;
+            const active = s.num === 7;
+            const done = s.num < 7;
             const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
             const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
             return (
@@ -206,7 +205,7 @@ export default function ImageMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 8 / 10</span>
+        }}>STEP 7 / 9</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 24, fontWeight: 800, color: '#111',

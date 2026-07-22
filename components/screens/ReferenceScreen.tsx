@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp, ReferenceAnalysis, CaptureAnalysis, CaptureSection, CH_OUT_AUTO } from '@/store/AppContext';
 import { inferOutFromSections } from '@/lib/outputType';
-import { ArrowLeft, ArrowRight, Link2, Image as ImageIcon, Sparkles, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Link2, Image as ImageIcon, Sparkles } from 'lucide-react';
 import ReferenceMobile from './ReferenceMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-type Tab = 'url' | 'capture' | 'skip';
+type Tab = 'url' | 'capture';
 type CaptureStage = 'idle' | 'stitching' | 'stage1' | 'stage2' | 'done' | 'error';
 
 interface FileEntry { id: string; dataUrl: string }
@@ -130,11 +130,81 @@ function CaptureGuideModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ─── 섹션 크롭 미리보기 ─── */
-function SectionCrop({ src, yStart, yEnd }: { src: string; yStart: number; yEnd: number }) {
+function SectionCrop({ src, yStart, yEnd, onClick }: { src: string; yStart: number; yEnd: number; onClick?: () => void }) {
   const yCenter = (yStart + yEnd) / 2;
   return (
-    <div style={{ width: 88, height: 60, overflow: 'hidden', borderRadius: 6, flexShrink: 0, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+    <div
+      onClick={onClick}
+      title={onClick ? '클릭하면 분석 구간을 크게 볼 수 있어요' : undefined}
+      style={{ width: 88, height: 60, overflow: 'hidden', borderRadius: 6, flexShrink: 0, border: '1px solid #e2e8f0', background: '#f8fafc', cursor: onClick ? 'zoom-in' : 'default', position: 'relative' }}
+    >
       <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `50% ${yCenter}%` }} />
+      {onClick && (
+        <span style={{ position: 'absolute', right: 3, bottom: 3, background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 9, borderRadius: 4, padding: '1px 4px' }}>🔍</span>
+      )}
+    </div>
+  );
+}
+
+/* ─── 분석 구간 확대 모달(2026-07-22) — 전체 스티치 이미지 위에 해당 섹션의 y구간을 하이라이트.
+   "AI가 정확히 어디를 잘라 분석했는지" 셀러가 직접 검증할 수 있게. ─── */
+function CropZoomModal({ src, section, onClose }: { src: string; section: CaptureSection; onClose: () => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bandRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 열리자마자 하이라이트 구간으로 스크롤
+    const t = setTimeout(() => bandRef.current?.scrollIntoView({ block: 'center' }), 60);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(17,17,17,0.72)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 16, width: 'min(680px, 94vw)', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid #F0F0F5', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: '#EDE9FE', color: '#6D4CFF', flexShrink: 0 }}>
+              {section.순서}. {section.타입}
+            </span>
+            <span style={{ fontSize: 12.5, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {section.핵심메시지}
+            </span>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'var(--f)', padding: 4, flexShrink: 0 }}>✕</button>
+        </div>
+        <div ref={scrollRef} style={{ overflowY: 'auto', flex: 1, background: '#F7F6FB' }}>
+          <div style={{ position: 'relative' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt="분석한 페이지 전체" style={{ width: '100%', display: 'block' }} />
+            {/* 분석 구간 하이라이트 밴드 */}
+            <div
+              ref={bandRef}
+              style={{
+                position: 'absolute', left: 0, right: 0,
+                top: `${section.y시작}%`, height: `${Math.max(section.y끝 - section.y시작, 1)}%`,
+                border: '3px solid #6D4CFF', background: 'rgba(109,76,255,0.10)',
+                boxSizing: 'border-box',
+              }}
+            />
+            {/* 구간 밖 딤 처리 */}
+            <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: `${section.y시작}%`, background: 'rgba(17,17,17,0.35)' }} />
+            <div style={{ position: 'absolute', left: 0, right: 0, top: `${section.y끝}%`, bottom: 0, background: 'rgba(17,17,17,0.35)' }} />
+          </div>
+        </div>
+        <div style={{ padding: '10px 18px', fontSize: 11.5, color: '#9CA3AF', borderTop: '1px solid #F0F0F5', flexShrink: 0 }}>
+          보라색 구간이 이 섹션으로 인식된 영역이에요. 위치는 AI 추정이라 몇 % 오차가 있을 수 있고, 실제 생성은 섹션 순서·타입·톤만 사용해요.
+        </div>
+      </div>
     </div>
   );
 }
@@ -170,6 +240,7 @@ function CaptureResultView({
   onReset: () => void;
   onUse: () => void;
 }) {
+  const [zoomSec, setZoomSec] = useState<CaptureSection | null>(null);   // 분석 구간 확대 모달
   return (
     <div style={{ marginTop: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -191,7 +262,7 @@ function CaptureResultView({
           const color = TYPE_COLOR[sec.타입] ?? { bg: '#f3f4f6', color: '#374151' };
           return (
             <div key={sec.순서} style={{ background: '#fff', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 12px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              {stitchedImage && <SectionCrop src={stitchedImage} yStart={sec.y시작} yEnd={sec.y끝} />}
+              {stitchedImage && <SectionCrop src={stitchedImage} yStart={sec.y시작} yEnd={sec.y끝} onClick={() => setZoomSec(sec)} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)' }}>{sec.순서}.</span>
@@ -221,20 +292,29 @@ function CaptureResultView({
       </div>
 
       <div style={{ marginBottom: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#166534', fontWeight: 600 }}>
-        📐 참고 페이지 구조가 반영됐어요. 다음 단계에서 수정할 수 있어요.
+        📐 참고 페이지 구조가 반영됐어요. 섹션 구성은 &lsquo;섹션 구조&rsquo; 단계에서 수정할 수 있어요.
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button
-          onClick={onUse}
-          style={{ flex: 1, padding: '13px 0', background: 'var(--pu)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
+          onClick={onReset}
+          style={{ flex: 1, padding: '13px 0', background: '#fff', color: 'var(--tx2)', border: '1.5px solid var(--bd)', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
         >
-          ✨ 이 구조 그대로 만들기 →
+          🔄 다른 페이지 분석하기
+        </button>
+        <button
+          onClick={onUse}
+          style={{ flex: 1.6, padding: '13px 0', background: 'var(--pu)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)' }}
+        >
+          ✨ 이 구조로 진행하기 →
         </button>
       </div>
       {result.총섹션수 <= 2 && (
         <div style={{ marginTop: 10, fontSize: 12, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', lineHeight: 1.6 }}>
           💡 {result.총섹션수}개 섹션만 추출됐어요. 다음 단계에서 직접 섹션을 추가할 수 있어요.
         </div>
+      )}
+      {zoomSec && stitchedImage && (
+        <CropZoomModal src={stitchedImage} section={zoomSec} onClose={() => setZoomSec(null)} />
       )}
     </div>
   );
@@ -274,7 +354,7 @@ function CaptureProgress({ stage, chunkLabel }: { stage: CaptureStage; chunkLabe
         })}
       </div>
       <div style={{ fontSize: 12, color: 'var(--tx3)', lineHeight: 1.6, textAlign: 'center' }}>
-        Gemini Vision이 상세페이지를 분석하고 있어요<br />
+        AI가 상세페이지를 분석하고 있어요<br />
         보통 30~60초 소요돼요
       </div>
     </div>
@@ -322,55 +402,109 @@ async function stitchImages(dataUrls: string[]): Promise<string> {
 }
 
 /* ─── 이미지 분할 ─── */
-async function splitImageIfNeeded(dataUrl: string, maxHeightPx = 8000): Promise<string[]> {
-  return new Promise((resolve, reject) => {
+/* ─── 분석용 이미지 준비(2026-07-22) — "이어붙여 자르기"에서 "원본 그대로 멀티 이미지 1회 호출"로 전환.
+   구 방식은 조각별 독립 분석이라 페이지 전체 맥락이 끊기고, 세로로 긴 조각이 비전 모델 내부 축소(최대 2048px)에서
+   뭉개져 인식이 저조했음. 새 방식: 업로드 원본을 (필요 시에만) 읽기 좋은 크기로 나눠 전부 한 호출에 넣는다.
+   - 각 조각은 폭 ≤900px(비전 내부 해상도에 충분) · 높이 ≤2400px(축소 후에도 텍스트 가독)
+   - startPct/heightPct = 스티치 합성 이미지(크롭 표시 기준) 좌표계에서 이 조각이 차지하는 구간 */
+interface ImageChunk { dataUrl: string; startPct: number; heightPct: number }
+
+const STITCH_MAX_W = 1200;     // stitchImages와 동일해야 크롭 좌표가 맞음
+const ANALYSIS_MAX_W = 900;
+const PIECE_MAX_H = 2400;
+const MAX_PIECES = 12;         // 페이로드·토큰 상한 (서버도 14장 캡)
+
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((res, rej) => {
     const img = new Image();
-    img.onload = () => {
-      const { naturalWidth: w, naturalHeight: h } = img;
-      if (h <= maxHeightPx) { resolve([dataUrl]); return; }
-      const chunks: string[] = [];
-      let yOffset = 0;
-      while (yOffset < h) {
-        const chunkH = Math.min(maxHeightPx, h - yOffset);
-        const cv = document.createElement('canvas');
-        cv.width = w; cv.height = chunkH;
-        const cx = cv.getContext('2d')!;
-        cx.drawImage(img, 0, yOffset, w, chunkH, 0, 0, w, chunkH);
-        chunks.push(cv.toDataURL('image/jpeg', 0.85));
-        yOffset += chunkH;
-      }
-      console.log(`[splitImageIfNeeded] ${w}×${h}px → ${chunks.length} chunks (max ${maxHeightPx}px each)`);
-      resolve(chunks);
-    };
-    img.onerror = reject;
+    img.onload = () => res(img);
+    img.onerror = rej;
     img.src = dataUrl;
   });
 }
 
-/* ─── 청크 경계 부근 중복 섹션 제거 ─── */
+async function prepareAnalysisImages(dataUrls: string[]): Promise<ImageChunk[]> {
+  const imgs = await Promise.all(dataUrls.map(loadImage));
+
+  // 스티치 좌표계(크롭 표시 기준)에서 각 원본이 차지하는 높이
+  const stitchedHeights = imgs.map(img => img.naturalHeight * Math.min(1, STITCH_MAX_W / img.naturalWidth));
+  const totalStitchedH = stitchedHeights.reduce((a, b) => a + b, 0);
+
+  // 조각 높이: 총 조각 수가 MAX_PIECES를 넘지 않게 필요 시 상향
+  const analysisHeights = imgs.map(img => img.naturalHeight * Math.min(1, ANALYSIS_MAX_W / img.naturalWidth));
+  const totalAnalysisH = analysisHeights.reduce((a, b) => a + b, 0);
+  const pieceMaxH = Math.max(PIECE_MAX_H, Math.ceil(totalAnalysisH / MAX_PIECES));
+
+  const pieces: ImageChunk[] = [];
+  let cumStitched = 0;
+  imgs.forEach((img, idx) => {
+    const aScale = Math.min(1, ANALYSIS_MAX_W / img.naturalWidth);
+    const aW = Math.round(img.naturalWidth * aScale);
+    const aH = Math.round(img.naturalHeight * aScale);
+    const nPieces = Math.max(1, Math.ceil(aH / pieceMaxH));
+    const pH = Math.ceil(aH / nPieces);
+    for (let p = 0; p < nPieces; p++) {
+      const y0 = p * pH;
+      const h = Math.min(pH, aH - y0);
+      if (h <= 0) continue;
+      const cv = document.createElement('canvas');
+      cv.width = aW; cv.height = h;
+      cv.getContext('2d')!.drawImage(img, 0, y0 / aScale, img.naturalWidth, h / aScale, 0, 0, aW, h);
+      const fracStart = y0 / aH;
+      const fracEnd = (y0 + h) / aH;
+      pieces.push({
+        dataUrl: cv.toDataURL('image/jpeg', 0.8),
+        startPct: ((cumStitched + fracStart * stitchedHeights[idx]) / totalStitchedH) * 100,
+        heightPct: (((fracEnd - fracStart) * stitchedHeights[idx]) / totalStitchedH) * 100,
+      });
+    }
+    cumStitched += stitchedHeights[idx];
+  });
+
+  console.log(`[prepareAnalysisImages] 원본 ${imgs.length}장 → 분석 이미지 ${pieces.length}장 (piece ≤${pieceMaxH}px)`);
+  return pieces;
+}
+
+/* ─── 청크 경계 부근 중복 섹션 제거 ───
+   ★개선(2026-07-22): 겹침(overlap) 청크에서 같은 섹션이 "경계 반토막 + 온전한 것"으로 두 번 나오면
+   IoU만으로는 못 잡는다(작은 조각/큰 섹션 = IoU 낮음). 작은 쪽 기준 겹침 비율로 판정하고, 더 큰(온전한) 쪽을 남긴다. */
 function deduplicateSections(sections: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = [];
   for (const sec of sections) {
     const yS = sec['y시작'] as number;
     const yE = sec['y끝'] as number;
-    const isDup = out.some(ex => {
+    const height = Math.max(yE - yS, 0.001);
+    const dupIdx = out.findIndex(ex => {
       const eS = ex['y시작'] as number;
       const eE = ex['y끝'] as number;
+      const exHeight = Math.max(eE - eS, 0.001);
       const inter = Math.max(0, Math.min(yE, eE) - Math.max(yS, eS));
       const union = Math.max(yE, eE) - Math.min(yS, eS);
-      return union > 0 && inter / union > 0.4;
+      const iou = union > 0 ? inter / union : 0;
+      const smallOverlap = inter / Math.min(height, exHeight);   // 작은 쪽이 얼마나 덮이나
+      return iou > 0.4 || smallOverlap > 0.6;
     });
-    if (!isDup) out.push(sec);
+    if (dupIdx === -1) {
+      out.push(sec);
+    } else {
+      const ex = out[dupIdx];
+      const exHeight = (ex['y끝'] as number) - (ex['y시작'] as number);
+      if (height > exHeight) out[dupIdx] = sec;   // 더 온전한(큰) 섹션으로 교체
+    }
   }
   return out;
 }
 
 /* ─── 캡처 탭 ─── */
+// ★분석 이미지 세션 캐시(2026-07-22) — 화면 이탈(언마운트) 후 복귀해도 결과 뷰의 섹션 크롭 이미지 유지.
+//   컨텍스트 persist(sessionStorage)에 안 넣는 이유: base64 수 MB라 쿼터를 깨뜨림. 새로고침 시엔 소실(허용).
+let stitchedImageCache: string | null = null;
+
 export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, stitchedImage: string) => void }) {
-  const { setCaptureAnalysis, go, setReferenceAnalysis, captureAnalysis: ctxCaptureAnalysis } = useApp();
+  const { setCaptureAnalysis, setReferenceAnalysis, goAfterReference, captureAnalysis: ctxCaptureAnalysis } = useApp();
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [stage, setStage] = useState<CaptureStage>(ctxCaptureAnalysis ? 'done' : 'idle');
-  const [stitchedImage, setStitchedImage] = useState<string | null>(null);
+  const [stitchedImage, setStitchedImage] = useState<string | null>(ctxCaptureAnalysis ? stitchedImageCache : null);
   const [captureResult, setCaptureResult] = useState<CaptureAnalysis | null>(ctxCaptureAnalysis);
   const [captureError, setCaptureError] = useState('');
   const [chunkProgress, setChunkProgress] = useState<{ current: number; total: number } | null>(null);
@@ -432,54 +566,60 @@ export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, sti
       const stitched = await stitchImages(files.map(f => f.dataUrl));
       if (ctrl.signal.aborted) return;
       setStitchedImage(stitched);
+      stitchedImageCache = stitched;   // ★복귀 시 결과 뷰 이미지 유지
 
-      const chunks = await splitImageIfNeeded(stitched);
-      const totalChunks = chunks.length;
+      // ★멀티 이미지 단일 호출(2026-07-22) — 원본들을 한 호출에 전부 넣어 전체 맥락으로 분석.
+      //   모델은 섹션 위치를 (시작이미지·y시작, 끝이미지·y끝)으로 주고, 여기서 스티치 좌표계 %로 환산.
+      const pieces = await prepareAnalysisImages(files.map(f => f.dataUrl));
+      if (ctrl.signal.aborted) return;
 
       setStage('stage1');
-      setChunkProgress({ current: 0, total: totalChunks });
-      const allSections: Array<Record<string, unknown>> = [];
+      setChunkProgress(null);
 
-      for (let ci = 0; ci < totalChunks; ci++) {
-        if (ctrl.signal.aborted) return;
-        setChunkProgress({ current: ci + 1, total: totalChunks });
-        const chunkBase64 = chunks[ci].split(',')[1];
-        const yOffset = (ci / totalChunks) * 100;
-        const yScale = 1 / totalChunks;
-
-        const tid = setTimeout(() => { timedOut = true; ctrl.abort(); }, 60_000);
-        const res1 = await fetch('/api/analyze-reference-capture', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step: 1, image: chunkBase64 }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(tid);
-        if (!res1.ok) {
-          const d = await res1.json().catch(() => ({})) as { error?: string };
-          throw new Error(d.error ?? `분석 실패 (${res1.status})`);
-        }
-        const { stage1 } = await res1.json() as { stage1: { 섹션목록?: Array<Record<string, unknown>> } };
-        const chunkSecs = stage1?.섹션목록 ?? [];
-        const remapped = chunkSecs.map(sec => ({
-          ...sec,
-          y시작: Math.round(yOffset + (sec['y시작'] as number) * yScale),
-          y끝: Math.round(yOffset + (sec['y끝'] as number) * yScale),
-        }));
-        allSections.push(...remapped);
+      const tid = setTimeout(() => { timedOut = true; ctrl.abort(); }, 130_000);
+      const res1 = await fetch('/api/analyze-reference-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 1, images: pieces.map(p => p.dataUrl.split(',')[1]) }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      if (!res1.ok) {
+        const d = await res1.json().catch(() => ({})) as { error?: string };
+        throw new Error(d.error ?? `분석 실패 (${res1.status})`);
       }
+      const { stage1 } = await res1.json() as { stage1: { 섹션목록?: Array<Record<string, unknown>> } };
+      const rawSecs = stage1?.섹션목록 ?? [];
+      if (ctrl.signal.aborted) return;
+
+      const clampIdx = (n: number) => Math.min(Math.max(n, 0), pieces.length - 1);
+      const allSections = rawSecs.map(sec => {
+        const si = clampIdx(Number(sec['시작이미지'] ?? 1) - 1);
+        const ei = clampIdx(Math.max(Number(sec['끝이미지'] ?? sec['시작이미지'] ?? 1) - 1, si));
+        const yS = Number(sec['y시작'] ?? 0);
+        const yE = Number(sec['y끝'] ?? 100);
+        const absStart = Math.round(pieces[si].startPct + (yS / 100) * pieces[si].heightPct);
+        const absEnd = Math.round(pieces[ei].startPct + (yE / 100) * pieces[ei].heightPct);
+        return {
+          ...sec,
+          y시작: absStart,
+          y끝: Math.max(absEnd, absStart + 1),
+        };
+      });
 
       const deduped = deduplicateSections(allSections);
+      deduped.sort((a, b) => (a['y시작'] as number) - (b['y시작'] as number));   // 겹침 dedup 교체로 흐트러질 수 있는 순서 보정
       deduped.forEach((s, i) => { s['순서'] = i + 1; });
       const mergedStage1 = { 총섹션수: deduped.length, 섹션목록: deduped };
 
       setStage('stage2');
-      const fullBase64 = stitched.split(',')[1];
-      const tid2 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 90_000);
+      // ★2단계도 1단계와 같은 조각(pieces)을 그대로 전달(2026-07-22) — 통이미지 1장은 세로가
+      //   Claude 한계(변당 8000px)를 넘어 400 → 조용한 기본값 폴백(전체톤 '직설' 등 고정값)이 나오던 버그.
+      const tid2 = setTimeout(() => { timedOut = true; ctrl.abort(); }, 120_000);
       const res2 = await fetch('/api/analyze-reference-capture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 2, image: fullBase64, stage1: mergedStage1 }),
+        body: JSON.stringify({ step: 2, images: pieces.map(p => p.dataUrl.split(',')[1]), stage1: mergedStage1 }),
         signal: ctrl.signal,
       });
       clearTimeout(tid2);
@@ -512,16 +652,18 @@ export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, sti
     abortRef.current?.abort();
     setFiles([]);
     setStitchedImage(null);
+    stitchedImageCache = null;
     setCaptureResult(null);
     setCaptureError('');
     setStage('idle');
     setCaptureAnalysis(null);
   };
 
+  // ★새 흐름(2026-07-22): s5b 직행 제거 — 래퍼런스형은 분석 후 출력형태/상품정보 순서대로 진행.
   const handleUse = () => {
     if (captureResult && stitchedImage) onDone(captureResult, stitchedImage);
     else if (captureResult) setCaptureAnalysis(captureResult);
-    go('s5b');
+    goAfterReference();
   };
 
   if (stage === 'stitching' || stage === 'stage1' || stage === 'stage2') {
@@ -678,42 +820,35 @@ export function CaptureTab({ onDone }: { onDone: (analysis: CaptureAnalysis, sti
   );
 }
 
-/* ─── 오른쪽 AI 흐름 분석 패널 (시안 이미지 그대로 사용) ─── */
-function AIFlowPanel() {
-  return (
-    <div style={{ position: 'sticky', top: 110 }}>
-      {/* ①'입력한 레퍼런스' 빠지고 제목·②분석결과·③섹션설명 온전한 완성본 이미지. crop/clip 없이 그대로 표시(비율 유지). */}
-      <img
-        src="/images/reference-flow-v3.png"
-        alt="AI 분석 흐름"
-        style={{ width: '100%', height: 'auto', objectFit: 'contain', display: 'block', borderRadius: 16 }}
-      />
-    </div>
-  );
-}
-
 /* ─── 메인 ─── */
 export default function ReferenceScreen() {
   const isMobile = useIsMobile();
-  const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis, setSectionStructure, ch, setOut } = useApp();
+  const { go, setReferenceAnalysis, setCaptureAnalysis, captureAnalysis, referenceAnalysis, setSectionStructure, setOriginalSections, ch, setOut, setType, goAfterReference } = useApp();
 
-  const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'url');
+  // ★래퍼런스형 전용 화면(2026-07-22) — 기본 탭 = 파일 업로드(스마트스토어·쿠팡은 봇 차단으로 URL 분석 불가가 대부분).
+  const [tab, setTab]       = useState<Tab>(captureAnalysis ? 'capture' : referenceAnalysis ? 'url' : 'capture');
   const [url, setUrl]       = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReferenceAnalysis | null>(null);
   const [error, setError]   = useState('');
+  // ★품질 게이트 — 분석은 됐지만 참고 가치가 낮은 페이지(섹션 너무 적음·타입 단조) 경고. 진행은 막지 않음.
+  const [weakRef, setWeakRef] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   if (isMobile) return <ReferenceMobile />;
 
-  const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); };
+  const reset = () => { setResult(null); setReferenceAnalysis(null); setError(''); setWeakRef(false); };
 
   const switchTab = (t: Tab) => {
     setTab(t);
     reset();
   };
+
+  // 참고 가치 판정 — 섹션 4개 미만이거나 타입이 2종 이하면 구조를 뽑을 재료가 부족한 페이지.
+  const isWeakReference = (sections: string[]) =>
+    sections.length < 4 || new Set(sections).size <= 2;
 
   const callApi = async (body: Record<string, string>) => {
     abortRef.current?.abort();
@@ -738,6 +873,7 @@ export default function ReferenceScreen() {
       setCaptureAnalysis(null);
       const refSections: string[] = data.analysis.sections ?? [];
       setSectionStructure(refSections);
+      setWeakRef(isWeakReference(refSections));
       const inferred = inferOutFromSections(refSections);
       if (inferred && !CH_OUT_AUTO[ch || '']) setOut(inferred);
     } catch (err) {
@@ -779,44 +915,52 @@ export default function ReferenceScreen() {
     setReferenceAnalysis(null);
     const capSections = analysis.섹션목록.map(s => s.타입);
     setSectionStructure(capSections);
+    setWeakRef(isWeakReference(capSections));
     const inferred = inferOutFromSections(capSections);
     if (inferred && !CH_OUT_AUTO[ch || '']) setOut(inferred);
   };
 
+  const hasAnalysis = Boolean(referenceAnalysis || captureAnalysis);
+
+  // 래퍼런스 없이 진행 — 분석 자산 정리 후 기본형으로 전환(래퍼런스형인데 래퍼런스가 없는 어정쩡한 상태 방지).
+  const proceedWithoutReference = () => {
+    setCaptureAnalysis(null);
+    setReferenceAnalysis(null);
+    setSectionStructure([]);
+    setOriginalSections([]);
+    setType('기본형');
+    goAfterReference();
+  };
+
   return (
-    <div style={{ maxWidth: 1480, margin: '0 auto', padding: '40px 28px 100px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: 820, margin: '0 auto', padding: '40px 28px 100px', fontFamily: 'var(--f)' }}>
 
-      {/* 2-컬럼 레이아웃 */}
-      <div className="layout-grid-reference">
-
-        {/* ── 왼쪽 ── */}
+      {/* ★단일 컬럼(2026-07-22) — 우측 '실제 생성 결과' 패널 제거(화면 목적과 안 어울림) */}
+      <div>
         <div>
 
           {/* 헤더 (좌측 정렬) */}
           <div style={{ marginBottom: 24 }}>
             <span style={{
               display: 'inline-block', padding: '4px 13px', marginBottom: 14,
-              border: '1.5px solid #D8CFFF', borderRadius: 100, background: '#F7F5FF',
-              fontSize: 11.5, fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.04em',
-            }}>STEP 6 / 10</span>
+              border: '1.5px solid #A8E8DD', borderRadius: 100, background: '#F0FBF9',
+              fontSize: 11.5, fontWeight: 700, color: '#0B7A6E', letterSpacing: '0.04em',
+            }}>래퍼런스형</span>
             <h1 style={{ fontSize: 30, fontWeight: 800, color: '#111', letterSpacing: '-0.04em', lineHeight: 1.25, marginBottom: 8 }}>
-              참고할 <span style={{ color: '#6D4CFF' }}>상세페이지</span>가 있나요?
+              닮고 싶은 <span style={{ color: '#6D4CFF' }}>상세페이지</span>를 보여주세요
             </h1>
             <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.6 }}>
-              레퍼런스를 분석하면 AI가 더 정확한 구조와 디자인을 제안해드려요
+              AI가 섹션 구조와 카피 톤을 분석해 따라가요 — 문구·이미지 복제가 아니라, 내 제품 이야기로 다시 씁니다
             </p>
           </div>
 
-          {/* 탭 카드 3개 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-            <button style={tabCardStyle(tab === 'url')} onClick={() => switchTab('url')}>
-              <Link2 size={15} /> URL 분석
-            </button>
+          {/* 탭 카드 2개 — 파일 업로드가 기본(스마트스토어·쿠팡은 URL 크롤링 차단) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
             <button style={tabCardStyle(tab === 'capture')} onClick={() => switchTab('capture')}>
               <ImageIcon size={15} /> 파일 업로드
             </button>
-            <button style={tabCardStyle(tab === 'skip')} onClick={() => switchTab('skip')}>
-              <Plus size={15} /> 직접 만들기
+            <button style={tabCardStyle(tab === 'url')} onClick={() => switchTab('url')}>
+              <Link2 size={15} /> URL 분석
             </button>
           </div>
 
@@ -907,74 +1051,65 @@ export default function ReferenceScreen() {
               <CaptureTab onDone={handleCaptureDone} />
             )}
 
-            {/* 직접 만들기 탭 */}
-            {tab === 'skip' && (
-              <div style={{ textAlign: 'center', padding: '32px 0 20px' }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>⚡</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx1)', marginBottom: 8 }}>레퍼런스 없이 바로 생성할게요</div>
-                <div style={{ fontSize: 13, color: 'var(--tx2)', lineHeight: 1.8, marginBottom: 24 }}>
-                  카테고리·채널·상품 정보를 기반으로<br />
-                  전문 카피라이터 AI가 최적의 구조로 설계해드려요.
-                </div>
-                <div className="cta-row" style={{ justifyContent: 'center', gap: 12 }}>
-                  <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
-                  <button className="btn-next" onClick={() => { setReferenceAnalysis(null); go('s5b'); }}>바로 생성하기 →</button>
-                </div>
-              </div>
-            )}
-
           </div>
 
-          {/* 하단 네비 (skip 탭 제외 — skip은 자체 버튼) */}
-          {tab !== 'skip' && (
+          {/* ★품질 게이트 경고 — 분석은 성공했지만 참고 가치가 낮은 페이지. 진행은 막지 않고 보완 방식만 안내 */}
+          {weakRef && hasAnalysis && (
             <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center',
-              marginTop: 20, paddingTop: 20,
+              marginTop: 14, background: '#FFFBEB', border: '1px solid #FDE68A',
+              borderRadius: 10, padding: '12px 16px', fontSize: 12.5, color: '#92400E', lineHeight: 1.7,
             }}>
-              <button onClick={() => go('s5')} style={{
-                justifySelf: 'start',
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '11px 18px', background: '#fff', border: '1.5px solid #E5E7EB',
-                borderRadius: 10, fontSize: 13.5, fontWeight: 600, color: '#6B7280',
-                cursor: 'pointer', fontFamily: 'var(--f)',
-              }}>
-                <ArrowLeft size={15} /> 이전 단계
-              </button>
-
-              <button
-                onClick={() => {
-                  if (tab === 'capture') { setCaptureAnalysis(null); setReferenceAnalysis(null); }
-                  else setReferenceAnalysis(null);
-                  go('s5b');
-                }}
-                style={{
-                  justifySelf: 'center',
-                  fontSize: 12.5, color: '#9CA3AF', background: 'transparent',
-                  border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', padding: '4px 8px',
-                }}
-              >
-                건너뛰고 바로 다음으로
-              </button>
-
-              <button
-                onClick={() => go('s5b')}
-                style={{
-                  justifySelf: 'end',
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '12px 24px', background: '#6D4CFF', color: '#fff',
-                  border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-                  cursor: 'pointer', boxShadow: '0 4px 14px rgba(109,76,255,0.30)',
-                  fontFamily: 'var(--f)',
-                }}
-              >
-                다음 단계로 <ArrowRight size={15} />
-              </button>
+              ⚠️ 이 페이지는 뽑아낼 섹션 구조가 적어요. 부족한 부분은 AI가 카테고리 기본 구조로 보완해서 만들어드릴게요 —
+              그대로 진행해도 괜찮고, 더 알찬 페이지 캡처로 다시 분석해도 좋아요.
             </div>
           )}
+
+          {/* 하단 네비 */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'center',
+            marginTop: 20, paddingTop: 20,
+          }}>
+            <button onClick={() => go('s3')} style={{
+              justifySelf: 'start',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '11px 18px', background: '#fff', border: '1.5px solid #E5E7EB',
+              borderRadius: 10, fontSize: 13.5, fontWeight: 600, color: '#6B7280',
+              cursor: 'pointer', fontFamily: 'var(--f)',
+            }}>
+              <ArrowLeft size={15} /> 이전 단계
+            </button>
+
+            <button
+              onClick={proceedWithoutReference}
+              style={{
+                justifySelf: 'center',
+                fontSize: 12.5, color: '#9CA3AF', background: 'transparent',
+                border: 'none', cursor: 'pointer', fontFamily: 'var(--f)', padding: '4px 8px',
+              }}
+            >
+              래퍼런스 없이 기본형으로 진행
+            </button>
+
+            <button
+              onClick={() => hasAnalysis && goAfterReference()}
+              disabled={!hasAnalysis}
+              style={{
+                justifySelf: 'end',
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 24px',
+                background: hasAnalysis ? '#6D4CFF' : '#EDE8FF',
+                color: hasAnalysis ? '#fff' : '#B0A0E8',
+                border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
+                cursor: hasAnalysis ? 'pointer' : 'not-allowed',
+                boxShadow: hasAnalysis ? '0 4px 14px rgba(109,76,255,0.30)' : 'none',
+                fontFamily: 'var(--f)',
+              }}
+            >
+              {hasAnalysis ? '이 구조로 다음 단계' : '분석하면 진행할 수 있어요'} <ArrowRight size={15} />
+            </button>
+          </div>
         </div>
 
-        {/* ── 오른쪽: AI 흐름 분석 패널 ── */}
-        <AIFlowPanel />
       </div>
     </div>
   );

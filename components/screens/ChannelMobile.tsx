@@ -150,7 +150,7 @@ export default function ChannelMobile() {
           color: '#666',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 14px',
-        }}>STEP 2 / 10</span>
+        }}>STEP 2 / 9</span>
         <h1 style={{
           margin: '14px 0 0',
           fontSize: 24, fontWeight: 800, color: '#111',

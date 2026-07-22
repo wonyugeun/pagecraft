@@ -790,102 +790,65 @@ const DIFF_PLACEHOLDERS: Record<string, string> = {
   기타:     '예: 경쟁 제품 대비 차별점을 입력해주세요',
 };
 
-// 카테고리별 미리보기 실제 사진 — ★전부 unsplash <img>로 HTTP 200 검증 완료(CSP 없음, next/image 무관). 이모지 금지.
-const CAT_IMG: Record<string, string> = {
-  화장품:   'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=240&fit=crop',
-  식품:     'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=240&fit=crop',
-  패션:     'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=240&fit=crop',
-  생활:     'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=240&fit=crop',
-  가전:     'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=240&fit=crop',
-  반려동물: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400&h=240&fit=crop',
-  스포츠:   'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=240&fit=crop',
-  유아:     'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=400&h=240&fit=crop',
-  건강:     'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&h=240&fit=crop',
-  자동차:   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=400&h=240&fit=crop',
-  기타:     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=240&fit=crop',
-};
-const catImg = (cat: string | null) => CAT_IMG[cat ?? ''] ?? CAT_IMG['기타'];
+// ★미리보기 = Flik 실생성 완성본(2026-07-21 유근님: unsplash 스톡 제거 → 형태별 실생성물로).
+//   블로그형 = 보우짱 밤호박 블로그형 HTML(글은 텍스트·사진은 사진 — 형태가 정확히 보임)을 iframe 축소 렌더.
+//   슬라이드형 = 밸런스랩 비타민 통이미지(슬라이드형 완성본) 스크롤 뷰.
+const BLOG_PREVIEW_HTML = '/previews/bochan-blog.html';                 // 보우짱 밤호박 — 블로그형 실생성 HTML(자립형)
+const SLIDE_PREVIEW_IMG = '/images/landing/showcase-vitamin.jpg';       // 밸런스랩 — 슬라이드형 실생성 통이미지
 
-// 슬라이드형 미리보기용 카테고리별 톤·서브카피·배지·특징(완성 상세페이지 축소판). 이모지 없음.
-const SLIDE_CONF: Record<string, { accent: string; tagline: string; sub: string; badge: string; feats: { t: string; d: string }[] }> = {
-  화장품:   { accent: '#EC4899', tagline: 'SKINCARE',     sub: '수분은 채우고 피부는 편안하게', badge: '민감 피부 진정 & 수분 케어',   feats: [{ t: '수분 충전', d: '속건조까지 촉촉하게' }, { t: '진정 케어', d: '민감한 피부 진정' }, { t: '순한 성분', d: '매일 안심 사용' }] },
-  식품:     { accent: '#F59E0B', tagline: 'FRESH FOOD',   sub: '신선함을 그대로 식탁까지',     badge: '산지직송 · 신선 보장',         feats: [{ t: '신선함', d: '산지직송 새벽배송' }, { t: '엄선 원산지', d: '믿을 수 있는 원료' }, { t: '안심 먹거리', d: '인증·안전 관리' }] },
-  패션:     { accent: '#6366F1', tagline: 'DAILY LOOK',   sub: '어디에나 잘 어울리는 데일리 핏', badge: '편안한 핏 & 좋은 소재',        feats: [{ t: '좋은 소재', d: '편안한 착용감' }, { t: '데일리 핏', d: '어디에나 잘 어울림' }, { t: '사이즈 가이드', d: '실측 치수 제공' }] },
-  생활:     { accent: '#10B981', tagline: 'HOME LIVING',  sub: '공간을 바꾸는 작은 디테일',     badge: '좋은 품질 & 공간 활용',        feats: [{ t: '좋은 품질', d: '오래 쓰는 내구성' }, { t: '공간 활용', d: '어디든 잘 어울림' }, { t: '설치 간편', d: '누구나 쉽게' }] },
-  가전:     { accent: '#6D4CFF', tagline: 'SMART LIFE',   sub: '더 똑똑하고 편리한 일상',       badge: '강력한 성능 & 안전 인증',      feats: [{ t: '핵심 성능', d: '강력한 기능' }, { t: '안전 인증', d: '믿을 수 있는 품질' }, { t: 'A/S 보증', d: '오래 안심' }] },
-  반려동물: { accent: '#CA8A04', tagline: 'FOR MY PET',   sub: '우리 아이를 위한 건강한 선택',   badge: '안전 원료 & 영양 균형',        feats: [{ t: '안전 원료', d: '우리 아이 안심' }, { t: '영양 균형', d: '건강한 한 끼' }, { t: '전문가 신뢰', d: '수의사 추천' }] },
-  스포츠:   { accent: '#F97316', tagline: 'PERFORMANCE',  sub: '퍼포먼스를 한 단계 끌어올리다',  badge: '기능성 소재 & 편안한 착용',    feats: [{ t: '기능성 소재', d: '땀 걱정 끝' }, { t: '편안한 착용', d: '자유로운 움직임' }, { t: '가벼움', d: '부담 없는 무게' }] },
-  유아:     { accent: '#8B5CF6', tagline: 'FOR BABY',     sub: '안심하고 쓰는 우리 아이 제품',   badge: '안전 인증 & 순한 소재',        feats: [{ t: '안전 인증', d: '까다로운 기준' }, { t: '순한 소재', d: '아이 피부 안심' }, { t: '발달 도움', d: '성장 단계 맞춤' }] },
-  건강:     { accent: '#EF4444', tagline: 'HEALTH CARE',  sub: '매일의 건강을 꾸준히 챙기다',   badge: '검증 성분 & 임상 근거',        feats: [{ t: '검증 성분', d: '믿을 수 있는 함량' }, { t: '임상·인증', d: '과학적 근거' }, { t: '간편 섭취', d: '매일 꾸준히' }] },
-  자동차:   { accent: '#6D4CFF', tagline: 'CAR LIFE',     sub: '내 차에 딱 맞는 편리함',       badge: '차종 호환 & 간편 설치',        feats: [{ t: '차종 호환', d: '내 차에 딱' }, { t: '간편 설치', d: '누구나 쉽게' }, { t: '내구성', d: '오래 쓰는 품질' }] },
-  기타:     { accent: '#6D4CFF', tagline: 'PRODUCT',      sub: '당신의 상품을 특별하게',       badge: '핵심 강점 & 신뢰 요소',        feats: [{ t: '핵심 강점', d: '돋보이는 장점' }, { t: '신뢰 요소', d: '안심하고 구매' }, { t: '합리적 가치', d: '만족스러운 선택' }] },
-};
+// (제거됨 2026-07-21) SLIDE_CONF 코드 재현 카드 — 실생성 통이미지 미리보기로 대체
 
-/* ── s5 미리보기: 블로그형(네이버 블로그 카드) — 글+그림 흐름. s3b 디자인 형태를 카테고리 실제사진으로 ── */
+/* ── s5 미리보기: 블로그형 — 보우짱 밤호박 블로그형 실생성 HTML을 iframe 축소 렌더(2026-07-21 유근님).
+   글은 텍스트·사진은 사진인 진짜 블로그형이 그대로 보이고, 카드 안에서 스크롤로 구경 가능.
+   iframe 반응형 축소 트릭: 부모 100%를 (1/scale)% 크기로 그리고 scale로 되돌림. ── */
 function S5BlogPreview({ cat, productName }: { cat: string | null; productName?: string }) {
-  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지 미리보기`;
+  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
+  const SCALE = 0.4;   // 860px 문서를 카드 폭(~344px)으로 축소
   return (
-    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none', maxHeight: 380, overflowY: 'auto' }}>
-      <div style={{ background: '#fff', padding: '8px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 6, position: 'sticky', top: 0, zIndex: 1 }}>
-        <span style={{ fontSize: 15, fontWeight: 900, color: '#03C75A', fontFamily: 'sans-serif', lineHeight: 1 }}>N</span>
-        <span style={{ fontSize: 10, color: '#999' }}>블로그</span>
+    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none' }}>
+      <div style={{ background: '#fff', padding: '9px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{title}</span>
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 20, padding: '3px 9px', flexShrink: 0 }}>블로그형 실제 예시</span>
       </div>
-      <div style={{ padding: '14px 14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.4, marginBottom: 6 }}>{title}</div>
-          <div style={{ fontSize: 10, color: '#888', lineHeight: 1.7 }}>핵심 정보를 글과 사진으로 자연스럽게 담아<br />고객이 신뢰하고 구매하도록 구성해요.</div>
-        </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={catImg(cat)} alt={`${cat ?? '상품'} 미리보기`} style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 8, display: 'block' }} />
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#111', marginBottom: 5 }}>✅ 이렇게 구성돼요</div>
-          {['핵심 정보·강점 정리', '신뢰 요소(인증·후기) 강조', '구매 유도 마무리(CTA)'].map(f => (
-            <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-              <Check size={9} color="#6D4CFF" strokeWidth={3} />
-              <span style={{ fontSize: 9.5, color: '#444' }}>{f}</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: '#F7F5FF', borderRadius: 8, padding: '10px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.7, fontWeight: 500 }}>
-          💜 입력하신 정보로 이런 상세페이지가 만들어져요.
-        </div>
+      <div style={{ height: 340, overflow: 'hidden', position: 'relative' }}>
+        <iframe
+          src={BLOG_PREVIEW_HTML}
+          title="블로그형 실제 생성 예시 — 보우짱 밤호박"
+          style={{
+            width: `${100 / SCALE}%`,
+            height: `${100 / SCALE}%`,
+            transform: `scale(${SCALE})`,
+            transformOrigin: '0 0',
+            border: 0,
+            display: 'block',
+          }}
+        />
+      </div>
+      <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
+        💜 Flik이 실제로 생성한 블로그형 페이지예요 — 글은 검색에 잡히는 진짜 텍스트로 만들어집니다.
       </div>
     </div>
   );
 }
 
-/* ── s5 미리보기: 슬라이드형 — slide1.png 레이아웃을 코드로 재현(이미지 박는 게 아님, 데이터 동적).
-   구조: ①상단 카피(tagline+sub+큰 제목+badge) → ②중앙 제품 사진(CAT_IMG) → ③하단 특징 KPI 3분할. 1장. ── */
+/* ── s5 미리보기: 슬라이드형 — 밸런스랩 비타민 실생성 통이미지를 카드 안 스크롤로 구경(2026-07-21 유근님:
+   코드 재현 카드('이상한 한 장')·스톡 사진 폐기 → 잘 나온 실생성 완성본 그대로). ── */
 function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
-  const conf = SLIDE_CONF[cat ?? ''] ?? SLIDE_CONF['기타'];
   const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
-  const ICONS = [Sparkles, Check, Star];
   return (
-    <div style={{ border: '1px solid #ECECF2', borderRadius: 14, overflow: 'hidden', userSelect: 'none', background: '#fff' }}>
-      {/* ① 상단 카피: tagline + 서브 + 큰 제목 + 배지 */}
-      <div style={{ padding: '20px 16px 17px', textAlign: 'center' }}>
-        <div style={{ fontSize: 9, fontWeight: 800, color: conf.accent, letterSpacing: '0.16em', marginBottom: 8 }}>{conf.tagline}</div>
-        <div style={{ fontSize: 11, color: '#8A8A8A', lineHeight: 1.5, marginBottom: 7 }}>{conf.sub}</div>
-        <div style={{ fontSize: 19, fontWeight: 800, color: '#1A1A1A', letterSpacing: '-0.04em', lineHeight: 1.25, marginBottom: 11 }}>{title}</div>
-        <span style={{ display: 'inline-block', fontSize: 9.5, fontWeight: 600, color: conf.accent, background: `${conf.accent}14`, border: `1px solid ${conf.accent}33`, borderRadius: 20, padding: '4px 12px' }}>{conf.badge}</span>
+    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none' }}>
+      <div style={{ background: '#fff', padding: '9px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 7 }}>
+        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{title}</span>
+        <span style={{ fontSize: 9.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 20, padding: '3px 9px', flexShrink: 0 }}>슬라이드형 실제 예시</span>
       </div>
-      {/* ② 중앙 제품 사진 (카테고리별) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={catImg(cat)} alt={`${cat ?? '상품'} 상세`} style={{ width: '100%', height: 175, objectFit: 'cover', display: 'block' }} />
-      {/* ③ 하단 특징 KPI 3분할 (아이콘 원 + 제목 + 설명) */}
-      <div style={{ display: 'flex', padding: '16px 10px 18px', gap: 6 }}>
-        {conf.feats.map((f, i) => {
-          const Ic = ICONS[i % ICONS.length];
-          return (
-            <div key={f.t} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, textAlign: 'center', padding: '0 1px' }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: `${conf.accent}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Ic size={16} color={conf.accent} strokeWidth={2} />
-              </div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#1A1A1A', lineHeight: 1.25 }}>{f.t}</div>
-              <div style={{ fontSize: 8.5, color: '#9A9A9A', lineHeight: 1.4 }}>{f.d}</div>
-            </div>
-          );
-        })}
+      <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={SLIDE_PREVIEW_IMG} alt="슬라이드형 실제 생성 예시 — 밸런스랩 멀티비타민" style={{ width: '100%', height: 'auto', display: 'block' }} />
+      </div>
+      <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
+        💜 Flik이 실제로 생성한 슬라이드형 페이지예요 — 스크롤로 구경해보세요.
       </div>
     </div>
   );
@@ -1173,7 +1136,8 @@ export default function ProductScreen() {
     // 고객 후기 — "고객 후기:" 라벨로 넣어 factScrub sellerHasReviews가 확실히 true(키워드 의존 X) + 후기 섹션 재료로 전달
     if (reviews.trim())                   lines.push(`고객 후기: ${reviews.trim()}`);
     setProductExtra(lines.join('\n'));
-    go('s5-5');
+    // ★래퍼런스 독립 단계 폐지(2026-07-22) — 래퍼런스형은 타입 직후(s5-5)에서 이미 분석 완료. 상품정보 다음은 곧장 섹션구조.
+    go('s5b');
   };
 
   const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';

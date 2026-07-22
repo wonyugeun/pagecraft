@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
+import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { useSession } from 'next-auth/react';
 import { saveImages, patchImages, mergeImages, getImages, deleteImages } from '@/lib/historyDB';
 import { compressMap } from '@/lib/imageCompress';
@@ -171,7 +172,8 @@ interface AppContextType extends AppState {
   toggleChat: () => void;
   doLogin: () => void;
   startDetail: () => void;
-  goAfterType: () => void;
+  goAfterType: (overrideType?: string) => void;
+  goAfterReference: () => void;
   setSections: (s: Section[]) => void;
   setProductName: (v: string) => void;
   setProductExtra: (v: string) => void;
@@ -291,8 +293,9 @@ export const CHAT_A: Record<string, string> = {
   '크레딧은 어떻게 써요?': '상세페이지 생성은 섹션 1개당 1크레딧이 차감돼요(16섹션이면 16크레딧). 생성한 결과물은 다운로드까지 추가 비용이 없어요. 신규 가입 시 체험 크레딧 16개를 드려요!',
 };
 
+// ★래퍼런스 독립 단계 폐지(2026-07-22) — s5-5(래퍼런스 분석)는 타입(3)의 갈래라 같은 단계로 표시. 총 9단계.
 export const STEP_MAP: Record<string, number> = {
-  s1: 1, s2: 2, s3: 3, s3b: 4, s5: 5, 's5-5': 6, 's5b': 7, s6: 8, s7: 9, s8: 10,
+  s1: 1, s2: 2, s3: 3, 's5-5': 3, s3b: 4, s5: 5, 's5b': 6, s6: 7, s7: 8, s8: 9,
 };
 
 /* ── 새로고침 복원: 단계+입력값을 sessionStorage에 영속화(탭 닫으면 정리). 크레딧·생성결과·이미지는 제외(부작용 방지). ── */
@@ -772,7 +775,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     go('s1');
   };
 
-  const goAfterType = () => {
+  // 타입 이후 채널별 목적지 — 스마트스토어만 출력형태 선택(s3b), 그 외는 채널이 출력형태를 결정.
+  const goChannelRoute = () => {
     if (ch === '스마트스토어') {
       go('s3b');
     } else {
@@ -781,6 +785,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       go('s5');
     }
   };
+
+  // ★overrideType: setType 직후 같은 클릭에서 호출될 때 state 반영 전이라 최신 타입을 인자로 받는다.
+  const goAfterType = (overrideType?: string) => {
+    const t = overrideType ?? type;
+    // ★래퍼런스형(2026-07-22) — 독립 6단계였던 래퍼런스를 타입의 한 갈래로 흡수.
+    //   래퍼런스형만 캡처·분석 화면(s5-5)을 거치고, 분석이 상품정보 입력 동안 미리 끝나 대기 0.
+    //   ★보류(ENABLE_REFERENCE_TYPE OFF) 중엔 잔존 세션 상태로도 s5-5에 못 들어가게 가드.
+    if (t === '래퍼런스형' && ENABLE_REFERENCE_TYPE) {
+      go('s5-5');
+      return;
+    }
+    // 래퍼런스형을 하다 기본형/프리미엄형으로 돌아선 경우 — 남은 분석 자산이 구조를 오염시키지 않게 정리.
+    if (referenceAnalysis || captureAnalysis) {
+      setReferenceAnalysisState(null);
+      setCaptureAnalysisState(null);
+      setSectionStructureState([]);
+      setOriginalSectionsState([]);
+    }
+    goChannelRoute();
+  };
+
+  // 래퍼런스 분석 화면(s5-5)에서 다음 단계 — 타입 화면과 동일한 채널 라우팅.
+  const goAfterReference = () => goChannelRoute();
 
   return (
     <AppContext.Provider value={{
@@ -798,6 +825,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       doLogin,
       startDetail,
       goAfterType,
+      goAfterReference,
       setSections,
       setProductExtra: setProductExtraState,
       setProductName: setProductNameState,

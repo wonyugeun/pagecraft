@@ -3,9 +3,10 @@
 import {
   Sparkles, FileText, Check, ChevronDown, Lightbulb,
   ArrowLeft, ArrowRight, MoreHorizontal,
-  Zap, Clock, BarChart3, TrendingUp, Star, StarHalf,
+  Zap, Clock, BarChart3, TrendingUp, Star, StarHalf, ScanSearch,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { baseSectionCount } from '@/lib/sectionDepth';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
 import { iconFor } from '@/lib/sectionIcons';
@@ -100,7 +101,7 @@ export default function TypeMobile() {
   const premiumChips = fillChips(catKey ? CAT_DEFAULTS[catKey]['프리미엄형'] : FB_PREMIUM, premiumCount);
   const activeType = type;   // ★실제 선택만 강조(미선택 시 null) — 풍부 자동 강조 제거(데스크탑 일치)
 
-  const onPick = (key: '프리미엄형' | '기본형') => setType(key);
+  const onPick = (key: '프리미엄형' | '기본형' | '래퍼런스형') => setType(key);
   // ★데스크탑과 일치: 미선택 시 자동 기본값 금지 — 선택해야만 진행.
   const onNext = () => { if (type) goAfterType(); };
 
@@ -181,7 +182,7 @@ export default function TypeMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 3 / 10</span>
+        }}>STEP 3 / 9</span>
         <h1 style={{
           margin: '14px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',
@@ -383,6 +384,89 @@ export default function TypeMobile() {
               flexShrink: 0,
             }}>
               {activeType === '기본형' && <Check size={14} color="#fff" strokeWidth={3} />}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6.5) ★래퍼런스형 카드(2026-07-22) — 플래그 OFF 시 '준비 중' 비활성(코드·디자인 보존) */}
+      <section style={{ padding: '12px 20px 0' }}>
+        <div
+          onClick={() => { if (ENABLE_REFERENCE_TYPE) onPick('래퍼런스형'); }}
+          style={{
+            background: activeType === '래퍼런스형' ? '#F0FBF9' : '#fff',
+            border: activeType === '래퍼런스형' ? '2px solid #0E9384' : '1.5px solid #ECECF2',
+            borderRadius: 18, padding: 20,
+            cursor: ENABLE_REFERENCE_TYPE ? 'pointer' : 'default',
+            opacity: ENABLE_REFERENCE_TYPE ? 1 : 0.62,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: '#D5F5EF', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ScanSearch size={26} color="#0E9384" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>래퍼런스형</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  color: ENABLE_REFERENCE_TYPE ? '#0B7A6E' : '#6B7280',
+                  background: ENABLE_REFERENCE_TYPE ? '#D5F5EF' : '#F3F4F6',
+                  borderRadius: 999, padding: '2px 8px',
+                }}>{ENABLE_REFERENCE_TYPE ? '구조 따라가기' : '준비 중'}</span>
+              </div>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#0B7A6E' }}>
+                닮고 싶은 페이지가 있다면
+              </div>
+              <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
+                잘나가는 페이지의 &ldquo;팔리는 흐름&rdquo;을 내 제품으로 재현해요.<br />
+                예) 1위 페이지가 공감 → 성분 → 비교표 순서라면, 내 페이지도 같은 흐름으로.
+              </p>
+              {/* ★전용 설명 블록 — 어떻게 진행되나(3단계) + 따라가는 것/복제 안 하는 것 */}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0E9384', marginBottom: 6 }}>이렇게 만들어져요</div>
+                {[
+                  '닮고 싶은 페이지를 캡처해서 올려요',
+                  'AI가 섹션 순서·카피 톤·강조 패턴을 분석해요',
+                  '같은 흐름으로, 내 제품 정보로만 다시 써요',
+                ].map((step, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
+                    <span style={{
+                      width: 17, height: 17, borderRadius: '50%', flexShrink: 0,
+                      background: '#D5F5EF', color: '#0B7A6E',
+                      fontSize: 10, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
+                    }}>{i + 1}</span>
+                    <span style={{ fontSize: 12, color: '#444', lineHeight: 1.5 }}>{step}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6, marginTop: 8 }}>
+                  <div style={{ background: '#EBFAF7', border: '1px solid #C9F0E8', borderRadius: 9, padding: '8px 11px' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0B7A6E' }}>✓ 따라가요</span>
+                    <span style={{ fontSize: 11, color: '#3B6B64', marginLeft: 6 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</span>
+                  </div>
+                  <div style={{ background: '#FEF6F6', border: '1px solid #FBDCDC', borderRadius: 9, padding: '8px 11px' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#B54545' }}>✕ 복제 안 해요</span>
+                    <span style={{ fontSize: 11, color: '#8A5A5A', marginLeft: 6 }}>남의 문구·이미지 · 후기·수치·브랜드명</span>
+                  </div>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 10.5, color: '#9CA3AF' }}>
+                  섹션 수·크레딧은 분석한 페이지 구조를 따라 정해져요
+                </div>
+              </div>
+            </div>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: activeType === '래퍼런스형' ? '#0E9384' : '#fff',
+              border: activeType === '래퍼런스형' ? 'none' : '1.5px solid #D9D9E3',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              {activeType === '래퍼런스형' && <Check size={14} color="#fff" strokeWidth={3} />}
             </div>
           </div>
         </div>
