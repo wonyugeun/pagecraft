@@ -191,6 +191,31 @@ export async function refundZeroOutputJob(email: string, jobKey: string): Promis
   return { status: 'not_eligible', balance: r.current_balance ?? 0 };
 }
 
+/** ★무료 한도 초과 유료 이미지 생성의 실패 환불(2026-07-21) — 차감 원장(chargeKey)이 있고
+ *  아직 환불 안 됐을 때만 원자 지급(멱등). generate-image가 차감 후 생성 실패 시 호출. */
+export async function refundImageExtraCharge(email: string, chargeKey: string): Promise<void> {
+  const refundKey = `refund:${chargeKey}`;
+  await sql`
+    WITH ded AS (
+      SELECT -amount AS refund FROM credit_ledger
+      WHERE idempotency_key = ${chargeKey} AND user_email = ${email}
+        AND type = 'deduct' AND amount < 0
+      LIMIT 1
+    ),
+    eligible AS (
+      SELECT refund FROM ded
+      WHERE NOT EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${refundKey})
+    ),
+    r AS (
+      UPDATE credits SET balance = balance + (SELECT refund FROM eligible), updated_at = now()
+      WHERE user_email = ${email} AND EXISTS (SELECT 1 FROM eligible)
+      RETURNING balance
+    )
+    INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+    SELECT ${email}, (SELECT refund FROM eligible), 'grant', 'refund:image-extra', ${refundKey}
+    WHERE EXISTS (SELECT 1 FROM r)`;
+}
+
 /** 테이블 생성/마이그레이션(IF NOT EXISTS) — db-init 스크립트에서 1회 실행. 재실행 안전(멱등). */
 export async function ensureCreditTables(): Promise<void> {
   await sql`

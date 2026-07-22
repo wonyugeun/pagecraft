@@ -29,11 +29,10 @@ const STEPS = [
   { num: 3, label: '타입' },
   { num: 4, label: '출력형태' },
   { num: 5, label: '상품정보' },
-  { num: 6, label: '레퍼런스' },
-  { num: 7, label: '섹션구조' },
-  { num: 8, label: '이미지' },
-  { num: 9, label: '생성' },
-  { num: 10, label: '결과물' },
+  { num: 6, label: '섹션구조' },
+  { num: 7, label: '이미지' },
+  { num: 8, label: '생성' },
+  { num: 9, label: '결과물' },
 ];
 
 export default function ResultMobile() {
@@ -159,6 +158,31 @@ export default function ResultMobile() {
     return directorPlanRef.current;
   }, [cat, ch, productName, productExtra, diff, brand, sections]);
 
+  // ★무료 한도 소진 시 유료 재시도(데스크톱과 동일 정책: 첫 생성+무료 재생성 10장, 이후 1장당 1크레딧)
+  const fetchImageWithExtraCharge = async (
+    body: Record<string, unknown>, signal: AbortSignal,
+  ): Promise<{ data: Record<string, unknown> } | 'declined'> => {
+    const call = async (extra?: Record<string, unknown>) => {
+      const res = await fetch('/api/generate-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, ...extra }), signal,
+      });
+      return { status: res.status, data: await res.json() as Record<string, unknown> };
+    };
+    let r = await call();
+    if (r.status === 429 && (r.data as { code?: string }).code === 'quota_exhausted') {
+      const cost = (r.data as { extraCost?: number }).extraCost ?? 1;
+      const ok = window.confirm(
+        `무료 이미지 생성 한도를 모두 사용했어요.\n(기본 생성 + 무료 재생성 10장)\n\n계속하면 이번 생성에 ${cost}크레딧이 차감됩니다. 진행할까요?`,
+      );
+      if (!ok) return 'declined';
+      r = await call({ chargeExtra: true, extraChargeKey: crypto.randomUUID() });
+    }
+    const bal = (r.data as { credit?: { balance?: number } }).credit?.balance;
+    if (typeof bal === 'number') setCredits(bal);
+    return { data: r.data };
+  };
+
   // 데스크탑과 동일한 이미지 생성 함수
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { editRequest?: string }) => {
     const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
@@ -178,22 +202,21 @@ export default function ResultMobile() {
         ? selectRequiredAssetIndex(sections.map((s, j) => ({ name: s.name, prompt: s.imageDesc, archetype: j === 0 ? 'hero' : classifyCutArchetype(s.name) })))
         : -1;
       const isPlate = raIdx >= 0 && raIdx === secIdx;
-      const res = await fetch('/api/generate-image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color, { visual: sec.visual, concept: directorPlan?.selected_concept, productName, sectionName: sec.name }) : promptText,
-          sectionNum: sec.num,
-          productImages: isPlate ? undefined : (images.length > 0 ? images : undefined),
-          outputType: effectiveOut,
-          aspectRatio: aspect,
-          plateMode: isPlate || undefined,
-          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
-        }),
-        signal,
-      });
+      const out = await fetchImageWithExtraCharge({
+        prompt: isPlate ? buildPlatePrompt(sec.headline, sec.subcopy, sec.visual?.accent_color, { visual: sec.visual, concept: directorPlan?.selected_concept, productName, sectionName: sec.name }) : promptText,
+        sectionNum: sec.num,
+        productImages: isPlate ? undefined : (images.length > 0 ? images : undefined),
+        outputType: effectiveOut,
+        aspectRatio: aspect,
+        plateMode: isPlate || undefined,
+        jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
+      }, signal);
       if (signal.aborted) return;
-      const data = await res.json();
-      if (signal.aborted) return;
+      if (out === 'declined') {
+        setSectionImages(p => ({ ...p, [sec.num]: { loading: false, url: null, error: true, errorMsg: '무료 재생성 한도를 모두 사용했어요 — 다시 누르면 크레딧으로 생성할 수 있어요.', aspectRatio: aspect } }));
+        return;
+      }
+      const data = out.data as { imageBase64?: string; mimeType?: string; error?: string; code?: string };
       if (data.imageBase64) {
         let url = `data:${data.mimeType};base64,${data.imageBase64}`;
         if (isPlate && packRef) {
@@ -224,20 +247,19 @@ export default function ResultMobile() {
     setBlockImages(p => ({ ...p, [key]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;
-      const res = await fetch('/api/generate-image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: desc, sectionNum: key,
-          productImages: images.length > 0 ? images : undefined,
-          outputType: 'blog',
-          aspectRatio: aspect,
-          jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
-        }),
-        signal,
-      });
+      const out = await fetchImageWithExtraCharge({
+        prompt: desc, sectionNum: key,
+        productImages: images.length > 0 ? images : undefined,
+        outputType: 'blog',
+        aspectRatio: aspect,
+        jobKey: jobKeyRef.current ?? undefined,   // ★결제 검증(P0 2차)
+      }, signal);
       if (signal.aborted) return;
-      const data = await res.json();
-      if (signal.aborted) return;
+      if (out === 'declined') {
+        setBlockImages(p => ({ ...p, [key]: { loading: false, url: null, error: true, aspectRatio: aspect } }));
+        return;
+      }
+      const data = out.data as { imageBase64?: string; mimeType?: string };
       if (data.imageBase64) {
         persistedKeysRef.current.delete(key);   // ★재생성 결과 재영속 허용(위 섹션과 동일)
         setBlockImages(p => ({ ...p, [key]: { loading: false, url: `data:${data.mimeType};base64,${data.imageBase64}`, error: false, aspectRatio: aspect } }));
@@ -533,8 +555,8 @@ export default function ResultMobile() {
       <section style={{ padding: '8px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
           {STEPS.map((s, i) => {
-            const active = s.num === 10;
-            const done = s.num < 10;
+            const active = s.num === 9;
+            const done = s.num < 9;
             const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
             const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
             return (

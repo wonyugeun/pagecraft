@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota, checkRateLimit, clientIp } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota, checkRateLimit, clientIp, deductCreditsAtomic, refundImageExtraCharge } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { calculateImageQuota, imageQuotaWeight } from '@/lib/pricing';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
@@ -80,12 +80,14 @@ export async function POST(req: NextRequest) {
   let prompt: string, sectionNum: string, productImages: string[] | undefined,
       outputType: string | undefined, aspectRatio: string | undefined,
       textZone: 'top' | 'bottom' | undefined, qualityIn: string | undefined,
-      plateMode: boolean, jobKey: string | undefined;
+      plateMode: boolean, jobKey: string | undefined,
+      chargeExtra: boolean, extraChargeKey: string | undefined;
   try {
     const body = await req.json() as {
       prompt: string; sectionNum: string; productImages?: string[];
       outputType?: string; aspectRatio?: string; textZone?: 'top' | 'bottom'; quality?: string;
       plateMode?: boolean; jobKey?: string;
+      chargeExtra?: boolean; extraChargeKey?: string;
     };
     prompt        = body.prompt;
     sectionNum    = body.sectionNum;
@@ -97,6 +99,8 @@ export async function POST(req: NextRequest) {
     // ★Required Asset 플레이트 모드 — GPT는 배경판·타이포만 생성(제품 미등장), 원본 자산은 클라가 코드 합성.
     plateMode     = body.plateMode === true;
     jobKey        = body.jobKey;       // ★결제 검증(P0 2차)
+    chargeExtra   = body.chargeExtra === true;   // ★무료 한도 초과분 유료 생성 동의(클라 confirm 후 전송)
+    extraChargeKey = body.extraChargeKey;        // ★유료 생성 멱등키(요청당 uuid — 네트워크 재시도 이중차감 방지)
   } catch (e) {
     console.error('[generate-image] req.json() 실패:', e);
     return errJson('요청 본문 파싱 실패', {}, 400);
@@ -106,8 +110,9 @@ export async function POST(req: NextRequest) {
 
   // ── ★유료 뒷문 가드(P0 2차) — GPT Image 호출 전: 결제된 jobKey 검증(plateMode 포함). ──
   let paidSections: number | null = null;   // null = dev 우회(아래 quota 선점도 생략)
+  let email: string | null = null;          // ★초과분 유료 차감·환불에 사용
   if (!creditsBypassEnabled()) {
-    const email = await getSessionEmail(req);
+    email = await getSessionEmail(req);
     // ★적용 순서: ①user/IP rate → ②결제 검증 → ③jobKey quota → ④GPT Image 호출
     const rl = await checkRateLimit('image', email, clientIp(req));
     if (!rl.allowed) {
@@ -209,24 +214,46 @@ export async function POST(req: NextRequest) {
   // ── ★이미지 quota 선점(P0) — GPT Image 호출 '전' 원자 증가(count+weight ≤ limit일 때만).
   //    성공 후 카운트가 아니라 선점이므로 같은 jobKey 동시 100호출도 초과분은 외부 호출 자체가 안 나감.
   //    실패 환급 없음(정책 — quota는 크레딧이 아니라 비용 폭주 안전장치) · 내부 자동 재시도는 요청당 1카운트. ──
+  let extraCredit: { key: string; balance: number; weight: number } | null = null;   // ★유료 추가 생성 차감 기록
   if (paidSections !== null) {
     const quotaLimit = calculateImageQuota(paidSections);
     const weight = imageQuotaWeight(quality);
     try {
       const q = await consumeUsageQuota(`img:${jobKey}`, weight, quotaLimit);
       if (!q.allowed) {
-        console.warn(`[generate-image] quota 초과 — jobKey=${jobKey} used=${q.used}/${quotaLimit} weight=${weight}`);
-        return errJson(
-          `이미지 생성 한도를 모두 사용했어요. (사용 ${q.used}/${quotaLimit})`,
-          { sectionNum, code: API_ERROR_CODES.quotaExhausted, quotaLimit, quotaUsed: q.used, attemptedWeight: weight },
-          429,
-        );
+        // ★무료 한도 소진(2026-07-21 정책: 첫 생성 + 무료 재생성 10장) — 이후는 1장당 1크레딧(고품질 2).
+        //   클라가 confirm 없이 차감되지 않게: 1차 응답은 quotaExhausted(무과금) → 클라 confirm → chargeExtra 재호출.
+        if (!chargeExtra || typeof extraChargeKey !== 'string' || !extraChargeKey.trim() || !email) {
+          console.warn(`[generate-image] 무료 한도 소진 — jobKey=${jobKey} used=${q.used}/${quotaLimit} weight=${weight}`);
+          return errJson(
+            `무료 이미지 생성 한도를 모두 사용했어요. 추가 생성은 1장당 ${weight}크레딧이 차감돼요.`,
+            { sectionNum, code: API_ERROR_CODES.quotaExhausted, quotaLimit, quotaUsed: q.used, extraCost: weight },
+            429,
+          );
+        }
+        const key = `img-extra:${jobKey}:${extraChargeKey.trim().slice(0, 64)}`;
+        const r = await deductCreditsAtomic(email, weight, key, 'image-extra');
+        if (r.status === 'insufficient') {
+          return errJson(
+            `크레딧이 부족해요. (추가 생성 1장당 ${weight}크레딧 / 보유 ${r.balance})`,
+            { sectionNum, code: API_ERROR_CODES.insufficientCredits, balance: r.balance },
+            402,
+          );
+        }
+        extraCredit = { key, balance: r.balance, weight };
+        console.log(`[generate-image] 추가 생성 유료 차감 — jobKey=${jobKey} weight=${weight} balance=${r.balance} (${r.status})`);
       }
     } catch (err) {
       console.error('[generate-image] quota 확인 오류:', err);
       return errJson('사용량 확인 중 오류가 발생했어요.', { sectionNum }, 500);
     }
   }
+  // ★유료 차감 후 생성 실패 시 자동 환불(멱등) — 차감만 되고 이미지 0장 방지
+  const refundExtraOnFail = async () => {
+    if (!extraCredit || !email) return;
+    try { await refundImageExtraCharge(email, extraCredit.key); }
+    catch (e) { console.error('[generate-image] 추가 차감 환불 실패(수동 확인 필요):', extraCredit.key, e); }
+  };
 
   // ── 4b. 엔드포인트/바디 분기 ── ref 있으면 edits(FormData), 없으면 generations(JSON).
   let apiUrl: string;
@@ -271,6 +298,7 @@ export async function POST(req: NextRequest) {
       console.error(`[generate-image] fetch 실패 (attempt ${attempt}):`, msg);
       lastError = msg;
       if (msg.includes('timeout') || msg.includes('TimeoutError')) {
+        await refundExtraOnFail();
         return errJson('이미지 생성 시간 초과. 다시 시도해 주세요.', { sectionNum }, 504);
       }
       continue;
@@ -297,8 +325,10 @@ export async function POST(req: NextRequest) {
       //   클라에는 일반화 메시지 + status만. 안전정책 거부는 사용자 조치가 가능하니 유지.
       console.error(`[generate-image] OpenAI 오류 ${res.status}: ${emsg}`);
       if (code === 'content_policy_violation' || /safety|policy/i.test(emsg)) {
+        await refundExtraOnFail();
         return errJson(`안전 정책으로 이미지 생성이 거부되었습니다. 프롬프트를 수정해 주세요.`, { sectionNum, code }, 400);
       }
+      await refundExtraOnFail();
       return errJson(`이미지 생성에 실패했어요. 잠시 후 다시 시도해 주세요. (${res.status})`, { sectionNum }, res.status);
     }
 
@@ -317,15 +347,20 @@ export async function POST(req: NextRequest) {
       console.error('[generate-image] b64_json 없음. 응답 일부:', JSON.stringify(data).slice(0, 400));
       lastError = 'no image data';
       if (attempt < MAX_RETRIES - 1) continue;
+      await refundExtraOnFail();
       return errJson('이미지가 반환되지 않았습니다. 다시 시도해 주세요.', { sectionNum });
     }
 
     // ── 7. 성공 ── 클라 계약 그대로: { imageBase64, mimeType }
     const mimeType = `image/${data.output_format || 'png'}`;
     console.log(`[generate-image] 성공 — mimeType: ${mimeType}, b64 length: ${b64.length}`);
-    return NextResponse.json({ imageBase64: b64, mimeType, sectionNum });
+    return NextResponse.json({
+      imageBase64: b64, mimeType, sectionNum,
+      ...(extraCredit ? { credit: { extraCharged: extraCredit.weight, balance: extraCredit.balance } } : {}),
+    });
   }
 
   console.error(`[generate-image] ${MAX_RETRIES}회 모두 실패. 마지막 에러: ${lastError}`);
+  await refundExtraOnFail();
   return errJson(`${MAX_RETRIES}회 시도 후 실패: ${lastError}. 잠시 후 다시 시도해 주세요.`, { sectionNum }, 502);
 }

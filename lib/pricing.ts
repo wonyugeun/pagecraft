@@ -34,7 +34,10 @@ export function calculateGenerationCost(input: GenerationPricingInput): number {
  * 정상 수요(기본 1장/섹션 + 재생성 + 블록 이미지 + 썸네일)는 넉넉히 덮고 비용 폭주만 상한.
  * high 품질은 비용 ~4배라 2카운트(quality override 복원 후에도 노출 상한 유지). */
 
-export const IMAGE_QUOTA_PER_SECTION = 3;
+// ★재생성 정책(2026-07-21 유근님 확정): 무료 = 첫 생성(섹션당 1장) + 페이지당 재생성 10장.
+//   한도 소진 후엔 1장당 1크레딧(고품질 2) 추가 차감 — generate-image 라우트의 chargeExtra 흐름.
+//   (구: 섹션×3+10 — 16섹션 최악 58장 무료 = 마진 증발 구간이 있었음)
+export const IMAGE_QUOTA_PER_SECTION = 1;
 export const IMAGE_QUOTA_BASE = 10;
 
 /** 결제된 섹션 수 → jobKey당 이미지 quota */
