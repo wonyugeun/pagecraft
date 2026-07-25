@@ -206,6 +206,8 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
       const r = await call('/api/copy', {
         strategySummary: ss,
         sections: plan.slice(chunk.startIndex, chunk.startIndex + chunk.count),
+        // ★전체 구성표(2026-07-25) — 병렬 청크 간 USP 재탕 방지(반복 금지 규칙의 재료)
+        pageMap: plan.map(p => ({ name: p.name, mission: p.mission })),
         startIndex: chunk.startIndex,
         totalSections: total,
         cat, ch, out, depth,

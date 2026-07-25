@@ -87,11 +87,15 @@ export interface CopyChunkInput {
   out?: string | null;
   depth?: string;
   knownFacts?: string;       // 셀러 원입력(productName+productExtra) — 후처리 날조 그물의 허용 기준
+  /** ★전체 페이지 구성표(2026-07-25) — 청크가 병렬 생성돼 서로의 내용을 못 보면서 같은 USP를
+   *  섹션마다 재탕하던 문제(실사용 피드백: "설명이 길다, 같은 말 반복"). 모든 섹션의 이름+임무를
+   *  매 청크에 주입해 "내 섹션 고유 주제만 쓰기"를 강제한다. */
+  pageMap?: { name: string; mission?: string }[];
 }
 
 /** 청크 프롬프트 구성 — 모델 호출부와 분리(카피 모델 A/B 하네스가 동일 프롬프트를 재사용). 프롬프트 내용은 기존 그대로. */
 export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: string; userPrompt: string } {
-  const { strategySummary: ss, sections: items, startIndex, totalSections, cat, ch, out, knownFacts } = input;
+  const { strategySummary: ss, sections: items, startIndex, totalSections, cat, ch, out, knownFacts, pageMap } = input;
 
   const category = cat || '화장품';
   const channel  = ch || '스마트스토어';
@@ -123,6 +127,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 5. 순서 = 공감 → 상황 → 감정 → 설명: 설명(정보)부터 던지지 마세요. 공감되는 한마디 → 구체적 상황(장면) → 그때의 감정 → 그제서야 설명·근거. '설명 → 감정' 순서 금지.
 6. body 호흡: body는 짧은 문장 여러 개가 줄바꿈으로 끊겨 흐르듯 이어지게 쓰세요. 한 호흡(짧은 생각 단위)마다 줄을 바꿉니다(JSON 문자열이므로 줄바꿈은 \\n으로). 5줄 넘는 한 덩어리 산문 금지.
    예) "퇴근하고 거울을 봤는데\\n볼이 또 붉어져 있던 날.\\n좋다는 제품도 써보고\\n진정 제품도 써봤는데\\n왜 나만 그런 걸까요?"
+7. ★분량 상한(실사용 피드백 반영): body는 4~7줄(호흡 단위), 공백 포함 220자 이내. 같은 내용을 표현만 바꿔 되풀이하지 마세요 — 한 번 말했으면 다음 생각으로 넘어갑니다. 줄이는 대상은 '반복과 군더더기'지 정보가 아닙니다(성분·수치·근거는 유지). 짧아서 아쉬운 카피가 길어서 안 읽히는 카피보다 낫습니다.
 ⚠️ 이 문체는 전 카테고리(화장품·식품 등) 공통입니다. 단 성분·함량·수치·근거·전략·정보 밀도는 그대로 — 문체만 바꿉니다(감정 우선 ≠ 정보 삭제).
 
 [섹션별 문체 변주 — 단, 브랜드 톤은 하나로 공유]
@@ -167,7 +172,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
   const formRule = isSlide
     ? `[출력형태 = 슬라이드형] 이미지가 주인공입니다. headline은 12자 내외로 강하게, subcopy는 1줄, body는 최소화(1~2문장). 한 섹션 = 한 메시지. 비주얼이 말할 수 있는 것은 글로 반복하지 마세요.
 ⚠️셀러에게 말을 거는 안내문·메타 문구를 headline/subcopy/body/blocks 어디에도 절대 쓰지 마세요(예: "실제 후기를 입력하면 이 섹션이 강해집니다", "~를 추가해 주세요") — 슬라이드 카피는 전부 이미지에 박혀 고객에게 그대로 노출됩니다. 후기가 없으면 후기 섹션은 기대형 카피("이런 분들께 맞습니다")로 쓰세요.`
-    : `[출력형태 = 블로그형] 글이 설득의 주인공입니다(이미지는 텍스트 없는 사진). headline은 검색 키워드를 머금은 제목형, subcopy는 짧은 후킹 1줄. body는 v5 호흡 — 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르듯 이어지는 대화체(설명문·산문 덩어리 금지), 공감→상황→감정→설명 순서로 독자가 emotion_goal을 느끼도록. 섹션 끝은 다음 섹션으로 자연스럽게 이어지는 흐름.`;
+    : `[출력형태 = 블로그형] 글이 설득의 주인공입니다(이미지는 텍스트 없는 사진). headline은 검색 키워드를 머금은 제목형, subcopy는 짧은 후킹 1줄. body는 v5 호흡 — 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르듯 이어지는 대화체(설명문·산문 덩어리 금지), 공감→상황→감정→설명 순서로 독자가 emotion_goal을 느끼도록. ★분량: body 4~7줄, 공백 포함 220자 이내 — 반복·군더더기를 줄이고 정보는 유지. 섹션 끝은 다음 섹션으로 자연스럽게 이어지는 흐름.`;
 
   // 블록 지시 — ★디렉터 계획(block_plan)이 있으면(2026-07-21 정형화 해소) 그 계획을 따르고,
   //   없으면(구 데이터·정답지 없는 재생성 경로) 기존 역할→블록 고정 매핑으로 폴백.
@@ -237,9 +242,23 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
     ? `\n[셀러가 입력한 실제 고객 후기 — 후기/리뷰 섹션에서 아래 후기(들)만 quote 블록으로 인용하세요. 작성자·별점은 아래에 있을 때만 넣고, 여기 없는 후기·별점·작성자를 새로 지어내지 마세요]\n${reviewText}\n`
     : '';
 
+  // ★전체 구성표 + 반복 금지(2026-07-25) — 병렬 청크가 서로의 카피를 못 봐 같은 USP를 재탕하던 문제의 해결.
+  const pageMapBlock = pageMap?.length
+    ? `
+
+[전체 페이지 구성표 — 이 페이지의 모든 섹션과 각 섹션의 임무입니다. 당신은 이 중 ${startIndex + 1}~${startIndex + items.length}번만 작성합니다]
+${pageMap.map((p, i) => `${i + 1}. ${p.name}${p.mission ? ` — ${p.mission}` : ''}`).join('\n')}
+
+[★반복 금지 — 이 페이지에서 가장 흔한 실패가 '같은 말 반복'입니다]
+- 독자는 페이지를 위에서 아래로 한 번에 읽습니다. 앞 섹션에서 이미 읽었을 내용을 당신 섹션이 또 말하면 독자는 이탈합니다.
+- 각 섹션은 자기 임무(mission)의 고유 주제만 다룹니다. 위 구성표에서 다른 섹션이 맡은 사실(예: 조리법, 재료 구성, 산지 서사, 보관·배송, 가격)은 그 섹션의 몫입니다 — 당신 섹션에서 다시 서술하지 말고, 꼭 필요하면 한 구절로만 스치세요.
+- 제품 대표 구절(핵심 재료 조합, 조리 간편성 문구, 산지·전통 서사 등)은 그 주제를 맡은 섹션 한 곳에서만 본격적으로 다룹니다. 같은 명사구·같은 문형을 여러 섹션에 복사하듯 재사용하면 실패입니다.
+- 단, 반복 금지는 '표현과 서술'의 규칙입니다 — strategy_summary의 전략·톤은 전 섹션이 공유합니다.`
+    : '';
+
   const userPrompt = `다음 ${items.length}개 섹션의 카피를 작성하세요. 각 섹션의 목표는 mission을 설명하는 게 아니라, 그 섹션의 emotion_goal(독자가 속으로 느껴야 할 한마디)을 독자가 스스로 떠올리게 만드는 것입니다.
 
-${strategyBlock}
+${strategyBlock}${pageMapBlock}
 
 ${formRule}
 
@@ -265,7 +284,7 @@ ${COPY_PRINCIPLES}
     "name": "섹션 이름(입력과 동일)",
     "headline": "헤드라인 카피${isSlide ? ' (12자 내외)' : ' (제목형)'}",
     "subcopy": "서브카피 1줄",
-    "body": "본문 카피${isSlide ? ' — 1~2문장으로 최소화' : ' — v5 호흡: 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르는 대화체. 공감→상황→감정→설명. 정보·수치·성분은 그대로'}",
+    "body": "본문 카피${isSlide ? ' — 1~2문장으로 최소화' : ' — v5 호흡: 짧은 문장이 줄바꿈(\\n)으로 끊겨 흐르는 대화체. 공감→상황→감정→설명. 정보·수치·성분은 그대로. ★4~7줄, 공백 포함 220자 이내'}",
     "blocks": [ /* ${hasBlockPlan ? "block_plan을 따를 것 — '글만'이면 빈 배열 []" : '이 섹션 역할에 맞는 블록 최소 1개 (위 블록 스키마 준수)'} */ ]
   }
 ]`;
