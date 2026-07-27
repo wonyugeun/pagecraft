@@ -172,6 +172,9 @@ interface AppContextType extends AppState {
   toggleChat: () => void;
   doLogin: () => void;
   startDetail: () => void;
+  /** ★임시저장(2026-07-27) — 저장된 작성 중 스냅샷 이어쓰기 / 버리기 */
+  resumeDraft: () => void;
+  discardDraft: () => void;
   goAfterType: (overrideType?: string) => void;
   goAfterReference: () => void;
   setSections: (s: Section[]) => void;
@@ -300,6 +303,42 @@ export const STEP_MAP: Record<string, number> = {
 
 /* ── 새로고침 복원: 단계+입력값을 sessionStorage에 영속화(탭 닫으면 정리). 크레딧·생성결과·이미지는 제외(부작용 방지). ── */
 const PERSIST_KEY = 'pc_wizard_v1';
+
+/* ── ★임시저장(2026-07-27) — sessionStorage는 탭을 닫으면 사라진다. 같은 스냅샷을
+ *    localStorage(계정별)에도 남겨 며칠 뒤 다시 와도 "이어서 작성"이 되게 한다.
+ *    이미지는 제외(용량) — 사진은 이어서 작성 시 다시 올리도록 안내한다. ── */
+const DRAFT_KEY_PREFIX = 'flik_draft_';
+/** 임시저장 대상 단계 — 입력 단계만(생성중 s7·결과 s8은 히스토리가 담당) */
+const DRAFT_SCREENS = ['s1', 's2', 's3', 's3b', 's5', 's5-5', 's5b', 's6'];
+
+export interface DraftMeta {
+  savedAt: number;
+  screen: string;
+  step: number;
+  productName: string;
+  cat: string | null;
+  ch: string | null;
+}
+export interface DraftRecord extends DraftMeta { data: Record<string, unknown> }
+
+const draftKey = (email: string) => `${DRAFT_KEY_PREFIX}${email}`;
+
+export function readDraft(email: string): DraftRecord | null {
+  if (typeof window === 'undefined' || !email) return null;
+  try {
+    const raw = localStorage.getItem(draftKey(email));
+    if (!raw) return null;
+    const d = JSON.parse(raw) as DraftRecord;
+    return d && typeof d === 'object' && d.data ? d : null;
+  } catch { return null; }
+}
+export function clearDraft(email: string): void {
+  try { localStorage.removeItem(draftKey(email)); } catch { /* no-op */ }
+}
+function writeDraft(email: string, rec: DraftRecord): void {
+  try { localStorage.setItem(draftKey(email), JSON.stringify(rec)); }
+  catch { /* 용량 초과 등 — 임시저장 실패는 작업 흐름을 막지 않는다 */ }
+}
 // 복원 허용 단계: 입력 단계 + 대시보드만(생성중 s7/결과 s8은 휘발 데이터라 복원 안 함)
 const RESTORE_SCREENS = ['s1', 's2', 's3', 's3b', 's5', 's5-5', 's5b', 's6', 's-dash'];
 function loadPersist(): Record<string, unknown> | null {
@@ -383,6 +422,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const saveHistory = (data: { productName: string; cat: string; ch: string; type: string; out: string; secCnt: number; sections: Section[]; jobKey?: string }) => {
     const email = session?.user?.email ?? 'guest';
+    // ★생성까지 끝난 작업은 히스토리가 담당 — 임시저장은 폐기(대시보드에 유령 카드가 남지 않게)
+    if (session?.user?.email) clearDraft(session.user.email);
     const key = `pc_history_${email}`;
     try {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
@@ -607,15 +648,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return;
     if (!didRestoreRef.current) return;   // 복원 완료 전 저장 차단
     try {
-      sessionStorage.setItem(PERSIST_KEY, JSON.stringify({
+      const snapshot = {
         screen, cat, ch, type, out, imgMode, secCnt,
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
         brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
         generationJobKey,
-      }));
+      };
+      sessionStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot));
+      // ★임시저장(2026-07-27) — 탭을 닫아도 남게 계정별 localStorage에 같은 스냅샷 보관.
+      //   의미 있는 입력이 생긴 뒤(카테고리 선택 이상)부터, 입력 단계에서만 기록한다.
+      const draftEmail = session?.user?.email;
+      if (draftEmail && DRAFT_SCREENS.includes(screen) && (cat || productName.trim())) {
+        writeDraft(draftEmail, {
+          savedAt: Date.now(), screen, step: STEP_MAP[screen] ?? 1,
+          productName, cat, ch, data: snapshot,
+        });
+      }
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey, session?.user?.email]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -734,7 +785,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /* 하위 호환성 유지 — LoginScreen에서 직접 signIn() 호출로 대체됨 */
   const doLogin = () => go('s-dash');
 
+  /* ★임시저장 이어쓰기(2026-07-27) — 저장된 스냅샷을 상태에 적용하고 저장된 단계로 이동.
+   *   제품 사진은 스냅샷에 없으므로(용량) 이미지 단계에서 다시 올리게 된다. */
+  const resumeDraft = () => {
+    const email = session?.user?.email;
+    if (!email) return;
+    const rec = readDraft(email);
+    if (!rec) return;
+    const p = rec.data as Record<string, unknown>;
+    if (typeof p.cat === 'string') setCatState(p.cat);
+    if (typeof p.ch === 'string') setChState(p.ch);
+    if (typeof p.type === 'string') setTypeState(p.type);
+    if (typeof p.out === 'string') setOutState(p.out);
+    if (typeof p.imgMode === 'string') setImgModeState(p.imgMode);
+    if (typeof p.secCnt === 'number') setSecCntState(p.secCnt);
+    if (typeof p.productName === 'string') setProductNameState(p.productName);
+    if (typeof p.productExtra === 'string') setProductExtraState(p.productExtra);
+    if (p.referenceAnalysis) setReferenceAnalysisState(p.referenceAnalysis as ReferenceAnalysis);
+    if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
+    if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
+    if (Array.isArray(p.originalSections)) setOriginalSectionsState(p.originalSections as string[]);
+    if (typeof p.regularPrice === 'string') setRegularPrice(p.regularPrice);
+    if (typeof p.salePrice === 'string') setSalePrice(p.salePrice);
+    if (typeof p.showPrice === 'boolean') setShowPrice(p.showPrice);
+    if (Array.isArray(p.productOptions)) setProductOptions(p.productOptions as { name: string; values: string }[]);
+    if (typeof p.brand === 'string') setBrand(p.brand);
+    if (typeof p.diff === 'string') setDiff(p.diff);
+    if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
+    if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
+    if (typeof p.reviews === 'string') setReviews(p.reviews);
+    if (typeof p.productForm === 'string') setProductForm(p.productForm);
+    if (typeof p.productVolume === 'string') setProductVolume(p.productVolume);
+    if (typeof p.productShapeProfile === 'string') setProductShapeProfile(p.productShapeProfile);
+    if (p.answers && typeof p.answers === 'object') setAnswers(p.answers as Record<string, string | string[]>);
+    // 새 생성으로 취급 — 이전 jobKey를 이어받으면 결제 상태가 꼬인다.
+    setGenerationJobKeyState(null);
+    setSections([]);
+    setProductImagesState([]);
+    setPackagingRefImageState(null);
+    const scr = (DRAFT_SCREENS.includes(String(rec.screen)) ? rec.screen : 's1') as ScreenId;
+    go(scr);
+  };
+
+  /** 임시저장 버리기 — 대시보드 카드에서 사용 */
+  const discardDraft = () => {
+    const email = session?.user?.email;
+    if (email) clearDraft(email);
+  };
+
   const startDetail = () => {
+    // ★새 작업 시작 = 이전 임시저장 폐기(이어쓰기는 resumeDraft 경로로만)
+    const em = session?.user?.email;
+    if (em) clearDraft(em);
     setCatState(null);
     setChState(null);
     setTypeState(null);
@@ -824,6 +926,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleChat: () => setChatOpen(p => !p),
       doLogin,
       startDetail,
+      resumeDraft,
+      discardDraft,
       goAfterType,
       goAfterReference,
       setSections,

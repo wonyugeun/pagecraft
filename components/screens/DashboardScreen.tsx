@@ -12,6 +12,7 @@ import { getImages } from '@/lib/historyDB';
 import DashboardMobile from './DashboardMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import UpdateNoticeModal from '@/components/UpdateNoticeModal';
+import { readDraft, type DraftRecord } from '@/store/AppContext';
 
 // ── 유틸 ─────────────────────────────────────────────────
 function fmt(iso: string) {
@@ -181,9 +182,19 @@ function RobotIllust() {
 }
 
 // ── 메인 ─────────────────────────────────────────────────
+/** 임시저장 시각 → "방금 전 / n시간 전 / n일 전" */
+function draftAgo(ts: number): string {
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return '방금 전';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  return `${Math.floor(h / 24)}일 전`;
+}
+
 export default function DashboardScreen() {
   const isMobile = useIsMobile();
-  const { startDetail, go, setCat, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages } = useApp();
+  const { startDetail, go, setCat, loadFromHistory, toggleChat, credits, setCreditModalOpen, deleteHistoryImages, resumeDraft, discardDraft } = useApp();
   const { data: session } = useSession();
   // ★빠른제작·썸네일 모두 결제 배관(quick/charge·thumb/charge 선차감+jobKey) 완비 → 프로덕션 항상 활성.
   //   서버 게이트(verifyPaidJob) 불변 — 통과 자격(paid jobKey)만 charge에서 발급.
@@ -191,6 +202,7 @@ export default function DashboardScreen() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [hov, setHov] = useState<string | null>(null);
+  const [draft, setDraft] = useState<DraftRecord | null>(null);   // ★작성 중인 임시저장
   const [thumbs, setThumbs] = useState<Record<string, string>>({});   // 최근작업 hero 썸네일(historyId → dataURL)
   const [showAllWorks, setShowAllWorks] = useState(false);   // 최근작업 더보기(8개→전체 최대 20). 표시만.
   const menuRef = useRef<HTMLDivElement>(null);
@@ -208,6 +220,9 @@ export default function DashboardScreen() {
       if (s) setHistory(JSON.parse(s));
     } catch {}
   }, [email]);
+
+  // ★임시저장 카드(2026-07-27) — 작성 중이던 작업이 있으면 대시보드에서 바로 이어쓰기
+  useEffect(() => { setDraft(readDraft(email)); }, [email]);
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -481,6 +496,47 @@ export default function DashboardScreen() {
                 </div>
               </div>
             </div>
+
+            {/* ★작성 중(임시저장) — 있을 때만 노출. 이어서 작성 / 삭제 */}
+            {draft && (
+              <div style={{
+                background: 'linear-gradient(135deg,#F7F5FF,#F2EEFF)', border: '1.5px solid #DDD4FF',
+                borderRadius: 20, padding: '18px 20px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: '#EDE8FF',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                  }}>✍️</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6D4CFF', marginBottom: 3 }}>
+                      작성 중이던 작업 · {draftAgo(draft.savedAt)}
+                    </div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {draft.productName?.trim() || `${draft.cat ?? ''} 상세페이지`}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#8B8B99', marginTop: 2 }}>
+                      {[draft.cat, draft.ch].filter(Boolean).join(' · ')}{draft.cat || draft.ch ? ' · ' : ''}{draft.step}단계까지 입력했어요
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <button
+                    onClick={() => { if (window.confirm('작성 중이던 내용을 삭제할까요?')) { discardDraft(); setDraft(null); } }}
+                    style={{ background: 'transparent', border: 'none', fontSize: 12.5, fontWeight: 600, color: '#9CA3AF', cursor: 'pointer', fontFamily: 'inherit', padding: '8px 6px' }}
+                  >삭제</button>
+                  <button
+                    onClick={resumeDraft}
+                    style={{
+                      background: '#6D4CFF', color: '#fff', border: 'none', borderRadius: 10,
+                      padding: '11px 18px', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                      fontFamily: 'inherit', boxShadow: '0 4px 14px rgba(109,76,255,0.30)', whiteSpace: 'nowrap',
+                    }}
+                  >이어서 작성 →</button>
+                </div>
+              </div>
+            )}
 
             {/* 최근 작업 */}
             <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ECECF2', overflow: 'hidden' }}>

@@ -1389,6 +1389,7 @@ export default function ResultScreen() {
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
+  const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   // ★채널 맞춤 내보내기(2026-07-21 최종) — 스마트스토어 HTML 복사 + 통이미지(전체 1장) 2종만
@@ -1615,6 +1616,10 @@ export default function ResultScreen() {
     }
     const bal = (r.data as { credit?: { balance?: number } }).credit?.balance;
     if (typeof bal === 'number') setCredits(bal);   // 유료 차감 반영 — 헤더 크레딧 즉시 갱신
+    // ★남은 무료 재생성 표시(2026-07-27) — 성공 응답의 quota, 한도 소진 429의 quotaLimit 둘 다 반영
+    const q = (r.data as { quota?: { freeRegenLeft?: number } }).quota;
+    if (typeof q?.freeRegenLeft === 'number') setFreeRegenLeft(q.freeRegenLeft);
+    else if ((r.data as { code?: string }).code === 'quota_exhausted') setFreeRegenLeft(0);
     return { data: r.data };
   };
 
@@ -2176,6 +2181,22 @@ export default function ResultScreen() {
                     animation: 'spin 0.8s linear infinite', flexShrink: 0,
                   }} />
                   이미지 자동 생성 중 ({doneCount}/{displaySections.length})
+                </div>
+              )}
+
+              {/* ★무료 재생성 잔여 안내(2026-07-27) — 셀러가 남은 장수를 항상 볼 수 있게 */}
+              {!isGenerating && freeRegenLeft !== null && (
+                <div style={{
+                  background: freeRegenLeft > 0 ? '#F4F0FF' : '#FFFBEB',
+                  border: `1px solid ${freeRegenLeft > 0 ? '#E6DEFF' : '#FDE68A'}`,
+                  borderRadius: 8, padding: '9px 14px', fontSize: 12.5,
+                  color: freeRegenLeft > 0 ? '#5B3FD6' : '#92400E',
+                  marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7,
+                }}>
+                  <span>{freeRegenLeft > 0 ? '🎨' : '💳'}</span>
+                  {freeRegenLeft > 0
+                    ? <>이미지 무료 재생성 <b style={{ fontWeight: 800 }}>{freeRegenLeft}장</b> 남았어요</>
+                    : <>무료 재생성을 모두 사용했어요 — 이후 재생성은 1장당 1크레딧이 차감돼요 (차감 전 확인 창이 떠요)</>}
                 </div>
               )}
 

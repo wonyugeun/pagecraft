@@ -215,11 +215,17 @@ export async function POST(req: NextRequest) {
   //    성공 후 카운트가 아니라 선점이므로 같은 jobKey 동시 100호출도 초과분은 외부 호출 자체가 안 나감.
   //    실패 환급 없음(정책 — quota는 크레딧이 아니라 비용 폭주 안전장치) · 내부 자동 재시도는 요청당 1카운트. ──
   let extraCredit: { key: string; balance: number; weight: number } | null = null;   // ★유료 추가 생성 차감 기록
+  // ★남은 무료 재생성 안내(2026-07-27) — 성공 응답에도 실어 셀러가 잔여 장수를 화면에서 볼 수 있게.
+  let quotaInfo: { limit: number; used: number; freeRegenLeft: number } | null = null;
   if (paidSections !== null) {
     const quotaLimit = calculateImageQuota(paidSections);
     const weight = imageQuotaWeight(quality);
     try {
       const q = await consumeUsageQuota(`img:${jobKey}`, weight, quotaLimit);
+      if (q.allowed) {
+        // 첫 생성분(섹션당 1장)을 뺀 '무료 재생성' 잔여 — 음수는 0으로
+        quotaInfo = { limit: quotaLimit, used: q.used, freeRegenLeft: Math.max(0, quotaLimit - q.used) };
+      }
       if (!q.allowed) {
         // ★무료 한도 소진(2026-07-27 정책: 첫 생성 + 무료 재생성 16섹션당 10장) — 이후는 1장당 1크레딧(고품질 2).
         //   클라가 confirm 없이 차감되지 않게: 1차 응답은 quotaExhausted(무과금) → 클라 confirm → chargeExtra 재호출.
@@ -363,6 +369,7 @@ export async function POST(req: NextRequest) {
     console.log(`[generate-image] 성공 — mimeType: ${mimeType}, b64 length: ${b64.length}`);
     return NextResponse.json({
       imageBase64: b64, mimeType, sectionNum,
+      ...(quotaInfo ? { quota: quotaInfo } : {}),
       ...(extraCredit ? { credit: { extraCharged: extraCredit.weight, balance: extraCredit.balance } } : {}),
     });
   }

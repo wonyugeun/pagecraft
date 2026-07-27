@@ -60,6 +60,7 @@ export default function ResultMobile() {
   const [viewMode, setViewMode] = useState<'mobile' | 'pc'>('mobile');
   const [zoom, setZoom] = useState(100);
   const [htmlLoading, setHtmlLoading] = useState(false);
+  const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
   const [mergeLoading, setMergeLoading] = useState(false);
   const [captureLoading, setCaptureLoading] = useState(false);
 
@@ -187,6 +188,10 @@ export default function ResultMobile() {
     }
     const bal = (r.data as { credit?: { balance?: number } }).credit?.balance;
     if (typeof bal === 'number') setCredits(bal);
+    // ★남은 무료 재생성 표시(2026-07-27) — 데스크탑과 동일
+    const q = (r.data as { quota?: { freeRegenLeft?: number } }).quota;
+    if (typeof q?.freeRegenLeft === 'number') setFreeRegenLeft(q.freeRegenLeft);
+    else if ((r.data as { code?: string }).code === 'quota_exhausted') setFreeRegenLeft(0);
     return { data: r.data };
   };
 
@@ -689,6 +694,24 @@ export default function ResultMobile() {
                 <span style={{ fontSize: 10.5, fontWeight: 600, color: copyVariant === v ? '#A08FE0' : '#BBB' }}>{vDesc}</span>
               </button>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ★무료 재생성 잔여 안내(2026-07-27) — 데스크탑과 동일 정책 표시 */}
+      {freeRegenLeft !== null && (
+        <section style={{ padding: '12px 16px 0' }}>
+          <div style={{
+            background: freeRegenLeft > 0 ? '#F4F0FF' : '#FFFBEB',
+            border: `1px solid ${freeRegenLeft > 0 ? '#E6DEFF' : '#FDE68A'}`,
+            borderRadius: 12, padding: '10px 14px', fontSize: 12.5, lineHeight: 1.5,
+            color: freeRegenLeft > 0 ? '#5B3FD6' : '#92400E',
+            display: 'flex', alignItems: 'center', gap: 7,
+          }}>
+            <span>{freeRegenLeft > 0 ? '🎨' : '💳'}</span>
+            {freeRegenLeft > 0
+              ? <>이미지 무료 재생성 <b style={{ fontWeight: 800 }}>{freeRegenLeft}장</b> 남았어요</>
+              : <>무료 재생성을 모두 사용했어요 — 이후 1장당 1크레딧이 차감돼요</>}
           </div>
         </section>
       )}
