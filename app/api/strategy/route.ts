@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runStrategy } from '@/lib/stages/strategy';
-import { deductCreditsAtomic, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { consumeUsageQuota, deductCreditsAtomic, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { calculateGenerationCost, generationReason } from '@/lib/pricing';
@@ -47,6 +47,17 @@ export async function POST(req: NextRequest) {
           { error: `크레딧이 부족해요. (필요 ${cost} / 보유 ${r.balance})`, code: API_ERROR_CODES.insufficientCredits, cost, balance: r.balance, status: r.status },
           { status: 402 },
         );
+      }
+      // ★jobKey 재사용 상한(2026-07-27 보안점검) — duplicate는 정상 재시도·재개 경로라 허용하되,
+      //   같은 키로 무한 무료 재실행(Sonnet)이 되지 않게 횟수를 제한한다.
+      if (r.status === 'duplicate') {
+        const reuse = await consumeUsageQuota(`strategy-run:${jobKey}`, 1, 5);
+        if (!reuse.allowed) {
+          return NextResponse.json(
+            { error: '이미 사용된 생성 요청이에요. 새로 생성해주세요.', code: API_ERROR_CODES.paymentRequired },
+            { status: 402 },
+          );
+        }
       }
       credit = { cost, balance: r.balance, status: r.status };   // deducted | duplicate(재시도·재개)
     } catch (err) {

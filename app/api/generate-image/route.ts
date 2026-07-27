@@ -232,6 +232,13 @@ export async function POST(req: NextRequest) {
           );
         }
         const key = `img-extra:${jobKey}:${extraChargeKey.trim().slice(0, 64)}`;
+        // ★키 재사용 차단(2026-07-27 보안점검): deductCreditsAtomic은 같은 키 재호출 시 duplicate(재차감 X)를
+        //   돌려주므로, 그대로 통과시키면 하나의 키로 무한 유료 생성이 된다(잔액 0에서도).
+        //   클라이언트는 유료 확인마다 새 uuid를 발급하므로 1회용 강제는 정상 사용에 영향 없음.
+        const claim = await consumeUsageQuota(`img-extra-use:${key}`, 1, 1);
+        if (!claim.allowed) {
+          return errJson('이미 사용된 추가 생성 요청이에요. 다시 시도해주세요.', { sectionNum }, 409);
+        }
         const r = await deductCreditsAtomic(email, weight, key, 'image-extra');
         if (r.status === 'insufficient') {
           return errJson(

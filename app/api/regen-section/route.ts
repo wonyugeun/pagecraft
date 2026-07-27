@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { consumeUsageQuota, verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
@@ -29,6 +29,15 @@ export async function POST(req: NextRequest) {
     }
     const check = await verifyPaidJob(email, jobKey);
     if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
+    // ★jobKey당 재작성 상한(2026-07-27 보안점검) — 결제된 섹션 수 기준 넉넉한 상한(섹션당 3회 + 10).
+    //   상한이 없으면 결제된 jobKey 하나로 무한 Sonnet 재작성이 가능했다(잔액 0에서도).
+    const cap = await consumeUsageQuota(`regen:${jobKey}`, 1, check.paidSections * 3 + 10);
+    if (!cap.allowed) {
+      return NextResponse.json(
+        { error: '이 작업의 카피 재생성 횟수를 모두 사용했어요. 새로 생성해주세요.', code: API_ERROR_CODES.rateLimited },
+        { status: 429 },
+      );
+    }
   }
 
   const resolvedOut  = resolveOutputType(ch, out);

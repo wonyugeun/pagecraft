@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { deductCreditsAtomic, creditsBypassEnabled } from '@/lib/db';
+import { deductCreditsAtomic, creditsBypassEnabled, checkRateLimit, clientIp, consumeUsageQuota } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
@@ -67,11 +67,26 @@ export async function POST(req: NextRequest) {
     if (!jobKey || typeof jobKey !== 'string') {
       return NextResponse.json({ error: '생성 요청에 jobKey가 필요해요.' }, { status: 400 });
     }
+    // ★레이트리밋(2026-07-27 보안점검) — 유료 경로 중 유일하게 빠져 있었음
+    const rl = await checkRateLimit('llm', email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+    }
     const cost = calculateGenerationCost({ sectionCount: count });
     try {
       const r = await deductCreditsAtomic(email, cost, jobKey, generationReason(count));
       if (r.status === 'insufficient') {
         return NextResponse.json({ error: `크레딧이 부족해요. (필요 ${cost} / 보유 ${r.balance})` }, { status: 402 });
+      }
+      // ★jobKey 재사용 차단(2026-07-27 보안점검): duplicate는 '이미 차감된 키' — 그대로 통과시키면
+      //   한 번 결제한 jobKey로 무한 재생성이 된다. 네트워크 재시도 여지만 남기고(3회) 그 이상은 402.
+      if (r.status === 'duplicate') {
+        const reuse = await consumeUsageQuota(`gen-run:${jobKey}`, 1, 3);
+        if (!reuse.allowed) {
+          return NextResponse.json(
+            { error: '이미 사용된 생성 요청이에요. 새로 생성해주세요.' }, { status: 402 },
+          );
+        }
       }
     } catch (err) {
       console.error('[generate] 크레딧 차감 오류:', err);

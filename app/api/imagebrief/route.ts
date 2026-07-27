@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runImagebrief } from '@/lib/stages/imagebrief';
-import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp, consumeUsageQuota } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await runImagebrief({ dna, strategy, sections, copy, cat, ch, out, visual, productForm, productVolume, productShapeProfile, productName, productExtra });
+    // ★산출물 전달 기록(2026-07-27 보안점검) — copy와 동일 취지(환불 자격 판정용)
+    if (typeof jobKey === 'string' && jobKey) {
+      try { await consumeUsageQuota(`txt:${jobKey}`, 1, 10_000); } catch { /* 기록 실패는 생성 차단 사유 아님 */ }
+    }
     return NextResponse.json(result);
   } catch (err) {
     console.error('Imagebrief error:', err);

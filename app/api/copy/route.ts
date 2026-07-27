@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runCopy, runCopyChunk, COPY_MODEL_ALT, type StrategySummary } from '@/lib/stages/copy';
 import { resolveOutputType } from '@/lib/outputType';
-import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp, consumeUsageQuota } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
@@ -86,6 +86,11 @@ export async function POST(req: NextRequest) {
             })
           : Promise.resolve(null),
       ]);
+      // ★산출물 전달 기록(2026-07-27 보안점검) — 카피를 실제로 받아간 job은 '이미지 0장' 환불 대상에서 제외.
+      //   (이게 없으면 카피만 뽑고 환불받아 전 카피 파이프라인을 무료로 쓸 수 있었음)
+      if (typeof jobKey === 'string' && jobKey) {
+        try { await consumeUsageQuota(`txt:${jobKey}`, 1, 10_000); } catch { /* 기록 실패는 생성 차단 사유 아님 */ }
+      }
       return NextResponse.json({ sections: out_, sectionsB: outB ?? undefined, chunk: { startIndex, count: out_.length } });
     } catch (err) {
       console.error('Copy(chunk) error:', err);

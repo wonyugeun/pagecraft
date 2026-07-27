@@ -156,6 +156,9 @@ export interface RefundResult {
 export async function refundZeroOutputJob(email: string, jobKey: string): Promise<RefundResult> {
   const refundKey = `refund:zero-output:${jobKey}`;
   const imgKey = `img:${jobKey}`;
+  // ★텍스트 산출물 전달 여부(2026-07-27 보안점검) — 카피/이미지브리프를 받아간 job은 환불 불가.
+  //   '이미지 0장'만 보던 판정은 카피만 뽑고 전액 환불받는 무료 사용 경로였다.
+  const txtKey = `txt:${jobKey}`;
   const rows = await sql`
     WITH ded AS (
       SELECT -amount AS refund FROM credit_ledger
@@ -166,6 +169,7 @@ export async function refundZeroOutputJob(email: string, jobKey: string): Promis
     eligible AS (
       SELECT refund FROM ded
       WHERE NOT EXISTS (SELECT 1 FROM usage_counters WHERE scope_key = ${imgKey} AND count > 0)
+        AND NOT EXISTS (SELECT 1 FROM usage_counters WHERE scope_key = ${txtKey} AND count > 0)
         AND NOT EXISTS (SELECT 1 FROM credit_ledger WHERE idempotency_key = ${refundKey})
     ),
     r AS (
