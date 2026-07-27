@@ -4,9 +4,11 @@ import {
   Sparkles, FileText, Clock, RefreshCw,
   Check, ArrowLeft, ArrowRight, ThumbsUp, ScanSearch,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useApp, CH_CFG } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
+import TypeExampleModal from '@/components/modals/TypeExampleModal';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
 import { baseSectionCount } from '@/lib/sectionDepth';
@@ -20,6 +22,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 export default function TypeScreen() {
   const isMobile = useIsMobile();
   const { cat, ch, type, setType, go, goAfterType } = useApp();
+  const [exampleOpen, setExampleOpen] = useState(false);   // 실제 생성 예시 모달 — 훅은 모바일 분기보다 먼저
 
   if (isMobile) return <TypeMobile />;
 
@@ -304,6 +307,19 @@ export default function TypeScreen() {
                         </span>
                       </div>
                     )}
+                    {/* ★실제 생성 예시(2026-07-27) — 흐름 텍스트만으론 감이 안 와서 실물로 보여줌 */}
+                    <button
+                      onClick={e => { e.stopPropagation(); setExampleOpen(true); }}
+                      style={{
+                        marginTop: 10, alignSelf: 'flex-start',
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '7px 12px', borderRadius: 8,
+                        background: '#fff', border: '1px dashed #C9BFF5', color: '#6D4CFF',
+                        fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      🔍 실제 생성 예시 보기
+                    </button>
                   </div>
                 </div>
               )}
@@ -373,6 +389,8 @@ export default function TypeScreen() {
         nextDisabled={!type}
         hint={type ? `${type} 선택됨` : '구성을 선택하면 다음 단계로 이동합니다'}
       />
+
+      <TypeExampleModal open={exampleOpen} onClose={() => setExampleOpen(false)} />
     </div>
   );
 }

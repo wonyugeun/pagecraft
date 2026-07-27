@@ -5,7 +5,9 @@ import {
   ArrowLeft, ArrowRight, MoreHorizontal,
   Zap, Clock, BarChart3, TrendingUp, Star, StarHalf, ScanSearch,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useApp } from '@/store/AppContext';
+import TypeExampleModal from '@/components/modals/TypeExampleModal';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { baseSectionCount } from '@/lib/sectionDepth';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
@@ -93,6 +95,7 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
 export default function TypeMobile() {
   const { cat, ch, type, setType, go, goAfterType, toggleChat, credits } = useApp();
   const channelLabel = ch ?? '스마트스토어';
+  const [exampleOpen, setExampleOpen] = useState(false);   // 실제 생성 예시 모달
   // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스) + 그 개수만큼 칩 — 기본형 vs 프리미엄형 ~2배를 칩 양으로.
   const basicCount = baseSectionCount(cat, false);
   const premiumCount = baseSectionCount(cat, true);
@@ -223,6 +226,19 @@ export default function TypeMobile() {
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             <Lightbulb size={12} color="#6D4CFF" /> 추천 이유 보기 <ChevronDown size={12} color="#999" />
+          </button>
+          <button
+            onClick={() => setExampleOpen(true)}
+            style={{
+              marginTop: 14, marginLeft: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: '#fff', border: '1px dashed #C9BFF5', color: '#6D4CFF',
+              fontSize: 12, fontWeight: 700,
+              borderRadius: 999, padding: '8px 14px',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            🔍 실제 생성 예시 보기
           </button>
           {/* GPT 문서 + 방패 일러스트 자리 */}
           <div style={{
@@ -550,6 +566,7 @@ export default function TypeMobile() {
         </button>
       </nav>
 
+      <TypeExampleModal open={exampleOpen} onClose={() => setExampleOpen(false)} />
     </div>
   );
 }
