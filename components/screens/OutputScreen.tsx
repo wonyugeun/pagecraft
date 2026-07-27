@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Star, Zap, Check, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import StepHeader from '@/components/layout/StepHeader';
+import FlowNav from '@/components/layout/FlowNav';
 
 /* ── 블로그형 미리보기 ── */
 function BlogPreview() {
@@ -165,25 +167,11 @@ export default function OutputScreen() {
   return (
     <div style={{ maxWidth: '880px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <span style={{
-          display: 'inline-block', padding: '4px 13px', marginBottom: '16px',
-          border: '1.5px solid #D8CFFF', borderRadius: '100px',
-          fontSize: '11.5px', fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.04em',
-        }}>STEP 4 / 9</span>
-        <h1 style={{
-          fontSize: '28px', fontWeight: 800, color: '#111',
-          letterSpacing: '-0.04em', lineHeight: 1.3, marginBottom: '10px',
-        }}>
-          어떤 형태로 <span style={{ color: '#6D4CFF' }}>출력</span>할까요?
-        </h1>
-        <p style={{ fontSize: '14px', color: '#9CA3AF', marginBottom: '8px' }}>
-          {ch} · {type} — 출력 형태를 선택해주세요
-        </p>
-        <p style={{ fontSize: '12.5px', color: '#A89DD4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-          ✦ 나중에 변경도 가능합니다. ✏️
-        </p>
-      </div>
+      <StepHeader
+        step={4} label="출력 형태"
+        title={<>어떤 형태로 <span style={{ color: '#6D4CFF' }}>출력</span>할까요?</>}
+        sub={`${ch} · ${type} — 나중에 언제든 변경할 수 있어요`}
+      />
 
       <div className="cards-2col" style={{ marginBottom: '16px' }}>
         {OUTPUTS.map(o => {
@@ -269,36 +257,11 @@ export default function OutputScreen() {
         {/* '자세히 보기'(onClick 없는 죽은 버튼) 제거 — 안내 텍스트·아이콘만 유지 */}
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingTop: '24px', borderTop: '1px solid #EBEBEB',
-      }}>
-        <button onClick={() => go('s3')} style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          background: 'none', border: 'none',
-          fontSize: '13.5px', fontWeight: 600, color: '#9CA3AF', cursor: 'pointer',
-        }}>
-          <ArrowLeft size={15} /> 이전 단계
-        </button>
-        <button
-          disabled={!out}
-          onClick={() => out && go('s5')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '12px 26px',
-            background: out ? '#6D4CFF' : '#EDE8FF',
-            color: out ? '#fff' : '#B0A0E8',
-            border: 'none', borderRadius: '10px',
-            fontSize: '14px', fontWeight: 700,
-            cursor: out ? 'pointer' : 'not-allowed',
-            letterSpacing: '-0.01em',
-            boxShadow: out ? '0 4px 14px rgba(109,76,255,0.30)' : 'none',
-            transition: 'all 150ms ease',
-          }}
-        >
-          상품 정보 입력 →
-        </button>
-      </div>
+      <FlowNav
+        onBack={() => go('s3')}
+        onNext={() => out && go('s5')}
+        nextDisabled={!out}
+      />
     </div>
   );
 }

@@ -42,16 +42,16 @@ function PowerRow({ icon, label, basicLevel, premiumLevel }: {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Zap key={i} size={14}
-            color={i < basicLevel ? '#B45309' : '#E5E5EC'}
-            fill={i < basicLevel ? '#B45309' : '#E5E5EC'}
+            color={i < basicLevel ? '#6D4CFF' : '#E5E5EC'}
+            fill={i < basicLevel ? '#6D4CFF' : '#E5E5EC'}
           />
         ))}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
         {Array.from({ length: 5 }).map((_, i) => (
           <Zap key={i} size={14}
-            color={i < premiumLevel ? '#9B8FD4' : '#E5E5EC'}
-            fill={i < premiumLevel ? '#9B8FD4' : '#E5E5EC'}
+            color={i < premiumLevel ? '#6D4CFF' : '#E5E5EC'}
+            fill={i < premiumLevel ? '#6D4CFF' : '#E5E5EC'}
           />
         ))}
       </div>
@@ -81,10 +81,10 @@ function StarRow({ icon, label, basicStars, premiumStars }: {
         <span style={{ fontSize: 13, color: '#111', fontWeight: 500 }}>{label}</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-        {render(basicStars, '#B45309')}
+        {render(basicStars, '#6D4CFF')}
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-        {render(premiumStars, '#9B8FD4')}
+        {render(premiumStars, '#6D4CFF')}
       </div>
     </div>
   );
@@ -241,7 +241,7 @@ export default function TypeMobile() {
           onClick={() => onPick('프리미엄형')}
           style={{
             background: '#fff',
-            border: activeType === '프리미엄형' ? '2px solid #B45309' : '1.5px solid #ECECF2',
+            border: activeType === '프리미엄형' ? '2px solid #6D4CFF' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 20,
             cursor: 'pointer',
           }}
@@ -249,20 +249,20 @@ export default function TypeMobile() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: '#FEF3C7', flexShrink: 0,
+              background: '#F1EDFF', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Sparkles size={26} color="#B45309" />
+              <Sparkles size={26} color="#6D4CFF" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>프리미엄형</span>
                 <span style={{
-                  fontSize: 10, fontWeight: 700, color: '#92400E',
-                  background: '#FEF3C7', borderRadius: 999, padding: '2px 8px',
+                  fontSize: 10, fontWeight: 700, color: '#5B3FD6',
+                  background: '#F1EDFF', borderRadius: 999, padding: '2px 8px',
                 }}>AI 추천</span>
               </div>
-              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#B45309' }}>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>
                 신뢰·브랜딩 강화
               </div>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
@@ -271,9 +271,9 @@ export default function TypeMobile() {
               {/* 예시 섹션 칩 — 실제 개수만큼 전부(칩 양으로 차이) + 개수 */}
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#92400E' }}>예시 섹션</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#5B3FD6' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#B45309' }}>{premiumCount}</span>개 · {premiumCount}크레딧
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{premiumCount}</span>개 · {premiumCount}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
@@ -281,8 +281,8 @@ export default function TypeMobile() {
                     const Ic = iconFor(s);
                     return (
                       <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#FEF3C7', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Ic size={15} color="#B45309" strokeWidth={1.8} />
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#F1EDFF', border: '1px solid #D8CFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Ic size={15} color="#6D4CFF" strokeWidth={1.8} />
                         </div>
                         <span style={{ fontSize: 9.5, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.15 }}>{s}</span>
                       </div>
@@ -293,7 +293,7 @@ export default function TypeMobile() {
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {['브랜드 톤', '풍부한 정보', '감성 카피', '시각 요소'].map(c => (
                   <span key={c} style={{
-                    fontSize: 10.5, fontWeight: 600, color: '#92400E',
+                    fontSize: 10.5, fontWeight: 600, color: '#5B3FD6',
                     background: '#FEF9EC', borderRadius: 999, padding: '3px 10px',
                   }}>{c}</span>
                 ))}
@@ -301,7 +301,7 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '프리미엄형' ? '#B45309' : '#fff',
+              background: activeType === '프리미엄형' ? '#6D4CFF' : '#fff',
               border: activeType === '프리미엄형' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
@@ -318,7 +318,7 @@ export default function TypeMobile() {
           onClick={() => onPick('기본형')}
           style={{
             background: '#fff',
-            border: activeType === '기본형' ? '2px solid #9B8FD4' : '1.5px solid #ECECF2',
+            border: activeType === '기본형' ? '2px solid #6D4CFF' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 20,
             cursor: 'pointer',
           }}
@@ -329,7 +329,7 @@ export default function TypeMobile() {
               background: '#EDE8FF', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <FileText size={26} color="#9B8FD4" />
+              <FileText size={26} color="#6D4CFF" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -350,7 +350,7 @@ export default function TypeMobile() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7B6FB4' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#9B8FD4' }}>{basicCount}</span>개 · {basicCount}크레딧
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{basicCount}</span>개 · {basicCount}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
@@ -359,7 +359,7 @@ export default function TypeMobile() {
                     return (
                       <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EDE8FF', border: '1px solid #DDD4FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Ic size={15} color="#9B8FD4" strokeWidth={1.8} />
+                          <Ic size={15} color="#6D4CFF" strokeWidth={1.8} />
                         </div>
                         <span style={{ fontSize: 9.5, color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.15 }}>{s}</span>
                       </div>
@@ -378,7 +378,7 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '기본형' ? '#9B8FD4' : '#fff',
+              background: activeType === '기본형' ? '#6D4CFF' : '#fff',
               border: activeType === '기본형' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
@@ -394,8 +394,8 @@ export default function TypeMobile() {
         <div
           onClick={() => { if (ENABLE_REFERENCE_TYPE) onPick('래퍼런스형'); }}
           style={{
-            background: activeType === '래퍼런스형' ? '#F0FBF9' : '#fff',
-            border: activeType === '래퍼런스형' ? '2px solid #0E9384' : '1.5px solid #ECECF2',
+            background: activeType === '래퍼런스형' ? '#F8F6FF' : '#fff',
+            border: activeType === '래퍼런스형' ? '2px solid #6D4CFF' : '1.5px solid #ECECF2',
             borderRadius: 18, padding: 20,
             cursor: ENABLE_REFERENCE_TYPE ? 'pointer' : 'default',
             opacity: ENABLE_REFERENCE_TYPE ? 1 : 0.62,
@@ -404,22 +404,22 @@ export default function TypeMobile() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: '#D5F5EF', flexShrink: 0,
+              background: '#F1EDFF', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <ScanSearch size={26} color="#0E9384" />
+              <ScanSearch size={26} color="#6D4CFF" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 17, fontWeight: 800, color: '#111' }}>래퍼런스형</span>
                 <span style={{
                   fontSize: 10, fontWeight: 700,
-                  color: ENABLE_REFERENCE_TYPE ? '#0B7A6E' : '#6B7280',
-                  background: ENABLE_REFERENCE_TYPE ? '#D5F5EF' : '#F3F4F6',
+                  color: ENABLE_REFERENCE_TYPE ? '#5B3FD6' : '#6B7280',
+                  background: ENABLE_REFERENCE_TYPE ? '#F1EDFF' : '#F3F4F6',
                   borderRadius: 999, padding: '2px 8px',
                 }}>{ENABLE_REFERENCE_TYPE ? '구조 따라가기' : '준비 중'}</span>
               </div>
-              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#0B7A6E' }}>
+              <div style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: '#5B3FD6' }}>
                 닮고 싶은 페이지가 있다면
               </div>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#666', lineHeight: 1.55 }}>
@@ -428,7 +428,7 @@ export default function TypeMobile() {
               </p>
               {/* ★전용 설명 블록 — 어떻게 진행되나(3단계) + 따라가는 것/복제 안 하는 것 */}
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0E9384', marginBottom: 6 }}>이렇게 만들어져요</div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#6D4CFF', marginBottom: 6 }}>이렇게 만들어져요</div>
                 {[
                   '닮고 싶은 페이지를 캡처해서 올려요',
                   'AI가 섹션 순서·카피 톤·강조 패턴을 분석해요',
@@ -437,7 +437,7 @@ export default function TypeMobile() {
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0' }}>
                     <span style={{
                       width: 17, height: 17, borderRadius: '50%', flexShrink: 0,
-                      background: '#D5F5EF', color: '#0B7A6E',
+                      background: '#F1EDFF', color: '#5B3FD6',
                       fontSize: 10, fontWeight: 800,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
                     }}>{i + 1}</span>
@@ -445,9 +445,9 @@ export default function TypeMobile() {
                   </div>
                 ))}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6, marginTop: 8 }}>
-                  <div style={{ background: '#EBFAF7', border: '1px solid #C9F0E8', borderRadius: 9, padding: '8px 11px' }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0B7A6E' }}>✓ 따라가요</span>
-                    <span style={{ fontSize: 11, color: '#3B6B64', marginLeft: 6 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</span>
+                  <div style={{ background: '#F6F4FC', border: '1px solid #E8E4F4', borderRadius: 9, padding: '8px 11px' }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#5B3FD6' }}>✓ 따라가요</span>
+                    <span style={{ fontSize: 11, color: '#6B6490', marginLeft: 6 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</span>
                   </div>
                   <div style={{ background: '#FEF6F6', border: '1px solid #FBDCDC', borderRadius: 9, padding: '8px 11px' }}>
                     <span style={{ fontSize: 10.5, fontWeight: 700, color: '#B54545' }}>✕ 복제 안 해요</span>
@@ -461,7 +461,7 @@ export default function TypeMobile() {
             </div>
             <div style={{
               width: 24, height: 24, borderRadius: '50%',
-              background: activeType === '래퍼런스형' ? '#0E9384' : '#fff',
+              background: activeType === '래퍼런스형' ? '#6D4CFF' : '#fff',
               border: activeType === '래퍼런스형' ? 'none' : '1.5px solid #D9D9E3',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
@@ -485,8 +485,8 @@ export default function TypeMobile() {
             <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111' }}>한눈에 비교해보세요</div>
             <div style={{ textAlign: 'center' }}>
               <span style={{
-                fontSize: 11, fontWeight: 700, color: '#92400E',
-                background: '#FEF3C7', borderRadius: 6, padding: '3px 10px',
+                fontSize: 11, fontWeight: 700, color: '#5B3FD6',
+                background: '#F1EDFF', borderRadius: 6, padding: '3px 10px',
               }}>프리미엄형</span>
             </div>
             <div style={{ textAlign: 'center' }}>

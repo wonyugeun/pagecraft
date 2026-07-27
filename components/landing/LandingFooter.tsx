@@ -15,6 +15,7 @@ const FOOTER_COLS: { title: string; links: { label: string; href: string; extern
       { label: '기능', href: '/features' },
       { label: '템플릿', href: '/templates' },
       { label: '사용 가이드', href: '/guide' },
+      { label: '업데이트 소식', href: '/updates' },
     ],
   },
   {

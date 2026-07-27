@@ -5,19 +5,17 @@ import {
   Check, ArrowLeft, ArrowRight, ThumbsUp, ScanSearch,
 } from 'lucide-react';
 import { useApp, CH_CFG } from '@/store/AppContext';
+import StepHeader from '@/components/layout/StepHeader';
+import FlowNav from '@/components/layout/FlowNav';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
 import { baseSectionCount } from '@/lib/sectionDepth';
-import { iconFor } from '@/lib/sectionIcons';
+import { sectionDescription } from '@/lib/sectionGlossary';
 import TypeMobile from './TypeMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 // 예시 칩을 실제 섹션 개수(count)만큼 채움 — CAT_DEFAULTS 섹션명을 순환 사용해 부족분 보강.
 // 목적: 칩 '양'으로 기본형 vs 프리미엄형 차이(약 2배)를 한눈에 보여주기.
-function fillChips(secs: string[], count: number): string[] {
-  if (!secs.length) return [];
-  return Array.from({ length: count }, (_, i) => secs[i % secs.length]);
-}
 
 export default function TypeScreen() {
   const isMobile = useIsMobile();
@@ -38,9 +36,6 @@ export default function TypeScreen() {
   // ★실제 생성 섹션 수(DEPTH_BASE 단일 소스). 칩은 대표 맛보기, 개수는 이 값 기준 → 기본형 vs 프리미엄형 ~2배가 한눈에.
   const basicCount = baseSectionCount(cat, false);
   const premiumCount = baseSectionCount(cat, true);
-  // ★칩을 실제 개수만큼 전부 — 칩 양으로 차이가 보이게. (CAT_DEFAULTS 섹션명을 개수만큼 순환 보강)
-  const basicChips = fillChips(basicSecs, basicCount);
-  const premiumChips = fillChips(premiumSecs, premiumCount);
 
   const TYPES: Array<{
     key: string; accent: string; cardBg: string; iconBg: string;
@@ -53,127 +48,80 @@ export default function TypeScreen() {
     chips: string[];
     btnLabel: string; btnStyle: React.CSSProperties;
   }> = [
+    // ★폴리시 스프린트 2단계(2026-07-27): 3색(연보라/갈색/청록) → 브랜드 보라 단일 톤.
+    //   차이는 색이 아니라 내용(섹션 수·흐름)으로 보여준다.
     {
       key: '기본형',
-      accent: '#9B8FD4',
-      cardBg: '#F7F5FF',
-      iconBg: 'linear-gradient(135deg,#EDE8FF,#D8D0F0)',
+      accent: '#6D4CFF',
+      cardBg: '#F8F6FF',
+      iconBg: '#F1EDFF',
       Icon: FileText,
       topBadge: null,
       topBadgeBg: null,
       tagLabel: '구매 전환 집중',
-      tagStyle: { background: '#EDE8FF', color: '#7B6FB4' },
+      tagStyle: { background: '#F1EDFF', color: '#6D4CFF' },
       desc: '핵심만 빠르게, 구매 전환에 집중해요.\n스크롤을 짧게 — 임팩트 있는 메시지로 바로 행동을 유도합니다.',
       feats: ['핵심만 추림', '짧은 스크롤', '구매 전환 우선', '이미지 임팩트'],
-      featStyle: { background: '#F4F0FF', color: '#7B6FB4' },
-      secLabel: `예시 섹션 (${catLabel} 기준)`,
-      secLabelColor: '#9B8FD4',
+      featStyle: { background: '#F6F4FC', color: '#6B6490' },
+      secLabel: `섹션 흐름 (${catLabel} 기준)`,
+      secLabelColor: '#8B95A1',
       secCount: basicCount,
-      chips: basicChips,
+      chips: basicSecs,
       btnLabel: '기본형으로 만들기',
-      btnStyle: { background: '#fff', color: '#7B6FB4', border: '1.5px solid #C9BFE8' },
+      btnStyle: { background: '#fff', color: '#6D4CFF', border: '1.5px solid #D8CFFF' },
     },
     {
       key: '프리미엄형',
-      accent: '#B45309',
-      cardBg: '#FFFBEB',
-      iconBg: 'linear-gradient(135deg,#FEF3C7,#FDE68A)',
+      accent: '#6D4CFF',
+      cardBg: '#F8F6FF',
+      iconBg: '#F1EDFF',
       Icon: Sparkles,
       topBadge: 'AI 추천',
-      topBadgeBg: '#B45309',
+      topBadgeBg: '#6D4CFF',
       tagLabel: '신뢰·브랜딩 강화',
-      tagStyle: { background: '#FEF3C7', color: '#92400E' },
+      tagStyle: { background: '#F1EDFF', color: '#6D4CFF' },
       desc: '정보를 충분히 담아 신뢰도와 브랜딩을 강화해요.\n브랜드 세계관·감성 카피·시각 요소까지 풍부하게 구성합니다.',
       feats: ['브랜드 스토리', '감성 카피', '성분/근거 풍부', '시각 요소 풍부'],
-      featStyle: { background: '#FEF9EC', color: '#92400E' },
-      secLabel: `예시 섹션 (${catLabel} 기준)`,
-      secLabelColor: '#B45309',
+      featStyle: { background: '#F6F4FC', color: '#6B6490' },
+      secLabel: `섹션 흐름 (${catLabel} 기준)`,
+      secLabelColor: '#8B95A1',
       secCount: premiumCount,
-      chips: premiumChips,
+      chips: premiumSecs,
       btnLabel: '프리미엄형으로 만들기',
-      btnStyle: { background: '#B45309', color: '#fff' },
+      btnStyle: { background: '#fff', color: '#6D4CFF', border: '1.5px solid #D8CFFF' },
     },
     // ★래퍼런스형(2026-07-22) — 세 번째 갈래. 닮고 싶은 페이지 캡처를 분석해 구조·톤을 따라감.
     //   섹션 수·구성은 분석한 페이지를 따라가므로 고정 개수 대신 예시 흐름을 보여준다.
     {
       key: '래퍼런스형',
-      accent: '#0E9384',
-      cardBg: '#F0FBF9',
-      iconBg: 'linear-gradient(135deg,#D5F5EF,#A8E8DD)',
+      accent: '#6D4CFF',
+      cardBg: '#F8F6FF',
+      iconBg: '#F1EDFF',
       Icon: ScanSearch,
       topBadge: null,
       topBadgeBg: null,
       tagLabel: '닮고 싶은 페이지',
-      tagStyle: { background: '#D5F5EF', color: '#0B7A6E' },
+      tagStyle: { background: '#F1EDFF', color: '#6D4CFF' },
       desc: '잘나가는 페이지의 "팔리는 흐름"을 내 제품으로 재현해요.\n예) 1위 페이지가 공감 → 성분 → 비교표 → 후기 순서라면, 내 페이지도 같은 흐름으로.',
       feats: ['스마트스토어·쿠팡 캡처 OK', '섹션 순서 분석', '카피 톤 분석'],
-      featStyle: { background: '#EBFAF7', color: '#0B7A6E' },
+      featStyle: { background: '#F6F4FC', color: '#6B6490' },
       secLabel: '',                    // 래퍼런스형은 칩 대신 전용 설명 블록 렌더
-      secLabelColor: '#0E9384',
+      secLabelColor: '#8B95A1',
       secCount: null,
       chips: [],
       btnLabel: '래퍼런스로 만들기',
-      btnStyle: { background: '#fff', color: '#0B7A6E', border: '1.5px solid #7DD8CA' },
+      btnStyle: { background: '#fff', color: '#6D4CFF', border: '1.5px solid #D8CFFF' },
     },
   ];
 
   return (
     <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
-      {/* 상단 헤더 — 텍스트 + 일러스트 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', gap: '24px' }}>
-        <div style={{ flex: 1 }}>
-          <span style={{
-            display: 'inline-block', padding: '4px 13px', marginBottom: '14px',
-            border: '1.5px solid #D8CFFF', borderRadius: '100px',
-            fontSize: '11.5px', fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.04em',
-          }}>STEP 3 / 9</span>
-          <h1 style={{
-            fontSize: '28px', fontWeight: 800, color: '#111',
-            letterSpacing: '-0.04em', lineHeight: 1.3, marginBottom: '10px',
-          }}>
-            어떤 <span style={{ color: '#6D4CFF' }}>방향으로</span><br />
-            상세페이지를 만들까요?
-          </h1>
-          <p style={{ fontSize: '14px', color: '#666', lineHeight: 1.6 }}>
-            AI가 카테고리·채널·상품을 분석해 적정 섹션 수를 자동 추천해요.<br />
-            <span style={{ color: '#6D4CFF', fontWeight: 600 }}>기본형 / 프리미엄형 / 래퍼런스형</span> 중 방향만 정하면 됩니다.
-          </p>
-        </div>
-
-        {/* 우측 일러스트 */}
-        <div style={{ flexShrink: 0, position: 'relative', width: '160px', height: '130px' }}>
-          {/* 메인 카드 */}
-          <div style={{
-            position: 'absolute', top: '10px', left: '20px',
-            width: '100px', background: '#fff', borderRadius: '12px',
-            border: '1px solid #E4DCFF', padding: '10px',
-            boxShadow: '0 4px 16px rgba(109,76,255,0.12)',
-          }}>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#C4B5FD', marginBottom: '6px', letterSpacing: '-0.02em' }}>Aa</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div style={{ height: '6px', background: '#EDE9FE', borderRadius: '3px', width: '100%' }} />
-              <div style={{ height: '6px', background: '#EDE9FE', borderRadius: '3px', width: '75%' }} />
-              <div style={{ height: '22px', background: 'linear-gradient(135deg,#EDE8FF,#D8CFFF)', borderRadius: '5px', marginTop: '3px' }} />
-              <div style={{ height: '5px', background: '#F3F0FF', borderRadius: '3px', width: '90%', marginTop: '2px' }} />
-              <div style={{ height: '5px', background: '#F3F0FF', borderRadius: '3px', width: '60%' }} />
-            </div>
-          </div>
-          {/* 마법봉 원 */}
-          <div style={{
-            position: 'absolute', bottom: '0px', right: '0px',
-            width: '52px', height: '52px', borderRadius: '50%',
-            background: 'linear-gradient(135deg,#6D4CFF,#9B6DFF)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(109,76,255,0.35)',
-          }}>
-            <Sparkles size={22} color="#fff" />
-          </div>
-          {/* 장식 스파클 */}
-          <div style={{ position: 'absolute', top: '4px', right: '10px', fontSize: '12px', color: '#C4B5FD' }}>✦</div>
-          <div style={{ position: 'absolute', bottom: '14px', left: '8px', fontSize: '9px', color: '#DDD6FE' }}>✦</div>
-        </div>
-      </div>
+      <StepHeader
+        step={3} label="타입"
+        title={<>어떤 <span style={{ color: '#6D4CFF' }}>방향으로</span> 만들까요?</>}
+        sub={<>AI가 카테고리·채널·상품을 분석해 적정 섹션 수를 자동 추천해요 — <b style={{ color: '#6D4CFF', fontWeight: 600 }}>방향만 정하면 됩니다</b></>}
+      />
 
       {/* AI 추천 배너 */}
       <div style={{
@@ -289,7 +237,7 @@ export default function TypeScreen() {
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', padding: '5px 0' }}>
                       <span style={{
                         width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-                        background: '#D5F5EF', color: '#0B7A6E',
+                        background: '#F1EDFF', color: '#6D4CFF',
                         fontSize: '10.5px', fontWeight: 800,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '1px',
                       }}>{i + 1}</span>
@@ -298,9 +246,9 @@ export default function TypeScreen() {
                   ))}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '7px', marginTop: '10px' }}>
-                    <div style={{ background: '#EBFAF7', border: '1px solid #C9F0E8', borderRadius: '9px', padding: '9px 12px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#0B7A6E', marginBottom: '3px' }}>✓ 따라가요</div>
-                      <div style={{ fontSize: '11.5px', color: '#3B6B64', lineHeight: 1.55 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</div>
+                    <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: '9px', padding: '9px 12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', marginBottom: '3px' }}>✓ 따라가요</div>
+                      <div style={{ fontSize: '11.5px', color: '#3F6B4F', lineHeight: 1.55 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</div>
                     </div>
                     <div style={{ background: '#FEF6F6', border: '1px solid #FBDCDC', borderRadius: '9px', padding: '9px 12px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: '#B54545', marginBottom: '3px' }}>✕ 복제 안 해요</div>
@@ -313,7 +261,8 @@ export default function TypeScreen() {
                   </div>
                 </div>
               ) : (
-                /* 예시 섹션: ★실제 개수만큼 칩 전부 — 칩 양(빽빽함)으로 프리미엄형이 약 2배 많은 게 한눈에 */
+                /* ★섹션 흐름 미리보기(2026-07-27): 아이콘 격자 대신 이름 흐름 + 분량 바 —
+                   "무엇이 어떤 순서로 나오나"가 읽히고, 기본↔프리미엄 차이는 개수·바 길이로 전달 */
                 <div>
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '10px', gap: '8px' }}>
                     <span style={{ fontSize: '11.5px', fontWeight: 700, color: t.secLabelColor, letterSpacing: '-0.01em' }}>
@@ -323,23 +272,38 @@ export default function TypeScreen() {
                       <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션 · {t.secCount}크레딧
                     </span>
                   </div>
-                  {/* 원래 스타일: 박스(소프트 배경) 안 큰 아이콘 + 아래 섹션명, 5열 격자. 박스 개수=실제 섹션수. */}
-                  <div className="cards-5col">
-                    {t.chips.map((s, i) => {
-                      const Ic = iconFor(s);
-                      return (
-                        <div key={`${s}-${i}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                          <div style={{
-                            width: '40px', height: '40px', borderRadius: '10px',
-                            background: `${t.accent}18`, border: `1px solid ${t.accent}30`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <Ic size={16} color={t.accent} strokeWidth={1.8} />
-                          </div>
-                          <span style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500, textAlign: 'center', lineHeight: 1.2 }}>{s}</span>
-                        </div>
-                      );
-                    })}
+                  {/* 분량 바 — 프리미엄형(최대) 대비 상대 길이 */}
+                  <div style={{ height: 6, borderRadius: 3, background: '#EFEDF7', marginBottom: 12, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#8E75FF,#6D4CFF)',
+                      width: `${Math.round(((t.secCount ?? 0) / Math.max(premiumCount, 1)) * 100)}%`,
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {t.chips.slice(0, 5).map((sname, i) => (
+                      <div key={`${sname}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0' }}>
+                        <span style={{
+                          width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                          background: '#F1EDFF', color: '#6D4CFF',
+                          fontSize: '10.5px', fontWeight: 800,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>{i + 1}</span>
+                        <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#4E5968', letterSpacing: '-0.01em', whiteSpace: 'nowrap', flexShrink: 0 }}>{sname}</span>
+                        {sectionDescription(sname) && (
+                          <span style={{ fontSize: '11px', color: '#B4AECB', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                            {sectionDescription(sname)?.split(' — ')[0]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {(t.secCount ?? 0) > 5 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 0' }}>
+                        <span style={{ width: 18, textAlign: 'center', color: '#C2BBDB', fontSize: 12, flexShrink: 0 }}>⋮</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: t.accent }}>
+                          후기·FAQ·CTA까지 +{(t.secCount ?? 0) - 5}개 더
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -357,8 +321,7 @@ export default function TypeScreen() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                   transition: 'all 150ms ease',
                   ...t.btnStyle,
-                  ...(selected && t.key === '기본형' ? { background: '#9B8FD4', color: '#fff', border: 'none' } : {}),
-                  ...(selected && t.key === '래퍼런스형' ? { background: '#0E9384', color: '#fff', border: 'none' } : {}),
+                  ...(selected ? { background: '#6D4CFF', color: '#fff', border: 'none', boxShadow: '0 4px 14px rgba(109,76,255,0.30)' } : {}),
                   ...(comingSoon ? { background: '#F3F4F6', color: '#9CA3AF', border: '1.5px solid #E5E7EB' } : {}),
                 }}
               >
@@ -404,40 +367,12 @@ export default function TypeScreen() {
         </div>
       </div>
 
-      {/* 네비 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingTop: '24px', borderTop: '1px solid #EBEBEB',
-      }}>
-        <button onClick={() => go('s2')} style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          background: 'none', border: 'none',
-          fontSize: '13.5px', fontWeight: 600, color: '#9CA3AF', cursor: 'pointer',
-        }}>
-          <ArrowLeft size={15} /> 이전 단계
-        </button>
-        <span style={{ fontSize: '12px', color: '#C4C4C4' }}>
-          {type ? `${type} 선택됨` : '구성을 선택하면 다음 단계로 이동합니다'}
-        </span>
-        <button
-          disabled={!type}
-          onClick={() => goAfterType()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '12px 26px',
-            background: type ? '#6D4CFF' : '#EDE8FF',
-            color: type ? '#fff' : '#B0A0E8',
-            border: 'none', borderRadius: '10px',
-            fontSize: '14px', fontWeight: 700,
-            cursor: type ? 'pointer' : 'not-allowed',
-            letterSpacing: '-0.01em',
-            boxShadow: type ? '0 4px 14px rgba(109,76,255,0.30)' : 'none',
-            transition: 'all 150ms ease',
-          }}
-        >
-          다음 단계로 <ArrowRight size={15} />
-        </button>
-      </div>
+      <FlowNav
+        onBack={() => go('s2')}
+        onNext={() => goAfterType()}
+        nextDisabled={!type}
+        hint={type ? `${type} 선택됨` : '구성을 선택하면 다음 단계로 이동합니다'}
+      />
     </div>
   );
 }

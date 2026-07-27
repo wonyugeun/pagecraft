@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react';
 import { compressUpload } from '@/lib/imageCompress';
 import { useApp } from '@/store/AppContext';
+import StepHeader from '@/components/layout/StepHeader';
+import FlowNav from '@/components/layout/FlowNav';
 import ImageMobile from './ImageMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import {
@@ -195,16 +197,12 @@ export default function ImageScreen() {
       maxWidth: 1100, margin: '0 auto', padding: '40px 40px 100px',
       fontFamily: 'var(--f)',
     }}>
-      {/* 타이틀 */}
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', color: '#111', lineHeight: 1.3 }}>
-          제품 사진 한 장만 주세요
-        </h1>
-        <p style={{ fontSize: 15, color: '#666', marginTop: 8, lineHeight: 1.6 }}>
-          제품이 잘 보이는 사진이면 충분해요 — AI가{' '}
-          <span style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</span>에 필요한 이미지를 전부 만들어요
-        </p>
-      </div>
+      <StepHeader
+        step={7} label="이미지"
+        title="제품 사진 한 장만 주세요"
+        sub={<>제품이 잘 보이는 사진이면 충분해요 — AI가 <b style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</b>에 필요한 이미지를 전부 만들어요</>}
+        marginBottom={28}
+      />
 
       {/* 2단 그리드 (모바일 1단) */}
       <div className="layout-grid-image">
@@ -433,37 +431,13 @@ export default function ImageScreen() {
         </div>
       </div>
 
-      {/* 하단 네비 */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 32,
-      }}>
-        <button
-          onClick={goPrev}
-          style={{
-            height: 44, border: '1px solid #ECECF2', background: '#fff', color: '#666',
-            fontWeight: 700, fontSize: 14, borderRadius: 16, padding: '0 20px',
-            cursor: 'pointer', fontFamily: 'var(--f)',
-          }}
-        >
-          ← 이전
-        </button>
-        <button
-          onClick={goNext}
-          style={{
-            height: 44, background: '#6D4CFF', color: '#fff', border: 'none',
-            fontWeight: 700, fontSize: 14, borderRadius: 16, padding: '0 24px',
-            cursor: 'pointer', fontFamily: 'var(--f)',
-            boxShadow: '0 4px 14px rgba(109,76,255,0.30)',
-          }}
-        >
-          다음 단계로 →
-        </button>
+      <div style={{ marginTop: 24 }}>
+        <FlowNav
+          onBack={goPrev}
+          onNext={goNext}
+          hint="사진이 없어도 괜찮아요 — AI가 제품 정보로 알아서 생성해요"
+        />
       </div>
-      <p style={{
-        textAlign: 'center', fontSize: 12.5, color: '#999', marginTop: 14,
-      }}>
-        사진이 없어도 괜찮아요 — AI가 제품 정보로 알아서 생성해요
-      </p>
     </div>
   );
 }

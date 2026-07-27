@@ -7,6 +7,7 @@ import {
   Gift, ChevronRight,
 } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import StepHeader from '@/components/layout/StepHeader';
 import CategoryMobile from './CategoryMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -54,27 +55,14 @@ export default function CategoryScreen() {
   };
 
   return (
-    <div style={{ height: '100vh', overflowY: 'auto', fontFamily: 'var(--f)', background: '#F8F9FA' }}>
+    <div style={{ height: '100vh', overflowY: 'auto', fontFamily: 'var(--f)' }}>
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '36px 48px 60px' }}>
 
-          {/* 타이틀 — 가운데 정렬 */}
-          <div style={{ marginBottom: '36px', textAlign: 'center' }}>
-            <h1 style={{
-              fontSize: '28px', fontWeight: 800, color: '#1A1A1A',
-              letterSpacing: '-0.04em', lineHeight: 1.2, marginBottom: '10px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0', flexWrap: 'wrap',
-            }}>
-              어떤&nbsp;
-              <span style={{ color: '#6D4CFF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                카테고리
-                <Sparkles size={22} style={{ color: '#6D4CFF', flexShrink: 0 }} />
-              </span>
-              &nbsp;의 상세페이지를 만들까요?
-            </h1>
-            <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6 }}>
-              카테고리를 선택하면 최적화된 기획 구조로 자동 설계됩니다
-            </p>
-          </div>
+          <StepHeader
+            step={1} label="카테고리"
+            title={<>어떤 <span style={{ color: '#6D4CFF' }}>카테고리</span>의 상세페이지를 만들까요?</>}
+            sub="카테고리를 선택하면 최적화된 기획 구조로 자동 설계됩니다"
+          />
 
           {/* 카테고리 그리드 (데스크톱 4열 / 태블릿 3열 / 모바일 2열) */}
           <div

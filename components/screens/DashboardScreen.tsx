@@ -11,6 +11,7 @@ import { useApp, HistoryItem } from '@/store/AppContext';
 import { getImages } from '@/lib/historyDB';
 import DashboardMobile from './DashboardMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import UpdateNoticeModal from '@/components/UpdateNoticeModal';
 
 // ── 유틸 ─────────────────────────────────────────────────
 function fmt(iso: string) {
@@ -272,6 +273,7 @@ export default function DashboardScreen() {
       background: '#FAFAFC',
       fontFamily: "'Pretendard','Noto Sans KR',sans-serif",
     }}>
+      <UpdateNoticeModal />
 
       {/* ★좌측 정렬 + 가로 확장(중앙정렬 제거). 전체 폭 활용하되 초광폭은 1520에서 캡. 좌측 정렬선 통일. */}
       <div style={{ maxWidth: 1520, margin: 0, wordBreak: 'keep-all', padding: '24px 40px 48px' }}>

@@ -1,0 +1,74 @@
+/**
+ * 업데이트 소식 단일 소스 — /updates 페이지와 대시보드 새 소식 팝업이 같이 쓴다.
+ *
+ * 새 배포 시 맨 앞에 한 블록 추가. id는 'YYYY-MM-DD' (하루 2건이면 '-b' 등 접미사).
+ * 팝업은 id가 바뀐 걸 감지해 1회만 뜨므로, 내용만 고칠 땐 id를 유지해야 재팝업이 없다.
+ * ★내부 용어(모델명·스테이지명·커밋 컨벤션) 금지 — 셀러 언어로만.
+ */
+export interface UpdateEntry {
+  id: string;
+  date: string;
+  title: string;
+  items: string[];
+}
+
+export const UPDATES: UpdateEntry[] = [
+  {
+    id: '2026-07-27',
+    date: '2026년 7월 27일',
+    title: '블로그형 결과물이 더 읽기 좋아졌어요',
+    items: [
+      '핵심 문구 자동 강조 — 중요한 팩트는 굵게, 결정적인 한 줄은 포인트 컬러로 표시돼요 (클릭하면 직접 수정할 수 있어요)',
+      '콜라주 컷 — 제조 과정·구성 같은 섹션은 한 장 안에 3분할 콜라주로 더 풍성하게 보여줘요',
+      '구매 정보 요약 카드 — 마지막 섹션에 가격·용량·보관·배송 정보가 카드로 정리돼요 (입력한 정보만 사용해요)',
+      '후기 카드 — 후기가 2개 이상이면 나란히 카드로 배치돼 더 깔끔해요',
+      '섹션 구조 화면에 각 섹션이 어떤 역할인지 한 줄 설명이 추가됐어요',
+    ],
+  },
+  {
+    id: '2026-07-25',
+    date: '2026년 7월 25일',
+    title: '카피가 더 간결해졌어요',
+    items: [
+      '같은 말이 여러 섹션에서 반복되던 문제를 고쳤어요 — 섹션마다 자기 역할에 맞는 이야기만 해요',
+      '설명이 길어지지 않도록 섹션 성격별로 알맞은 분량을 지키도록 했어요',
+    ],
+  },
+  {
+    id: '2026-07-22',
+    date: '2026년 7월 22일',
+    title: '이미지 재생성 정책과 새 타입 준비',
+    items: [
+      '이미지 재생성은 페이지당 10장까지 무료, 이후 장당 1크레딧이에요',
+      '생성 과정이 9단계로 줄었어요 — 래퍼런스 분석이 별도 단계에서 타입 선택 안으로 통합됐어요',
+      '래퍼런스형(참고 페이지 스타일 따라 만들기)이 준비 중 상태로 공개됐어요',
+    ],
+  },
+  {
+    id: '2026-07-21',
+    date: '2026년 7월 21일',
+    title: '내보내기와 결제 안정성 개선',
+    items: [
+      '스마트스토어 내보내기 — HTML 복사 한 번, 통이미지 1장 저장을 지원해요',
+      '모바일에서도 블로그형 결과물을 통이미지로 저장할 수 있어요',
+      '빠른제작·썸네일 생성이 실패하면 크레딧이 자동으로 환불돼요',
+      '결과 화면에서 새로고침해도 마지막 작업이 자동으로 다시 열려요',
+    ],
+  },
+];
+
+export const LATEST_UPDATE = UPDATES[0];
+
+const SEEN_KEY = 'flik_seen_update';
+
+/** 아직 안 본 새 업데이트가 있으면 반환(클라이언트 전용) */
+export function getUnseenUpdate(): UpdateEntry | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(SEEN_KEY) === LATEST_UPDATE.id ? null : LATEST_UPDATE;
+  } catch { return null; }
+}
+
+export function markUpdateSeen(): void {
+  try { localStorage.setItem(SEEN_KEY, LATEST_UPDATE.id); } catch {}
+}

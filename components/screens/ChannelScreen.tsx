@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import StepHeader from '@/components/layout/StepHeader';
+import FlowNav from '@/components/layout/FlowNav';
 import ChannelMobile from './ChannelMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -77,41 +79,14 @@ export default function ChannelScreen() {
   };
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 106px)',
-      background: 'radial-gradient(1100px 500px at 50% -140px, #F1EBFF 0%, rgba(241,235,255,0) 62%), #FDFDFF',
-      fontFamily: 'var(--f)',
-    }}>
-      <div style={{ maxWidth: '820px', margin: '0 auto', padding: '56px 24px 90px' }}>
+    <div style={{ minHeight: 'calc(100vh - 106px)', fontFamily: 'var(--f)' }}>
+      <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 90px' }}>
 
-        {/* 헤더 */}
-        <div style={{ textAlign: 'center', marginBottom: '44px' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '7px',
-            background: '#fff', border: '1px solid #E8E3FA', borderRadius: '999px',
-            padding: '7px 16px', marginBottom: '20px',
-            boxShadow: '0 2px 10px rgba(109,76,255,0.07)',
-            fontSize: '12px', fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.05em',
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
-            STEP 2 · 판매 채널
-          </div>
-          <h1 style={{
-            fontSize: '36px', fontWeight: 800, color: '#191F28',
-            letterSpacing: '-0.035em', lineHeight: 1.22, marginBottom: '14px',
-          }}>
-            어디에서{' '}
-            <span style={{
-              background: 'linear-gradient(120deg, #6D4CFF 20%, #9C6BFF 80%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>판매</span>
-            하시나요?
-          </h1>
-          <p style={{ fontSize: '15px', color: '#8B95A1', lineHeight: 1.7 }}>
-            채널을 선택하면 바로 다음 단계로 넘어가요<br />
-            <span style={{ fontSize: '13.5px', color: '#AEB6C0' }}>페이지 구조가 채널 특성에 맞게 설계됩니다</span>
-          </p>
-        </div>
+        <StepHeader
+          step={2} label="판매 채널"
+          title={<>어디에서 <span style={{ color: '#6D4CFF' }}>판매</span>하시나요?</>}
+          sub="채널을 선택하면 페이지 구조가 채널 특성에 맞게 설계돼요"
+        />
 
         {/* 채널 카드 2×2 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '40px' }}>
@@ -120,21 +95,7 @@ export default function ChannelScreen() {
           ))}
         </div>
 
-        {/* 하단 — 이전만 */}
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button onClick={() => go('s1')} style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            background: 'none', border: 'none',
-            fontSize: '13.5px', fontWeight: 600, color: '#9CA3AF',
-            cursor: 'pointer', padding: '8px 14px', borderRadius: '10px',
-            fontFamily: 'inherit', transition: 'color .15s',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#6D4CFF')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#9CA3AF')}
-          >
-            <ArrowLeft size={15} /> 카테고리 다시 선택
-          </button>
-        </div>
+        <FlowNav onBack={() => go('s1')} hint="채널을 선택하면 바로 다음 단계로 넘어가요" />
       </div>
     </div>
   );

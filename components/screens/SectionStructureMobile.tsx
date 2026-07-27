@@ -8,6 +8,7 @@ import {
 import { useApp } from '@/store/AppContext';
 import { ALL_SECTIONS } from './SectionStructureScreen';
 import { useInitialSections } from '@/hooks/useInitialSections';
+import { sectionDescription } from '@/lib/sectionGlossary';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -232,8 +233,11 @@ export default function SectionStructureMobile() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>{i + 1}</div>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#111' }}>
-                  {sec}
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#111' }}>{sec}</span>
+                  {sectionDescription(sec) && (
+                    <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 2, lineHeight: 1.45 }}>{sectionDescription(sec)}</span>
+                  )}
                 </span>
                 {isActive ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

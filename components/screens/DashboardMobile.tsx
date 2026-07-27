@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useApp, HistoryItem } from '@/store/AppContext';
+import UpdateNoticeModal from '@/components/UpdateNoticeModal';
 import {
   Zap, Image as ImageIcon, MoreVertical,
   Sparkles, BarChart3, ArrowRight, ChevronDown,
@@ -114,6 +115,7 @@ export default function DashboardMobile() {
       fontFamily: 'Pretendard, sans-serif',
       paddingBottom: '32px',
     }}>
+      <UpdateNoticeModal />
 
       {/* 1) 상단 헤더 */}
       <header style={{

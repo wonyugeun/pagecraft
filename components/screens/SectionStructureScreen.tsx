@@ -5,6 +5,8 @@ import { useApp } from '@/store/AppContext';
 import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
+import { sectionDescription } from '@/lib/sectionGlossary';
+import StepHeader from '@/components/layout/StepHeader';
 
 export const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
   화장품: {
@@ -126,11 +128,12 @@ export default function SectionStructureScreen() {
 
   return (
     <div className="inner">
-      <div className="stitle">섹션 구조를 확인해주세요</div>
-      <div className="ssub">
-        {fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'}
-        {' — 순서 변경·추가·삭제가 가능해요'}
-      </div>
+      <StepHeader
+        step={6} label="섹션 구조"
+        title="섹션 구조를 확인해주세요"
+        sub={`${fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'} — 순서 변경·추가·삭제가 가능해요`}
+        marginBottom={28}
+      />
       {(fromRef || fromCapture) && (
         <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, color: '#166534', fontWeight: 600 }}>
           📐 참고 페이지 구조가 자동 반영됐어요. 아래에서 자유롭게 수정하세요.
@@ -183,7 +186,12 @@ export default function SectionStructureScreen() {
             }}>
               {i + 1}
             </span>
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--tx1)' }}>{sec}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--tx1)' }}>{sec}</span>
+              {sectionDescription(sec) && (
+                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--tx3)', marginTop: 2, lineHeight: 1.45 }}>{sectionDescription(sec)}</span>
+              )}
+            </span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button
                 style={i === 0 ? BTN_DIS : BTN_SHARED}
@@ -246,6 +254,7 @@ export default function SectionStructureScreen() {
               <button
                 key={s}
                 onClick={() => addSection(s)}
+                title={sectionDescription(s)}
                 style={{
                   padding: '5px 10px', borderRadius: 20,
                   border: '1px solid var(--bd)', background: '#fff',

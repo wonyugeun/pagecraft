@@ -4,7 +4,8 @@ import { useState, useRef } from 'react';
 import { useApp } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { pickTestPreset } from '@/lib/testPresets';
+import { pickTestPreset, TEST_PRESETS, type TestPreset } from '@/lib/testPresets';
+import StepHeader from '@/components/layout/StepHeader';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
 
@@ -1063,8 +1064,7 @@ export default function ProductScreen() {
   // 다음 클릭 → 전체 입력값을 직렬화해 AppContext에 저장
   // ── 개발용 테스트 데이터 채우기 (dev 전용 — 아래 버튼도 dev 게이트로만 렌더) ──
   const isDev = process.env.NODE_ENV === 'development';
-  const fillTestData = () => {
-    const p = pickTestPreset(cat);
+  const fillTestData = (p: TestPreset) => {
     setProductName(p.productName);
     setBrand(p.brand);
     setDiff(p.diff);
@@ -1145,15 +1145,12 @@ export default function ProductScreen() {
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 6 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.03em', color: '#111' }}>
-          상품 정보를 입력해주세요 ✦
-        </div>
-        <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4, lineHeight: 1.6 }}>
-          {cat} · {ch} · {type} 기준 — 꼭 필요한 정보만 물어볼게요
-        </div>
-      </div>
+      <StepHeader
+        step={5} label="상품 정보"
+        title="상품 정보를 입력해주세요"
+        sub={`${cat} · ${ch} · ${type} 기준 — 꼭 필요한 정보만 물어볼게요`}
+        marginBottom={24}
+      />
 
       {/* ⚠️ 법적 경고 — 입력 정보는 그대로 상세페이지에 반영, 책임은 판매자 (입력 처리 로직 불변, 안내 UI만) */}
       <div style={{
@@ -1172,17 +1169,22 @@ export default function ProductScreen() {
 
       {/* ★개발 전용 — 테스트 데이터 채우기 (프로덕션 빌드에선 NODE_ENV 게이트로 렌더 안 됨) */}
       {isDev && (
-        <button
-          type="button"
-          onClick={fillTestData}
-          style={{
-            marginBottom: 20, padding: '10px 16px', borderRadius: 10,
-            border: '1px dashed #F59E0B', background: '#FFFBEB', color: '#92400E',
-            fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          🧪 [DEV] 테스트 데이터 채우기 — {pickTestPreset(cat).label}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+          {(TEST_PRESETS.some(tp => tp.cat === cat) ? TEST_PRESETS.filter(tp => tp.cat === cat) : [pickTestPreset(cat)]).map(tp => (
+            <button
+              key={tp.label}
+              type="button"
+              onClick={() => fillTestData(tp)}
+              style={{
+                padding: '10px 16px', borderRadius: 10,
+                border: '1px dashed #F59E0B', background: '#FFFBEB', color: '#92400E',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              🧪 [DEV] {tp.label}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* 2-column layout */}
@@ -1524,27 +1526,13 @@ export default function ProductScreen() {
           {/* (제거됨 2026-07-21 유근님) 카테고리 추천 키워드 칩 — 일반 키워드는 전략을 일반론으로 끌고,
               '추천 성분' 칩은 제품에 없는 성분을 셀러 입력 사실로 만들어 날조 가드를 우회하는 구멍이었음 */}
 
-          {/* 경고 배너 */}
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-            background: '#FFFBEB', border: '1.5px solid #FDE68A',
-            borderRadius: 10, padding: '12px 16px', marginTop: 20,
-          }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#92400E' }}>정확한 정보 입력이 중요해요!</div>
-              <div style={{ fontSize: 12, color: '#78350F', marginTop: 3, lineHeight: 1.6 }}>
-                입력하신 정보를 바탕으로 AI가 상세페이지를 생성합니다. 정확한 정보일수록 완성도가 높아져요.
-              </div>
-            </div>
-          </div>
-
-          {/* ①실측·검증 동의 — 생성 전 법적 방어선(체크 안 하면 진행 불가) */}
+          {/* ★노란 배너 다이어트(2026-07-27): 하단 중복 경고 제거 — 법적 경고는 상단 1곳,
+              여기는 동의 체크만(중립 톤, 체크 시 그린). 노랑 3연발 → 1곳으로 줄여 실제로 읽히게. */}
           <label style={{
             display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 24,
             padding: '12px 14px', borderRadius: 10,
-            background: agreed ? '#F0FDF4' : '#FFFBEB',
-            border: `1px solid ${agreed ? '#BBF7D0' : '#FDE68A'}`,
+            background: agreed ? '#F0FDF4' : '#FAFAFC',
+            border: `1px solid ${agreed ? '#BBF7D0' : '#E5E7EB'}`,
             cursor: 'pointer', transition: 'all .15s',
           }}>
             <input
@@ -1553,7 +1541,7 @@ export default function ProductScreen() {
               onChange={e => setAgreed(e.target.checked)}
               style={{ width: 16, height: 16, marginTop: 1, accentColor: '#6D4CFF', flexShrink: 0, cursor: 'pointer' }}
             />
-            <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#92400E' }}>
+            <span style={{ fontSize: 12, lineHeight: 1.6, color: agreed ? '#166534' : '#4E5968' }}>
               입력한 정보가 <b>실제 제품과 일치하는 정확한 정보</b>임을 확인합니다. <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(필수)</span>
             </span>
           </label>
@@ -1562,7 +1550,7 @@ export default function ProductScreen() {
           <div className="cta-row" style={{ marginTop: 14 }}>
             <button className="btn-back" onClick={() => go(prevScreen as any)}>
               <ArrowLeft size={14} style={{ display: 'inline', marginRight: 4 }} />
-              이전 단계
+              이전
             </button>
             <span style={{ fontSize: 12, color: '#9CA3AF', textAlign: 'center', flex: 1 }}>
               입력하신 정보는 언제든 수정 가능합니다

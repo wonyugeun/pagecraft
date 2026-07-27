@@ -55,6 +55,26 @@ export default function Page() {
         생성은 섹션 1개당 1크레딧이 차감되고, 만든 결과물의 다운로드에는 추가 비용이 없습니다.
         크레딧 충전(정식 요금제)은 준비 중이며, 도입 시 미리 안내드립니다.
       </p>
+
+      {/* 만든 사람의 인사 — 1인 개발이라는 사실을 숨기지 않고 신뢰 포인트로 */}
+      <div style={{
+        marginTop: 56, padding: '28px 26px',
+        background: '#FBFAFE', border: '1px solid #ECEAF6', borderRadius: 16,
+      }}>
+        <h2 style={{ ...sectionTitle, margin: '0 0 14px' }}>만드는 사람의 인사</h2>
+        <p style={body}>
+          안녕하세요, Flik을 만들고 있는 개발자입니다.
+        </p>
+        <p style={body}>
+          좋은 제품을 갖고도 상세페이지 앞에서 며칠씩 멈춰 있는 셀러분들을 보며 Flik을 시작했습니다.
+          지금은 혼자 만들고 있는 작은 서비스이지만, 그래서 셀러 한 분 한 분의 의견이
+          바로 다음 업데이트가 됩니다. 쓰시다가 이상한 점, 아쉬운 점이 있다면 주저 말고 알려주세요 —
+          가장 빠르게 고치는 것으로 보답하겠습니다.
+        </p>
+        <p style={{ ...body, margin: 0 }}>
+          여러분의 제품이 제값을 받는 페이지를 갖게 되는 것, 그게 Flik이 하고 싶은 일의 전부입니다.
+        </p>
+      </div>
     </MarketingPage>
   );
 }
