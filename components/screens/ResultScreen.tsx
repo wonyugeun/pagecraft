@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import ResultMobile from './ResultMobile';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
@@ -12,7 +12,7 @@ import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } fr
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { runPool } from '@/lib/asyncPool';
-import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable } from '@/components/result/BlockRenderer';
+import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable, stripMarks } from '@/components/result/BlockRenderer';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import { buildSmartstoreHtml } from '@/lib/smartstoreHtml';
 import {
@@ -273,6 +273,26 @@ function blocksToHtml(
   blockImageUrls: Record<string, string>,
   blockAspects: Record<string, string> = {},
 ): string {
+  // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(화면 BlockRenderer와 동일 규칙)
+  const quoteRunLen: Record<number, number> = {};
+  const quoteRunFollower = new Set<number>();
+  for (let qi = 0; qi < blocks.length; qi++) {
+    if (blocks[qi].type !== 'quote' || quoteRunFollower.has(qi) || quoteRunLen[qi]) continue;
+    let qj = qi;
+    while (qj + 1 < blocks.length && blocks[qj + 1].type === 'quote') qj++;
+    if (qj > qi) { quoteRunLen[qi] = qj - qi + 1; for (let qk = qi + 1; qk <= qj; qk++) quoteRunFollower.add(qk); }
+  }
+  const quoteHtml = (b: Extract<Block, { type: 'quote' }>, compact = false) => {
+    const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 0;
+    return `<blockquote class="quote${compact ? ' quote-compact' : ''}">
+  <div class="quote-icon">&ldquo;</div>
+  <p>${escHtml(b.text)}</p>
+  <footer>
+    ${stars > 0 ? `<span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>` : '<span></span>'}
+    ${b.author ? `<span class="author">${escHtml(b.author)}</span>` : ''}
+  </footer>
+</blockquote>`;
+  };
   return blocks.map((b, i) => {
     switch (b.type) {
       case 'hero':
@@ -312,15 +332,13 @@ function blocksToHtml(
 </table>`;
       }
       case 'quote': {
-        const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 5;
-        return `<blockquote class="quote">
-  <div class="quote-icon">&ldquo;</div>
-  <p>${escHtml(b.text)}</p>
-  <footer>
-    <span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>
-    ${b.author ? `<span class="author">${escHtml(b.author)}</span>` : ''}
-  </footer>
-</blockquote>`;
+        if (quoteRunFollower.has(i)) return '';   // 런 후속 — 시작 인덱스에서 그리드로 함께 출력
+        const runLen = quoteRunLen[i];
+        if (runLen) {
+          const run = blocks.slice(i, i + runLen).filter((qb): qb is Extract<Block, { type: 'quote' }> => qb.type === 'quote');
+          return `<div class="quote-grid">${run.map(qb => quoteHtml(qb, true)).join('\n')}</div>`;
+        }
+        return quoteHtml(b);
       }
       case 'faq':
         return `<dl class="faq">${b.items.map(f => `<dt>Q. ${escHtml(f.q)}</dt>
@@ -392,6 +410,10 @@ const HTML_BLOCKS_CSS = `
 .quote footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .quote .stars { color: var(--p,#6D4CFF); font-size: 14px; letter-spacing: 2px; }
 .quote .author { font-size: 13px; color: #666; }
+.quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; align-items: stretch; }
+.quote-grid .quote-compact { margin-bottom: 0; padding: 20px; height: 100%; display: flex; flex-direction: column; }
+.quote-grid .quote-compact p { font-size: 15px; line-height: 1.7; flex-grow: 1; }
+@media (max-width: 560px) { .quote-grid { grid-template-columns: 1fr; } }
 
 .faq { margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; overflow: hidden; }
 .faq dt { padding: 20px 20px 8px; font-size: 15px; font-weight: 700; color: #111; }
@@ -415,6 +437,7 @@ export async function downloadHtml(
   imgMap: Record<string, ImgState>,
   blockImgMap: Record<string, ImgState>,
   isSlide = false,   // 슬라이드형: 텍스트가 이미지에 baked → 이미지만 세로 스택(여백 0)
+  purchaseInfo?: { ico: string; label: string; value: string }[],   // ★구매 정보 스트립(2026-07-27) — 마지막 섹션 블록 위
 ): Promise<boolean> {
   try {
     // ── 슬라이드형: 섹션당 <img>만, 카피/블록 렌더 전부 제외(이미 이미지에 합성됨) ──
@@ -493,23 +516,33 @@ ${imgsHtml}
         : '';
       // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
       const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
-      const sub = sec.subcopy ? `\n      <p class="subcopy">${escHtml(sec.subcopy)}</p>` : '';
+      const markHtml = (t: string) => escHtml(t)
+        .replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>')
+        .replace(/\(\(([\s\S]+?)\)\)/g, `<em style="font-style:normal;font-weight:700;color:${sec.visual?.accent_color ?? cP};">$1</em>`);
+      const sub = sec.subcopy ? `\n      <p class="subcopy">${markHtml(sec.subcopy)}</p>` : '';
       // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
       const bodyHtml = sec.body
         ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-            .map(p => `<p class="bodytext">${p.split('\n').map(l => escHtml(l.trim())).join('<br>')}</p>`)
+            .map(p => `<p class="bodytext">${p.split('\n').map(l => markHtml(l.trim())).join('<br>')}</p>`)
             .join('\n      ')
         : '';
       // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
       const secImgUrl = compressedSectionUrls[sec.num];
       const imgTag = secImgUrl
-        ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;max-width:860px;display:block;margin:20px auto 0;border-radius:16px;" />`
+        ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;" />`
         : '';
       // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
       const blocksHtml = sec.blocks?.length
         ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n      </div>`
         : '';
-      return `\n    <section class="sec">${tag}\n      ${head}${sub}${bodyHtml}${imgTag}${blocksHtml}\n    </section>`;
+      // ★구매 정보 스트립(2026-07-27) — 마지막 섹션에서 블록 위에 노출(화면 BlogSection과 동일 위치)
+      const stripHtml = (idx === sections.length - 1 && purchaseInfo?.length)
+        ? `\n      <div style="display:grid;grid-template-columns:repeat(${Math.min(purchaseInfo.length, 4)},1fr);gap:10px;margin-top:32px;">${purchaseInfo.map(it =>
+            `<div style="background:${tSoft};border:1px solid ${tBorder};border-radius:12px;padding:14px 10px;text-align:center;"><div style="font-size:20px;margin-bottom:6px;">${it.ico}</div><div style="font-size:11px;font-weight:700;color:${tPrimary};margin-bottom:3px;">${escHtml(it.label)}</div><div style="font-size:12.5px;font-weight:600;color:#333;line-height:1.4;word-break:keep-all;">${escHtml(it.value)}</div></div>`).join('')}</div>`
+        : '';
+      // ★샌드위치 배치(2026-07-27): 헤드라인 → 이미지 → 본문. 짧은 카피는 센터 정렬(화면 렌더와 동일 기준 260자).
+      const centered = (sec.body ?? '').length <= 260;
+      return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${head}${sub}${imgTag}${bodyHtml}${stripHtml}${blocksHtml}\n    </section>`;
     }).join('\n');
     const html = `<!DOCTYPE html>
 <html lang="ko">
@@ -526,9 +559,10 @@ ${imgsHtml}
     .sec { padding: 48px 48px 0; }
     .sec-blocks { padding-top: 0; padding-bottom: 0; }
     .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
-    .sec h2 { font-size: 24px; font-weight: 700; text-align: left; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.4px; }
+    .sec h2 { font-size: 27px; font-weight: 800; text-align: left; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.5px; word-break: keep-all; }
+    .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center { text-align: center; }
     .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
-    .sec .bodytext { font-size: 16.5px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; }
+    .sec .bodytext { font-size: 17px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; word-break: keep-all; }
     .sec .bodytext:last-of-type { margin-bottom: 0; }
     .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
     .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
@@ -719,7 +753,7 @@ function sectionDesignKind(sec: Section, isFirst: boolean, isLast: boolean): 'pr
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile }: {
+export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile, purchaseInfo }: {
   sec: Section;
   onRegen: () => void;
   regenLoading: boolean;
@@ -732,12 +766,19 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
   blockImages?: Record<string, ImgState>;
   onLightboxBlock?: (key: string) => void;
   isMobile?: boolean;
+  /** ★구매 정보 스트립(2026-07-27) — 마지막(CTA) 섹션 위에 가격·구성·보관·배송 요약. 셀러 입력값만(날조 0). */
+  purchaseInfo?: { ico: string; label: string; value: string }[];
 }) {
   const hasBlocks = !!sec.blocks?.length;
   const hasImageBlock = !!sec.blocks?.some(b => b.type === 'image');
 
   // Problem/Feature 디자인 블록 판정 + 제품 테마(하드코딩 금지 — 전부 sec.visual)
   const designKind = sectionDesignKind(sec, !!isFirst, isLast);
+
+  // ★가운데 정렬(2026-07-27 유근님) — 간결화된 짧은 카피는 센터가 상세페이지답게 읽힘.
+  //   긴 본문은 센터 시 가독성이 무너지므로 260자 이하일 때만(카피 간결화 상한 220자와 정합).
+  const centered = (sec.body ?? '').length <= 260;
+  const copyAlign: 'center' | 'left' = centered ? 'center' : 'left';
   const theme = {
     primary:    sec.visual?.primary_color ?? DEFAULT_THEME.primary,
     soft:       sec.visual?.soft_color   ?? DEFAULT_THEME.soft,
@@ -785,6 +826,7 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
               onImageClick={imgState?.url ? onLightbox : undefined}
               bodySlot={(sec.body || onPatch) ? (
                 <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
+                  markAccent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
                   style={{ fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }} />
               ) : undefined}
               primary={sec.visual?.primary_color ?? DEFAULT_THEME.primary}
@@ -799,42 +841,59 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
           <div data-export-head={sec.num}>
             {/* 디자인 블록 태그(Problem/Feature) — soft 배경 pill, 색은 제품 테마 */}
             {designKind && (
-              <div style={{ padding: '40px 36px 0' }}>
+              <div style={{ padding: '40px 36px 0', textAlign: copyAlign }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 14px', borderRadius: 999, background: theme.soft, border: `1px solid ${theme.softBorder}`, fontSize: 13, fontWeight: 700, color: theme.primary, letterSpacing: '-0.2px' }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', background: theme.primary, flexShrink: 0 }} />
                   {designKind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}
                 </span>
               </div>
             )}
-            <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: 'left', fontSize: designKind ? 23 : 21, fontWeight: 700, color: '#111', lineHeight: 1.45, letterSpacing: '-0.4px', whiteSpace: 'pre-line' }}>
+            {/* ★타이포 확대(2026-07-27 유근님): 21/23 → 26/27, 서브 16→17 */}
+            <div style={{ padding: designKind ? '14px 36px 0' : '48px 36px 0', textAlign: copyAlign, fontSize: designKind ? 27 : 26, fontWeight: 800, color: '#111', lineHeight: 1.42, letterSpacing: '-0.5px', whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
               <Editable value={sec.headline} onCommit={onPatch ? v => onPatch({ headline: v }) : undefined} />
             </div>
             {(sec.subcopy || onPatch) && (
-              <div style={{ padding: '20px 36px 0', textAlign: 'left', fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px' }}>
-                <Editable value={sec.subcopy ?? ''} onCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined} />
+              <div style={{ padding: '18px 36px 0', textAlign: copyAlign, fontSize: 17, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
+                <Editable value={sec.subcopy ?? ''} onCommit={onPatch ? v => onPatch({ subcopy: v }) : undefined} markAccent={sec.visual?.accent_color ?? DEFAULT_THEME.accent} />
               </div>
             )}
           </div>
         )}
 
-        {/* ── 본문(body) — 인라인 편집(멀티라인 contentEditable). pre-wrap이 v5 호흡 유지(단일 \n=줄바꿈, 이중 \n\n=문단 띄움).
-            Hero는 위 HeroBlock의 bodySlot에서 이미지 위로 렌더하므로 여기선 제외. ── */}
-        {!(isFirst && sec.bodyFlow) && (sec.body || onPatch) && (
-          <div style={{ padding: '22px 36px 0', textAlign: 'left' }}>
-            <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
-              style={{ fontSize: 16, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px' }} />
-          </div>
-        )}
-
-        {/* ── 섹션 대표 이미지(V2 image_mission 브리프 → Gemini) — 블록 유무 무관 항상 노출.
-            첫 섹션(Hero)은 HeroBlock 내부에 이미지가 들어가므로 여기선 제외. 실패/미생성 시 ImgSlot이 placeholder 폴백. ── */}
+        {/* ── 섹션 대표 이미지 — ★샌드위치 배치(2026-07-27 유근님): 헤드라인 → 이미지 → 본문.
+            이미지가 스크롤을 잡고 본문이 받아 설명하는 리듬. 첫 섹션(Hero)은 HeroBlock 내부 이미지라 제외. ── */}
         {!(isFirst && sec.bodyFlow) && sec.imageDesc && (
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 24 }}>
             <ImgSlot
               sec={sec} imgState={imgState} onGenerate={onGenerateImage}
               slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
               onLightbox={onLightbox}
             />
+          </div>
+        )}
+
+        {/* ── 본문(body) — 이미지 아래로 이동(샌드위치). 인라인 편집 유지, pre-wrap이 v5 호흡 유지.
+            ★타이포: 16→17. 짧은 카피는 센터 정렬. Hero는 HeroBlock bodySlot에서 렌더하므로 제외. ── */}
+        {!(isFirst && sec.bodyFlow) && (sec.body || onPatch) && (
+          <div style={{ padding: '24px 36px 0', textAlign: copyAlign }}>
+            <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
+              markAccent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
+              style={{ fontSize: 17, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px', wordBreak: 'keep-all' }} />
+          </div>
+        )}
+
+        {/* ── ★구매 정보 스트립(2026-07-27) — CTA 직전 구매 결정 정보 요약(셀러 입력값만) ── */}
+        {isLast && !!purchaseInfo?.length && (
+          <div style={{ padding: '32px 36px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(purchaseInfo.length, 4)}, 1fr)`, gap: 10 }}>
+              {purchaseInfo.map((it, i) => (
+                <div key={i} style={{ background: theme.soft, border: `1px solid ${theme.softBorder}`, borderRadius: 12, padding: '14px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 20, marginBottom: 6 }}>{it.ico}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: theme.primary, marginBottom: 3 }}>{it.label}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: '#333', lineHeight: 1.4, wordBreak: 'keep-all' }}>{it.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1082,7 +1141,7 @@ export function SlideHero({ sec, imgState, onGenerateImage, onPatch, onLightbox 
 /* ─── 섹션별 텍스트 모달 ─── */
 function TextModal({ sections, onClose }: { sections: Section[]; onClose: () => void }) {
   const copyOne = async (sec: Section) => {
-    const text = `${sec.num} · ${sec.name}\n\n[헤드라인]\n${sec.headline}\n\n[본문]\n${sec.body}`;
+    const text = stripMarks(`${sec.num} · ${sec.name}\n\n[헤드라인]\n${sec.headline}\n\n[본문]\n${sec.body}`);
     try {
       await navigator.clipboard.writeText(text);
       alert(`✅ "${sec.name}" 복사 완료!`);
@@ -1300,10 +1359,32 @@ function ThumbnailPanel({ ch, productName, productImages }: {
   );
 }
 
+/* ─── ★구매 정보 스트립 빌더(2026-07-27) — 셀러 입력값에서만 조립(날조 0) ─── */
+export function buildPurchaseInfo(src: {
+  regularPrice?: string; salePrice?: string; showPrice?: boolean;
+  productVolume?: string; productExtra?: string;
+}): { ico: string; label: string; value: string }[] {
+  const items: { ico: string; label: string; value: string }[] = [];
+  const rp = Number(String(src.regularPrice ?? '').replace(/[^\d]/g, ''));
+  const sp = Number(String(src.salePrice ?? '').replace(/[^\d]/g, ''));
+  if (src.showPrice && (rp > 0 || sp > 0)) {
+    let v = (sp > 0 ? sp : rp).toLocaleString('ko-KR') + '원';
+    if (rp > 0 && sp > 0 && rp > sp) v += ` (${Math.round((1 - sp / rp) * 100)}%↓)`;
+    items.push({ ico: '💰', label: sp > 0 && rp > sp ? '할인가' : '판매가', value: v });
+  }
+  if (src.productVolume?.trim()) items.push({ ico: '📦', label: '용량·구성', value: src.productVolume.trim() });
+  const extra = src.productExtra ?? '';
+  const storage = extra.match(/\[보관 ?방법\]:?\s*([^\n]+)/)?.[1]?.trim();
+  if (storage) items.push({ ico: '🧊', label: '보관', value: storage.split(/[,·]/)[0].trim() });
+  const ship = extra.match(/산지직송|새벽배송|당일\s?발송|당일\s?배송|아이스박스[^\n,·]*|무료\s?배송/)?.[0]?.trim();
+  if (ship) items.push({ ico: '🚚', label: '배송', value: ship });
+  return items.slice(0, 4);
+}
+
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits, regularPrice, salePrice, showPrice } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1481,6 +1562,10 @@ export default function ResultScreen() {
   const isSlide = effectiveOut === 'slide';
   const isHtml  = effectiveOut === 'html';
   const isBlog  = !isSlide && !isHtml;
+  // ★구매 정보 스트립(2026-07-27) — 마지막 섹션에 전달할 요약(셀러 입력값만)
+  const purchaseInfo = useMemo(
+    () => buildPurchaseInfo({ regularPrice, salePrice, showPrice, productVolume, productExtra }),
+    [regularPrice, salePrice, showPrice, productVolume, productExtra]);
   // ★카피 2안 존재 여부 — 블로그형 + B안(altCopy) 보유 섹션이 있을 때만 토글 노출(구 기록·슬라이드형은 그대로)
   const hasCopyVariants = isBlog && displaySections.some(s => !!s.altCopy);
 
@@ -1778,7 +1863,7 @@ export default function ResultScreen() {
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
     // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영). 슬라이드형은 이미지만 스택.
-    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide);
+    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide, purchaseInfo);
     if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };
@@ -2108,6 +2193,7 @@ export default function ResultScreen() {
                       onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                       blockImages={blockImages}
                       onLightboxBlock={(key: string) => setLightboxSecNum(key)}
+                      purchaseInfo={purchaseInfo}
                     />
                     </div>
                   ))}

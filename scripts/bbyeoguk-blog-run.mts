@@ -114,6 +114,11 @@ async function main() {
   fs.writeFileSync(path.join(outDir, 'raw.json'), JSON.stringify({ visual: result.visual, sections: result.sections }, null, 2));
   console.log(`[run] 카피 완료 — ${sections.length}섹션, ${Math.round((Date.now() - t0) / 1000)}초`);
 
+  if (process.argv.includes('--copy-only')) {
+    console.log('[run] --copy-only — 이미지 생성 생략');
+    return;
+  }
+
   /* ── 이미지 생성 — ResultScreen 블로그 경로 미러(섹션: imageDesc / 블록: desc, outputType 'blog') ── */
   const t1 = Date.now();
   interface ImgTask { key: string; file: string; prompt: string; aspect: string | undefined; label: string }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Zap, Sparkles, ArrowLeft,
   Smartphone, Monitor,
@@ -12,7 +12,7 @@ import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
 import { aspectRatioFor } from '@/lib/sectionAspect';
 import {
-  ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection,
+  ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection, buildPurchaseInfo,
   EnhancedLightbox, downloadHtml, downloadMergedImage, downloadFullLongImage,
   countGeneratingImages, confirmSkipGenerating,
 } from './ResultScreen';
@@ -42,6 +42,7 @@ export default function ResultMobile() {
     go, restoredImages, restoredBlockImages, restoredOverrides,
     updateLatestHistoryImages, updateLatestHistoryOverrides,
     toggleChat, credits, setCredits,
+    regularPrice, salePrice, showPrice,
   } = useApp();
 
   // 데스크탑과 동일 state
@@ -138,6 +139,10 @@ export default function ResultMobile() {
   const isSlide = effectiveOut === 'slide';
   const isHtml = effectiveOut === 'html';
   const isBlog = !isSlide && !isHtml;
+  // ★구매 정보 스트립(2026-07-27) — 데스크탑 ResultScreen과 동일 빌더
+  const purchaseInfo = useMemo(
+    () => buildPurchaseInfo({ regularPrice, salePrice, showPrice, productVolume, productExtra }),
+    [regularPrice, salePrice, showPrice, productVolume, productExtra]);
 
   // ★Clean Baseline Phase B — 디렉터 플랜(페이지당 1회 캐시). 데스크톱 ResultScreen과 동일.
   const directorPlanRef = useRef<Promise<DirectorPlan | null> | null>(null);
@@ -439,7 +444,7 @@ export default function ResultMobile() {
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
-    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide);
+    const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide, purchaseInfo);
     if (!ok) alert('HTML 다운로드 중 오류가 발생했어요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };
@@ -712,6 +717,7 @@ export default function ResultMobile() {
                     blockImages={blockImages}
                     onLightboxBlock={(key: string) => setLightboxSecNum(key)}
                     isMobile
+                    purchaseInfo={purchaseInfo}
                   />
                 ))}
               </div>

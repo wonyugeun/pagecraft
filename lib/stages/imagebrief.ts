@@ -175,7 +175,8 @@ ${targetDesire ? `- ⭐target_desire(페이지 전체가 반복 환기할 욕구
 ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targetFear}` : ''}${paletteLine}`;
 
   const formNote = isBlogOutput
-    ? '이 페이지는 블로그형입니다 — 이미지는 텍스트 오버레이가 없는 깨끗한 사진/연출이어야 합니다. prompt에 카피 문구·타이포그래피·숫자 오버레이를 절대 묘사하지 마세요(제품 자체 라벨은 reference 그대로).'
+    ? `이 페이지는 블로그형입니다 — 이미지는 텍스트 오버레이가 없는 깨끗한 사진/연출이어야 합니다. prompt에 카피 문구·타이포그래피·숫자 오버레이를 절대 묘사하지 마세요(제품 자체 라벨은 reference 그대로).
+⭐콜라주 컷(2026-07-27, 단조로움 해소): 페이지가 같은 단컷 사진의 반복이 되지 않게, '과정/구성'을 보여주는 섹션 1~2곳(제조·공정, 재료·구성, 사용 단계, 신뢰 근거 계열)은 prompt를 "한 장 안에 3분할 그리드 콜라주(three-panel grid collage in a single image — 각 패널이 단계/재료/과정 하나씩)"로 설계하세요. 나머지 섹션은 단컷 유지. 콜라주 패널 안에도 텍스트·숫자는 금지.`
     : `이 페이지는 슬라이드형입니다 — 이미지 위 텍스트 합성(baked)이 허용됩니다. ⚠️단일 구도를 반복하지 마세요 — 각 섹션에 지정된 컷 아키타입(archetype)에 맞는 장면을 설계하세요:
 · hero=모델+제품 화보 / empathy=라이프스타일 상황(제품 조연) / ingredient_macro=원료 클로즈업(제품은 소품) / texture=제형·발림 클로즈업 / clinical=신뢰·검증 미니멀 스튜디오 / editorial=브랜드 무드컷 / product_only=제품 단독 스튜디오 / cta=모델+제품+구매 유도.
 인접 섹션과 archetype이 같으면(hero·cta 제외) 구도·카메라 거리·배경을 다르게 변주하세요. (실제 헤드라인 텍스트는 생성 단계에서 한글로 합성됩니다 — prompt에 글자를 적지 말고 장면·구도·여백만 지시.)`;
@@ -197,7 +198,7 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
    섹션 임무(mission): ${s.mission || '(미정)'}
    ★독자가 느껴야 할 감정(emotion_goal): ${s.emotion_goal || '(미정)'}
    헤드라인(headline — 이 섹션의 핵심 감정 문장. body와 동급으로 반드시 반영, 무시 금지): ${c?.headline || '(없음)'}
-   본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.slice(0, 280) : '(없음)'}
+   본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.replace(/\*\*|\(\(|\)\)/g, '').slice(0, 280) : '(없음)'}
    제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
    컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}
    고정 비율(ratio, 변경 금지): ${ratioByIdx[gi]}`;

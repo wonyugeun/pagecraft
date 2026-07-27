@@ -5,7 +5,7 @@ import {
   Leaf, Droplets, Sparkles, ShieldCheck, Image as ImageIcon,
   Calendar, Coins, Package,
 } from 'lucide-react';
-import { createContext, useContext, type ReactNode, type CSSProperties } from 'react';
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode, type CSSProperties } from 'react';
 import { Block } from '@/store/AppContext';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
@@ -39,16 +39,52 @@ const ICONS = [Leaf, Droplets, Sparkles, ShieldCheck];
 
 /** 인라인 편집(contentEditable) — onCommit 있으면 클릭 편집 가능, 없으면 일반 텍스트. AI 호출 0.
  *  multiline: 줄바꿈 허용(white-space pre-wrap, Enter=줄바꿈). 읽기는 innerText로 \n 보존. 붙여넣기는 plain text. */
-export function Editable({ value, onCommit, style, multiline = false }: {
+/* ── 강조 마킹(2026-07-27) — 카피 모델이 body/subcopy에 넣는 **볼드**·((포인트 컬러)) 마크업 ── */
+/** 마킹 제거 — 텍스트 복사·이미지 프롬프트 등 plain 텍스트가 필요한 곳에서 사용 */
+export function stripMarks(s: string): string {
+  return String(s ?? '').replace(/\*\*([\s\S]+?)\*\*/g, '$1').replace(/\(\(([\s\S]+?)\)\)/g, '$1');
+}
+/** 마킹 파싱 → 스타일 스팬 렌더. accent = 제품 포인트 컬러 */
+export function renderMarked(value: string, accent: string): ReactNode {
+  const parts = String(value ?? '').split(/(\*\*[\s\S]+?\*\*|\(\([\s\S]+?\)\))/g);
+  if (parts.length === 1) return value;
+  return parts.map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) return <b key={i} style={{ color: '#111' }}>{p.slice(2, -2)}</b>;
+    if (p.startsWith('((') && p.endsWith('))')) return <em key={i} style={{ fontStyle: 'normal', fontWeight: 700, color: accent }}>{p.slice(2, -2)}</em>;
+    return <span key={i}>{p}</span>;
+  });
+}
+
+export function Editable({ value, onCommit, style, multiline = false, markAccent }: {
   value: string;
   onCommit?: (v: string) => void;
   style?: CSSProperties;
   multiline?: boolean;
+  /** 지정 시 평상시엔 마킹(**·(( )))을 스타일로 렌더하고, 클릭(편집)하면 원문 마커가 보인다 */
+  markAccent?: string;
 }) {
+  const [editing, setEditing] = useState(false);
+  const editRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => { if (editing) editRef.current?.focus(); }, [editing]);
+
   const baseStyle: CSSProperties = multiline ? { whiteSpace: 'pre-wrap', display: 'block', ...style } : (style ?? {});
-  if (!onCommit) return <span style={baseStyle}>{value}</span>;
+  const hasMark = !!markAccent && /\*\*[\s\S]+?\*\*|\(\([\s\S]+?\)\)/.test(value);
+
+  if (!onCommit) return <span style={baseStyle}>{hasMark ? renderMarked(value, markAccent!) : value}</span>;
+
+  // 마킹 표시 모드 — 클릭하면 편집(원문) 모드로 전환
+  if (hasMark && !editing) {
+    return (
+      <span className="pc-editable" title="클릭해서 수정" style={{ ...baseStyle, cursor: 'text' }}
+        onClick={() => setEditing(true)}>
+        {renderMarked(value, markAccent!)}
+      </span>
+    );
+  }
+
   return (
     <span
+      ref={editRef}
       contentEditable
       suppressContentEditableWarning
       className="pc-editable"
@@ -63,6 +99,7 @@ export function Editable({ value, onCommit, style, multiline = false }: {
       onBlur={e => {
         const v = multiline ? e.currentTarget.innerText : (e.currentTarget.textContent ?? '');
         if (v !== value) onCommit(v);
+        setEditing(false);
       }}
       onKeyDown={e => { if (!multiline && e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); } }}
     >{value}</span>
@@ -425,20 +462,22 @@ function CompareBlock({ headers, rows, isMobile, onChange }: { headers: string[]
 }
 
 /* ─── quote ─── */
-function QuoteBlock({ text, author, rating, onChange }: { text: string; author?: string; rating?: number; onChange?: (b: Block) => void }) {
+function QuoteBlock({ text, author, rating, onChange, compact }: { text: string; author?: string; rating?: number; onChange?: (b: Block) => void; compact?: boolean }) {
   const t = useBlockTheme();
   // rating 미지정/0 → 별 미표시(가짜 ★5점 방지). 셀러가 실제로 준 별점만 표시.
   const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 0;
   return (
     <div style={{
-      marginBottom: 32,
+      marginBottom: compact ? 0 : 32,
       borderRadius: 24, border: `1px solid ${t.softBorder}`, background: t.soft,
-      padding: 24,
+      padding: compact ? 20 : 24,
+      height: compact ? '100%' : undefined,
+      display: compact ? 'flex' : undefined, flexDirection: compact ? 'column' : undefined,
     }}>
-      <QuoteIcon size={30} style={{ marginBottom: 16, color: t.primary }} />
+      <QuoteIcon size={compact ? 24 : 30} style={{ marginBottom: compact ? 12 : 16, color: t.primary }} />
       <p style={{
-        margin: 0,
-        fontSize: 16, lineHeight: 1.85, color: COLORS.text333, whiteSpace: 'pre-line',
+        margin: 0, flexGrow: compact ? 1 : undefined,
+        fontSize: compact ? 15 : 16, lineHeight: compact ? 1.7 : 1.85, color: COLORS.text333, whiteSpace: 'pre-line',
       }}>
         <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'quote', text: v, author, rating }) : undefined} />
       </p>
@@ -598,6 +637,15 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
 }) {
   const pad = isMobile ? 16 : PAD;
   const firstImageIdx = blocks.findIndex(b => b.type === 'image');
+  // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(모바일 1열)로 묶어 렌더
+  const quoteRunLen: Record<number, number> = {};
+  const quoteRunFollower = new Set<number>();
+  for (let qi = 0; qi < blocks.length; qi++) {
+    if (blocks[qi].type !== 'quote' || quoteRunFollower.has(qi) || quoteRunLen[qi]) continue;
+    let qj = qi;
+    while (qj + 1 < blocks.length && blocks[qj + 1].type === 'quote') qj++;
+    if (qj > qi) { quoteRunLen[qi] = qj - qi + 1; for (let qk = qi + 1; qk <= qj; qk++) quoteRunFollower.add(qk); }
+  }
   const theme: BlockTheme = {
     primary:    primaryColor ?? DEFAULT_THEME.primary,
     accent:     accentColor  ?? DEFAULT_THEME.accent,
@@ -625,7 +673,21 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
             case 'iconcards': return <IconCardsBlock cards={b.cards} isMobile={isMobile} onChange={oc} />;
             case 'stats':     return <StatsBlock     items={b.items} isMobile={isMobile} onChange={oc} />;
             case 'compare':   return <CompareBlock   headers={b.headers} rows={b.rows} isMobile={isMobile} onChange={oc} />;
-            case 'quote':     return <QuoteBlock     text={b.text} author={b.author} rating={b.rating} onChange={oc} />;
+            case 'quote': {
+              if (quoteRunFollower.has(i)) return null;   // 런 후속 — 시작 인덱스에서 그리드로 함께 렌더
+              const runLen = quoteRunLen[i];
+              if (runLen) {
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 32, alignItems: 'stretch' }}>
+                    {blocks.slice(i, i + runLen).map((qb, k) => qb.type === 'quote' ? (
+                      <QuoteBlock key={k} text={qb.text} author={qb.author} rating={qb.rating} compact
+                        onChange={onBlocksChange ? nb => onBlocksChange(blocks.map((bb, j) => (j === i + k ? nb : bb))) : undefined} />
+                    ) : null)}
+                  </div>
+                );
+              }
+              return <QuoteBlock text={b.text} author={b.author} rating={b.rating} onChange={oc} />;
+            }
             case 'faq':       return <FaqBlock       items={b.items} onChange={oc} />;
             case 'image': {
               const key = sectionNum ? `${sectionNum}#${i}` : '';
