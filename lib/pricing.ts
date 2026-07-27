@@ -34,16 +34,25 @@ export function calculateGenerationCost(input: GenerationPricingInput): number {
  * 정상 수요(기본 1장/섹션 + 재생성 + 블록 이미지 + 썸네일)는 넉넉히 덮고 비용 폭주만 상한.
  * high 품질은 비용 ~4배라 2카운트(quality override 복원 후에도 노출 상한 유지). */
 
-// ★재생성 정책(2026-07-21 유근님 확정): 무료 = 첫 생성(섹션당 1장) + 페이지당 재생성 10장.
+// ★재생성 정책(2026-07-27 유근님 확정): 무료 = 첫 생성(섹션당 1장) + 결제 규모에 비례한 재생성.
+//   재생성 무료분 = 16섹션당 10장(32섹션=20장, 8섹션=5장). 1~2섹션(빠른제작·썸네일)은 0장.
 //   한도 소진 후엔 1장당 1크레딧(고품질 2) 추가 차감 — generate-image 라우트의 chargeExtra 흐름.
-//   (구: 섹션×3+10 — 16섹션 최악 58장 무료 = 마진 증발 구간이 있었음)
+//   (구: 섹션×1 + 정액 10 — 1크레딧 빠른제작이 11장을 받아 정식 생성보다 7배 유리한 역전 구간이 있었음)
 export const IMAGE_QUOTA_PER_SECTION = 1;
-export const IMAGE_QUOTA_BASE = 10;
+/** 재생성 무료분의 기준 — REGEN_FREE_PER_UNIT장 / REGEN_UNIT_SECTIONS섹션 (비례 배분, 내림) */
+export const REGEN_UNIT_SECTIONS = 16;
+export const REGEN_FREE_PER_UNIT = 10;
 
-/** 결제된 섹션 수 → jobKey당 이미지 quota */
+/** 결제된 섹션 수 → jobKey당 무료 재생성 장수(첫 생성분 제외). 16섹션=10, 32섹션=20, 1섹션=0 */
+export function calculateFreeRegenQuota(paidSections: number): number {
+  const sections = Math.min(Math.max(Math.floor(paidSections) || MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
+  return Math.floor((sections * REGEN_FREE_PER_UNIT) / REGEN_UNIT_SECTIONS);
+}
+
+/** 결제된 섹션 수 → jobKey당 이미지 quota(첫 생성 섹션당 1장 + 무료 재생성분) */
 export function calculateImageQuota(paidSections: number): number {
   const sections = Math.min(Math.max(Math.floor(paidSections) || MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
-  return sections * IMAGE_QUOTA_PER_SECTION + IMAGE_QUOTA_BASE;
+  return sections * IMAGE_QUOTA_PER_SECTION + calculateFreeRegenQuota(sections);
 }
 
 /** 품질별 quota 가중치 — high=2(비용 ~4배 반영), 그 외(medium/기본)=1 */

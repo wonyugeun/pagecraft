@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
     try {
       const q = await consumeUsageQuota(`img:${jobKey}`, weight, quotaLimit);
       if (!q.allowed) {
-        // ★무료 한도 소진(2026-07-21 정책: 첫 생성 + 무료 재생성 10장) — 이후는 1장당 1크레딧(고품질 2).
+        // ★무료 한도 소진(2026-07-27 정책: 첫 생성 + 무료 재생성 16섹션당 10장) — 이후는 1장당 1크레딧(고품질 2).
         //   클라가 confirm 없이 차감되지 않게: 1차 응답은 quotaExhausted(무과금) → 클라 confirm → chargeExtra 재호출.
         if (!chargeExtra || typeof extraChargeKey !== 'string' || !extraChargeKey.trim() || !email) {
           console.warn(`[generate-image] 무료 한도 소진 — jobKey=${jobKey} used=${q.used}/${quotaLimit} weight=${weight}`);

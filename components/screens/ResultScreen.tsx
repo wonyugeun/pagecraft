@@ -1589,7 +1589,7 @@ export default function ResultScreen() {
     return directorPlanRef.current;
   }, [cat, ch, productName, productExtra, diff, brand, sections]);
 
-  // ★무료 한도 소진 시 유료 재시도(2026-07-21 정책: 첫 생성 + 무료 재생성 10장, 이후 1장당 1크레딧) —
+  // ★무료 한도 소진 시 유료 재시도(2026-07-27 정책: 첫 생성 + 무료 재생성(16섹션당 10장), 이후 1장당 1크레딧) —
   //   서버 1차 응답은 무과금 quotaExhausted → confirm 동의 시에만 chargeExtra 재호출(멱등키로 이중차감 방지).
   //   반환: 'declined' = 사용자가 유료 진행 거절.
   const fetchImageWithExtraCharge = async (
@@ -1605,8 +1605,10 @@ export default function ResultScreen() {
     let r = await call();
     if (r.status === 429 && (r.data as { code?: string }).code === 'quota_exhausted') {
       const cost = (r.data as { extraCost?: number }).extraCost ?? 1;
+      // ★한도 안내는 서버가 준 실제 수치로(2026-07-27 정책: 무료 재생성 = 16섹션당 10장) — 문구 고정값 금지
+      const qLimit = (r.data as { quotaLimit?: number }).quotaLimit;
       const ok = window.confirm(
-        `무료 이미지 생성 한도를 모두 사용했어요.\n(기본 생성 + 무료 재생성 10장)\n\n계속하면 이번 생성에 ${cost}크레딧이 차감됩니다. 진행할까요?`,
+        `무료 이미지 생성 한도를 모두 사용했어요.${qLimit ? `\n(이 작업 무료 ${qLimit}장)` : ''}\n\n계속하면 이번 생성에 ${cost}크레딧이 차감됩니다. 진행할까요?`,
       );
       if (!ok) return 'declined';
       r = await call({ chargeExtra: true, extraChargeKey: crypto.randomUUID() });
