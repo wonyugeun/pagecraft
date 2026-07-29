@@ -21,6 +21,16 @@ function sellerHasReviews(allow: string): boolean {
   return /후기|리뷰|고객\s*평|구매\s*평|평점|별점|사용\s*후기|추천사/i.test(allow);
 }
 
+/** 셀러에게 말을 거는 안내문 제거 — 고객 노출용 카피에 남으면 안 되는 메타 문구.
+ *  (후기 미입력 시엔 의도적으로 붙이는 안내라 호출부에서 조건 분기한다.) */
+function stripSellerHint(text: string): string {
+  return text
+    .split('\n')
+    .filter(l => !/💡\s*실제 후기를 입력하면/.test(l))
+    .map(l => l.replace(/\s*💡\s*실제 후기를 입력하면[^\n]*$/, '').trimEnd())
+    .join('\n');
+}
+
 /** 별점·평점 표기 제거(실제 후기 없을 때). 별 글리프 + 명시적 평점 패턴만 → 오제거 최소화. */
 function stripRatings(text: string): string {
   return text
@@ -126,6 +136,11 @@ export function scrubText(text: string | undefined, allow: string): string {
   if (!sellerHasReviews(allow)) {
     out = stripRatings(out);
     out = out.split('\n').filter(l => !isTestimonialLine(l)).join('\n');
+  } else {
+    // ★셀러 안내문 오출력 제거(2026-07-29): "💡 실제 후기를 입력하면…"은 후기 '미입력' 시에만
+    //   붙이도록 지시했는데, 후기를 입력한 경우에도 모델이 습관적으로 덧붙이는 사례가 실측됐다
+    //   (Sonnet 5·Opus 4.8 공통). 이 문구는 셀러에게 하는 말이라 고객이 보는 페이지에 나가면 안 된다.
+    out = stripSellerHint(out);
   }
 
   // 6) 음수 온도 부호 복원 — "-40℃" 입력이 "40℃"로 출력되는 사실 왜곡 교정

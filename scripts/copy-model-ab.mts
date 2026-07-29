@@ -78,11 +78,14 @@ interface ModelCfg {
   priceNote?: string;
 }
 
+// ★GPT 전용 비교(2026-07-29) — 현행 Claude(A안 Sonnet 5 / B안 Opus 4.8)를 대체할 수 있는지
+//   GPT-5.6 신규 3종 + 저가형 1종으로 가격대를 넓게 훑는다. 가격은 2026-07 공식 기준($/1M).
 const MODELS: ModelCfg[] = [
-  { key: 'sonnet46', label: 'Sonnet 4.6 (현행)', kind: 'anthropic', model: 'claude-sonnet-4-6', temperature: 1, priceIn: 3, priceOut: 15 },
-  { key: 'sonnet5',  label: 'Sonnet 5',          kind: 'anthropic', model: 'claude-sonnet-5', priceIn: 2, priceOut: 10, priceNote: '프로모션가(~8/31), 이후 $3/$15' },
-  { key: 'opus48',   label: 'Opus 4.8',          kind: 'anthropic', model: 'claude-opus-4-8', adaptiveThinking: true, priceIn: 5, priceOut: 25 },
-  { key: 'terra',    label: 'GPT-5.6 Terra',     kind: 'openai',    model: 'gpt-5.6-terra', priceIn: 2.5, priceOut: 15 },
+  // ★현행 vs GPT 최저가 후보 맞대결(2026-07-29) — A안(Sonnet 5)·B안(Opus 4.8)을
+  //   GPT-5.6 Luna($1/$6)가 대체 가능한지. 가격은 2026-07 기준 $/1M.
+  { key: 'sonnet5', label: 'Sonnet 5 (현행 A안)', kind: 'anthropic', model: 'claude-sonnet-5', priceIn: 2, priceOut: 10, priceNote: '프로모션가(~8/31), 이후 $3/$15' },
+  { key: 'opus48',  label: 'Opus 4.8 (현행 B안)', kind: 'anthropic', model: 'claude-opus-4-8', adaptiveThinking: true, priceIn: 5, priceOut: 25 },
+  { key: 'luna',    label: 'GPT-5.6 Luna',        kind: 'openai',    model: 'gpt-5.6-luna', priceIn: 1, priceOut: 6 },
 ];
 
 const FORMS: Array<{ out: 'slide' | 'blog'; label: string }> = [
