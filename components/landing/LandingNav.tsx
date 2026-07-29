@@ -52,8 +52,9 @@ export default function LandingNav() {
         ))}
       </div>
 
-      {/* 우측 버튼 */}
+      {/* 우측 버튼 — 모바일에선 버거 드롭다운이 같은 항목을 제공하므로 CSS로 숨김(landing-nav-cta) */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <span className="landing-nav-cta" style={{ display: 'contents' }}>
         <button
           onClick={() => router.push('/login')}
           onMouseEnter={() => setHoverLogin(true)}
@@ -86,6 +87,7 @@ export default function LandingNav() {
           무료로 시작하기
         </button>
 
+        </span>
         {/* 모바일 햄버거 */}
         <button
           onClick={() => setMobileOpen(v => !v)}

@@ -622,3 +622,13 @@ html, body { max-width: 100vw; overflow-x: hidden; }
   .bs-sec:hover .bs-sec-regen-wrap,
   .bs-sec-regen-wrap.is-loading { opacity: 1; pointer-events: auto; }
 }
+
+/* ★랜딩 네비 반응형(2026-07-30) — landing-nav-menu / landing-hamburger 클래스가 컴포넌트에는
+   있는데 CSS 정의가 없어, 모바일에서 데스크탑 메뉴가 숨지 않고 글자가 세로로 찌그러졌다.
+   (버거 버튼·드롭다운 마크업은 이미 구현돼 있었음 — 표시 전환만 없던 상태) */
+@media (max-width: 860px) {
+  .landing-nav-menu { display: none !important; }
+  .landing-hamburger { display: flex !important; }
+  /* 로그인·무료시작 버튼은 버거 드롭다운에 동일 항목이 있어 좁은 폭에서 글자가 깨지지 않게 숨김 */
+  .landing-nav-cta { display: none !important; }
+}
