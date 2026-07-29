@@ -29,14 +29,16 @@ export interface BusinessInfo {
 }
 
 export const BUSINESS: BusinessInfo = {
-  companyName: '',
-  ceo: '',
-  regNumber: '',
-  address: '',
-  phone: '',
+  companyName: '플릭',
+  ceo: '원유근',
+  regNumber: '295-30-01905',
+  address: '수원시 권선구 동수원로58번길 21 108-401',
+  phone: '010-5068-1227',
+  // ★통신판매업 신고 진행 전(에스크로 요건 → PG 가입 후 신고 예정) — 신고번호 발급되면 여기만 채우면
+  //   푸터·약관·개인정보처리방침에 자동 반영된다. 빈 값이면 표기 자체를 숨긴다(허위 표기 방지).
   mailOrderNumber: '',
-  email: '',
-  privacyOfficer: '',
+  email: 'flik.support@gmail.com',
+  privacyOfficer: '원유근',
 };
 
 /** 표기용 — 빈 값은 심사 반송 사유라 눈에 띄게 표시 */

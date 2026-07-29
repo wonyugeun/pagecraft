@@ -281,8 +281,8 @@ export default function LandingPageMobile() {
           대표자명: {biz(BUSINESS.ceo)}<br />
           사업자등록번호: {biz(BUSINESS.regNumber)}<br />
           사업장 주소: {biz(BUSINESS.address)}<br />
-          유선전화: {biz(BUSINESS.phone)}<br />
-          통신판매업 신고번호: {biz(BUSINESS.mailOrderNumber)}
+          연락처: {biz(BUSINESS.phone)}
+          {BUSINESS.mailOrderNumber.trim() && <><br />통신판매업 신고번호: {BUSINESS.mailOrderNumber}</>}
           {BUSINESS.email.trim() && <><br />이메일: {BUSINESS.email}</>}
         </div>
         <div style={{ fontSize: '11px', color: '#C4CBD3', marginTop: '14px' }}>

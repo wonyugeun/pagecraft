@@ -104,9 +104,8 @@ export const TERMS_CONTENT = `# Flik 이용약관
 - 상호명: ${biz(BUSINESS.companyName)}
 - 대표자명: ${biz(BUSINESS.ceo)}
 - 사업자등록번호: ${biz(BUSINESS.regNumber)}
-- 통신판매업 신고번호: ${biz(BUSINESS.mailOrderNumber)}
-- 사업장 주소: ${biz(BUSINESS.address)}
-- 유선전화: ${biz(BUSINESS.phone)}
+${BUSINESS.mailOrderNumber.trim() ? `- 통신판매업 신고번호: ${BUSINESS.mailOrderNumber}\n` : ''}- 사업장 주소: ${biz(BUSINESS.address)}
+- 연락처: ${biz(BUSINESS.phone)}
 - 이메일: ${BUSINESS.email.trim() || 'flik.support@gmail.com'}
 
 ---
@@ -220,7 +219,7 @@ Flik(이하 "서비스")은 「개인정보 보호법」 등 관련 법령을 �
 
 - 개인정보 보호책임자: ${biz(BUSINESS.privacyOfficer || BUSINESS.ceo)}
 - 연락처(이메일): ${BUSINESS.email.trim() || 'flik.support@gmail.com'}
-- 유선전화: ${biz(BUSINESS.phone)}
+- 연락처: ${biz(BUSINESS.phone)}
 
 이용자는 개인정보 관련 문의·불만·피해 구제를 위 연락처로 신고할 수 있습니다.
 

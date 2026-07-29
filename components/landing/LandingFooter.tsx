@@ -149,9 +149,13 @@ export default function LandingFooter() {
             <br />
             <span>사업장 주소: {biz(BUSINESS.address)}</span>
             <br />
-            <span>유선전화: {biz(BUSINESS.phone)}</span>
-            <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
-            <span>통신판매업 신고번호: {biz(BUSINESS.mailOrderNumber)}</span>
+            <span>연락처: {biz(BUSINESS.phone)}</span>
+            {BUSINESS.mailOrderNumber.trim() && (
+              <>
+                <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
+                <span>통신판매업 신고번호: {BUSINESS.mailOrderNumber}</span>
+              </>
+            )}
             {BUSINESS.email.trim() && (
               <>
                 <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
