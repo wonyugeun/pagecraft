@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 import LandingLayout from '@/components/landing/LandingLayout';
-import { PLANS, COMMON_BENEFITS, pricePerCredit, pagesPerPlan, CREDIT_VALID_MONTHS } from '@/data/plans';
+import { PLANS, COMMON_BENEFITS, planHighlights, CREDIT_VALID_MONTHS } from '@/data/plans';
 
 /**
  * 요금제 — 크레딧 충전(단건 결제). 가격은 data/plans.ts 단일 소스.
@@ -66,16 +66,20 @@ export default function Page() {
                   boxShadow: rec ? '0 12px 32px rgba(109,76,255,0.12)' : '0 1px 3px rgba(17,17,26,0.04)',
                 }}
               >
-                {/* 플랜명 + 인기 배지 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 18 }}>
-                  <span style={{
-                    fontSize: 20, fontWeight: 700, color: '#191F28', letterSpacing: '-0.02em',
-                  }}>{p.name}</span>
+                {/* 플랜명(영문 대문자) + 인기 배지 */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
+                  <div>
+                    <div style={{
+                      fontSize: 22, fontWeight: 800, color: '#191F28',
+                      letterSpacing: '0.02em', lineHeight: 1.1,
+                    }}>{p.nameEn}</div>
+                    <div style={{ fontSize: 12.5, color: '#B0B8C1', marginTop: 3, fontWeight: 500 }}>{p.name}</div>
+                  </div>
                   {rec && (
                     <span style={{
-                      background: '#F4F0FF', color: '#6D4CFF',
-                      fontSize: 12, fontWeight: 700, borderRadius: 999, padding: '5px 12px',
-                      whiteSpace: 'nowrap',
+                      background: '#6D4CFF', color: '#fff',
+                      fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: '5px 12px',
+                      whiteSpace: 'nowrap', letterSpacing: '-0.01em',
                     }}>인기</span>
                   )}
                 </div>
@@ -83,11 +87,11 @@ export default function Page() {
                 {/* 가격 */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
                   <span style={{
-                    fontSize: 40, fontWeight: 800, color: '#191F28', letterSpacing: '-0.04em', lineHeight: 1,
+                    fontSize: 42, fontWeight: 800, color: '#191F28', letterSpacing: '-0.045em', lineHeight: 1,
                   }}>{p.price.toLocaleString('ko-KR')}</span>
-                  <span style={{ fontSize: 19, fontWeight: 700, color: '#191F28' }}>원</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: '#4E5968', marginLeft: 2 }}>원</span>
                 </div>
-                <p style={{ fontSize: 14, color: '#8B95A1', margin: '0 0 24px', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 14, color: '#8B95A1', margin: '0 0 26px', lineHeight: 1.6, minHeight: 44 }}>
                   {p.tagline}
                 </p>
 
@@ -105,16 +109,19 @@ export default function Page() {
                   무료로 시작하기
                 </Link>
 
-                {/* 수량·단가 */}
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 11 }}>
-                  {[
-                    <><b style={{ fontWeight: 700, color: '#191F28' }}>크레딧 {p.credits}개</b> 지급</>,
-                    <>16섹션 페이지 <b style={{ fontWeight: 700, color: '#191F28' }}>약 {pagesPerPlan(p)}개</b> 분량</>,
-                    <>크레딧당 <b style={{ fontWeight: 700, color: '#191F28' }}>{pricePerCredit(p).toLocaleString('ko-KR')}원</b></>,
-                  ].map((node, i) => (
-                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 14.5, color: '#4E5968', lineHeight: 1.6 }}>
+                {/* 혜택 — 상위 플랜일수록 줄이 늘어나며 누적되는 게 보이게 */}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12 }}>
+                  {planHighlights(p).map((h, i) => (
+                    <li key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 9,
+                      fontSize: 15, color: '#4E5968', lineHeight: 1.6, letterSpacing: '-0.01em',
+                    }}>
                       <Check size={17} color="#6D4CFF" strokeWidth={2.6} style={{ flexShrink: 0, marginTop: 3 }} />
-                      <span>{node}</span>
+                      <span>
+                        {h.pre}
+                        <b style={{ fontWeight: 700, color: '#191F28' }}>{h.bold}</b>
+                        {h.post}
+                      </span>
                     </li>
                   ))}
                 </ul>

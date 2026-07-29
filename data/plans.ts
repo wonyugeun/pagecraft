@@ -19,7 +19,10 @@
 
 export interface CreditPlan {
   id: string;
+  /** 한글명 — 보조 표기 */
   name: string;
+  /** 영문 플랜명 — 카드 제목(대문자). AI 서비스 관행이고 시각적으로 정돈됨 */
+  nameEn: string;
   /** 판매가(원, VAT 포함 표기) */
   price: number;
   /** 지급 크레딧 */
@@ -52,6 +55,7 @@ export const PLANS: CreditPlan[] = [
   {
     id: 'light',
     name: '라이트',
+    nameEn: 'LIGHT',
     price: 9900,
     credits: 20,
     tagline: '상세페이지 1개를 여유 있게',
@@ -59,6 +63,7 @@ export const PLANS: CreditPlan[] = [
   {
     id: 'standard',
     name: '스탠다드',
+    nameEn: 'STANDARD',
     price: 29000,
     credits: 70,
     tagline: '상품 여러 개를 준비하는 셀러',
@@ -67,6 +72,7 @@ export const PLANS: CreditPlan[] = [
   {
     id: 'pro',
     name: '프로',
+    nameEn: 'PRO',
     price: 59000,
     credits: 160,
     tagline: '정기적으로 신상품을 올리는 스토어',
@@ -81,4 +87,44 @@ export function pricePerCredit(plan: CreditPlan): number {
 /** 표시용 — 16섹션 페이지 몇 개 분량인지(소수 1자리) */
 export function pagesPerPlan(plan: CreditPlan, sectionsPerPage = 16): number {
   return Math.round((plan.credits / sectionsPerPage) * 10) / 10;
+}
+
+/* ── ★상위 플랜의 '실제' 이득(2026-07-30) — 기능을 잠그지 않으므로 차등은 단가에서만 나온다.
+ *    없는 혜택을 지어내지 않고, 기준 플랜(가장 작은 팩) 단가와 비교해 계산 가능한 값만 보여준다. ── */
+
+/** 기준 플랜 = 크레딧당 단가가 가장 비싼(=가장 작은) 팩 */
+function basePlan(): CreditPlan {
+  return PLANS.reduce((a, b) => (pricePerCredit(a) >= pricePerCredit(b) ? a : b));
+}
+
+/** 기준 플랜 단가 대비 절약률(%) — 기준 플랜 자신은 0 */
+export function savingRate(plan: CreditPlan): number {
+  const base = pricePerCredit(basePlan());
+  if (!base) return 0;
+  return Math.round((1 - pricePerCredit(plan) / base) * 100);
+}
+
+/** 기준 플랜 단가로 같은 크레딧을 살 때보다 얼마 덜 내는지(원) */
+export function savingAmount(plan: CreditPlan): number {
+  const base = pricePerCredit(basePlan());
+  return Math.max(0, Math.round(plan.credits * base - plan.price));
+}
+
+/** 카드 혜택 줄 — pre + bold + post 순서로 렌더(강조 위치를 데이터가 결정) */
+export interface PlanHighlight { pre?: string; bold: string; post?: string }
+
+/** 상위 플랜은 하위 플랜 혜택을 포함(누적) — 올라갈수록 이득이 쌓이는 게 보이게 */
+export function planHighlights(plan: CreditPlan): PlanHighlight[] {
+  const idx = PLANS.findIndex(p => p.id === plan.id);
+  const prev = idx > 0 ? PLANS[idx - 1] : null;
+  const rate = savingRate(plan);
+  const amount = savingAmount(plan);
+  const rows: PlanHighlight[] = [
+    { bold: `크레딧 ${plan.credits}개`, post: ' 지급' },
+    { pre: '16섹션 페이지 ', bold: `약 ${pagesPerPlan(plan)}개` , post: ' 분량' },
+    { pre: '크레딧당 ', bold: `${pricePerCredit(plan).toLocaleString('ko-KR')}원`, post: rate > 0 ? ` · ${rate}% 저렴` : '' },
+  ];
+  if (prev) rows.push({ bold: `${prev.nameEn} 플랜의 모든 혜택`, post: ' 포함' });
+  if (amount > 0) rows.push({ pre: '낱개로 살 때보다 ', bold: `${amount.toLocaleString('ko-KR')}원 절약` });
+  return rows;
 }
