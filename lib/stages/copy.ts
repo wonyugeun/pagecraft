@@ -28,6 +28,7 @@ interface Strategy {
   concept?: string;
   story_flow?: string;
   tone?: string;
+  speech_level?: string;
   hero_angle?: string;
   cta_angle?: string;
   [k: string]: unknown;
@@ -58,6 +59,7 @@ export interface StrategySummary {
   target_fear?: string;
   story_flow?: string;
   tone?: string;
+  speech_level?: string;
 }
 
 /** dna+strategy에서 strategy_summary 7필드만 추출 */
@@ -74,6 +76,7 @@ export function buildStrategySummary(
     target_fear:   s(dna?.target_fear),
     story_flow:    s(strategy?.story_flow),
     tone:          s(strategy?.tone),
+    speech_level:  s(strategy?.speech_level),
   };
 }
 
@@ -125,7 +128,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
    ⚠️어미·상투구를 정해두지 마세요. "있으시죠?/해보셨나요?/~거예요" 같은 특정 표현에 기대면 모든 상품의 카피가 똑같아집니다.
    이 제품의 고객이 실제로 쓸 법한 말을 그 상품의 맥락에서 새로 고르세요 — 같은 뜻이라도 매번 다른 문장으로.
 3. 독자 속마음 대변: 설명을 먼저 던지지 말고, 독자가 속으로 했을 혼잣말·생각을 먼저 말하세요. (예: 설명 "민감성 피부는 향료에 자극을 받을 수 있습니다" ❌ → 속마음 "'이번엔 괜찮겠지' 했는데 또 붉어졌던 날." ✅)
-4. 질문형 후킹: 섹션 도입은 질문으로 열어도 좋습니다. ("있으시죠? / 느껴보신 적 있나요? / 이런 경험 없으셨나요?")
+4. 질문형 후킹: 섹션 도입을 질문으로 열 수 있습니다 — 단 정해진 관용구를 재사용하지 말고, 이 상품의 고객이 실제로 품을 의문을 그대로 쓰세요.
 5. 도입 순서 — ★섹션 역할에 따라 다르게(2026-07-29 완화):
    · 훅형(히어로·공감·CTA): 공감 → 상황(장면) → 감정 → 설명. 정보부터 던지지 마세요.
    · 설득형(성분·근거·비교·FAQ·스펙): 이 순서를 강제하지 않습니다. 근거·수치·대비로 바로 열어도 좋고, 장면으로 열어도 좋습니다 —
@@ -146,6 +149,14 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 
 [섹션별 문체 변주 — 단, 브랜드 톤은 하나로 공유]
 - ⭐바닥 톤(brand tone)은 모든 섹션이 공유합니다: ${ss.tone || '신뢰감 있되 친근한'}. 이 톤은 16개 섹션 전체에 깔리는 한 사람의 목소리입니다.
+- ★어투(speech_level) = ${ss.speech_level || '해요체'} — 전 섹션 이 어투로 통일하고 중간에 섞지 마세요.
+   · 해요체 → "~해요/~어요/~죠" 친근한 존댓말.
+   · 합니다체 → "~합니다/~습니다" 정중·전문적. 문장이 조금 길어도 됩니다.
+   · 단정형(~다체) → "매일 아침이 달라진다 / 흔들리지 않는다" 처럼 광고 카피 어조로 짧고 단단하게. 존댓말 어미를 쓰지 마세요.
+   · 명사형 → "하루 한 알로 끝. / 손질 없는 저녁." 처럼 체언으로 끊어 절제된 리듬을 만드세요.
+   · 반말친근체 → 무례하지 않은 선에서 "~야/~지/~거든" 캐주얼하게. 20대 타겟·캐주얼 브랜드 전용.
+   ⚠️어투는 문장 끝만 바꾸는 게 아니라 문장 길이·호흡까지 함께 바뀝니다. 단정형·명사형은 특히 짧게.
+   ⚠️단, CTA의 행동 유도와 법정 고지 문구는 어투와 무관하게 오해 없이 명확하게 쓰세요.
 - ★톤을 실제 문장에 반영하세요(라벨만 받고 무시하지 말 것). 톤이 바뀌면 어미·문장 길이·호칭·리듬이 실제로 달라져야 합니다:
   직설형→ 수식 걷어내고 단언 위주 짧은 문장 / 감성형→ 장면과 정서를 먼저, 여운 있는 마무리 / 데이터형→ 숫자·대비를 문장 앞에 /
   다정형→ 안심시키는 어투와 부드러운 청유 / 유쾌형→ 가볍고 리듬감 있게(과장·말장난·유행어는 금지) / 미니멀형→ 짧은 문장과 여백, 접속사 최소화 /
@@ -154,7 +165,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 - ★writing_style 우선(2026-07-29): 위 문체 규칙(질문형 도입·공감 우선 등)과 그 섹션의 writing_style이 충돌하면 writing_style을 따르세요.
   writing_style이 '선언형'이면 질문 없이 단언으로 열고, '계산형'이면 숫자로 열고, 'Q&A형'이면 질문·답 구조로 씁니다.
   문체 규칙은 기본값일 뿐이고, writing_style은 이 섹션에 내려진 구체적 지시입니다. 지키지 않으면 전 섹션이 같은 리듬으로 반복됩니다.
-- 그러나 "다른 사람이 쓴 글"처럼 따로 놀면 안 됩니다. "한 사람이 상황에 맞게 말투를 바꾸는 것"처럼 들려야 합니다. 어휘·호칭·존댓말 수준·독자를 부르는 방식은 전 섹션 일관되게 유지하세요(문체는 바꾸되 사람은 한 명).
+- 그러나 "다른 사람이 쓴 글"처럼 따로 놀면 안 됩니다. "한 사람이 상황에 맞게 말투를 바꾸는 것"처럼 들려야 합니다. 어휘·호칭·어투(speech_level)·독자를 부르는 방식은 전 섹션 일관되게 유지하세요(문체는 바꾸되 사람은 한 명).
 - 문체를 살리겠다고 과장·말장난·유행어로 흐르지 마세요. 변주는 리듬을 위한 것이지 산만함을 위한 게 아닙니다.
 
 [v4 — 전략을 마지막 섹션까지 유지하는 규칙 (이 페이지에서 가장 중요. 중반 이후 전략 누수를 막는다)]
@@ -180,7 +191,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
    · CTA → [브랜드 담당자] 시점: 행동 유도 → 목표 '지금 시작해보자'
    · (그 외 섹션은 가장 가까운 역할의 화자를 따르세요.)
 - ⭐Character는 화자일 뿐 새로운 정보원이 아닙니다. 모든 화자는 동일한 Stage1 전략·동일한 사실·동일한 target_desire·target_fear를 공유합니다. 화자가 바뀌어도 main_weapon·concept·hero_angle·target_desire·target_fear는 절대 바뀌지 않습니다. 새 주장·새 사실·새 효능·새 근거를 만들면 실패입니다. 화자의 역할은 '같은 전략을 다른 시점으로 전달'하는 것뿐입니다.
-- ⭐통일감: 화자가 바뀌어도 브랜드 기본 톤(${ss.tone || '신뢰감 있되 친근한'})은 전 섹션 공통입니다. 16명이 따로 쓴 문서가 아니라, 하나의 브랜드가 상황에 맞는 화자를 내세우는 느낌이어야 합니다. 호칭·존댓말 수준·독자를 부르는 방식은 일관되게. 과도한 화자 분리·산만함은 금지.
+- ⭐통일감: 화자가 바뀌어도 브랜드 기본 톤(${ss.tone || '신뢰감 있되 친근한'})은 전 섹션 공통입니다. 16명이 따로 쓴 문서가 아니라, 하나의 브랜드가 상황에 맞는 화자를 내세우는 느낌이어야 합니다. 호칭·어투(speech_level)·독자를 부르는 방식은 일관되게. 과도한 화자 분리·산만함은 금지.
 - ⭐후기/리뷰 섹션 — ⚠️전 카테고리 공통 법적 필수(표시광고법 / 공정위, 가짜 후기는 과징금 대상). 카테고리(화장품·식품·패션·가전·반려동물·건강 등) 무관하게 동일 적용:
    · 셀러가 실제 후기를 입력했으면 → 그 후기를 그대로 예쁘게 표시(작성자·별점도 입력값이 있을 때만).
    · 셀러가 후기를 입력하지 않았으면 → 1인칭 과거형 경험담·별점·작성자명을 절대 생성하지 마세요. 금지 예시 → "샀는데 좋았어요" / "저는 써봤는데요" / "큰 기대 안 했는데" / "우리 아이가 좋아해요" / "★★★★★" / 작성자명.
@@ -239,6 +250,7 @@ export function buildCopyChunkPrompts(input: CopyChunkInput): { composedSystem: 
 - 히어로 전략(hero_angle, 첫 섹션에서 수행): ${ss.hero_angle || '(없음)'}
 - 설득 흐름(story_flow): ${ss.story_flow || '(없음)'}
 - 톤(tone): ${ss.tone || '(없음)'}
+- 어투(speech_level): ${ss.speech_level || '해요체'}
 - ★고객이 진짜 원하는 것(target_desire) — 페이지 전체를 관통하는 감정선, 섹션마다 다른 장면으로 변주: ${ss.target_desire || '(없음)'}
 - 고객이 가장 두려워하는 것(target_fear) — 초반 설득 + FAQ/비교에서 해소 대상: ${ss.target_fear || '(없음)'}`;
 
@@ -315,12 +327,63 @@ ${COPY_PRINCIPLES}
 
 /** 카피 기본 모델(A안) — 2026-07 A/B 검증: v5 호흡·헤지·규격 최상, 비용 4.6 동급 */
 export const COPY_MODEL = 'claude-sonnet-5';
-/** 카피 B안 모델(블로그형 전용 감성·장면형) — A/B 검증: 감성 카피 최고, 수치 충실 */
-export const COPY_MODEL_ALT = 'claude-opus-4-8';
+/** 카피 B안 모델(블로그형 전용) — ★2026-07-29 Opus 4.8 → GPT-5.6 Luna 교체.
+ *  실측(비타민·밤호박 × 8섹션): 날조 0·핵심 팩트 반영 동등·상투구 더 적음, 속도 3배,
+ *  원가 16섹션 페이지 기준 약 800원 → 110원. A안(Claude)과 다른 계열이라 A/B 대비도 더 뚜렷.
+ *  롤백은 이 상수만 'claude-opus-4-8'로 되돌리면 된다. */
+export const COPY_MODEL_ALT = 'gpt-5.6-luna';
+
+/* ── ★모델 프로바이더 분기(2026-07-29) — B안이 GPT(gpt-5.6-luna)로 바뀌면서 필요.
+ *    model 문자열 접두사로 판별한다: 'gpt-'/'o1'/'o3'/'o4' → OpenAI, 그 외 → Anthropic.
+ *    응답은 { raw, stopReason, outTok }로 통일해 아래 파싱 루프가 프로바이더를 몰라도 되게 한다. ── */
+interface LlmReply { raw: string; stopReason: string | null; outTok: number }
+
+function isOpenAIModel(model: string): boolean {
+  return /^(gpt-|o[134])/.test(model);
+}
+
+async function callCopyModel(model: string, system: string, user: string): Promise<LlmReply> {
+  if (isOpenAIModel(model)) {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        max_completion_tokens: 16000,
+      }),
+    });
+    const j = await res.json() as {
+      choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+      usage?: { completion_tokens?: number };
+      error?: { message?: string };
+    };
+    if (!res.ok) throw new Error(`OpenAI ${res.status}: ${j?.error?.message ?? JSON.stringify(j).slice(0, 200)}`);
+    const fin = j.choices?.[0]?.finish_reason ?? null;
+    return {
+      raw: j.choices?.[0]?.message?.content ?? '',
+      // OpenAI 'length' == Anthropic 'max_tokens' (잘림) — 아래 루프가 같은 이름으로 판정하게 정규화
+      stopReason: fin === 'length' ? 'max_tokens' : fin,
+      outTok: j.usage?.completion_tokens ?? 0,
+    };
+  }
+  const message = await client.messages.create({
+    model,
+    max_tokens: 16000,   // thinking 포함 상한 — A/B 실측 청크당 사고+출력 합 8K 미만으로 여유
+    thinking:   { type: 'adaptive' },
+    system,
+    messages:   [{ role: 'user', content: user }],
+  });
+  // adaptive thinking에선 content[0]이 thinking 블록일 수 있음 — text 블록을 찾아서 추출
+  return {
+    raw: message.content.find(b => b.type === 'text')?.text ?? '',
+    stopReason: message.stop_reason ?? null,
+    outTok: message.usage?.output_tokens ?? 0,
+  };
+}
 
 /** 한 청크(≤16섹션)의 카피를 LLM 1회 호출로 생성 — 통합 분할 호출의 기본 단위.
- *  model 인자로 B안(Opus) 생성에도 재사용. Sonnet 5/Opus 4.8 공통 규칙:
- *  temperature 미전송(Opus는 400) + thinking adaptive 명시(Opus는 명시해야 켜짐). */
+ *  model 인자로 B안 생성에도 재사용(Anthropic·OpenAI 모두 지원 — callCopyModel이 분기). */
 export async function runCopyChunk(input: CopyChunkInput, model: string = COPY_MODEL): Promise<CopyOut[]> {
   const { sections: items, startIndex, knownFacts } = input;
   const { composedSystem, userPrompt } = buildCopyChunkPrompts(input);
@@ -330,19 +393,12 @@ export async function runCopyChunk(input: CopyChunkInput, model: string = COPY_M
   let parsed: unknown = null;
   let lastErr = '';
   for (let attempt = 1; attempt <= COPY_MAX_ATTEMPTS; attempt++) {
-    const message = await client.messages.create({
-      model,
-      max_tokens: 16000,   // thinking 포함 상한 — A/B 실측 청크당 사고+출력 합 8K 미만으로 여유
-      thinking:   { type: 'adaptive' },
-      system:     composedSystem,
-      messages:   [{ role: 'user', content: userPrompt }],
-    });
+    const message = await callCopyModel(model, composedSystem, userPrompt);
 
-    // adaptive thinking에선 content[0]이 thinking 블록일 수 있음 — text 블록을 찾아서 추출
-    const raw = message.content.find(b => b.type === 'text')?.text ?? '';
-    console.log(`[copy] chunk@${startIndex} (${items.length}섹션) model=${model} attempt=${attempt}/${COPY_MAX_ATTEMPTS} stop=${message.stop_reason} out=${message.usage?.output_tokens} len=${raw.length}`);
+    const raw = message.raw;
+    console.log(`[copy] chunk@${startIndex} (${items.length}섹션) model=${model} attempt=${attempt}/${COPY_MAX_ATTEMPTS} stop=${message.stopReason} out=${message.outTok} len=${raw.length}`);
 
-    if (message.stop_reason === 'max_tokens') {
+    if (message.stopReason === 'max_tokens') {
       lastErr = `청크(${startIndex}~)가 max_tokens(16000)에 도달해 잘렸어요`;
       console.warn(`[copy] ${lastErr} — ${attempt < COPY_MAX_ATTEMPTS ? '자동 재시도' : '재시도 소진'}`);
       continue;

@@ -81,10 +81,9 @@ interface ModelCfg {
 // ★GPT 전용 비교(2026-07-29) — 현행 Claude(A안 Sonnet 5 / B안 Opus 4.8)를 대체할 수 있는지
 //   GPT-5.6 신규 3종 + 저가형 1종으로 가격대를 넓게 훑는다. 가격은 2026-07 공식 기준($/1M).
 const MODELS: ModelCfg[] = [
-  // ★프롬프트 다양성 개선 검증(2026-07-29) — 현행 A안/B안 + 후보 Luna 동일 조건
-  { key: 'sonnet5', label: 'Sonnet 5 (A안)',  kind: 'anthropic', model: 'claude-sonnet-5', priceIn: 2, priceOut: 10 },
-  { key: 'opus48',  label: 'Opus 4.8 (B안)',  kind: 'anthropic', model: 'claude-opus-4-8', adaptiveThinking: true, priceIn: 5, priceOut: 25 },
-  { key: 'luna',    label: 'GPT-5.6 Luna',    kind: 'openai',    model: 'gpt-5.6-luna', priceIn: 1, priceOut: 6 },
+  // ★신규 구성 검증(2026-07-29): A안 Sonnet 5 / B안 Luna(교체 후) — 어투 다양화 반영 확인
+  { key: 'sonnet5', label: 'A안 Sonnet 5', kind: 'anthropic', model: 'claude-sonnet-5', priceIn: 2, priceOut: 10 },
+  { key: 'luna',    label: 'B안 Luna',      kind: 'openai',    model: 'gpt-5.6-luna', priceIn: 1, priceOut: 6 },
 ];
 
 const FORMS: Array<{ out: 'slide' | 'blog'; label: string }> = [
