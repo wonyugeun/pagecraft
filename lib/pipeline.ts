@@ -40,6 +40,8 @@ export interface PipelineInput {
   productForm?: string;
   productVolume?: string;
   productShapeProfile?: string;
+  /** ★셀러가 고른 카피 어투(2026-07-29) — 미지정이면 AI가 상품·타겟 보고 선택 */
+  speechLevel?: string;
 }
 
 /** ResultScreen이 읽을 수 있는 통합 섹션 — 구조(plan) + 카피 + 블록 + 이미지 브리프/자리 */

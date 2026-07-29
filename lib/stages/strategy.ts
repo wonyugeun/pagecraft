@@ -17,6 +17,8 @@ export interface StrategyInput {
   productExtra?: string;
   /** ★레퍼런스 스타일 힌트(s5-5 분석) — 톤·헤드라인 패턴·강조 포인트 요약. 스타일 참고 전용(사실 출처 아님) */
   referenceStyle?: string;
+  /** ★셀러가 상품정보에서 직접 고른 카피 어투 — 지정 시 AI 선택을 덮어쓴다(2026-07-29) */
+  speechLevel?: string;
 }
 
 export interface StrategyResult {
@@ -63,7 +65,7 @@ ${universalFactGuard}
 }`;
 
 export async function runStrategy(input: StrategyInput): Promise<StrategyResult> {
-  const { cat, ch, productName, productExtra, referenceStyle } = input;
+  const { cat, ch, productName, productExtra, referenceStyle, speechLevel } = input;
 
   const userPrompt = `다음 상품 정보를 분석해 DNA와 전략 JSON을 출력하세요.
 
@@ -120,6 +122,10 @@ ${productExtra ? `\n[상세 정보 — 차별점·성분·기타 요청사항 �
     // 색상: AI가 고른 palette 키로 hex를 코드가 채움(자유 hex 생성 금지 → 촌스러움 방지). 키 없으면 purple 폴백.
     const out = result as StrategyResult;
     out.visual = resolveVisual(r.visual?.palette, r.visual?.mood);
+    // ★어투 오버라이드(2026-07-29) — 셀러가 고른 값이 있으면 AI 선택보다 우선. 브랜드 톤은 셀러 소유.
+    if (speechLevel && typeof speechLevel === 'string' && speechLevel.trim() && out.strategy) {
+      (out.strategy as Record<string, unknown>).speech_level = speechLevel.trim();
+    }
     console.log(`[strategy] visual palette=${out.visual.palette} mood=${out.visual.mood} primary=${out.visual.primary_color}`);
 
     return out;

@@ -32,7 +32,7 @@ export default function GeneratingMobile() {
     referenceAnalysis, captureAnalysis, sectionStructure,
     go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     setOut, setCat, setCh, setType, setProductName, setProductExtra,
-    toggleChat, productForm, productVolume, productShapeProfile,
+    toggleChat, productForm, productVolume, productShapeProfile, speechLevel,
   } = useApp();
 
   // 데스크탑과 동일 state
@@ -76,7 +76,7 @@ export default function GeneratingMobile() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
         {
           resume,
           isCancelled: () => cancelledRef.current,

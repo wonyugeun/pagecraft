@@ -6,6 +6,7 @@ import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset, TEST_PRESETS, type TestPreset } from '@/lib/testPresets';
 import StepHeader from '@/components/layout/StepHeader';
+import { SPEECH_LEVELS } from '@/data/speechLevels';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
 
@@ -992,6 +993,7 @@ export default function ProductScreen() {
   const isMobile = useIsMobile();
   const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews,
+    speechLevel, setSpeechLevel,
     productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
     answers, setAnswers } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
@@ -1011,6 +1013,31 @@ export default function ProductScreen() {
   const [agreed, setAgreed] = useState(false);   // ①실측·검증 동의(생성 전 법적 방어선)
 
   // 모바일 분기 — 모든 훅 호출 후
+  // ★카피 어투 미리보기(2026-07-29) — 정적 예시로 시작, 버튼 누르면 내 상품 카피로 교체
+  const [tonePreview, setTonePreview] = useState<Record<string, { headline: string; body: string }>>({});
+  const [toneLoading, setToneLoading] = useState(false);
+  const [toneErr, setToneErr] = useState('');
+  const loadTonePreview = async () => {
+    if (toneLoading) return;
+    if (!productName.trim()) { setToneErr('상품명을 먼저 입력해주세요.'); return; }
+    setToneLoading(true); setToneErr('');
+    try {
+      const res = await fetch('/api/tone-preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName, hint: [diff, extraNote].filter(Boolean).join(' / ') }),
+      });
+      const d = await res.json() as { samples?: Array<{ level: string; headline: string; body: string }>; error?: string };
+      if (!res.ok) throw new Error(d.error ?? '미리보기 실패');
+      const map: Record<string, { headline: string; body: string }> = {};
+      for (const x of d.samples ?? []) map[x.level] = { headline: x.headline, body: x.body };
+      setTonePreview(map);
+    } catch (e) {
+      setToneErr(e instanceof Error ? e.message : '미리보기에 실패했어요.');
+    } finally {
+      setToneLoading(false);
+    }
+  };
+
   if (isMobile) return <ProductMobile />;
 
   // 섹션 helpers
@@ -1422,9 +1449,92 @@ export default function ProductScreen() {
             );
           })}
 
-          {/* 기타 요청사항 (always shown) */}
+          {/* ★카피 어투 (선택) — 미선택 시 AI가 타겟·포지션 보고 자동 선택 */}
           <AccordionSection
             num={visibleSections.length + 2}
+            title="카피 어투 (선택)"
+            isOpen={openSecs.has('s_speech')}
+            onToggle={() => toggleSec('s_speech')}
+            badge={speechLevel || 'AI 추천'}
+          >
+            <div style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.6, marginBottom: 12 }}>
+              상세페이지 전체의 말투예요. 고르지 않으면 AI가 상품·타겟에 맞게 정해드려요.
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={loadTonePreview}
+                disabled={toneLoading}
+                style={{
+                  padding: '8px 14px', borderRadius: 8, border: '1px dashed #C9BFF5',
+                  background: '#fff', color: '#6D4CFF', fontSize: 12.5, fontWeight: 700,
+                  cursor: toneLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: toneLoading ? 0.6 : 1,
+                }}
+              >
+                {toneLoading ? '만드는 중…' : '🔍 내 상품으로 미리보기'}
+              </button>
+              <span style={{ fontSize: 11.5, color: '#9CA3AF' }}>크레딧이 차감되지 않아요</span>
+            </div>
+            {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginBottom: 10 }}>{toneErr}</div>}
+
+            <div style={{ display: 'grid', gap: 8 }}>
+              {/* AI 추천(미선택) */}
+              <button
+                type="button"
+                onClick={() => setSpeechLevel('')}
+                style={{
+                  textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `${!speechLevel ? 2 : 1}px solid ${!speechLevel ? '#6D4CFF' : '#E5E7EB'}`,
+                  background: !speechLevel ? '#F8F6FF' : '#fff',
+                }}
+              >
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>
+                  ✨ AI 추천 {!speechLevel && <span style={{ fontSize: 11, color: '#6D4CFF' }}>· 선택됨</span>}
+                </div>
+                <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 3 }}>
+                  상품·타겟·브랜드 포지션을 보고 AI가 알아서 정해요
+                </div>
+              </button>
+
+              {SPEECH_LEVELS.map(lv => {
+                const sel = speechLevel === lv.key;
+                const pv = tonePreview[lv.key];
+                return (
+                  <button
+                    key={lv.key}
+                    type="button"
+                    onClick={() => setSpeechLevel(lv.key)}
+                    style={{
+                      textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `${sel ? 2 : 1}px solid ${sel ? '#6D4CFF' : '#E5E7EB'}`,
+                      background: sel ? '#F8F6FF' : '#fff',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>{lv.label}</span>
+                      <span style={{ fontSize: 11.5, color: '#8B95A1' }}>{lv.desc}</span>
+                      {sel && <span style={{ fontSize: 11, color: '#6D4CFF', fontWeight: 700 }}>· 선택됨</span>}
+                    </div>
+                    {pv ? (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #EDEBF5' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>{pv.headline}</div>
+                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.7, whiteSpace: 'pre-line', marginTop: 4 }}>{pv.body}</div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12.5, color: '#9CA3AF', marginTop: 6, fontStyle: 'italic' }}>
+                        “{lv.sample}”
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </AccordionSection>
+
+          {/* 기타 요청사항 (always shown) */}
+          <AccordionSection
+            num={visibleSections.length + 3}
             title="기타 요청사항"
             isOpen={openSecs.has('s_extra')}
             onToggle={() => toggleSec('s_extra')}
@@ -1443,7 +1553,7 @@ export default function ProductScreen() {
 
           {/* 고객 후기 (선택) — 실제 후기만. 있으면 후기 섹션에 표시, 없으면 미래형 기대 시나리오로 대체 */}
           <AccordionSection
-            num={visibleSections.length + 3}
+            num={visibleSections.length + 4}
             title="고객 후기 (선택)"
             isOpen={openSecs.has('s_reviews')}
             onToggle={() => toggleSec('s_reviews')}
@@ -1465,7 +1575,7 @@ export default function ProductScreen() {
 
           {/* 제품 형태·용량 (선택) — Physical Size Engine 입력: AI가 제품 실물 크기를 정확히 그리게 함 */}
           <AccordionSection
-            num={visibleSections.length + 4}
+            num={visibleSections.length + 5}
             title="제품 형태·용량 (이미지 정확도)"
             isOpen={openSecs.has('s_physical')}
             onToggle={() => toggleSec('s_physical')}

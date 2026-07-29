@@ -153,6 +153,9 @@ interface AppState {
   brand: string;
   diff: string;
   extraNote: string;
+  /** ★카피 어투 — '' 이면 AI가 선택 */
+  speechLevel: string;
+  setSpeechLevel: (v: string) => void;
   brandIntro: string;
   reviews: string;
   productForm: string;    // 제품 형태(토너 병/튜브 등 — Physical Size Engine 입력, 미연결 상태)
@@ -383,6 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [brand, setBrand] = useState('');
   const [diff, setDiff] = useState('');
   const [extraNote, setExtraNote] = useState('');
+  const [speechLevel, setSpeechLevel] = useState('');   // ★카피 어투(2026-07-29) — 빈 값 = AI 추천
   const [brandIntro, setBrandIntro] = useState('');
   const [reviews, setReviews] = useState('');   // 고객 후기 전용 입력(선택) — 있으면 factScrub sellerHasReviews=true
   const [productForm, setProductForm] = useState('');     // 제품 형태 — Physical Size Engine 입력(미연결)
@@ -519,6 +523,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBrand('');
     setDiff('');
     setExtraNote('');
+    setSpeechLevel('');
     setBrandIntro('');
     setReviews('');
     setProductForm('');
@@ -653,7 +658,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
         regularPrice, salePrice, showPrice, productOptions,
         brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
-        generationJobKey,
+        generationJobKey, speechLevel,
       };
       sessionStorage.setItem(PERSIST_KEY, JSON.stringify(snapshot));
       // ★임시저장(2026-07-27) — 탭을 닫아도 남게 계정별 localStorage에 같은 스냅샷 보관.
@@ -666,7 +671,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey, session?.user?.email]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey, speechLevel, session?.user?.email]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -699,6 +704,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.brand === 'string') setBrand(p.brand);
     if (typeof p.diff === 'string') setDiff(p.diff);
     if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
+    if (typeof p.speechLevel === 'string') setSpeechLevel(p.speechLevel);
     if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
     if (typeof p.reviews === 'string') setReviews(p.reviews);
     if (typeof p.productForm === 'string') setProductForm(p.productForm);
@@ -812,6 +818,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof p.brand === 'string') setBrand(p.brand);
     if (typeof p.diff === 'string') setDiff(p.diff);
     if (typeof p.extraNote === 'string') setExtraNote(p.extraNote);
+    if (typeof p.speechLevel === 'string') setSpeechLevel(p.speechLevel);
     if (typeof p.brandIntro === 'string') setBrandIntro(p.brandIntro);
     if (typeof p.reviews === 'string') setReviews(p.reviews);
     if (typeof p.productForm === 'string') setProductForm(p.productForm);
@@ -955,6 +962,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBrand,
       setDiff,
       setExtraNote,
+      speechLevel,
+      setSpeechLevel,
       setBrandIntro,
       setReviews,
       setProductForm,
