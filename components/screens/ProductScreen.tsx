@@ -1614,29 +1614,60 @@ export default function ProductScreen() {
 
             {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 8 }}>{toneErr}</div>}
 
-            {/* 선택한 어투의 예시 한 줄 — 미리보기를 돌렸으면 내 상품 카피로 교체 */}
-            {(() => {
+            {/* ★미리보기 결과는 5종을 한 번에 — 나란히 놓고 비교해야 고르기 쉬움(2026-07-29 유근님).
+                카드를 누르면 그 어투로 바로 선택된다. 미리보기 전에는 정적 예시 한 줄만. */}
+            {Object.keys(tonePreview).length > 0 ? (
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
+                gap: 8, marginTop: 12,
+              }}>
+                {SPEECH_LEVELS.map(lv => {
+                  const pv = tonePreview[lv.key];
+                  if (!pv) return null;
+                  const sel = speechLevel === lv.key;
+                  return (
+                    <button
+                      key={lv.key}
+                      type="button"
+                      onClick={() => setSpeechLevel(lv.key)}
+                      style={{
+                        textAlign: 'left', padding: '12px 13px', borderRadius: 10, cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        border: `${sel ? 2 : 1}px solid ${sel ? '#6D4CFF' : '#EDEBF5'}`,
+                        background: sel ? '#F4F0FF' : '#fff',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: sel ? '#6D4CFF' : '#8B95A1' }}>
+                          {lv.label}
+                        </span>
+                        {sel && <span style={{ fontSize: 10.5, color: '#6D4CFF' }}>· 선택됨</span>}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.45, wordBreak: 'keep-all' }}>
+                        {pv.headline}
+                      </div>
+                      {pv.body && (
+                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.65, whiteSpace: 'pre-line', marginTop: 5, wordBreak: 'keep-all' }}>
+                          {pv.body}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (() => {
               const cur = SPEECH_LEVELS.find(l => l.key === speechLevel);
-              const pv = speechLevel ? tonePreview[speechLevel] : undefined;
               if (!cur) {
-                const anyPv = Object.keys(tonePreview).length > 0;
                 return (
                   <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 10, lineHeight: 1.6 }}>
-                    {anyPv ? '어투를 누르면 내 상품 카피로 확인할 수 있어요.' : '상품·타겟·브랜드 포지션을 보고 AI가 어투를 정해드려요.'}
+                    상품·타겟·브랜드 포지션을 보고 AI가 어투를 정해드려요. 직접 고르고 싶으면 위에서 선택하거나, 미리보기로 내 상품 카피를 비교해보세요.
                   </div>
                 );
               }
               return (
                 <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #EDEBF5', borderRadius: 9 }}>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
-                    {pv ? `${cur.label} · 내 상품 예시` : `${cur.label} · 예시`}
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>
-                    {pv ? pv.headline : cur.sample}
-                  </div>
-                  {pv?.body && (
-                    <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.7, whiteSpace: 'pre-line', marginTop: 4 }}>{pv.body}</div>
-                  )}
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{cur.label} · 예시</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>{cur.sample}</div>
                 </div>
               );
             })()}
