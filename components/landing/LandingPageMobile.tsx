@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { BUSINESS, biz } from '@/data/businessInfo';
 import {
   Sparkles,
   LayoutGrid,
@@ -265,6 +267,28 @@ export default function LandingPageMobile() {
       </section>
 
       {/* (하단 탭바 제거 — 홈 외 4개 탭이 목적지 없는 죽은 컨트롤이라 삭제. 로그인 전 랜딩이라 앱 네비 불필요) */}
+
+      {/* ★사업자 정보(2026-07-29) — PG 카드사 심사 필수. 데스크탑 푸터와 동일 소스(data/businessInfo.ts).
+          모바일 랜딩에 푸터가 없어 심사에서 누락으로 잡힐 수 있어 추가. */}
+      <footer style={{ marginTop: '40px', padding: '24px 16px 40px', borderTop: '1px solid #EBEBEB' }}>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '14px' }}>
+          <Link href="/terms" style={{ fontSize: '12px', color: '#8B95A1', textDecoration: 'none', fontWeight: 600 }}>이용약관</Link>
+          <Link href="/privacy" style={{ fontSize: '12px', color: '#8B95A1', textDecoration: 'none', fontWeight: 600 }}>개인정보처리방침</Link>
+        </div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#8B95A1', marginBottom: '6px' }}>사업자 정보</div>
+        <div style={{ fontSize: '11px', color: '#B0B8C1', lineHeight: 1.9 }}>
+          상호명: {biz(BUSINESS.companyName)}<br />
+          대표자명: {biz(BUSINESS.ceo)}<br />
+          사업자등록번호: {biz(BUSINESS.regNumber)}<br />
+          사업장 주소: {biz(BUSINESS.address)}<br />
+          유선전화: {biz(BUSINESS.phone)}<br />
+          통신판매업 신고번호: {biz(BUSINESS.mailOrderNumber)}
+          {BUSINESS.email.trim() && <><br />이메일: {BUSINESS.email}</>}
+        </div>
+        <div style={{ fontSize: '11px', color: '#C4CBD3', marginTop: '14px' }}>
+          © 2026 {BUSINESS.companyName.trim() || 'Flik'}. All rights reserved.
+        </div>
+      </footer>
 
     </div>
   );

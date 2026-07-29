@@ -2,6 +2,8 @@
 //   [   ] 플레이스홀더·시행일·표(| |) 원문 그대로 유지. 수정 시 원본 .md와 동기화할 것.
 //   렌더: components/landing/LegalMarkdown.tsx (헤딩·볼드·인용·구분선·목록·GFM 표 지원).
 
+import { BUSINESS, biz } from './businessInfo';
+
 export const TERMS_CONTENT = `# Flik 이용약관
 
 **시행일: 2026년 7월 9일**
@@ -92,15 +94,20 @@ export const TERMS_CONTENT = `# Flik 이용약관
 ## 제13조 (준거법 및 관할)
 
 1. 본 약관은 대한민국 법령에 따라 해석됩니다.
-2. 서비스 이용과 관련하여 분쟁이 발생한 경우, 회사의 [소재지] 를 관할하는 법원을 관할 법원으로 합니다.
+2. 서비스 이용과 관련하여 분쟁이 발생한 경우, 회사의 소재지(${biz(BUSINESS.address)})를 관할하는 법원을 관할 법원으로 합니다.
 
 ## 제14조 (문의)
 
 서비스 이용과 관련한 문의는 아래로 연락 주시기 바랍니다.
 
 - 서비스명: Flik (flik.kr)
-- 운영자: [   이름/상호   ]
-- 이메일: flik.support@gmail.com
+- 상호명: ${biz(BUSINESS.companyName)}
+- 대표자명: ${biz(BUSINESS.ceo)}
+- 사업자등록번호: ${biz(BUSINESS.regNumber)}
+- 통신판매업 신고번호: ${biz(BUSINESS.mailOrderNumber)}
+- 사업장 주소: ${biz(BUSINESS.address)}
+- 유선전화: ${biz(BUSINESS.phone)}
+- 이메일: ${BUSINESS.email.trim() || 'flik.support@gmail.com'}
 
 ---
 
@@ -211,8 +218,9 @@ Flik(이하 "서비스")은 「개인정보 보호법」 등 관련 법령을 �
 
 서비스는 개인정보 처리에 관한 업무를 총괄하는 책임자를 다음과 같이 지정합니다.
 
-- 개인정보 보호책임자: [   이름   ]
-- 연락처(이메일): flik.support@gmail.com
+- 개인정보 보호책임자: ${biz(BUSINESS.privacyOfficer || BUSINESS.ceo)}
+- 연락처(이메일): ${BUSINESS.email.trim() || 'flik.support@gmail.com'}
+- 유선전화: ${biz(BUSINESS.phone)}
 
 이용자는 개인정보 관련 문의·불만·피해 구제를 위 연락처로 신고할 수 있습니다.
 

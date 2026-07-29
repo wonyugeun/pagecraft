@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { BUSINESS, biz } from '@/data/businessInfo';
 import { IconBrandKakoTalk } from '@tabler/icons-react';
 
 // ★문의 이메일(베타 운영). 법적 페이지·mailto 공통.
@@ -130,6 +131,36 @@ export default function LandingFooter() {
           </div>
         </div>
 
+        {/* ★사업자 정보(2026-07-29) — PG 카드사 심사 필수 요건.
+            사업자등록증과 '동일하게' 상호·대표자·사업자번호·주소·유선전화를 모두 표기해야 한다.
+            값은 data/businessInfo.ts 한 곳에서만 관리(약관·개인정보처리방침과 공유). */}
+        <div style={{
+          borderTop: '1px solid #EBEBEB', paddingTop: '24px', marginBottom: '20px',
+        }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#8B95A1', marginBottom: '8px' }}>
+            사업자 정보
+          </div>
+          <div style={{ fontSize: '12px', color: '#B0B8C1', lineHeight: 1.9 }}>
+            <span>상호명: {biz(BUSINESS.companyName)}</span>
+            <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
+            <span>대표자명: {biz(BUSINESS.ceo)}</span>
+            <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
+            <span>사업자등록번호: {biz(BUSINESS.regNumber)}</span>
+            <br />
+            <span>사업장 주소: {biz(BUSINESS.address)}</span>
+            <br />
+            <span>유선전화: {biz(BUSINESS.phone)}</span>
+            <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
+            <span>통신판매업 신고번호: {biz(BUSINESS.mailOrderNumber)}</span>
+            {BUSINESS.email.trim() && (
+              <>
+                <span style={{ margin: '0 8px', color: '#E5E8EB' }}>|</span>
+                <span>이메일: {BUSINESS.email}</span>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* 하단 카피라이트 */}
         <div style={{
           borderTop: '1px solid #EBEBEB', paddingTop: '28px',
@@ -137,7 +168,7 @@ export default function LandingFooter() {
           flexWrap: 'wrap', gap: '12px',
         }}>
           <span style={{ fontSize: '12px', color: '#B0B8C1' }}>
-            © 2026 Flik. All rights reserved.
+            © 2026 {BUSINESS.companyName.trim() || 'Flik'}. All rights reserved.
           </span>
           <div style={{ display: 'flex', gap: '20px' }}>
             {[
