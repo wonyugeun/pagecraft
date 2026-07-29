@@ -1449,92 +1449,9 @@ export default function ProductScreen() {
             );
           })}
 
-          {/* ★카피 어투 (선택) — 미선택 시 AI가 타겟·포지션 보고 자동 선택 */}
-          <AccordionSection
-            num={visibleSections.length + 2}
-            title="카피 어투 (선택)"
-            isOpen={openSecs.has('s_speech')}
-            onToggle={() => toggleSec('s_speech')}
-            badge={speechLevel || 'AI 추천'}
-          >
-            <div style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.6, marginBottom: 12 }}>
-              상세페이지 전체의 말투예요. 고르지 않으면 AI가 상품·타겟에 맞게 정해드려요.
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={loadTonePreview}
-                disabled={toneLoading}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, border: '1px dashed #C9BFF5',
-                  background: '#fff', color: '#6D4CFF', fontSize: 12.5, fontWeight: 700,
-                  cursor: toneLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: toneLoading ? 0.6 : 1,
-                }}
-              >
-                {toneLoading ? '만드는 중…' : '🔍 내 상품으로 미리보기'}
-              </button>
-              <span style={{ fontSize: 11.5, color: '#9CA3AF' }}>크레딧이 차감되지 않아요</span>
-            </div>
-            {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginBottom: 10 }}>{toneErr}</div>}
-
-            <div style={{ display: 'grid', gap: 8 }}>
-              {/* AI 추천(미선택) */}
-              <button
-                type="button"
-                onClick={() => setSpeechLevel('')}
-                style={{
-                  textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-                  border: `${!speechLevel ? 2 : 1}px solid ${!speechLevel ? '#6D4CFF' : '#E5E7EB'}`,
-                  background: !speechLevel ? '#F8F6FF' : '#fff',
-                }}
-              >
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>
-                  ✨ AI 추천 {!speechLevel && <span style={{ fontSize: 11, color: '#6D4CFF' }}>· 선택됨</span>}
-                </div>
-                <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 3 }}>
-                  상품·타겟·브랜드 포지션을 보고 AI가 알아서 정해요
-                </div>
-              </button>
-
-              {SPEECH_LEVELS.map(lv => {
-                const sel = speechLevel === lv.key;
-                const pv = tonePreview[lv.key];
-                return (
-                  <button
-                    key={lv.key}
-                    type="button"
-                    onClick={() => setSpeechLevel(lv.key)}
-                    style={{
-                      textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-                      border: `${sel ? 2 : 1}px solid ${sel ? '#6D4CFF' : '#E5E7EB'}`,
-                      background: sel ? '#F8F6FF' : '#fff',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>{lv.label}</span>
-                      <span style={{ fontSize: 11.5, color: '#8B95A1' }}>{lv.desc}</span>
-                      {sel && <span style={{ fontSize: 11, color: '#6D4CFF', fontWeight: 700 }}>· 선택됨</span>}
-                    </div>
-                    {pv ? (
-                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #EDEBF5' }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>{pv.headline}</div>
-                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.7, whiteSpace: 'pre-line', marginTop: 4 }}>{pv.body}</div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12.5, color: '#9CA3AF', marginTop: 6, fontStyle: 'italic' }}>
-                        “{lv.sample}”
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </AccordionSection>
-
           {/* 기타 요청사항 (always shown) */}
           <AccordionSection
-            num={visibleSections.length + 3}
+            num={visibleSections.length + 2}
             title="기타 요청사항"
             isOpen={openSecs.has('s_extra')}
             onToggle={() => toggleSec('s_extra')}
@@ -1553,7 +1470,7 @@ export default function ProductScreen() {
 
           {/* 고객 후기 (선택) — 실제 후기만. 있으면 후기 섹션에 표시, 없으면 미래형 기대 시나리오로 대체 */}
           <AccordionSection
-            num={visibleSections.length + 4}
+            num={visibleSections.length + 3}
             title="고객 후기 (선택)"
             isOpen={openSecs.has('s_reviews')}
             onToggle={() => toggleSec('s_reviews')}
@@ -1575,7 +1492,7 @@ export default function ProductScreen() {
 
           {/* 제품 형태·용량 (선택) — Physical Size Engine 입력: AI가 제품 실물 크기를 정확히 그리게 함 */}
           <AccordionSection
-            num={visibleSections.length + 5}
+            num={visibleSections.length + 4}
             title="제품 형태·용량 (이미지 정확도)"
             isOpen={openSecs.has('s_physical')}
             onToggle={() => toggleSec('s_physical')}
@@ -1635,6 +1552,95 @@ export default function ProductScreen() {
 
           {/* (제거됨 2026-07-21 유근님) 카테고리 추천 키워드 칩 — 일반 키워드는 전략을 일반론으로 끌고,
               '추천 성분' 칩은 제품에 없는 성분을 셀러 입력 사실로 만들어 날조 가드를 우회하는 구멍이었음 */}
+
+          {/* ★카피 어투(2026-07-29) — 아코디언에 넣었더니 접혀 있어 아무도 못 보던 문제.
+              선택이 아니라 '눈에 띄는 것'이 목적이라 항상 펼쳐진 한 줄 칩으로 노출한다.
+              미선택(AI 추천)이 기본값이라 안 골라도 흐름은 그대로 진행된다. */}
+          <div style={{
+            marginTop: 20, padding: '16px 18px', borderRadius: 12,
+            border: '1px solid #E6DEFF', background: '#FBFAFE',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>카피 어투</span>
+                <span style={{ fontSize: 12, color: '#9CA3AF', marginLeft: 7 }}>선택 · 안 고르면 AI가 정해요</span>
+              </div>
+              <button
+                type="button"
+                onClick={loadTonePreview}
+                disabled={toneLoading}
+                style={{
+                  padding: '6px 12px', borderRadius: 8, border: '1px dashed #C9BFF5',
+                  background: '#fff', color: '#6D4CFF', fontSize: 12, fontWeight: 700,
+                  cursor: toneLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: toneLoading ? 0.6 : 1,
+                }}
+              >
+                {toneLoading ? '만드는 중…' : '🔍 내 상품으로 미리보기'}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => setSpeechLevel('')}
+                title="상품·타겟을 보고 AI가 어투를 정해요"
+                style={{
+                  padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 12.5, fontWeight: 700,
+                  border: `1.5px solid ${!speechLevel ? '#6D4CFF' : '#E5E7EB'}`,
+                  background: !speechLevel ? '#6D4CFF' : '#fff',
+                  color: !speechLevel ? '#fff' : '#4E5968',
+                }}
+              >✨ AI 추천</button>
+              {SPEECH_LEVELS.map(lv => {
+                const sel = speechLevel === lv.key;
+                return (
+                  <button
+                    key={lv.key}
+                    type="button"
+                    onClick={() => setSpeechLevel(lv.key)}
+                    title={lv.desc}
+                    style={{
+                      padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 12.5, fontWeight: sel ? 700 : 500,
+                      border: `1.5px solid ${sel ? '#6D4CFF' : '#E5E7EB'}`,
+                      background: sel ? '#6D4CFF' : '#fff',
+                      color: sel ? '#fff' : '#4E5968',
+                    }}
+                  >{lv.label}</button>
+                );
+              })}
+            </div>
+
+            {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 8 }}>{toneErr}</div>}
+
+            {/* 선택한 어투의 예시 한 줄 — 미리보기를 돌렸으면 내 상품 카피로 교체 */}
+            {(() => {
+              const cur = SPEECH_LEVELS.find(l => l.key === speechLevel);
+              const pv = speechLevel ? tonePreview[speechLevel] : undefined;
+              if (!cur) {
+                const anyPv = Object.keys(tonePreview).length > 0;
+                return (
+                  <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 10, lineHeight: 1.6 }}>
+                    {anyPv ? '어투를 누르면 내 상품 카피로 확인할 수 있어요.' : '상품·타겟·브랜드 포지션을 보고 AI가 어투를 정해드려요.'}
+                  </div>
+                );
+              }
+              return (
+                <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #EDEBF5', borderRadius: 9 }}>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>
+                    {pv ? `${cur.label} · 내 상품 예시` : `${cur.label} · 예시`}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>
+                    {pv ? pv.headline : cur.sample}
+                  </div>
+                  {pv?.body && (
+                    <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.7, whiteSpace: 'pre-line', marginTop: 4 }}>{pv.body}</div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
 
           {/* ★노란 배너 다이어트(2026-07-27): 하단 중복 경고 제거 — 법적 경고는 상단 1곳,
               여기는 동의 체크만(중립 톤, 체크 시 그린). 노랑 3연발 → 1곳으로 줄여 실제로 읽히게. */}
