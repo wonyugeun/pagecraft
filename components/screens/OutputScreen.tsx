@@ -124,7 +124,7 @@ function SlidePreview() {
       }}>
         {Array.from({ length: total }).map((_, i) => (
           <div key={i} onClick={e => { e.stopPropagation(); setIdx(i); }} style={{
-            width: i === idx ? '16px' : '6px', height: '6px', borderRadius: '3px',
+            width: i === idx ? '16px' : '6px', height: '6px', borderRadius: '8px',
             background: i === idx ? '#6D4CFF' : 'rgba(255,255,255,0.7)',
             cursor: 'pointer', transition: 'all 200ms ease',
             boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -195,7 +195,7 @@ export default function OutputScreen() {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     fontSize: '11px', fontWeight: 700, color: '#6D4CFF',
-                    background: '#F0ECFF', padding: '4px 10px', borderRadius: '100px',
+                    background: '#F0ECFF', padding: '4px 10px', borderRadius: '999px',
                   }}>
                     <Star size={10} fill="#6D4CFF" /> AI 추천
                   </span>
@@ -213,7 +213,7 @@ export default function OutputScreen() {
 
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <span style={{ fontSize: '16px', fontWeight: 800, color: '#111', letterSpacing: '-0.03em' }}>{o.title}</span>
-                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '100px', ...o.tagStyle }}>{o.tagLabel}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '999px', ...o.tagStyle }}>{o.tagLabel}</span>
               </div>
 
               <p style={{ fontSize: '12.5px', color: '#6B7280', lineHeight: 1.7, whiteSpace: 'pre-line', letterSpacing: '-0.01em', margin: 0 }}>
@@ -225,7 +225,7 @@ export default function OutputScreen() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {o.feats.map(f => (
                   <span key={f} style={{
-                    fontSize: '11.5px', fontWeight: 500, padding: '4px 11px', borderRadius: '6px',
+                    fontSize: '11.5px', fontWeight: 500, padding: '4px 11px', borderRadius: '8px',
                     background: selected ? '#EDE8FF' : '#F3F4F6',
                     color: selected ? '#6D4CFF' : '#6B7280',
                     transition: 'all 150ms ease',

@@ -84,7 +84,7 @@ export default function CategoryScreen() {
           <div style={{
             background: 'linear-gradient(135deg, #F4F0FF 0%, #EDE8FF 100%)',
             border: '1px solid #DDD4FF',
-            borderRadius: '14px',
+            borderRadius: '16px',
             padding: '20px 24px',
             display: 'flex',
             alignItems: 'center',
@@ -111,7 +111,7 @@ export default function CategoryScreen() {
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '10px 18px', background: '#6D4CFF', color: '#fff',
-                border: 'none', borderRadius: '9px', fontSize: '13px', fontWeight: 600,
+                border: 'none', borderRadius: '12px', fontSize: '13px', fontWeight: 600,
                 cursor: 'pointer', letterSpacing: '-0.01em', flexShrink: 0,
               }}
             >

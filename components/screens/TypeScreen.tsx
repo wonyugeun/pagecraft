@@ -2,7 +2,7 @@
 
 import {
   Sparkles, FileText, Clock, RefreshCw,
-  Check, ArrowLeft, ArrowRight, ThumbsUp, ScanSearch,
+  Check, ArrowLeft, ArrowRight, ThumbsUp, ScanSearch, Eye, X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useApp, CH_CFG } from '@/store/AppContext';
@@ -129,7 +129,7 @@ export default function TypeScreen() {
       {/* AI 추천 배너 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: '#F7F5FF', border: '1px solid #E4DCFF', borderRadius: '14px',
+        background: '#F7F5FF', border: '1px solid #E4DCFF', borderRadius: '16px',
         padding: '16px 20px', marginBottom: '20px', gap: '16px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -177,7 +177,7 @@ export default function TypeScreen() {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center',
                     fontSize: '11px', fontWeight: 700, padding: '4px 10px',
-                    borderRadius: '100px', background: '#F3F4F6', color: '#6B7280',
+                    borderRadius: '999px', background: '#F3F4F6', color: '#6B7280',
                   }}>
                     준비 중
                   </span>
@@ -185,7 +185,7 @@ export default function TypeScreen() {
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     fontSize: '11px', fontWeight: 700, padding: '4px 10px',
-                    borderRadius: '100px', background: t.topBadgeBg!, color: '#fff',
+                    borderRadius: '999px', background: t.topBadgeBg!, color: '#fff',
                   }}>
                     <ThumbsUp size={10} /> {t.topBadge}
                   </span>
@@ -212,7 +212,7 @@ export default function TypeScreen() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '19px', fontWeight: 800, color: '#111', letterSpacing: '-0.03em' }}>{t.key}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '100px', ...t.tagStyle }}>{t.tagLabel}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 9px', borderRadius: '999px', ...t.tagStyle }}>{t.tagLabel}</span>
                   </div>
                   <p style={{ fontSize: '12.5px', color: '#555', lineHeight: 1.65, whiteSpace: 'pre-line', letterSpacing: '-0.01em' }}>{t.desc}</p>
                 </div>
@@ -221,7 +221,7 @@ export default function TypeScreen() {
               {/* 피처 태그 */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {t.feats.map(f => (
-                  <span key={f} style={{ fontSize: '11.5px', fontWeight: 500, padding: '4px 10px', borderRadius: '6px', ...t.featStyle }}>{f}</span>
+                  <span key={f} style={{ fontSize: '11.5px', fontWeight: 500, padding: '4px 10px', borderRadius: '8px', ...t.featStyle }}>{f}</span>
                 ))}
               </div>
 
@@ -249,12 +249,12 @@ export default function TypeScreen() {
                   ))}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '7px', marginTop: '10px' }}>
-                    <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: '9px', padding: '9px 12px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', marginBottom: '3px' }}>✓ 따라가요</div>
+                    <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: '12px', padding: '9px 12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#166534', marginBottom: '3px' }}><Check size={11} style={{ verticalAlign: -1, marginRight: 3 }} />따라가요</div>
                       <div style={{ fontSize: '11.5px', color: '#3F6B4F', lineHeight: 1.55 }}>섹션 구조·순서 · 카피 톤 · 강조 방식</div>
                     </div>
-                    <div style={{ background: '#FEF6F6', border: '1px solid #FBDCDC', borderRadius: '9px', padding: '9px 12px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#B54545', marginBottom: '3px' }}>✕ 복제 안 해요</div>
+                    <div style={{ background: '#FEF6F6', border: '1px solid #FBDCDC', borderRadius: '12px', padding: '9px 12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#B54545', marginBottom: '3px' }}><X size={11} style={{ verticalAlign: -1, marginRight: 3 }} />복제 안 해요</div>
                       <div style={{ fontSize: '11.5px', color: '#8A5A5A', lineHeight: 1.55 }}>남의 문구·이미지 · 후기·수치·브랜드명</div>
                     </div>
                   </div>
@@ -276,9 +276,9 @@ export default function TypeScreen() {
                     </span>
                   </div>
                   {/* 분량 바 — 프리미엄형(최대) 대비 상대 길이 */}
-                  <div style={{ height: 6, borderRadius: 3, background: '#EFEDF7', marginBottom: 12, overflow: 'hidden' }}>
+                  <div style={{ height: 6, borderRadius: 8, background: '#EFEDF7', marginBottom: 12, overflow: 'hidden' }}>
                     <div style={{
-                      height: '100%', borderRadius: 3, background: 'linear-gradient(90deg,#8E75FF,#6D4CFF)',
+                      height: '100%', borderRadius: 8, background: 'linear-gradient(90deg,#8E75FF,#6D4CFF)',
                       width: `${Math.round(((t.secCount ?? 0) / Math.max(premiumCount, 1)) * 100)}%`,
                     }} />
                   </div>
@@ -318,7 +318,7 @@ export default function TypeScreen() {
                         fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
-                      🔍 실제 생성 예시 보기
+                      <Eye size={13} style={{ marginRight: 2 }} />실제 생성 예시 보기
                     </button>
                   </div>
                 </div>
@@ -331,7 +331,7 @@ export default function TypeScreen() {
                 style={{
                   marginTop: 'auto',
                   width: '100%', padding: '12px',
-                  borderRadius: '10px', border: 'none',
+                  borderRadius: '12px', border: 'none',
                   fontSize: '13.5px', fontWeight: 700,
                   cursor: comingSoon ? 'not-allowed' : 'pointer', letterSpacing: '-0.01em',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -356,7 +356,7 @@ export default function TypeScreen() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '13px' }}>
           <div style={{
-            width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
+            width: '38px', height: '38px', borderRadius: '12px', flexShrink: 0,
             background: '#EDE8FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <RefreshCw size={18} color="#6D4CFF" />

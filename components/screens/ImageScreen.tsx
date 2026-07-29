@@ -281,7 +281,7 @@ export default function ImageScreen() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
                   <span style={{
-                    width: 34, height: 34, borderRadius: 11, flexShrink: 0,
+                    width: 34, height: 34, borderRadius: 12, flexShrink: 0,
                     background: 'linear-gradient(135deg,#EDE8FF,#D9CCFF)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 3px 8px rgba(109,76,255,0.18)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -319,7 +319,7 @@ export default function ImageScreen() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
                   <span style={{
-                    width: 34, height: 34, borderRadius: 11, flexShrink: 0,
+                    width: 34, height: 34, borderRadius: 12, flexShrink: 0,
                     background: 'linear-gradient(135deg,#FFF3D6,#FFE2A8)',
                     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 3px 8px rgba(217,119,6,0.18)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -417,7 +417,7 @@ export default function ImageScreen() {
               }}
             >
               <div style={{
-                width: 36, height: 36, borderRadius: 10, background: '#F4F0FF',
+                width: 36, height: 36, borderRadius: 12, background: '#F4F0FF',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <g.icon size={18} color="#6D4CFF" />

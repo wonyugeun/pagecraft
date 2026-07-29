@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShoppingCart, Rocket, Store, Lightbulb, type LucideIcon } from 'lucide-react';
+import { R, SHADOW, ICON } from '@/lib/designTokens';
 import { useApp } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
@@ -16,7 +17,8 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface ChannelDef {
   key: string;
-  emoji: string;
+  /** ★2026-07-30: 이모지 → lucide 아이콘(OS별 렌더 편차·톤 불일치 제거) */
+  Icon: LucideIcon;
   badge?: string;
   sub: string;
   desc: string;
@@ -30,7 +32,7 @@ interface ChannelDef {
 const CHANNELS: ChannelDef[] = [
   {
     key: '스마트스토어',
-    emoji: '🛒',
+    Icon: ShoppingCart,
     badge: '추천',
     sub: '네이버 쇼핑 기반',
     desc: '검색으로 들어온 고객에게 신뢰를 주는 정보 중심 구조로 설계합니다.',
@@ -40,7 +42,7 @@ const CHANNELS: ChannelDef[] = [
   },
   {
     key: '쿠팡',
-    emoji: '🚀',
+    Icon: Rocket,
     sub: '로켓배송 경쟁 환경',
     desc: '빠른 스크롤 환경에서 구매 전환을 만드는 시각 임팩트 중심 구조입니다.',
     tags: ['이미지 슬라이드', '비주얼 임팩트', '빠른 전환 구조'],
@@ -49,7 +51,7 @@ const CHANNELS: ChannelDef[] = [
   },
   {
     key: '자사몰',
-    emoji: '🏪',
+    Icon: Store,
     sub: '브랜드 직접 운영',
     desc: '브랜드 스토리와 고객 경험을 강화하는 프리미엄 구조로 설계합니다.',
     tags: ['HTML 섹션형', '브랜드 스토리', '감성 카피'],
@@ -58,7 +60,7 @@ const CHANNELS: ChannelDef[] = [
   },
   {
     key: '와디즈',
-    emoji: '💡',
+    Icon: Lightbulb,
     sub: '펀딩 · 예약판매',
     desc: '후원자의 공감을 이끄는 긴 호흡의 스토리텔링 구조로 설계합니다.',
     tags: ['긴 스크롤 HTML', '스토리텔링 구조', '공감 서사'],
@@ -117,7 +119,7 @@ function ChannelCard({ c, onClick }: { c: ChannelDef; onClick: () => void }) {
           : 'linear-gradient(180deg, #FFFFFF 0%, #FDFCFF 100%)',
         border: '1px solid',
         borderColor: hov ? 'rgba(109,76,255,0.35)' : '#EDEBF4',
-        borderRadius: '24px', cursor: 'pointer',
+        borderRadius: '20px', cursor: 'pointer',
         boxShadow: hov
           ? '0 2px 4px rgba(25,31,40,0.04), 0 14px 34px rgba(109,76,255,0.14), 0 30px 60px rgba(25,31,40,0.08)'
           : '0 1px 2px rgba(25,31,40,0.03), 0 6px 20px rgba(25,31,40,0.05)',
@@ -136,15 +138,14 @@ function ChannelCard({ c, onClick }: { c: ChannelDef; onClick: () => void }) {
       {/* 아이콘 + 배지 행 */}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{
-          width: '52px', height: '52px', borderRadius: '17px',
+          width: 52, height: 52, borderRadius: R.lg,
           background: `linear-gradient(135deg, ${c.tone[0]} 0%, ${c.tone[1]} 100%)`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '25px', lineHeight: 1,
-          boxShadow: `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 12px ${c.tone[1]}66`,
-          transform: hov ? 'scale(1.06) rotate(-3deg)' : 'none',
+          boxShadow: SHADOW.card,
+          transform: hov ? 'scale(1.04)' : 'none',
           transition: 'transform 220ms cubic-bezier(.3,.9,.4,1)',
         }}>
-          {c.emoji}
+          <c.Icon size={24} color="#fff" strokeWidth={1.9} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {c.badge && (

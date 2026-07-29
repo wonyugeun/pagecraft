@@ -7,6 +7,8 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset, TEST_PRESETS, type TestPreset } from '@/lib/testPresets';
 import StepHeader from '@/components/layout/StepHeader';
 import { SPEECH_LEVELS } from '@/data/speechLevels';
+import { Eye, Sparkles as SparkIcon, FlaskConical, Heart } from 'lucide-react';
+import { ICON } from '@/lib/designTokens';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
 
@@ -828,7 +830,7 @@ function S5BlogPreview({ cat, productName }: { cat: string | null; productName?:
         />
       </div>
       <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
-        💜 Flik이 실제로 생성한 블로그형 페이지예요 — 글은 검색에 잡히는 진짜 텍스트로 만들어집니다.
+        <Heart size={11} style={{ verticalAlign: -1, marginRight: 3 }} fill="currentColor" />Flik이 실제로 생성한 블로그형 페이지예요 — 글은 검색에 잡히는 진짜 텍스트로 만들어집니다.
       </div>
     </div>
   );
@@ -850,7 +852,7 @@ function S5SlidePreview({ cat, productName }: { cat: string | null; productName?
         <img src={SLIDE_PREVIEW_IMG} alt="슬라이드형 실제 생성 예시 — 밸런스랩 멀티비타민" style={{ width: '100%', height: 'auto', display: 'block' }} />
       </div>
       <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
-        💜 Flik이 실제로 생성한 슬라이드형 페이지예요 — 스크롤로 구경해보세요.
+        <Heart size={11} style={{ verticalAlign: -1, marginRight: 3 }} fill="currentColor" />Flik이 실제로 생성한 슬라이드형 페이지예요 — 스크롤로 구경해보세요.
       </div>
     </div>
   );
@@ -938,7 +940,7 @@ export function AccordionSection({
   return (
     <div style={{
       border: '1.5px solid #E5E7EB',
-      borderRadius: 10,
+      borderRadius: 12,
       marginBottom: 10,
       overflow: 'hidden',
     }}>
@@ -965,14 +967,14 @@ export function AccordionSection({
         {req && (
           <span style={{
             fontSize: 10, fontWeight: 600, color: '#6D4CFF',
-            background: '#EDE9FE', borderRadius: 4, padding: '2px 7px',
+            background: '#EDE9FE', borderRadius: 8, padding: '2px 7px',
           }}>필수</span>
         )}
         {badge && (
           <span style={{
             fontSize: 10, color: '#6B7280',
             background: '#F9FAFB', border: '1px solid #E5E7EB',
-            borderRadius: 4, padding: '2px 7px',
+            borderRadius: 8, padding: '2px 7px',
           }}>{badge}</span>
         )}
         {isOpen ? <ChevronUp size={16} color="#6B7280" /> : <ChevronDown size={16} color="#6B7280" />}
@@ -1182,7 +1184,7 @@ export default function ProductScreen() {
       {/* ⚠️ 법적 경고 — 입력 정보는 그대로 상세페이지에 반영, 책임은 판매자 (입력 처리 로직 불변, 안내 UI만) */}
       <div style={{
         display: 'flex', gap: 10, alignItems: 'flex-start',
-        background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
+        background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12,
         padding: '12px 14px', marginTop: 14, marginBottom: 28,
       }}>
         <span style={{ fontSize: 15, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
@@ -1203,12 +1205,12 @@ export default function ProductScreen() {
               type="button"
               onClick={() => fillTestData(tp)}
               style={{
-                padding: '10px 16px', borderRadius: 10,
+                padding: '10px 16px', borderRadius: 12,
                 border: '1px dashed #F59E0B', background: '#FFFBEB', color: '#92400E',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              🧪 [DEV] {tp.label}
+              <FlaskConical size={12} style={{ verticalAlign: -1, marginRight: 4 }} />[DEV] {tp.label}
             </button>
           ))}
         </div>
@@ -1223,7 +1225,7 @@ export default function ProductScreen() {
           {/* 완성도 카드 — 원형 % + 가로 진행바(진행에 따라 색 변화) */}
           <div style={{
             marginBottom: 24, padding: '15px 16px',
-            border: '1px solid #ECEAF6', borderRadius: 14, background: '#FBFAFE',
+            border: '1px solid #ECEAF6', borderRadius: 16, background: '#FBFAFE',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
               <ProgressCircle pct={pct} />
@@ -1284,7 +1286,7 @@ export default function ProductScreen() {
                       onChange={e => set(e.target.value.replace(/[^0-9]/g, ''))}
                       placeholder="0"
                       style={{
-                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 12,
                         padding: '0 12px', fontSize: 14, textAlign: 'right',
                         background: '#fff', outline: 'none', fontFamily: 'var(--f)',
                       }}
@@ -1352,7 +1354,7 @@ export default function ProductScreen() {
                       }}
                       placeholder="옵션명 (예: 용량)"
                       style={{
-                        width: 120, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        width: 120, height: 40, border: '1px solid #ECECF2', borderRadius: 12,
                         padding: '0 10px', fontSize: 13, fontFamily: 'var(--f)', outline: 'none',
                       }}
                       onFocus={e => { e.currentTarget.style.borderColor = '#6D4CFF'; }}
@@ -1368,7 +1370,7 @@ export default function ProductScreen() {
                       }}
                       placeholder="옵션값 (예: 50ml, 100ml)"
                       style={{
-                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 10,
+                        flex: 1, height: 40, border: '1px solid #ECECF2', borderRadius: 12,
                         padding: '0 10px', fontSize: 13, fontFamily: 'var(--f)', outline: 'none',
                       }}
                       onFocus={e => { e.currentTarget.style.borderColor = '#6D4CFF'; }}
@@ -1575,7 +1577,7 @@ export default function ProductScreen() {
                   cursor: toneLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: toneLoading ? 0.6 : 1,
                 }}
               >
-                {toneLoading ? '만드는 중…' : '🔍 내 상품으로 미리보기'}
+                {toneLoading ? '만드는 중…' : <><Eye size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />내 상품으로 미리보기</>}
               </button>
             </div>
 
@@ -1591,7 +1593,7 @@ export default function ProductScreen() {
                   background: !speechLevel ? '#6D4CFF' : '#fff',
                   color: !speechLevel ? '#fff' : '#4E5968',
                 }}
-              >✨ AI 추천</button>
+              ><SparkIcon size={12} style={{ verticalAlign: -1, marginRight: 4 }} />AI 추천</button>
               {SPEECH_LEVELS.map(lv => {
                 const sel = speechLevel === lv.key;
                 return (
@@ -1631,7 +1633,7 @@ export default function ProductScreen() {
                       type="button"
                       onClick={() => setSpeechLevel(lv.key)}
                       style={{
-                        textAlign: 'left', padding: '12px 13px', borderRadius: 10, cursor: 'pointer',
+                        textAlign: 'left', padding: '12px 13px', borderRadius: 12, cursor: 'pointer',
                         fontFamily: 'inherit',
                         border: `${sel ? 2 : 1}px solid ${sel ? '#6D4CFF' : '#EDEBF5'}`,
                         background: sel ? '#F4F0FF' : '#fff',
@@ -1665,7 +1667,7 @@ export default function ProductScreen() {
                 );
               }
               return (
-                <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #EDEBF5', borderRadius: 9 }}>
+                <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #EDEBF5', borderRadius: 12 }}>
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{cur.label} · 예시</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>{cur.sample}</div>
                 </div>
@@ -1677,7 +1679,7 @@ export default function ProductScreen() {
               여기는 동의 체크만(중립 톤, 체크 시 그린). 노랑 3연발 → 1곳으로 줄여 실제로 읽히게. */}
           <label style={{
             display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 24,
-            padding: '12px 14px', borderRadius: 10,
+            padding: '12px 14px', borderRadius: 12,
             background: agreed ? '#F0FDF4' : '#FAFAFC',
             border: `1px solid ${agreed ? '#BBF7D0' : '#E5E7EB'}`,
             cursor: 'pointer', transition: 'all .15s',

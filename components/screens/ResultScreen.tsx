@@ -727,7 +727,7 @@ function ImgSlot({
         </>
       ) : (
         <>
-          <div style={{ fontSize: 28 }}>📸</div>
+          <ImageIcon size={26} color="#C4CBD3" strokeWidth={1.6} />
           <div style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>{sec.imageLabel}</div>
           {!error && <div style={{ marginTop: 8, fontSize: 11, padding: '4px 12px', background: genBg, color: '#6D4CFF', borderRadius: 20, fontWeight: 600 }}>✦ 클릭하여 재생성</div>}
           {error && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4, padding: '0 12px', textAlign: 'center', lineHeight: 1.5 }}>{imgState.errorMsg ?? '생성 실패 — 클릭하여 재시도'}</div>}

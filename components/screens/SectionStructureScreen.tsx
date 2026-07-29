@@ -6,6 +6,8 @@ import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
+import { Ruler, CheckCircle2, Camera, Sparkles, X, Plus, RotateCcw } from 'lucide-react';
+import { ICON } from '@/lib/designTokens';
 import StepHeader from '@/components/layout/StepHeader';
 
 export const CAT_DEFAULTS: Record<string, Record<string, string[]>> = {
@@ -69,7 +71,7 @@ export const ALL_SECTIONS = [
 const BTN_SHARED: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   width: 26, height: 26, border: '1px solid var(--bd)',
-  borderRadius: 6, background: 'var(--white)', cursor: 'pointer',
+  borderRadius: 8, background: 'var(--white)', cursor: 'pointer',
   fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)',
   flexShrink: 0,
 };
@@ -136,18 +138,18 @@ export default function SectionStructureScreen() {
       />
       {(fromRef || fromCapture) && (
         <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, color: '#166534', fontWeight: 600 }}>
-          📐 참고 페이지 구조가 자동 반영됐어요. 아래에서 자유롭게 수정하세요.
+          <Ruler size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />참고 페이지 구조가 자동 반영됐어요. 아래에서 자유롭게 수정하세요.
         </div>
       )}
 
       {fromRef && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--pl)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: 'var(--pu)', fontWeight: 700, marginBottom: 14 }}>
-          ✅ 레퍼런스 기반 추천
+          <CheckCircle2 size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />레퍼런스 기반 추천
         </div>
       )}
       {fromCapture && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#f5f3ff', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#5b21b6', fontWeight: 700, marginBottom: 14 }}>
-          📸 캡처 분석 기반 추천
+          <Camera size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />캡처 분석 기반 추천
         </div>
       )}
 
@@ -155,7 +157,7 @@ export default function SectionStructureScreen() {
       {recommendLoading && (
         <div style={{
           marginBottom: 12,
-          background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10,
+          background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12,
           padding: '14px 16px',
           display: 'flex', alignItems: 'center', gap: 10,
           fontSize: 13, color: '#5b21b6', fontWeight: 600,
@@ -166,7 +168,7 @@ export default function SectionStructureScreen() {
             borderRadius: '50%', animation: 'spin 0.7s linear infinite',
             flexShrink: 0,
           }} />
-          ✨ AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
+          <Sparkles size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
         </div>
       )}
 
@@ -225,7 +227,7 @@ export default function SectionStructureScreen() {
             fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)', fontWeight: 600,
           }}
         >
-          {showAdd ? '✕ 닫기' : '+ 섹션 추가'}
+          {showAdd ? <><X size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />닫기</> : <><Plus size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />섹션 추가</>}
         </button>
         {canReset && (
           <button
@@ -237,7 +239,7 @@ export default function SectionStructureScreen() {
               fontSize: 13, color: 'var(--pu)', fontFamily: 'var(--f)', fontWeight: 700,
             }}
           >
-            ↺ AI 추천 구조로 되돌리기
+            <RotateCcw size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />AI 추천 구조로 되돌리기
           </button>
         )}
       </div>
@@ -246,7 +248,7 @@ export default function SectionStructureScreen() {
       {showAdd && (
         <div style={{
           background: '#f8fafc', border: '1px solid var(--bd)',
-          borderRadius: 10, padding: '14px', marginBottom: 16,
+          borderRadius: 12, padding: '14px', marginBottom: 16,
         }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 10 }}>클릭해서 추가하세요</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
