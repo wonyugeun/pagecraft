@@ -1555,73 +1555,75 @@ export default function ProductScreen() {
           {/* (제거됨 2026-07-21 유근님) 카테고리 추천 키워드 칩 — 일반 키워드는 전략을 일반론으로 끌고,
               '추천 성분' 칩은 제품에 없는 성분을 셀러 입력 사실로 만들어 날조 가드를 우회하는 구멍이었음 */}
 
-          {/* ★카피 어투(2026-07-29) — 아코디언에 넣었더니 접혀 있어 아무도 못 보던 문제.
-              선택이 아니라 '눈에 띄는 것'이 목적이라 항상 펼쳐진 한 줄 칩으로 노출한다.
-              미선택(AI 추천)이 기본값이라 안 골라도 흐름은 그대로 진행된다. */}
+          {/* ★카피 어투 — 항상 펼쳐진 카드(접으면 아무도 못 봄). 미선택(AI 추천)이 기본값.
+              ⚠️칩·버튼은 반드시 inline-flex + nowrap: inline 아이콘이 줄바꿈되면 그 칩만 2줄이 돼
+              높이가 어긋난다(2026-07-30 수정). 높이는 CHIP_H로 고정해 완전히 균일하게 맞춘다. */}
           <div style={{
-            marginTop: 20, padding: '16px 18px', borderRadius: 12,
-            border: '1px solid #E6DEFF', background: '#FBFAFE',
+            marginTop: 22, padding: '18px 20px', borderRadius: 12,
+            border: '1px solid #ECECF2', background: '#fff',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-              <div>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#191F28' }}>카피 어투</span>
-                <span style={{ fontSize: 12, color: '#9CA3AF', marginLeft: 7 }}>선택 · 안 고르면 AI가 정해요</span>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 12, flexWrap: 'wrap', marginBottom: 14,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28', letterSpacing: '-0.01em' }}>카피 어투</span>
+                <span style={{ fontSize: 12.5, color: '#8B95A1' }}>안 고르면 AI가 정해요</span>
               </div>
               <button
                 type="button"
                 onClick={loadTonePreview}
                 disabled={toneLoading}
                 style={{
-                  padding: '6px 12px', borderRadius: 8, border: '1px dashed #C9BFF5',
-                  background: '#fff', color: '#6D4CFF', fontSize: 12, fontWeight: 700,
-                  cursor: toneLoading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: toneLoading ? 0.6 : 1,
+                  height: 34, padding: '0 14px', borderRadius: 8,
+                  border: '1px solid #E6DEFF', background: '#F4F0FF', color: '#5B3FD6',
+                  fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                  cursor: toneLoading ? 'default' : 'pointer', opacity: toneLoading ? 0.55 : 1,
+                  transition: 'background 140ms ease',
                 }}
+                onMouseEnter={e => { if (!toneLoading) e.currentTarget.style.background = '#EDE8FF'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#F4F0FF'; }}
               >
-                {toneLoading ? '만드는 중…' : <><Eye size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />내 상품으로 미리보기</>}
+                <Eye size={14} strokeWidth={2} />
+                {toneLoading ? '만드는 중…' : '내 상품으로 미리보기'}
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <button
-                type="button"
-                onClick={() => setSpeechLevel('')}
-                title="상품·타겟을 보고 AI가 어투를 정해요"
-                style={{
-                  padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 12.5, fontWeight: 700,
-                  border: `1.5px solid ${!speechLevel ? '#6D4CFF' : '#E5E7EB'}`,
-                  background: !speechLevel ? '#6D4CFF' : '#fff',
-                  color: !speechLevel ? '#fff' : '#4E5968',
-                }}
-              ><SparkIcon size={12} style={{ verticalAlign: -1, marginRight: 4 }} />AI 추천</button>
-              {SPEECH_LEVELS.map(lv => {
-                const sel = speechLevel === lv.key;
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {[{ key: '', label: 'AI 추천', desc: '상품·타겟을 보고 AI가 정해요' },
+                ...SPEECH_LEVELS.map(l => ({ key: l.key, label: l.label, desc: l.desc }))].map(opt => {
+                const sel = speechLevel === opt.key;
                 return (
                   <button
-                    key={lv.key}
+                    key={opt.key || 'auto'}
                     type="button"
-                    onClick={() => setSpeechLevel(lv.key)}
-                    title={lv.desc}
+                    onClick={() => setSpeechLevel(opt.key)}
+                    title={opt.desc}
                     style={{
-                      padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: 12.5, fontWeight: sel ? 700 : 500,
-                      border: `1.5px solid ${sel ? '#6D4CFF' : '#E5E7EB'}`,
+                      height: 36, padding: '0 15px', borderRadius: 999,
+                      display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap',
+                      fontSize: 13, fontWeight: sel ? 700 : 500, fontFamily: 'inherit',
+                      border: `1px solid ${sel ? '#6D4CFF' : '#ECECF2'}`,
                       background: sel ? '#6D4CFF' : '#fff',
                       color: sel ? '#fff' : '#4E5968',
+                      cursor: 'pointer', transition: 'all 140ms ease',
                     }}
-                  >{lv.label}</button>
+                  >
+                    {!opt.key && <SparkIcon size={13} strokeWidth={2.2} />}
+                    {opt.label}
+                  </button>
                 );
               })}
             </div>
 
-            {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 8 }}>{toneErr}</div>}
+            {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 10 }}>{toneErr}</div>}
 
-            {/* ★미리보기 결과는 5종을 한 번에 — 나란히 놓고 비교해야 고르기 쉬움(2026-07-29 유근님).
-                카드를 누르면 그 어투로 바로 선택된다. 미리보기 전에는 정적 예시 한 줄만. */}
+            {/* 미리보기 결과는 5종 동시 비교 — 카드를 누르면 그 어투로 선택 */}
             {Object.keys(tonePreview).length > 0 ? (
               <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
-                gap: 8, marginTop: 12,
+                gap: 8, marginTop: 14,
               }}>
                 {SPEECH_LEVELS.map(lv => {
                   const pv = tonePreview[lv.key];
@@ -1633,23 +1635,22 @@ export default function ProductScreen() {
                       type="button"
                       onClick={() => setSpeechLevel(lv.key)}
                       style={{
-                        textAlign: 'left', padding: '12px 13px', borderRadius: 12, cursor: 'pointer',
+                        textAlign: 'left', padding: '13px 14px', borderRadius: 12, cursor: 'pointer',
                         fontFamily: 'inherit',
-                        border: `${sel ? 2 : 1}px solid ${sel ? '#6D4CFF' : '#EDEBF5'}`,
-                        background: sel ? '#F4F0FF' : '#fff',
+                        border: `1px solid ${sel ? '#6D4CFF' : '#ECECF2'}`,
+                        background: sel ? '#F8F6FF' : '#FAFAFC',
+                        transition: 'all 140ms ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: sel ? '#6D4CFF' : '#8B95A1' }}>
-                          {lv.label}
-                        </span>
-                        {sel && <span style={{ fontSize: 10.5, color: '#6D4CFF' }}>· 선택됨</span>}
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.45, wordBreak: 'keep-all' }}>
+                      <div style={{
+                        fontSize: 11.5, fontWeight: 700, marginBottom: 7,
+                        color: sel ? '#6D4CFF' : '#8B95A1',
+                      }}>{lv.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#191F28', lineHeight: 1.45, wordBreak: 'keep-all' }}>
                         {pv.headline}
                       </div>
                       {pv.body && (
-                        <div style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.65, whiteSpace: 'pre-line', marginTop: 5, wordBreak: 'keep-all' }}>
+                        <div style={{ fontSize: 12, color: '#8B95A1', lineHeight: 1.65, whiteSpace: 'pre-line', marginTop: 5, wordBreak: 'keep-all' }}>
                           {pv.body}
                         </div>
                       )}
@@ -1657,22 +1658,13 @@ export default function ProductScreen() {
                   );
                 })}
               </div>
-            ) : (() => {
-              const cur = SPEECH_LEVELS.find(l => l.key === speechLevel);
-              if (!cur) {
-                return (
-                  <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 10, lineHeight: 1.6 }}>
-                    상품·타겟·브랜드 포지션을 보고 AI가 어투를 정해드려요. 직접 고르고 싶으면 위에서 선택하거나, 미리보기로 내 상품 카피를 비교해보세요.
-                  </div>
-                );
-              }
-              return (
-                <div style={{ marginTop: 10, padding: '10px 12px', background: '#fff', border: '1px solid #EDEBF5', borderRadius: 12 }}>
-                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{cur.label} · 예시</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3B3B4F', lineHeight: 1.5 }}>{cur.sample}</div>
-                </div>
-              );
-            })()}
+            ) : (
+              <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 12, lineHeight: 1.6 }}>
+                {speechLevel
+                  ? `“${SPEECH_LEVELS.find(l => l.key === speechLevel)?.sample ?? ''}” 같은 말투로 써드려요.`
+                  : '미리보기를 누르면 내 상품 카피를 어투별로 비교할 수 있어요.'}
+              </div>
+            )}
           </div>
 
           {/* ★노란 배너 다이어트(2026-07-27): 하단 중복 경고 제거 — 법적 경고는 상단 1곳,
