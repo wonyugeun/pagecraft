@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Check, ShieldCheck, CreditCard } from 'lucide-react';
 import { PLANS, currentPrice, planHighlights, PROMO } from '@/data/plans';
@@ -14,9 +15,26 @@ import { PLANS, currentPrice, planHighlights, PROMO } from '@/data/plans';
  */
 export default function CheckoutClient({ planId }: { planId: string }) {
   const plan = PLANS.find(p => p.id === planId) ?? PLANS[0];
+  // ★로그인 상태·현재 잔액 표시(2026-07-30) — 결제 화면에서 로그아웃된 것처럼 보이던 문제.
+  const { data: session, status } = useSession();
+  const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
   const [done, setDone] = useState<{ credits: number; balance: number } | null>(null);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/credits');
+        if (!res.ok) return;
+        const d = await res.json() as { balance?: number };
+        if (!cancelled && typeof d.balance === 'number') setBalance(d.balance);
+      } catch { /* 표시용이라 실패해도 무시 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [status]);
 
   const pay = async () => {
     if (loading) return;
@@ -90,6 +108,31 @@ export default function CheckoutClient({ planId }: { planId: string }) {
 
   return (
     <div style={card}>
+      {/* 로그인 상태 — 누구 계정으로 충전되는지 명확히 */}
+      {status === 'authenticated' ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 10,
+          padding: '10px 13px', marginBottom: 18, flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 12.5, color: '#8B95A1', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {session?.user?.email ?? '로그인됨'}
+          </span>
+          {balance !== null && (
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#4E5968', whiteSpace: 'nowrap' }}>
+              보유 {balance}크레딧
+            </span>
+          )}
+        </div>
+      ) : status === 'unauthenticated' ? (
+        <div style={{
+          background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
+          padding: '11px 13px', marginBottom: 18, fontSize: 12.5, color: '#92400E', lineHeight: 1.6,
+        }}>
+          로그인 후 결제할 수 있어요. <Link href="/login" style={{ color: '#92400E', fontWeight: 700 }}>로그인하기</Link>
+        </div>
+      ) : null}
+
       <div style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF', marginBottom: 6 }}>{plan.nameEn}</div>
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#191F28', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
         크레딧 {plan.credits}개 충전

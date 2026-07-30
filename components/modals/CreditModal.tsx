@@ -1,8 +1,31 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Zap, X, ArrowUpRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
 import { PLANS, PROMO } from '@/data/plans';
+
+interface Lot {
+  amount: number; remaining: number; kind: string; planId: string | null;
+  chargedAt: string | null; expiresAt: string | null;
+}
+
+/** 남은 일수 — 0 이하면 오늘 만료 */
+function daysLeft(iso: string | null): number | null {
+  if (!iso) return null;
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+}
+function fmtDate(iso: string | null): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+}
+function kindLabel(kind: string, planId: string | null): string {
+  if (kind === 'trial') return '체험 크레딧';
+  if (kind === 'refund') return '환불 크레딧';
+  const plan = PLANS.find(p => p.id === planId);
+  return plan ? `${plan.nameEn} 충전` : '충전';
+}
 
 /**
  * 내 크레딧 모달 — 상단바 크레딧 칩을 누르면 열린다.
@@ -13,6 +36,23 @@ import { PLANS, PROMO } from '@/data/plans';
  */
 export default function CreditModal() {
   const { credits, creditModalOpen, setCreditModalOpen } = useApp();
+  // ★충전 내역·유효기간(2026-07-30) — "언제 충전한 게 언제까지인지"를 셀러가 볼 수 있게.
+  const [lots, setLots] = useState<Lot[] | null>(null);
+  const [unlinked, setUnlinked] = useState(0);   // lot 도입 이전 크레딧(무기한)
+
+  useEffect(() => {
+    if (!creditModalOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/credits/lots');
+        if (!res.ok) { if (!cancelled) setLots([]); return; }
+        const d = await res.json() as { lots?: Lot[]; unlinked?: number };
+        if (!cancelled) { setLots(d.lots ?? []); setUnlinked(d.unlinked ?? 0); }
+      } catch { if (!cancelled) setLots([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [creditModalOpen]);
 
   if (!creditModalOpen) return null;
 
@@ -72,19 +112,56 @@ export default function CreditModal() {
           </div>
         </div>
 
-        {/* 사용 기준 */}
-        <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
-          {[
-            ['상세페이지 생성', '섹션 1개당 1크레딧'],
-            ['섹션당 첫 이미지', '추가 비용 없이 포함'],
-            // 유효기간은 플랜별로 다르므로 범위로 안내(정확한 값은 요금제 페이지)
-            ['유효기간', `충전 플랜에 따라 ${Math.min(...PLANS.map(p => p.validMonths))}~${Math.max(...PLANS.map(p => p.validMonths))}개월`],
-          ].map(([k, v]) => (
-            <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <span style={{ fontSize: 13, color: '#8B95A1' }}>{k}</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#4E5968', textAlign: 'right' }}>{v}</span>
+        {/* 충전 내역 — 묶음별 남은 수량·만료일. 만료 임박한 것부터 먼저 사용된다. */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191F28', marginBottom: 9 }}>충전 내역</div>
+          {lots === null ? (
+            <div style={{ fontSize: 12.5, color: '#B0B8C1', padding: '10px 0' }}>불러오는 중…</div>
+          ) : lots.length === 0 && unlinked === 0 ? (
+            <div style={{ fontSize: 12.5, color: '#B0B8C1', padding: '10px 0' }}>사용 가능한 크레딧이 없어요.</div>
+          ) : (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {lots.map((lot, i) => {
+                const d = daysLeft(lot.expiresAt);
+                const urgent = d !== null && d <= 3;
+                return (
+                  <div key={i} style={{
+                    border: '1px solid #ECECF2', borderRadius: 10, padding: '11px 13px',
+                    background: urgent ? '#FFFBEB' : '#FAFAFC',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>
+                        {kindLabel(lot.kind, lot.planId)}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>
+                        {lot.remaining}개 남음
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 5 }}>
+                      <span style={{ fontSize: 11.5, color: '#8B95A1' }}>
+                        {fmtDate(lot.chargedAt)} 충전 · 총 {lot.amount}개
+                      </span>
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: urgent ? '#B45309' : '#8B95A1' }}>
+                        {d === null ? '무기한' : `${fmtDate(lot.expiresAt)}까지 (D-${Math.max(0, d)})`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {unlinked > 0 && (
+                <div style={{ border: '1px solid #ECECF2', borderRadius: 10, padding: '11px 13px', background: '#FAFAFC' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>기존 크레딧</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>{unlinked}개 남음</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#8B95A1', marginTop: 5 }}>유효기간 없음 · 만료되지 않아요</div>
+                </div>
+              )}
             </div>
-          ))}
+          )}
+          <div style={{ fontSize: 11.5, color: '#B0B8C1', marginTop: 8, lineHeight: 1.6 }}>
+            유효기간이 짧은 크레딧부터 먼저 사용돼요 · 상세페이지는 섹션 1개당 1크레딧
+          </div>
         </div>
 
         {isLow && (

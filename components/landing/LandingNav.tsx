@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 const NAV_LINKS = [
   { label: '서비스 소개', href: '/about' },
@@ -14,6 +15,10 @@ const NAV_LINKS = [
 
 export default function LandingNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // ★로그인 상태 반영(2026-07-30) — 로그인한 채로 /pricing·/checkout에 오면
+  //   여전히 '로그인' 버튼이 떠서 로그아웃된 것처럼 보이던 문제.
+  const { status } = useSession();
+  const loggedIn = status === 'authenticated';
   const [hoverLogin, setHoverLogin] = useState(false);
   const [hoverCta, setHoverCta] = useState(false);
   const router = useRouter();
@@ -55,24 +60,26 @@ export default function LandingNav() {
       {/* 우측 버튼 — 모바일에선 버거 드롭다운이 같은 항목을 제공하므로 CSS로 숨김(landing-nav-cta) */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
         <span className="landing-nav-cta" style={{ display: 'contents' }}>
+        {!loggedIn && (
+          <button
+            onClick={() => router.push('/login')}
+            onMouseEnter={() => setHoverLogin(true)}
+            onMouseLeave={() => setHoverLogin(false)}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${hoverLogin ? '#CBD2D9' : '#E8ECF0'}`,
+              borderRadius: '8px', padding: '8px 18px',
+              fontSize: '14px', fontWeight: 500,
+              color: hoverLogin ? '#191F28' : '#4E5968',
+              cursor: 'pointer', transition: 'all 150ms',
+              fontFamily: 'inherit',
+            }}
+          >
+            로그인
+          </button>
+        )}
         <button
-          onClick={() => router.push('/login')}
-          onMouseEnter={() => setHoverLogin(true)}
-          onMouseLeave={() => setHoverLogin(false)}
-          style={{
-            background: 'transparent',
-            border: `1px solid ${hoverLogin ? '#CBD2D9' : '#E8ECF0'}`,
-            borderRadius: '8px', padding: '8px 18px',
-            fontSize: '14px', fontWeight: 500,
-            color: hoverLogin ? '#191F28' : '#4E5968',
-            cursor: 'pointer', transition: 'all 150ms',
-            fontFamily: 'inherit',
-          }}
-        >
-          로그인
-        </button>
-        <button
-          onClick={() => router.push('/login')}
+          onClick={() => router.push('/')}
           onMouseEnter={() => setHoverCta(true)}
           onMouseLeave={() => setHoverCta(false)}
           style={{
@@ -84,7 +91,7 @@ export default function LandingNav() {
             boxShadow: '0 2px 8px rgba(109,76,255,0.25)',
           }}
         >
-          무료로 시작하기
+          {loggedIn ? '내 작업으로' : '무료로 시작하기'}
         </button>
 
         </span>
@@ -123,14 +130,14 @@ export default function LandingNav() {
             </Link>
           ))}
           <button
-            onClick={() => { setMobileOpen(false); router.push('/login'); }}
+            onClick={() => { setMobileOpen(false); router.push(loggedIn ? '/' : '/login'); }}
             style={{
               background: '#6D4CFF', border: 'none', borderRadius: '8px',
               padding: '12px', fontSize: '15px', fontWeight: 600,
               color: '#fff', cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
-            무료로 시작하기
+            {loggedIn ? '내 작업으로' : '무료로 시작하기'}
           </button>
         </div>
       )}
