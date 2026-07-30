@@ -21,8 +21,10 @@ if (!connectionString) {
 
 export const sql = neon(connectionString ?? '');
 
-/** 신규 가입 기본 지급량 — 기존 로직(30)과 동일. */
-export const SIGNUP_GRANT = 16;   // 신규 가입 체험 크레딧 — 일반 품질 16섹션 1회(원가 ~2,500원)
+/** 신규 가입 체험 지급량(2026-07-30: 16 → 10). 체험 계정은 섹션 수도 10으로 제한된다(lib/pricing.ts). */
+export const SIGNUP_GRANT = 10;
+/** 체험 크레딧 유효기간(일) — 7일 내에 한 번은 써보게 만드는 목적 */
+export const TRIAL_VALID_DAYS = 7;
 
 // ★생성 비용 상수(고정가 10)는 제거됨 — 크레딧 금액은 lib/pricing.ts calculateGenerationCost(1섹션=1크레딧)가 단일 소스.
 //   서버 차감(strategy·generate)·클라 안내 모두 이 함수 경유. 고정 리터럴을 다시 두지 말 것.
@@ -249,6 +251,98 @@ export async function ensureCreditTables(): Promise<void> {
       count      INTEGER NOT NULL DEFAULT 0,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
+  /* ★크레딧 유효기간(2026-07-30) — credit_lots는 '만료 원장'이다.
+   *  차감은 여전히 credits.balance에서 원자적으로 일어나고(기존 로직·보안 가드 0접촉),
+   *  lots는 "언제 받은 얼마가 언제 만료되는지"만 기록한다. 만료 처리는 sweepExpiredCredits가
+   *  잔액 조회 시점에 수행(배치 미의존 — 크론이 안 돌아도 잔액이 틀리지 않는다).
+   *  ⚠️lot이 없는 기존 계정은 만료 대상이 아니다(소급 소멸 금지 — 분쟁 방지). */
+  await sql`
+    CREATE TABLE IF NOT EXISTS credit_lots (
+      id         BIGSERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      amount     INTEGER NOT NULL,          -- 지급/충전 수량
+      kind       TEXT NOT NULL,             -- trial | purchase | refund
+      plan_id    TEXT,                      -- 구매 시 플랜 id
+      expires_at TIMESTAMPTZ,               -- NULL = 무기한
+      swept_at   TIMESTAMPTZ,               -- 만료 처리 완료 시각(중복 차감 방지)
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS credit_lots_email_idx ON credit_lots (user_email)`;
+}
+
+/** 만료되는 크레딧 지급 기록 — 잔액 증가는 호출부(기존 로직)가 하고, 여기서는 만료 정보만 남긴다. */
+export async function recordCreditLot(
+  email: string, amount: number, kind: 'trial' | 'purchase' | 'refund',
+  validDays: number | null, planId?: string,
+): Promise<void> {
+  if (amount <= 0) return;
+  try {
+    if (validDays === null) {
+      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, expires_at)
+                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, NULL)`;
+    } else {
+      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, expires_at)
+                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, now() + (${validDays} || ' days')::interval)`;
+    }
+  } catch (e) {
+    // 만료 기록 실패가 지급 자체를 막지 않게(잔액은 이미 증가). 다음 충전 때 다시 기록된다.
+    console.error('[recordCreditLot] 실패(잔액엔 영향 없음):', e);
+  }
+}
+
+/**
+ * ★만료 소멸 처리 — 잔액 조회 시점에 수행(단일 SQL = 원자적).
+ *
+ * 소비는 '만료가 임박한 lot부터'(FIFO by expiry)라고 정의한다. 그러면 어느 시점의 잔액은
+ * 항상 '가장 늦게 만료되는 lot들'이 뒷받침한다. 따라서 만료된 lot에서 실제로 잃는 양은
+ *   loss = max(0, balance - (아직 만료되지 않은 lot들의 amount 합))
+ * 이다. 이 식이면 lot마다 소비량을 따로 추적하지 않아도 정확하다(차감 경로 무수정의 근거).
+ *
+ * 예) 체험10(D+7) + PRO160(D+90), 5 사용 → 잔액 165. D+8에 loss = max(0,165-160) = 5 → 체험 미사용분만 소멸.
+ */
+export async function sweepExpiredCredits(email: string): Promise<number> {
+  try {
+    const rows = await sql`
+      WITH expired AS (
+        SELECT id FROM credit_lots
+        WHERE user_email = ${email} AND swept_at IS NULL
+          AND expires_at IS NOT NULL AND expires_at <= now()
+      ),
+      later AS (
+        SELECT COALESCE(SUM(amount), 0) AS total FROM credit_lots
+        WHERE user_email = ${email} AND swept_at IS NULL
+          AND (expires_at IS NULL OR expires_at > now())
+      ),
+      cur AS (SELECT COALESCE(balance, 0) AS balance FROM credits WHERE user_email = ${email}),
+      calc AS (
+        SELECT GREATEST(0, (SELECT balance FROM cur) - (SELECT total FROM later)) AS loss
+        WHERE EXISTS (SELECT 1 FROM expired)
+      ),
+      upd AS (
+        UPDATE credits SET balance = balance - (SELECT loss FROM calc), updated_at = now()
+        WHERE user_email = ${email} AND EXISTS (SELECT 1 FROM calc) AND (SELECT loss FROM calc) > 0
+        RETURNING balance
+      ),
+      mark AS (
+        UPDATE credit_lots SET swept_at = now()
+        WHERE id IN (SELECT id FROM expired)
+        RETURNING id
+      ),
+      led AS (
+        INSERT INTO credit_ledger (user_email, amount, type, reason)
+        SELECT ${email}, -(SELECT loss FROM calc), 'deduct', 'expire:credit-lot'
+        WHERE EXISTS (SELECT 1 FROM calc) AND (SELECT loss FROM calc) > 0
+        RETURNING id
+      )
+      SELECT COALESCE((SELECT loss FROM calc), 0) AS loss, (SELECT count(*) FROM mark) AS swept`;
+    const r = rows[0] as { loss: number | null; swept: number | null };
+    const loss = Number(r?.loss ?? 0);
+    if (loss > 0) console.log(`[sweepExpiredCredits] ${email} — ${loss}크레딧 소멸(lot ${r?.swept}개 처리)`);
+    return loss;
+  } catch (e) {
+    console.error('[sweepExpiredCredits] 실패(잔액 유지):', e);
+    return 0;
+  }
 }
 
 export interface DeductResult {
@@ -346,8 +440,25 @@ async function decideSignupGrant(email: string, ip: string | null | undefined, n
   return SIGNUP_GRANT;
 }
 
+/** ★유료 결제 이력 여부(2026-07-30) — 다운로드 게이트·섹션 상한 판정 기준.
+ *  purchase 종류의 lot이 하나라도 있으면 유료 사용자로 본다(만료 여부와 무관 — 한 번 결제한 사람의
+ *  다운로드 권한을 만료로 회수하지 않는다). 체험만 있는 계정은 false. */
+export async function hasPaidHistory(email: string | null | undefined): Promise<boolean> {
+  if (!email) return false;
+  try {
+    const rows = await sql`SELECT 1 FROM credit_lots WHERE user_email = ${email} AND kind = 'purchase' LIMIT 1`;
+    return rows.length > 0;
+  } catch (e) {
+    // 조회 실패 시엔 막지 않는다(정상 사용자를 잠그는 쪽이 더 큰 사고)
+    console.error('[hasPaidHistory] 실패 — 허용으로 폴백:', e);
+    return true;
+  }
+}
+
 export async function getOrCreateBalance(email: string, ip?: string | null): Promise<number> {
   const normKey = `signup:${normalizeEmailForGrant(email)}`;
+  // ★만료 소멸을 잔액 조회 '전에' 수행 — 화면·차감 게이트가 항상 만료 반영된 잔액을 본다.
+  await sweepExpiredCredits(email);
   const existing = await sql`SELECT balance FROM credits WHERE user_email = ${email}`;
   if (existing.length) {
     const bal = (existing[0] as { balance: number }).balance;
@@ -367,7 +478,10 @@ export async function getOrCreateBalance(email: string, ip?: string | null): Pro
           UPDATE credits SET balance = balance + ${grant}, updated_at = now()
           WHERE user_email = ${email} AND EXISTS (SELECT 1 FROM l)
           RETURNING balance`;
-        if (rows.length) return (rows[0] as { balance: number }).balance;
+        if (rows.length) {
+          await recordCreditLot(email, grant, 'trial', TRIAL_VALID_DAYS);
+          return (rows[0] as { balance: number }).balance;
+        }
       }
     }
     return bal;
@@ -385,6 +499,8 @@ export async function getOrCreateBalance(email: string, ip?: string | null): Pro
         INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
         VALUES (${email}, ${grant}, 'grant', 'signup', ${normKey})
         ON CONFLICT (idempotency_key) DO NOTHING`;
+      // ★체험 크레딧은 7일 만료 — lot으로 기록해 sweepExpiredCredits가 소멸시킨다.
+      await recordCreditLot(email, grant, 'trial', TRIAL_VALID_DAYS);
     }
     return grant;
   }

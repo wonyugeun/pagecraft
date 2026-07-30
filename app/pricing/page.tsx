@@ -170,10 +170,10 @@ export default function Page() {
           padding: '20px 24px', marginBottom: 56,
         }}>
           <div style={{ fontSize: 15.5, fontWeight: 700, color: '#5B3FD6', marginBottom: 5 }}>
-            신규 가입 시 체험 크레딧 16개
+            신규 가입 시 체험 크레딧 10개
           </div>
           <div style={{ fontSize: 14, color: '#6B6490', lineHeight: 1.7 }}>
-            결제 없이 상세페이지 1개(16섹션)를 직접 만들어볼 수 있는 양이에요. 카드 등록도 필요 없습니다.
+            카드 등록 없이 10섹션 페이지 1개를 만들어볼 수 있어요. 유효기간은 7일이고, 결과물 다운로드는 유료 플랜에서 가능합니다.
           </div>
         </div>
 

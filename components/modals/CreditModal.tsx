@@ -16,7 +16,7 @@ export default function CreditModal() {
 
   if (!creditModalOpen) return null;
 
-  const isLow = credits < 16;   // 상세페이지 1회(16섹션) 미만이면 부족 안내
+  const isLow = credits < 10;   // 체험 1회 분량(10섹션) 미만이면 부족 안내
   const close = () => setCreditModalOpen(false);
 
   return (
@@ -93,7 +93,7 @@ export default function CreditModal() {
             padding: '11px 14px', marginBottom: 16,
             fontSize: 12.5, color: '#92400E', lineHeight: 1.6,
           }}>
-            상세페이지 1개(16섹션)를 만들기에 크레딧이 부족해요.
+            페이지 1개를 만들기에 크레딧이 부족해요. 충전하면 바로 이어서 만들 수 있어요.
           </div>
         )}
 

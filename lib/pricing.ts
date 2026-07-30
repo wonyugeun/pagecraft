@@ -11,6 +11,16 @@ export const CREDIT_PER_SECTION = 1;
 
 /** 섹션 수 서비스 한도 — 기존 /api/generate의 50 상한과 동일 기준 */
 export const MAX_BILLABLE_SECTIONS = 50;
+
+/** ★체험(무료) 계정 섹션 상한(2026-07-30) — 체험 크레딧 10개로 기본 14~16섹션을 시도하면
+ *  첫 화면에서 '크레딧 부족'을 만나 이탈한다. 체험은 짧은 페이지 하나를 온전히 끝내게 한다. */
+export const TRIAL_MAX_SECTIONS = 10;
+
+/** 유료 결제 이력이 없으면 섹션 수를 체험 상한으로 clamp */
+export function clampSectionsForTrial(sectionCount: number, hasPaid: boolean): number {
+  const n = Math.floor(Number(sectionCount)) || MIN_BILLABLE_SECTIONS;
+  return hasPaid ? n : Math.min(n, TRIAL_MAX_SECTIONS);
+}
 export const MIN_BILLABLE_SECTIONS = 1;
 
 export interface GenerationPricingInput {
