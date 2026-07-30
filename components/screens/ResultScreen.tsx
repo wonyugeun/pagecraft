@@ -1390,6 +1390,8 @@ export default function ResultScreen() {
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
   const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
+  // ★다운로드 권한(2026-07-30) — 체험 계정은 미리보기까지만. 판정은 서버(/api/entitlements)가 한다.
+  const [canDownload, setCanDownload] = useState<boolean | null>(null);   // null = 확인 중
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   // ★채널 맞춤 내보내기(2026-07-21 최종) — 스마트스토어 HTML 복사 + 통이미지(전체 1장) 2종만
@@ -1864,7 +1866,35 @@ export default function ResultScreen() {
     ? lightboxItems.findIndex(i => i.secNum === lightboxSecNum)
     : -1;
 
+  // 결과 화면 진입 시 1회 조회. 실패 시엔 막지 않는다(정상 사용자를 잠그는 쪽이 더 큰 사고).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/entitlements');
+        if (!res.ok) { if (!cancelled) setCanDownload(true); return; }
+        const d = await res.json() as { canDownload?: boolean };
+        if (!cancelled) setCanDownload(d.canDownload !== false);
+      } catch { if (!cancelled) setCanDownload(true); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  /** 내보내기 게이트 — 체험 계정이면 결제 안내를 띄우고 중단. true면 계속 진행. */
+  const passDownloadGate = (): boolean => {
+    if (canDownload !== false) return true;
+    const go = window.confirm(
+      '결과물 다운로드는 유료 플랜에서 가능해요.\n\n'
+      + '체험 크레딧으로는 완성된 페이지를 화면에서 확인하고 카피·이미지를 수정할 수 있어요.\n'
+      + '크레딧을 충전하면 지금 만든 결과물을 바로 내려받을 수 있습니다.\n\n'
+      + '요금제를 확인하시겠어요?',
+    );
+    if (go) window.open('/pricing', '_blank', 'noopener,noreferrer');
+    return false;
+  };
+
   const handleHtmlDownload = async () => {
+    if (!passDownloadGate()) return;
     // ★생성 중 이미지 가드 — 미완성분은 export에서 스킵되므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
@@ -1877,6 +1907,7 @@ export default function ResultScreen() {
 
   const handleMergeDownload = async () => {
     if (mergeLoading) return;
+    if (!passDownloadGate()) return;
     // ★생성 중 이미지 가드 — 완성분만 합치므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setMergeLoading(true);
@@ -1912,6 +1943,7 @@ export default function ResultScreen() {
   //   HTML 작성 탭 붙여넣기 → SmartEditor ONE 변환하기 → 저장.
   const handleCopySmartstoreHtml = async () => {
     if (smartHtmlLoading) return;
+    if (!passDownloadGate()) return;
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setSmartHtmlLoading(true);
     try {
@@ -2181,6 +2213,27 @@ export default function ResultScreen() {
                     animation: 'spin 0.8s linear infinite', flexShrink: 0,
                   }} />
                   이미지 자동 생성 중 ({doneCount}/{displaySections.length})
+                </div>
+              )}
+
+              {/* ★다운로드 권한 안내(2026-07-30) — 버튼을 누른 뒤에 알려주면 다크패턴이 된다.
+                  결과를 보는 순간부터 미리 보이게 두고, 충전 경로를 함께 제공한다. */}
+              {canDownload === false && (
+                <div style={{
+                  background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 8,
+                  padding: '11px 14px', fontSize: 12.5, color: '#5B3FD6',
+                  marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+                }}>
+                  <span>
+                    지금은 <b style={{ fontWeight: 700 }}>미리보기·수정</b>까지 가능해요 — 결과물 다운로드는 유료 플랜에서 열립니다.
+                  </span>
+                  <a
+                    href="/pricing" target="_blank" rel="noopener noreferrer"
+                    style={{
+                      flexShrink: 0, background: '#6D4CFF', color: '#fff', textDecoration: 'none',
+                      borderRadius: 8, padding: '7px 13px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                    }}
+                  >요금제 보기</a>
                 </div>
               )}
 

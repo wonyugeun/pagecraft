@@ -61,6 +61,8 @@ export default function ResultMobile() {
   const [zoom, setZoom] = useState(100);
   const [htmlLoading, setHtmlLoading] = useState(false);
   const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
+  // ★다운로드 권한(2026-07-30) — 데스크탑과 동일 정책. 판정은 서버(/api/entitlements).
+  const [canDownload, setCanDownload] = useState<boolean | null>(null);
   const [mergeLoading, setMergeLoading] = useState(false);
   const [captureLoading, setCaptureLoading] = useState(false);
 
@@ -446,7 +448,34 @@ export default function ResultMobile() {
   const outputTypeLabel = isBlog ? '블로그형' : isSlide ? '슬라이드형' : 'HTML형';
   const totalLength = (displaySections.length * 1040).toLocaleString();
 
+  // 진입 시 1회 조회 — 실패하면 막지 않는다(정상 사용자 잠금 방지).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/entitlements');
+        if (!res.ok) { if (!cancelled) setCanDownload(true); return; }
+        const d = await res.json() as { canDownload?: boolean };
+        if (!cancelled) setCanDownload(d.canDownload !== false);
+      } catch { if (!cancelled) setCanDownload(true); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  /** 내보내기 게이트 — 체험 계정이면 결제 안내 후 중단 */
+  const passDownloadGate = (): boolean => {
+    if (canDownload !== false) return true;
+    const go = window.confirm(
+      '결과물 다운로드는 유료 플랜에서 가능해요.\n\n'
+      + '체험 크레딧으로는 완성된 페이지를 확인하고 수정할 수 있어요.\n'
+      + '요금제를 확인하시겠어요?',
+    );
+    if (go) window.open('/pricing', '_blank', 'noopener,noreferrer');
+    return false;
+  };
+
   const handleHtmlDownload = async () => {
+    if (!passDownloadGate()) return;
     // ★생성 중 이미지 가드 — 미완성분은 export에서 스킵되므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
@@ -456,6 +485,7 @@ export default function ResultMobile() {
     setTimeout(() => setHtmlLoading(false), 2000);
   };
   const handleMergeDownload = async () => {
+    if (!passDownloadGate()) return;
     if (mergeLoading) return;
     // ★생성 중 이미지 가드 — 완성분만 합치므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
@@ -485,6 +515,7 @@ export default function ResultMobile() {
   //   통이미지→사진첩 저장→스마트스토어 앱 업로드 플로우. HTML 등록은 PC 전용이라 안내만).
   const handleFullCapture = async () => {
     if (captureLoading) return;
+    if (!passDownloadGate()) return;
     // ★생성 중 이미지 가드 — 캡처는 화면 그대로라 미완성 섹션이 찍히므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
@@ -694,6 +725,22 @@ export default function ResultMobile() {
                 <span style={{ fontSize: 10.5, fontWeight: 600, color: copyVariant === v ? '#A08FE0' : '#BBB' }}>{vDesc}</span>
               </button>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ★다운로드 권한 안내(2026-07-30) — 미리 고지(다크패턴 방지) */}
+      {canDownload === false && (
+        <section style={{ padding: '12px 16px 0' }}>
+          <div style={{
+            background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 12,
+            padding: '12px 14px', fontSize: 12.5, color: '#5B3FD6', lineHeight: 1.6,
+          }}>
+            지금은 <b style={{ fontWeight: 700 }}>미리보기·수정</b>까지 가능해요 — 다운로드는 유료 플랜에서 열립니다.
+            <a
+              href="/pricing" target="_blank" rel="noopener noreferrer"
+              style={{ display: 'block', marginTop: 9, textAlign: 'center', background: '#6D4CFF', color: '#fff', textDecoration: 'none', borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700 }}
+            >요금제 보기</a>
           </div>
         </section>
       )}
