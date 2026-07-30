@@ -108,26 +108,28 @@ export default function LandingFooter() {
             <div style={{
               fontSize: '13px', fontWeight: 700, color: '#191F28', marginBottom: '10px',
             }}>
-              Flik 카카오톡 채널
+              Flik 오픈채팅
             </div>
             <p style={{ fontSize: '12px', color: '#8B95A1', lineHeight: 1.6, marginBottom: '14px' }}>
-              업데이트 소식과 셀러 인사이트를<br />받아보세요
+              궁금한 점·불편한 점을<br />편하게 남겨주세요
             </p>
-            {/* 실제 카카오 채널 미개설 — 죽은 '#' 링크 대신 '준비 중' 비활성 표기. 채널 개설 시 href 연결. */}
-            <span
-              title="카카오톡 채널은 준비 중이에요"
+            {/* ★오픈채팅 개설(2026-07-30) — 셀러와 직접 소통하는 창구 */}
+            <a
+              href="https://open.kakao.com/o/gJ6gqtGi"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '8px',
-                background: '#F2F4F6',
+                background: '#FEE500',
                 border: 'none', borderRadius: '8px',
                 padding: '10px 16px', fontSize: '13px', fontWeight: 700,
-                color: '#8B95A1', cursor: 'default', textDecoration: 'none',
+                color: '#191600', cursor: 'pointer', textDecoration: 'none',
                 fontFamily: 'inherit',
               }}
             >
-              <IconBrandKakoTalk size={18} color="#8B95A1" stroke={1.8} />
-              채널 준비 중
-            </span>
+              <IconBrandKakoTalk size={18} color="#191600" stroke={1.8} />
+              오픈채팅 참여하기
+            </a>
           </div>
         </div>
 

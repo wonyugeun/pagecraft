@@ -307,6 +307,40 @@ export async function ensureCreditTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
   await sql`CREATE INDEX IF NOT EXISTS download_events_email_idx ON download_events (user_email, created_at)`;
+  /* ★고객의 소리(2026-07-30) — 불편을 겪은 셀러와 실제로 풀어내기 위한 창구.
+   *  ⚠️핵심은 '맥락'이다. "카피가 이상해요"만으로는 못 고친다. 어떤 상품·설정으로 만든 결과인지가
+   *  자동으로 붙어야 재현하고 수정할 수 있다. context에 상품정보·생성 설정을 JSON으로 담는다.
+   *  이미지는 클라이언트에서 압축(약 800px JPEG)해 data URL로 저장 — 초기 물량에선 충분하다. */
+  await sql`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id         BIGSERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      rating     INTEGER,                 -- 1~5 (선택)
+      message    TEXT NOT NULL,
+      context    JSONB,                   -- 상품정보·생성 설정 스냅샷
+      image      TEXT,                    -- 압축된 data URL(선택)
+      status     TEXT NOT NULL DEFAULT 'new',   -- new | replied | closed
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS feedback_created_idx ON feedback (created_at DESC)`;
+}
+
+export interface FeedbackInput {
+  email: string;
+  message: string;
+  rating?: number | null;
+  context?: Record<string, unknown> | null;
+  image?: string | null;
+}
+
+/** 의견 저장 — 반환된 id는 관리자 응대 시 참조용 */
+export async function saveFeedback(f: FeedbackInput): Promise<number> {
+  const rows = await sql`
+    INSERT INTO feedback (user_email, rating, message, context, image)
+    VALUES (${f.email}, ${f.rating ?? null}, ${f.message},
+            ${f.context ? JSON.stringify(f.context) : null}, ${f.image ?? null})
+    RETURNING id`;
+  return Number((rows[0] as { id: string }).id);
 }
 
 /** 다운로드 1건 기록 — 실패해도 내보내기를 막지 않는다(기록은 부가 기능). */

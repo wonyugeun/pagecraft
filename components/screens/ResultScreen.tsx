@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useApp, Section, Block } from '@/store/AppContext';
 import ResultMobile from './ResultMobile';
+import FeedbackModal from '@/components/modals/FeedbackModal';
 import { useIsMobile, MOBILE_BREAKPOINT } from '@/hooks/useIsMobile';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
@@ -1384,7 +1385,7 @@ export function buildPurchaseInfo(src: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits, regularPrice, salePrice, showPrice } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits, regularPrice, salePrice, showPrice, speechLevel, credits } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1392,6 +1393,7 @@ export default function ResultScreen() {
   const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
   // ★다운로드 권한(2026-07-30) — 체험 계정은 미리보기까지만. 판정은 서버(/api/entitlements)가 한다.
   const [canDownload, setCanDownload] = useState<boolean | null>(null);   // null = 확인 중
+  const [feedbackOpen, setFeedbackOpen] = useState(false);   // ★고객의 소리(2026-07-30)
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   // ★채널 맞춤 내보내기(2026-07-21 최종) — 스마트스토어 HTML 복사 + 통이미지(전체 1장) 2종만
@@ -2228,6 +2230,21 @@ export default function ResultScreen() {
                 </div>
               )}
 
+              {/* ★고객의 소리 — 결과를 본 직후가 의견이 가장 구체적인 시점 */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <button
+                  onClick={() => setFeedbackOpen(true)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: '#fff', border: '1px solid #ECECF2', borderRadius: 999,
+                    padding: '7px 14px', fontSize: 12.5, fontWeight: 600, color: '#4E5968',
+                    cursor: 'pointer', fontFamily: 'var(--f)',
+                  }}
+                >
+                  💬 이 결과 어땠나요?
+                </button>
+              </div>
+
               {/* ★다운로드 권한 안내(2026-07-30) — 버튼을 누른 뒤에 알려주면 다크패턴이 된다.
                   결과를 보는 순간부터 미리 보이게 두고, 충전 경로를 함께 제공한다. */}
               {canDownload === false && (
@@ -2676,6 +2693,22 @@ export default function ResultScreen() {
           {hint}
         </div>
       )}
+
+      {/* ★고객의 소리 — 이번 생성의 맥락을 자동 첨부(무엇으로 만든 결과인지 알아야 고칠 수 있음) */}
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        context={{
+          screen: 'result',
+          productName, productExtra, diff, brand,
+          cat, ch, type, out,
+          sectionCount: displaySections.length,
+          speechLevel,
+          jobKey: generationJobKey,
+          credits,
+        }}
+      />
+
     </div>
   );
 }
