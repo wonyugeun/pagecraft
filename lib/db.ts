@@ -296,6 +296,24 @@ export async function ensureCreditTables(): Promise<void> {
       paid_at      TIMESTAMPTZ
     )`;
   await sql`CREATE INDEX IF NOT EXISTS payment_orders_email_idx ON payment_orders (user_email)`;
+  /* ★다운로드 이력(2026-07-30) — 환불 판정에 필요.
+   *  악용 경로: 체험 크레딧으로 생성 → 결제(다운로드 권한 열림) → 전부 내려받기 →
+   *  "결제분은 안 썼다"며 전액 환불 요구. 결제 이후의 다운로드가 있으면 환불 불가로 판정한다. */
+  await sql`
+    CREATE TABLE IF NOT EXISTS download_events (
+      id         BIGSERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      kind       TEXT NOT NULL,          -- html | merged | smartstore | capture
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS download_events_email_idx ON download_events (user_email, created_at)`;
+}
+
+/** 다운로드 1건 기록 — 실패해도 내보내기를 막지 않는다(기록은 부가 기능). */
+export async function recordDownload(email: string, kind: string): Promise<void> {
+  try {
+    await sql`INSERT INTO download_events (user_email, kind) VALUES (${email}, ${kind.slice(0, 20)})`;
+  } catch (e) { console.error('[recordDownload]', e); }
 }
 
 export interface PaymentOrder {
@@ -363,6 +381,124 @@ export async function settlePaidOrder(paymentId: string): Promise<SettleResult> 
     return { status: 'granted', balance: r.granted_balance, credits: order.credits };
   }
   return { status: 'duplicate', balance: r.current_balance ?? 0 };
+}
+
+export interface RefundEvaluation {
+  eligible: boolean;
+  reason: string;
+  /** 환불 예정 금액(원) — 조건 충족 시 결제 전액 */
+  amount: number;
+  /** 회수할 크레딧 */
+  credits: number;
+  planId: string;
+  email: string;
+  /** 참고 정보 */
+  daysSincePaid: number | null;
+  lotRemaining: number | null;
+  lotAmount: number | null;
+  downloadsAfterPaid: number;
+}
+
+/**
+ * ★환불 가능 여부 판정(2026-07-30) — 정책: 7일 이내 + 해당 충전분 미사용 + 결제 후 다운로드 없음.
+ *
+ * '미사용' 기준은 그 결제로 생긴 lot의 remaining == amount 이다.
+ * (선입선출로 유효기간이 짧은 크레딧부터 쓰이므로, 체험분으로 생성했다면 결제분은 그대로 남는다.
+ *  이 경우 결제한 것을 아직 소비하지 않은 것이 맞으므로 환불이 타당하다 — 단 다운로드는 별도 확인.)
+ */
+export async function evaluateRefund(paymentId: string): Promise<RefundEvaluation | null> {
+  const order = await getPaymentOrder(paymentId);
+  if (!order) return null;
+
+  const base = {
+    amount: order.amount, credits: order.credits,
+    planId: order.plan_id, email: order.user_email,
+  };
+
+  if (order.status !== 'paid') {
+    return { ...base, eligible: false, reason: `결제 완료 상태가 아니에요(${order.status}).`,
+             daysSincePaid: null, lotRemaining: null, lotAmount: null, downloadsAfterPaid: 0 };
+  }
+
+  const rows = await sql`
+    SELECT
+      (SELECT paid_at FROM payment_orders WHERE payment_id = ${paymentId})                 AS paid_at,
+      (SELECT EXTRACT(EPOCH FROM (now() - paid_at)) / 86400
+         FROM payment_orders WHERE payment_id = ${paymentId})                              AS days,
+      (SELECT count(*) FROM download_events d
+        WHERE d.user_email = ${order.user_email}
+          AND d.created_at >= (SELECT paid_at FROM payment_orders WHERE payment_id = ${paymentId})) AS downloads`;
+  const r = rows[0] as { days: string | null; downloads: string | null };
+  const days = r.days === null ? null : Number(r.days);
+  const downloads = Number(r.downloads ?? 0);
+
+  // 이 결제로 생긴 lot — 결제 시각 이후 생성된 purchase lot 중 해당 플랜
+  const lotRows = await sql`
+    SELECT amount, swept_at FROM credit_lots
+    WHERE user_email = ${order.user_email} AND kind = 'purchase' AND plan_id = ${order.plan_id}
+    ORDER BY created_at DESC LIMIT 1`;
+  const lot = lotRows[0] as { amount: number; swept_at: string | null } | undefined;
+
+  // 잔액을 만료 순으로 배분해 이 lot의 남은 수량 추정(credits/lots API와 동일 규칙)
+  const allocRows = await sql`
+    WITH active AS (
+      SELECT id, amount FROM credit_lots
+      WHERE user_email = ${order.user_email} AND swept_at IS NULL
+        AND (expires_at IS NULL OR expires_at > now())
+      ORDER BY expires_at NULLS LAST, id
+    ),
+    bal AS (SELECT COALESCE(balance,0) AS b FROM credits WHERE user_email = ${order.user_email})
+    SELECT COALESCE(SUM(amount),0) AS active_total, (SELECT b FROM bal) AS balance FROM active`;
+  const a = allocRows[0] as { active_total: string; balance: number };
+  // 보수적 추정: 활성 묶음 합계와 잔액이 같으면 아무것도 안 쓴 것
+  const untouched = Number(a.active_total) > 0 && Number(a.balance) >= Number(a.active_total);
+  const lotAmount = lot?.amount ?? null;
+  const lotRemaining = untouched ? lotAmount : null;
+
+  const info = { daysSincePaid: days, lotRemaining, lotAmount, downloadsAfterPaid: downloads };
+
+  if (days !== null && days > 7) {
+    return { ...base, ...info, eligible: false, reason: `결제 후 7일이 지났어요(${Math.floor(days)}일 경과).` };
+  }
+  if (downloads > 0) {
+    return { ...base, ...info, eligible: false, reason: `결제 이후 다운로드 이력이 ${downloads}건 있어요.` };
+  }
+  if (!untouched) {
+    return { ...base, ...info, eligible: false, reason: '충전한 크레딧을 이미 사용했어요.' };
+  }
+  return { ...base, ...info, eligible: true, reason: '환불 가능 — 7일 이내, 미사용, 다운로드 없음' };
+}
+
+/** 환불 확정 — 크레딧 회수 + 묶음 무효화 + 원장 기록(원자적). 포트원 취소는 호출부가 먼저 성공시킨다. */
+export async function revokeRefundedCredits(paymentId: string): Promise<{ balance: number }> {
+  const order = await getPaymentOrder(paymentId);
+  if (!order) throw new Error('주문을 찾을 수 없어요.');
+  const key = `refund:payment:${paymentId}`;
+  const rows = await sql`
+    WITH l AS (
+      INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+      VALUES (${order.user_email}, ${-order.credits}, 'refund', ${'refund:' + order.plan_id}, ${key})
+      ON CONFLICT (idempotency_key) DO NOTHING
+      RETURNING id
+    ),
+    c AS (
+      UPDATE credits SET balance = GREATEST(0, balance - ${order.credits}), updated_at = now()
+      WHERE user_email = ${order.user_email} AND EXISTS (SELECT 1 FROM l)
+      RETURNING balance
+    ),
+    lot AS (
+      UPDATE credit_lots SET swept_at = now()
+      WHERE user_email = ${order.user_email} AND kind = 'purchase' AND plan_id = ${order.plan_id}
+        AND swept_at IS NULL AND EXISTS (SELECT 1 FROM l)
+      RETURNING id
+    ),
+    o AS (
+      UPDATE payment_orders SET status = 'refunded'
+      WHERE payment_id = ${paymentId} AND EXISTS (SELECT 1 FROM l)
+      RETURNING payment_id
+    )
+    SELECT COALESCE((SELECT balance FROM c), (SELECT balance FROM credits WHERE user_email = ${order.user_email}), 0) AS balance`;
+  return { balance: Number((rows[0] as { balance: number }).balance) };
 }
 
 /** 결제 실패·취소 기록(정보용) */

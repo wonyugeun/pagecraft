@@ -1893,8 +1893,18 @@ export default function ResultScreen() {
     return false;
   };
 
+  /** 다운로드 이력 기록 — 환불 판정용. 실패해도 내보내기를 막지 않는다(fire-and-forget). */
+  const logDownload = (kind: string) => {
+    void fetch('/api/downloads/log', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind }),
+    }).catch(() => {});
+  };
+
+
   const handleHtmlDownload = async () => {
     if (!passDownloadGate()) return;
+    logDownload('html');
     // ★생성 중 이미지 가드 — 미완성분은 export에서 스킵되므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setHtmlLoading(true);
@@ -1908,6 +1918,7 @@ export default function ResultScreen() {
   const handleMergeDownload = async () => {
     if (mergeLoading) return;
     if (!passDownloadGate()) return;
+    logDownload('merged');
     // ★생성 중 이미지 가드 — 완성분만 합치므로, 지금 받을지/기다릴지 확인.
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setMergeLoading(true);
@@ -1944,6 +1955,7 @@ export default function ResultScreen() {
   const handleCopySmartstoreHtml = async () => {
     if (smartHtmlLoading) return;
     if (!passDownloadGate()) return;
+    logDownload('smartstore');
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     setSmartHtmlLoading(true);
     try {

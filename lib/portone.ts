@@ -60,3 +60,27 @@ export async function fetchPortOnePayment(paymentId: string): Promise<PortOnePay
   }
   return body;
 }
+
+/** 포트원 결제 취소(환불) — 전액 취소. 성공 시 취소 정보를 반환한다. */
+export async function cancelPortOnePayment(paymentId: string, reason: string): Promise<void> {
+  const secret = process.env.PORTONE_API_SECRET;
+  if (!secret) throw new Error('PORTONE_API_SECRET 미설정');
+
+  const res = await fetch(`https://api.portone.io/payments/${encodeURIComponent(paymentId)}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `PortOne ${secret}` },
+    body: JSON.stringify({ reason }),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const body = await res.json().catch(() => ({})) as { message?: string; type?: string };
+  if (!res.ok) {
+    throw new Error(`포트원 결제 취소 실패(${res.status}): ${body?.message ?? body?.type ?? '알 수 없는 오류'}`);
+  }
+}
+
+/** 관리자 이메일 화이트리스트 — ADMIN_EMAILS(쉼표 구분). 미설정이면 아무도 관리자가 아니다. */
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const list = (process.env.ADMIN_EMAILS ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
