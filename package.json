@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.96.0",
     "@google/generative-ai": "^0.24.1",
     "@neondatabase/serverless": "^1.1.0",
+    "@portone/browser-sdk": "^0.1.9",
     "@tabler/icons-react": "^3.44.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",

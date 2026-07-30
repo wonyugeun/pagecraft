@@ -268,6 +268,96 @@ export async function ensureCreditTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
   await sql`CREATE INDEX IF NOT EXISTS credit_lots_email_idx ON credit_lots (user_email)`;
+  /* ★결제 주문(2026-07-30) — 포트원 V2 인증결제.
+   *  ⚠️금액은 반드시 서버가 정한다. 클라이언트가 보낸 금액을 신뢰하면 1원 결제로 크레딧을 받는다.
+   *  prepare에서 주문을 만들고(서버 가격), complete에서 포트원 조회 금액과 이 주문 금액을 대조한다. */
+  await sql`
+    CREATE TABLE IF NOT EXISTS payment_orders (
+      payment_id   TEXT PRIMARY KEY,        -- 포트원 paymentId(영문·숫자만)
+      user_email   TEXT NOT NULL,
+      plan_id      TEXT NOT NULL,
+      amount       INTEGER NOT NULL,        -- 서버가 정한 결제 금액(원)
+      credits      INTEGER NOT NULL,        -- 지급 예정 크레딧
+      valid_months INTEGER NOT NULL,        -- 크레딧 유효기간(개월)
+      status       TEXT NOT NULL DEFAULT 'pending',   -- pending | paid | failed
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+      paid_at      TIMESTAMPTZ
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS payment_orders_email_idx ON payment_orders (user_email)`;
+}
+
+export interface PaymentOrder {
+  payment_id: string; user_email: string; plan_id: string;
+  amount: number; credits: number; valid_months: number; status: string;
+}
+
+/** 결제 주문 생성 — 금액·크레딧은 호출부(서버)가 PLANS에서 계산해 넘긴다. */
+export async function createPaymentOrder(o: {
+  paymentId: string; email: string; planId: string;
+  amount: number; credits: number; validMonths: number;
+}): Promise<void> {
+  await sql`
+    INSERT INTO payment_orders (payment_id, user_email, plan_id, amount, credits, valid_months)
+    VALUES (${o.paymentId}, ${o.email}, ${o.planId}, ${o.amount}, ${o.credits}, ${o.validMonths})`;
+}
+
+export async function getPaymentOrder(paymentId: string): Promise<PaymentOrder | null> {
+  const rows = await sql`SELECT * FROM payment_orders WHERE payment_id = ${paymentId}`;
+  return (rows[0] as PaymentOrder | undefined) ?? null;
+}
+
+export type SettleResult =
+  | { status: 'granted'; balance: number; credits: number }
+  | { status: 'duplicate'; balance: number }
+  | { status: 'not_found' };
+
+/**
+ * ★결제 확정 — 크레딧 지급을 원자적·멱등적으로 처리.
+ *  멱등키 `payment:{paymentId}`로 credit_ledger UNIQUE 인덱스를 활용해 이중 지급을 하드 차단한다
+ *  (complete가 여러 번 호출되거나 웹훅과 중복돼도 1회만 지급).
+ *  유효기간 lot 기록은 지급 성공 시에만 남긴다.
+ */
+export async function settlePaidOrder(paymentId: string): Promise<SettleResult> {
+  const order = await getPaymentOrder(paymentId);
+  if (!order) return { status: 'not_found' };
+  const key = `payment:${paymentId}`;
+
+  const rows = await sql`
+    WITH l AS (
+      INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
+      VALUES (${order.user_email}, ${order.credits}, 'grant', ${'purchase:' + order.plan_id}, ${key})
+      ON CONFLICT (idempotency_key) DO NOTHING
+      RETURNING id
+    ),
+    c AS (
+      INSERT INTO credits (user_email, balance) VALUES (${order.user_email}, ${order.credits})
+      ON CONFLICT (user_email) DO UPDATE
+        SET balance = credits.balance + ${order.credits}, updated_at = now()
+      WHERE EXISTS (SELECT 1 FROM l)
+      RETURNING balance
+    ),
+    o AS (
+      UPDATE payment_orders SET status = 'paid', paid_at = now()
+      WHERE payment_id = ${paymentId} AND status <> 'paid'
+      RETURNING payment_id
+    )
+    SELECT (SELECT balance FROM c) AS granted_balance,
+           (SELECT balance FROM credits WHERE user_email = ${order.user_email}) AS current_balance`;
+  const r = rows[0] as { granted_balance: number | null; current_balance: number | null };
+
+  if (r.granted_balance !== null && r.granted_balance !== undefined) {
+    // 구매 lot 기록 — 유효기간(개월) 기준. 실패해도 잔액엔 영향 없음.
+    await recordCreditLot(order.user_email, order.credits, 'purchase', order.valid_months * 30, order.plan_id);
+    return { status: 'granted', balance: r.granted_balance, credits: order.credits };
+  }
+  return { status: 'duplicate', balance: r.current_balance ?? 0 };
+}
+
+/** 결제 실패·취소 기록(정보용) */
+export async function markPaymentFailed(paymentId: string): Promise<void> {
+  try {
+    await sql`UPDATE payment_orders SET status = 'failed' WHERE payment_id = ${paymentId} AND status = 'pending'`;
+  } catch (e) { console.error('[markPaymentFailed]', e); }
 }
 
 /** 만료되는 크레딧 지급 기록 — 잔액 증가는 호출부(기존 로직)가 하고, 여기서는 만료 정보만 남긴다. */

@@ -108,9 +108,9 @@ export default function Page() {
                   {p.tagline}
                 </p>
 
-                {/* CTA — 결제 오픈 전까지는 체험으로 연결 */}
+                {/* CTA — 결제 화면으로. 비로그인은 결제 API가 401을 주므로 로그인으로 유도된다. */}
                 <Link
-                  href="/login"
+                  href={`/checkout?plan=${p.id}`}
                   style={{
                     display: 'block', textAlign: 'center', textDecoration: 'none',
                     background: rec ? '#6D4CFF' : '#191F28', color: '#fff',
@@ -119,7 +119,7 @@ export default function Page() {
                     marginBottom: 24,
                   }}
                 >
-                  무료로 시작하기
+                  결제하고 시작하기
                 </Link>
 
                 {/* 혜택 — 상위 플랜일수록 줄이 늘어나며 누적되는 게 보이게 */}
