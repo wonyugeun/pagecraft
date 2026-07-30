@@ -77,6 +77,14 @@ export const PLANS: CreditPlan[] = [
     credits: 160,
     tagline: '정기적으로 신상품을 올리는 스토어',
   },
+  {
+    id: 'max',
+    name: '맥스',
+    nameEn: 'MAX',
+    price: 119000,
+    credits: 350,
+    tagline: '여러 스토어를 운영하거나 대량 등록하는 팀',
+  },
 ];
 
 /** 표시용 — 크레딧당 단가(원, 반올림) */

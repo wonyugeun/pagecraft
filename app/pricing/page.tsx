@@ -6,7 +6,11 @@ import { PLANS, COMMON_BENEFITS, planHighlights, CREDIT_VALID_MONTHS } from '@/d
 /**
  * 요금제 — 크레딧 충전(단건 결제). 가격은 data/plans.ts 단일 소스.
  *
- * ★PG 카드사 심사 요건: 실제 판매 가격·결제 방법·환불 규정이 표시되어야 한다.
+ * ★PG 카드사 심사 요건: 실제 판매 가격·결제 방법 표시.
+ * ★환불 규정 섹션은 2026-07-30 유근님 지시로 일시 제거 — PG 심사 피드백을 받고 조건을 확정한 뒤
+ *   다시 넣는다. ⚠️전자상거래법상 청약철회 표시 의무가 있고 카드사 심사도 환불 규정을 확인하는
+ *   경우가 많으므로, 결제 오픈 전에는 반드시 복원해야 한다(git 이력: 이 커밋의 직전 버전 참조).
+ *   단 '생성 실패 시 크레딧 자동 환불'은 정책이 아니라 제품 동작이라 그대로 유지한다.
  * ★레이아웃(2026-07-30): AI 서비스 표준 3열 플랜 카드 — 큰 가격 + 카드별 CTA + 체크리스트.
  *   기능은 플랜별로 잠그지 않으므로(수량만 다름) 공통 혜택은 카드 아래에 한 번만 정리한다.
  * ★CTA: 결제 배관 오픈 전까지는 '무료로 시작하기'(체험 크레딧)로 연결한다 —
@@ -14,7 +18,7 @@ import { PLANS, COMMON_BENEFITS, planHighlights, CREDIT_VALID_MONTHS } from '@/d
  */
 export const metadata = { title: '요금제 — Flik' };
 
-const MAX_W = 1080;
+const MAX_W = 1200;   // 플랜 4종(LIGHT~MAX)이 한 줄에 들어가는 폭
 
 export default function Page() {
   return (
@@ -49,8 +53,8 @@ export default function Page() {
 
         {/* 플랜 카드 3열 */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 20, alignItems: 'stretch', marginBottom: 56,
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(238px, 1fr))',
+          gap: 16, alignItems: 'stretch', marginBottom: 56,
         }}>
           {PLANS.map(p => {
             const rec = !!p.recommended;
@@ -61,7 +65,7 @@ export default function Page() {
                   position: 'relative',
                   background: '#fff',
                   border: `${rec ? 2 : 1}px solid ${rec ? '#6D4CFF' : '#ECECF2'}`,
-                  borderRadius: 20, padding: '32px 28px 28px',
+                  borderRadius: 20, padding: '30px 24px 26px',
                   display: 'flex', flexDirection: 'column',
                   boxShadow: rec ? '0 12px 32px rgba(109,76,255,0.12)' : '0 1px 3px rgba(17,17,26,0.04)',
                 }}
@@ -87,7 +91,7 @@ export default function Page() {
                 {/* 가격 */}
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
                   <span style={{
-                    fontSize: 42, fontWeight: 800, color: '#191F28', letterSpacing: '-0.045em', lineHeight: 1,
+                    fontSize: 38, fontWeight: 800, color: '#191F28', letterSpacing: '-0.045em', lineHeight: 1,
                   }}>{p.price.toLocaleString('ko-KR')}</span>
                   <span style={{ fontSize: 18, fontWeight: 700, color: '#4E5968', marginLeft: 2 }}>원</span>
                 </div>
@@ -114,7 +118,7 @@ export default function Page() {
                   {planHighlights(p).map((h, i) => (
                     <li key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 9,
-                      fontSize: 15, color: '#4E5968', lineHeight: 1.6, letterSpacing: '-0.01em',
+                      fontSize: 14, color: '#4E5968', lineHeight: 1.6, letterSpacing: '-0.01em',
                     }}>
                       <Check size={17} color="#6D4CFF" strokeWidth={2.6} style={{ flexShrink: 0, marginTop: 3 }} />
                       <span>
@@ -182,19 +186,10 @@ export default function Page() {
           </p>
         </Section>
 
-        <Section title="환불 규정">
-          <Bullets items={[
-            ['미사용 크레딧', '결제일로부터 7일 이내에 전액 환불받을 수 있습니다.'],
-            ['일부 사용한 경우', '사용한 크레딧을 결제 단가로 차감한 잔액을 환불해 드립니다.'],
-            ['사용 완료분', '생성이 정상적으로 완료된 결과물에 사용된 크레딧은 디지털 콘텐츠 특성상 환불 대상에서 제외됩니다(전자상거래법 제17조 제2항).'],
-            ['신청 방법', 'flik.support@gmail.com 으로 신청하시면 영업일 기준 3일 이내에 처리됩니다.'],
-          ]} />
-        </Section>
-
         <Section title="결제·문의">
           <p style={bodyStyle}>
             표시 가격은 부가세 포함 금액입니다. 결제 수단은 신용·체크카드이며,
-            결제나 환불 문의는 <b>flik.support@gmail.com</b> 으로 보내주세요.
+            결제 관련 문의는 <b>flik.support@gmail.com</b> 으로 보내주세요.
             사업자 정보는 페이지 하단에서 확인하실 수 있습니다.
           </p>
           {/* ★PG 결제 연동 완료 시 이 안내만 삭제하면 된다(가격·환불 규정은 그대로 유효). */}
