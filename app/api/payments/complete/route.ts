@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
-import { getPaymentOrder, settlePaidOrder, markPaymentFailed } from '@/lib/db';
+import { getPaymentOrder, settlePaidOrder, markPaymentFailed, ensureSchemaOnce } from '@/lib/db';
 import { fetchPortOnePayment } from '@/lib/portone';
 
 /**
@@ -13,6 +13,7 @@ import { fetchPortOnePayment } from '@/lib/portone';
  * ★지급은 settlePaidOrder가 멱등 처리 — 재호출·웹훅 중복에도 1회만 지급된다.
  */
 export async function POST(req: NextRequest) {
+  await ensureSchemaOnce();
   const email = await getSessionEmail(req);
   if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
 

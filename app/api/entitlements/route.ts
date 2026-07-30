@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
-import { hasPaidHistory, creditsBypassEnabled } from '@/lib/db';
+import { hasPaidHistory, creditsBypassEnabled, ensureSchemaOnce } from '@/lib/db';
 import { TRIAL_MAX_SECTIONS } from '@/lib/pricing';
 
 /**
@@ -12,6 +12,7 @@ import { TRIAL_MAX_SECTIONS } from '@/lib/pricing';
  *     2) 결제 오픈 후 서버 내보내기 API를 추가할 때 판정 로직을 여기 한 곳에 두기
  */
 export async function GET(req: NextRequest) {
+  await ensureSchemaOnce();
   const email = await getSessionEmail(req);
   if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
 

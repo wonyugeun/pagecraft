@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getOrCreateBalance, clientIp } from '@/lib/db';
+import { getOrCreateBalance, clientIp, ensureSchemaOnce } from '@/lib/db';
 import type { NextRequest } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
 
@@ -11,6 +11,7 @@ import { getSessionEmail } from '@/lib/authToken';
  * 미들웨어가 이미 /api/credits를 로그인 가드하지만, 방어적으로 세션 재확인 + email 추출.
  */
 export async function GET(req: NextRequest) {
+  await ensureSchemaOnce();
   const email = await getSessionEmail(req);
   if (!email) {
     return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });

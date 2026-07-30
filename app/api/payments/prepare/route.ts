@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
-import { createPaymentOrder, checkRateLimit, clientIp } from '@/lib/db';
+import { createPaymentOrder, checkRateLimit, clientIp, ensureSchemaOnce } from '@/lib/db';
 import { PLANS, currentPrice } from '@/data/plans';
 import { newPaymentId, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, portoneConfigured } from '@/lib/portone';
 
@@ -12,6 +12,7 @@ import { newPaymentId, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, portoneConfigured 
  * ★응답의 storeId·channelKey는 클라이언트 노출이 정상인 값이다. API 시크릿은 내리지 않는다.
  */
 export async function POST(req: NextRequest) {
+  await ensureSchemaOnce();
   const email = await getSessionEmail(req);
   if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
 

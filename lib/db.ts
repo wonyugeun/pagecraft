@@ -223,6 +223,18 @@ export async function refundImageExtraCharge(email: string, chargeKey: string): 
 }
 
 /** 테이블 생성/마이그레이션(IF NOT EXISTS) — db-init 스크립트에서 1회 실행. 재실행 안전(멱등). */
+/* ── ★스키마 자동 보장(2026-07-30) — ensureCreditTables가 수동 스크립트에서만 불려서
+ *    신규 테이블(credit_lots·payment_orders)이 배포 환경에 없으면 결제/크레딧이 런타임에 죽는다.
+ *    프로세스당 1회만 실행되도록 프라미스를 캐시한다(요청마다 DDL이 도는 것 방지). ── */
+let schemaReady: Promise<void> | null = null;
+export function ensureSchemaOnce(): Promise<void> {
+  schemaReady ??= ensureCreditTables().catch(e => {
+    schemaReady = null;   // 실패 시 다음 요청에서 재시도
+    throw e;
+  });
+  return schemaReady;
+}
+
 export async function ensureCreditTables(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS credits (
