@@ -34,8 +34,13 @@ export interface CreditPlan {
   credits: number;
   /** 대표 문구 — 어떤 셀러에게 맞는지 한 줄 */
   tagline: string;
-  /** 추천 배지 */
+  /** 추천 배지 — 시선을 유도할 카드 1개에만 */
   recommended?: boolean;
+  /** 유효기간(개월) — ★플랜별 차등(2026-07-30):
+   *  단건 충전에 일률 1개월은 "산 걸 한 달 안에 못 쓰면 몰수"라 구독의 월 소진과 성격이 다르고,
+   *  큰 팩(350크레딧=약 22페이지)을 한 달에 소진하는 건 비현실적이라 상위 플랜이 안 팔린다.
+   *  대신 팩이 커질수록 기간을 늘려 '상위 플랜 혜택'으로 쓰고, 작은 팩은 짧게 잡아 재구매를 유도한다. */
+  validMonths: number;
 }
 
 /** ★전 플랜 공통 혜택(2026-07-30) — Flik은 기능을 플랜으로 잠그지 않는다.
@@ -79,9 +84,6 @@ export function currentPrice(plan: CreditPlan): number {
 /** 크레딧 1개 = 상세페이지 섹션 1개 생성 */
 export const CREDIT_UNIT_NOTE = '크레딧 1개 = 상세페이지 섹션 1개 생성';
 
-/** 크레딧 유효기간(개월) — 전자상거래법상 소멸 조건 명시 필요 */
-export const CREDIT_VALID_MONTHS = 12;
-
 export const PLANS: CreditPlan[] = [
   {
     id: 'light',
@@ -90,6 +92,7 @@ export const PLANS: CreditPlan[] = [
     price: 9900,
     listPrice: 12900,
     credits: 20,
+    validMonths: 1,
     tagline: '상세페이지 1개를 여유 있게',
   },
   {
@@ -99,8 +102,8 @@ export const PLANS: CreditPlan[] = [
     price: 29000,
     listPrice: 39000,
     credits: 70,
+    validMonths: 2,
     tagline: '상품 여러 개를 준비하는 셀러',
-    recommended: true,
   },
   {
     id: 'pro',
@@ -109,7 +112,9 @@ export const PLANS: CreditPlan[] = [
     price: 59000,
     listPrice: 79000,
     credits: 160,
+    validMonths: 3,
     tagline: '정기적으로 신상품을 올리는 스토어',
+    recommended: true,
   },
   {
     id: 'max',
@@ -118,6 +123,7 @@ export const PLANS: CreditPlan[] = [
     price: 119000,
     listPrice: 159000,
     credits: 350,
+    validMonths: 6,
     tagline: '여러 스토어를 운영하거나 대량 등록하는 팀',
   },
 ];
@@ -167,6 +173,7 @@ export function planHighlights(plan: CreditPlan): PlanHighlight[] {
     { pre: '16섹션 페이지 ', bold: `약 ${pagesPerPlan(plan)}개` , post: ' 분량' },
     { pre: '크레딧당 ', bold: `${pricePerCredit(plan).toLocaleString('ko-KR')}원`, post: rate > 0 ? ` · ${rate}% 저렴` : '' },
   ];
+  rows.push({ pre: '유효기간 ', bold: `${plan.validMonths}개월` });
   if (prev) rows.push({ bold: `${prev.nameEn} 플랜의 모든 혜택`, post: ' 포함' });
   if (amount > 0) rows.push({ pre: '낱개로 살 때보다 ', bold: `${amount.toLocaleString('ko-KR')}원 절약` });
   return rows;

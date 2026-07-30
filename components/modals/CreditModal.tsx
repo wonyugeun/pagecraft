@@ -2,7 +2,7 @@
 
 import { Zap, X, ArrowUpRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
-import { CREDIT_VALID_MONTHS, PROMO } from '@/data/plans';
+import { PLANS, PROMO } from '@/data/plans';
 
 /**
  * 내 크레딧 모달 — 상단바 크레딧 칩을 누르면 열린다.
@@ -77,7 +77,8 @@ export default function CreditModal() {
           {[
             ['상세페이지 생성', '섹션 1개당 1크레딧'],
             ['섹션당 첫 이미지', '추가 비용 없이 포함'],
-            ['유효기간', `충전일로부터 ${CREDIT_VALID_MONTHS}개월`],
+            // 유효기간은 플랜별로 다르므로 범위로 안내(정확한 값은 요금제 페이지)
+            ['유효기간', `충전 플랜에 따라 ${Math.min(...PLANS.map(p => p.validMonths))}~${Math.max(...PLANS.map(p => p.validMonths))}개월`],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <span style={{ fontSize: 13, color: '#8B95A1' }}>{k}</span>

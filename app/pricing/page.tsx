@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 import LandingLayout from '@/components/landing/LandingLayout';
-import { PLANS, COMMON_BENEFITS, planHighlights, currentPrice, PROMO, CREDIT_VALID_MONTHS } from '@/data/plans';
+import { PLANS, COMMON_BENEFITS, planHighlights, currentPrice, PROMO } from '@/data/plans';
 
 /**
  * 요금제 — 크레딧 충전(단건 결제). 가격은 data/plans.ts 단일 소스.
@@ -51,13 +51,6 @@ export default function Page() {
               {PROMO.label} · {PROMO.changesOn}부터 정가 적용
             </div>
           )}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 999,
-            padding: '9px 18px', fontSize: 13.5, fontWeight: 700, color: '#5B3FD6',
-          }}>
-            월 구독 없음 · 유효기간 {CREDIT_VALID_MONTHS}개월
-          </div>
         </div>
 
         {/* 플랜 카드 3열 */}
@@ -79,7 +72,8 @@ export default function Page() {
                   boxShadow: rec ? '0 12px 32px rgba(109,76,255,0.12)' : '0 1px 3px rgba(17,17,26,0.04)',
                 }}
               >
-                {/* 플랜명(영문 대문자) + 인기 배지 */}
+                {/* 플랜명(영문 대문자) + 추천 배지 — ⚠️'인기'는 '다수가 선택했다'는 사실 주장이라
+                    실사용 데이터가 쌓이기 전에는 쓰지 않는다(우리 추천이라는 뜻의 '추천'만 사용). */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 16 }}>
                   <div>
                     <div style={{
@@ -93,7 +87,7 @@ export default function Page() {
                       background: '#6D4CFF', color: '#fff',
                       fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: '5px 12px',
                       whiteSpace: 'nowrap', letterSpacing: '-0.01em',
-                    }}>인기</span>
+                    }}>추천</span>
                   )}
                 </div>
 
@@ -195,10 +189,22 @@ export default function Page() {
         </Section>
 
         <Section title="유효기간">
-          <p style={bodyStyle}>
-            충전한 크레딧의 유효기간은 충전일로부터 {CREDIT_VALID_MONTHS}개월입니다.
-            기간이 지나면 잔여 크레딧은 소멸되며, 소멸 예정 시 사전에 안내해 드립니다.
+          <p style={{ ...bodyStyle, marginBottom: 12 }}>
+            충전한 크레딧의 유효기간은 플랜에 따라 다릅니다. 기간이 지나면 잔여 크레딧은 소멸되며,
+            소멸 예정 시 사전에 안내해 드립니다.
           </p>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {PLANS.map(p => (
+              <div key={p.id} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 12, fontSize: 14.5, color: '#4E5968',
+                borderBottom: '1px solid #F4F4F8', paddingBottom: 8,
+              }}>
+                <span>{p.nameEn} · 크레딧 {p.credits}개</span>
+                <b style={{ fontWeight: 700, color: '#191F28' }}>{p.validMonths}개월</b>
+              </div>
+            ))}
+          </div>
         </Section>
 
         <Section title="결제·문의">
