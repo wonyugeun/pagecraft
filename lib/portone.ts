@@ -18,10 +18,19 @@ export function portoneConfigured(): boolean {
   return PORTONE_STORE_ID.length > 0 && PORTONE_CHANNEL_KEY.length > 0;
 }
 
-/** paymentId — ⚠️포트원 제약: 영문 대소문자·숫자만. UUID의 하이픈을 반드시 제거한다. */
+/** paymentId 최대 길이 — ⚠️KPN(한국결제네트웍스) 제약.
+ *  KPN은 이 값을 MxIssueNO로 받는데 상한이 32byte라, 넘으면 결제창에서 9104
+ *  "MxIssueNO 길이 초과"로 실패한다(2026-07-30 실측). 여유를 둬 28자로 생성한다. */
+export const PAYMENT_ID_MAX = 32;
+
+/** paymentId — 영문 대소문자·숫자만(포트원 제약) + 32byte 이내(KPN 제약).
+ *  'flik'(4) + 24자 = 28자. 24자 hex는 96비트라 중복 가능성은 사실상 0. */
 export function newPaymentId(): string {
   const rand = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}${Math.random()}`;
-  return `flik${rand.replace(/[^a-zA-Z0-9]/g, '')}`.slice(0, 40);
+  const body = rand.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+  const id = `flik${body}`;
+  if (id.length > PAYMENT_ID_MAX) throw new Error(`paymentId 길이 초과(${id.length} > ${PAYMENT_ID_MAX})`);
+  return id;
 }
 
 export interface PortOnePayment {
