@@ -1,98 +1,123 @@
 'use client';
 
+import { Zap, X, ArrowUpRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
-import { PLANS, pricePerCredit } from '@/data/plans';
+import { CREDIT_VALID_MONTHS, PROMO } from '@/data/plans';
 
+/**
+ * 내 크레딧 모달 — 상단바 크레딧 칩을 누르면 열린다.
+ *
+ * ★역할(2026-07-30 재설계): 잔액을 크게 보여주고 → 충전으로 넘긴다. 그게 전부다.
+ *   기존엔 플랜 목록을 모달에 그대로 늘어놓아 요금제 페이지와 중복되고 초점이 흐렸다.
+ * ★충전은 /pricing을 새 탭으로 연다 — 생성 중에 앱을 벗어나면 작업이 끊기므로.
+ */
 export default function CreditModal() {
   const { credits, creditModalOpen, setCreditModalOpen } = useApp();
 
   if (!creditModalOpen) return null;
 
-  const isLow = credits < 20;
+  const isLow = credits < 16;   // 상세페이지 1회(16섹션) 미만이면 부족 안내
+  const close = () => setCreditModalOpen(false);
 
   return (
-    <div className="modal-ov" onClick={() => setCreditModalOpen(false)}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
+    <div
+      onClick={close}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 900,
+        background: 'rgba(17,17,26,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 'min(420px, 100%)', background: '#fff', borderRadius: 20,
+          padding: '24px 24px 20px',
+          boxShadow: '0 20px 60px rgba(17,17,26,0.25)',
+          fontFamily: 'var(--f)',
+        }}
+      >
         {/* 헤더 */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-          <div className="modal-title">크레딧 안내</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <span style={{ fontSize: 17, fontWeight: 800, color: '#191F28', letterSpacing: '-0.02em' }}>
+            내 크레딧
+          </span>
           <button
-            onClick={() => setCreditModalOpen(false)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#a8a59d', lineHeight: 1, padding: '2px 4px' }}
-          >×</button>
+            onClick={close}
+            aria-label="닫기"
+            style={{
+              width: 30, height: 30, borderRadius: 8, border: 'none', background: '#F4F4F8',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#8B95A1',
+            }}
+          >
+            <X size={16} strokeWidth={2.2} />
+          </button>
         </div>
 
-        {/* 현재 잔액 */}
+        {/* 잔액 — 이 모달의 주인공 */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: isLow ? 'rgba(220,38,38,.06)' : 'rgba(109,76,255,.06)',
-          border: `1px solid ${isLow ? 'rgba(220,38,38,.2)' : 'rgba(109,76,255,.15)'}`,
-          borderRadius: 10, padding: '12px 16px', marginBottom: 20,
+          background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 16,
+          padding: '26px 20px', textAlign: 'center', marginBottom: 18,
         }}>
-          <span style={{ fontSize: 24 }}>{isLow ? '⚠️' : '⚡'}</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: isLow ? '#dc2626' : '#6D4CFF' }}>
-              현재 잔액 {credits} 크레딧
+          <div style={{ fontSize: 12.5, color: '#8B95A1', fontWeight: 600, marginBottom: 10 }}>
+            보유 크레딧
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            <Zap size={26} color="#6D4CFF" fill="#6D4CFF" strokeWidth={1.5} />
+            <span style={{
+              fontSize: 40, fontWeight: 800, color: '#191F28',
+              letterSpacing: '-0.04em', lineHeight: 1,
+            }}>{credits}</span>
+          </div>
+        </div>
+
+        {/* 사용 기준 */}
+        <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
+          {[
+            ['상세페이지 생성', '섹션 1개당 1크레딧'],
+            ['섹션당 첫 이미지', '추가 비용 없이 포함'],
+            ['유효기간', `충전일로부터 ${CREDIT_VALID_MONTHS}개월`],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <span style={{ fontSize: 13, color: '#8B95A1' }}>{k}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#4E5968', textAlign: 'right' }}>{v}</span>
             </div>
-            <div style={{ fontSize: 11, color: '#6b6860', marginTop: 2 }}>
-              상세페이지는 섹션 1개당 1크레딧이 차감돼요
-              {isLow && ' · 크레딧이 부족해요'}
-            </div>
-          </div>
+          ))}
         </div>
 
-        {/* ★요금제 확정(2026-07-29) — 가격은 data/plans.ts 단일 소스.
-            결제 배관(PG)은 승인 절차 진행 중이라 '충전' 버튼 대신 안내만 표시한다.
-            PG 연동 완료 시 각 카드에 결제 요청 핸들러만 붙이면 된다. */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 8 }}>
-            크레딧 충전
+        {isLow && (
+          <div style={{
+            background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10,
+            padding: '11px 14px', marginBottom: 16,
+            fontSize: 12.5, color: '#92400E', lineHeight: 1.6,
+          }}>
+            상세페이지 1개(16섹션)를 만들기에 크레딧이 부족해요.
           </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {PLANS.map(pl => (
-              <div
-                key={pl.id}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-                  border: `1px solid ${pl.recommended ? '#D8CFFF' : '#ECECF2'}`,
-                  background: pl.recommended ? '#F8F6FF' : '#fff',
-                  borderRadius: 10, padding: '11px 13px',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>
-                    {pl.name}
-                    {pl.recommended && (
-                      <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#6D4CFF', background: '#EDE8FF', borderRadius: 999, padding: '2px 7px' }}>추천</span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: '#8B95A1', marginTop: 2 }}>
-                    크레딧 {pl.credits}개 · 개당 {pricePerCredit(pl).toLocaleString('ko-KR')}원
-                  </div>
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#191F28', whiteSpace: 'nowrap' }}>
-                  {pl.price.toLocaleString('ko-KR')}원
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
-        <div style={{
-          background: '#F4F0FF', border: '1px solid rgba(109,76,255,.15)', borderRadius: 10,
-          padding: '13px 15px', marginBottom: 16,
-        }}>
-          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#6D4CFF', marginBottom: 4 }}>
-            {isLow ? '체험 크레딧을 모두 사용하셨어요' : '🎁 신규 가입 체험 크레딧 16개'}
-          </div>
-          <div style={{ fontSize: 12, color: '#6b6860', lineHeight: 1.6 }}>
-            섹션 1개당 1크레딧이 차감돼요. 카드 결제는 승인 절차가 끝나는 대로 열립니다 — 준비되면 바로 안내드릴게요.
-          </div>
-        </div>
+        {/* 충전 — 새 탭으로 요금제 열기(생성 중 작업 끊김 방지) */}
+        <a
+          href="/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={close}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            background: '#6D4CFF', color: '#fff', textDecoration: 'none',
+            borderRadius: 12, padding: '15px 0',
+            fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
+          }}
+        >
+          충전하기
+          <ArrowUpRight size={17} strokeWidth={2.4} />
+        </a>
 
-        <button className="modal-cancel" onClick={() => setCreditModalOpen(false)}>
-          닫기
-        </button>
+        {PROMO.active && (
+          <div style={{ textAlign: 'center', fontSize: 12, color: '#6D4CFF', fontWeight: 600, marginTop: 11 }}>
+            {PROMO.label} 진행 중 · {PROMO.changesOn}부터 정가 적용
+          </div>
+        )}
       </div>
     </div>
   );

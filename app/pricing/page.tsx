@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 import LandingLayout from '@/components/landing/LandingLayout';
-import { PLANS, COMMON_BENEFITS, planHighlights, CREDIT_VALID_MONTHS } from '@/data/plans';
+import { PLANS, COMMON_BENEFITS, planHighlights, currentPrice, PROMO, CREDIT_VALID_MONTHS } from '@/data/plans';
 
 /**
  * 요금제 — 크레딧 충전(단건 결제). 가격은 data/plans.ts 단일 소스.
@@ -40,14 +40,23 @@ export default function Page() {
           </p>
         </div>
 
-        {/* 구독 없음 — 경쟁 서비스가 월 구독인 지점이라 명확히 표기 */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
+        {/* 프로모션 + 구독 없음 배지 */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 40 }}>
+          {PROMO.active && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: '#6D4CFF', borderRadius: 999,
+              padding: '9px 18px', fontSize: 13.5, fontWeight: 700, color: '#fff',
+            }}>
+              {PROMO.label} · {PROMO.changesOn}부터 정가 적용
+            </div>
+          )}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 999,
             padding: '9px 18px', fontSize: 13.5, fontWeight: 700, color: '#5B3FD6',
           }}>
-            월 구독 없음 · 쓴 만큼만 결제 · 유효기간 {CREDIT_VALID_MONTHS}개월
+            월 구독 없음 · 유효기간 {CREDIT_VALID_MONTHS}개월
           </div>
         </div>
 
@@ -88,13 +97,19 @@ export default function Page() {
                   )}
                 </div>
 
-                {/* 가격 */}
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                {/* 가격 — ⚠️판매 이력 없는 정가에 취소선·할인율 금지(허위 할인 표시).
+                    "언제부터 얼마로 조정"이라는 사실 예고로만 표기한다. */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
                   <span style={{
                     fontSize: 38, fontWeight: 800, color: '#191F28', letterSpacing: '-0.045em', lineHeight: 1,
-                  }}>{p.price.toLocaleString('ko-KR')}</span>
+                  }}>{currentPrice(p).toLocaleString('ko-KR')}</span>
                   <span style={{ fontSize: 18, fontWeight: 700, color: '#4E5968', marginLeft: 2 }}>원</span>
                 </div>
+                {PROMO.active && (
+                  <div style={{ fontSize: 12, color: '#6D4CFF', fontWeight: 600, marginBottom: 8 }}>
+                    {PROMO.changesOn}부터 {p.listPrice.toLocaleString('ko-KR')}원
+                  </div>
+                )}
                 <p style={{ fontSize: 14, color: '#8B95A1', margin: '0 0 26px', lineHeight: 1.6, minHeight: 44 }}>
                   {p.tagline}
                 </p>

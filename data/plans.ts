@@ -23,8 +23,13 @@ export interface CreditPlan {
   name: string;
   /** 영문 플랜명 — 카드 제목(대문자). AI 서비스 관행이고 시각적으로 정돈됨 */
   nameEn: string;
-  /** 판매가(원, VAT 포함 표기) */
+  /** 현재 실제 판매가(원, VAT 포함 표기) */
   price: number;
+  /** 정가 — 프로모션 종료 후 적용될 가격.
+   *  ⚠️'종전 거래가격'이 아니다. 실제로 판매한 적 없는 가격에 취소선을 그어 할인율을 표시하면
+   *  공정위 기준상 허위 할인 표시가 된다(종전가격은 최근 상당기간 실제 판매가여야 함).
+   *  그래서 UI는 취소선·할인율 대신 "언제부터 얼마로 조정" 형태의 예고로만 표기한다. */
+  listPrice: number;
   /** 지급 크레딧 */
   credits: number;
   /** 대표 문구 — 어떤 셀러에게 맞는지 한 줄 */
@@ -45,6 +50,32 @@ export const COMMON_BENEFITS: string[] = [
   '셀러가 입력하지 않은 정보는 만들지 않아요',
 ];
 
+/* ── ★프로모션(2026-07-30) — 수수료 플랫폼·유료 광고를 쓰기 어려운 단계라 '기간 한정 특가'가
+ *    사실상 유일한 유입 레버다. 다만 허위 할인 표시를 피하려면 다음 원칙을 지킨다:
+ *      1) 실제로 판매한 적 없는 가격에 취소선·할인율을 붙이지 않는다(공정위 종전가격 기준).
+ *      2) 대신 "지금 X원 · 언제부터 Y원" 형태의 '가격 조정 예고'로 표기한다 — 사실이고 시급성도 생긴다.
+ *      3) 프로모션이 끝나 정가로 실제 판매한 이력이 쌓인 뒤에는, 그때부터 정식 할인 표시가 가능하다.
+ *    endsAt은 표기용 문자열(자동 만료 로직 없음) — 날짜가 지나면 price를 listPrice로 올려야 한다. ── */
+export interface Promo {
+  /** 프로모션 진행 여부 — false면 정가(listPrice)로 표시·판매 */
+  active: boolean;
+  /** 배지 문구 */
+  label: string;
+  /** 종료 예정일 표기(예: '2026년 9월 1일') — 이 날부터 정가 적용 */
+  changesOn: string;
+}
+
+export const PROMO: Promo = {
+  active: true,
+  label: '오픈 기념 특가',
+  changesOn: '2026년 9월 1일',
+};
+
+/** 화면에 표시할 현재 판매가 — 프로모션 종료 시 정가로 자동 전환 */
+export function currentPrice(plan: CreditPlan): number {
+  return PROMO.active ? plan.price : plan.listPrice;
+}
+
 /** 크레딧 1개 = 상세페이지 섹션 1개 생성 */
 export const CREDIT_UNIT_NOTE = '크레딧 1개 = 상세페이지 섹션 1개 생성';
 
@@ -57,6 +88,7 @@ export const PLANS: CreditPlan[] = [
     name: '라이트',
     nameEn: 'LIGHT',
     price: 9900,
+    listPrice: 12900,
     credits: 20,
     tagline: '상세페이지 1개를 여유 있게',
   },
@@ -65,6 +97,7 @@ export const PLANS: CreditPlan[] = [
     name: '스탠다드',
     nameEn: 'STANDARD',
     price: 29000,
+    listPrice: 39000,
     credits: 70,
     tagline: '상품 여러 개를 준비하는 셀러',
     recommended: true,
@@ -74,6 +107,7 @@ export const PLANS: CreditPlan[] = [
     name: '프로',
     nameEn: 'PRO',
     price: 59000,
+    listPrice: 79000,
     credits: 160,
     tagline: '정기적으로 신상품을 올리는 스토어',
   },
@@ -82,6 +116,7 @@ export const PLANS: CreditPlan[] = [
     name: '맥스',
     nameEn: 'MAX',
     price: 119000,
+    listPrice: 159000,
     credits: 350,
     tagline: '여러 스토어를 운영하거나 대량 등록하는 팀',
   },
@@ -89,7 +124,7 @@ export const PLANS: CreditPlan[] = [
 
 /** 표시용 — 크레딧당 단가(원, 반올림) */
 export function pricePerCredit(plan: CreditPlan): number {
-  return Math.round(plan.price / plan.credits);
+  return Math.round(currentPrice(plan) / plan.credits);
 }
 
 /** 표시용 — 16섹션 페이지 몇 개 분량인지(소수 1자리) */
@@ -115,7 +150,7 @@ export function savingRate(plan: CreditPlan): number {
 /** 기준 플랜 단가로 같은 크레딧을 살 때보다 얼마 덜 내는지(원) */
 export function savingAmount(plan: CreditPlan): number {
   const base = pricePerCredit(basePlan());
-  return Math.max(0, Math.round(plan.credits * base - plan.price));
+  return Math.max(0, Math.round(plan.credits * base - currentPrice(plan)));
 }
 
 /** 카드 혜택 줄 — pre + bold + post 순서로 렌더(강조 위치를 데이터가 결정) */
