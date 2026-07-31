@@ -89,6 +89,31 @@ export class PipelineJobError extends Error {
 //   작은 청크(4섹션)를 동시 4개 워커로 — 벽시계 시간 = 가장 느린 청크 1개(~1분대), 잘림 재시도 사실상 소멸.
 //   비용: 토큰 과금이라 총액 동일(입력 프롬프트 반복분만 소폭 증가, 통째 재시도 낭비는 제거).
 const COPY_CHUNK_SIZE_DEFAULT = 4;
+
+/** ★판매 디렉팅 강화 스위치 — 검증 전까지 기본 OFF. 켜려면 COPY_SALES_MODE=1 */
+export function salesModeOn(): boolean {
+  return process.env.COPY_SALES_MODE === '1';
+}
+
+/**
+ * 킬러 라인을 맡을 섹션을 코드가 정한다.
+ *
+ * ★왜 모델에게 안 맡기는가: 청크가 병렬로 돌아 서로를 못 본다. "페이지에서 한 곳만"이라고 쓰면
+ *  각 청크가 저마다 자기 섹션을 그 한 곳으로 판단해 결국 전부 강조된다(콜라주가 실패한 원인과 동일).
+ * ★어디에 두는가: 히어로는 이미 훅 전용 규칙을 받아 세다. 킬러 라인은 페이지 중반, 독자가
+ *  설득에 몰입한 지점에 두는 게 가장 효과적이다 — 감정이 실리는 섹션(공감/해소/스토리)을 우선한다.
+ */
+const KILLER_PREFERRED = ['해소', '해결', '솔루션', '공감', '고민', '스토리', '안심', '차별'];
+export function pickKillerLineIndex(plan: { name?: string }[]): number | undefined {
+  if (plan.length < 3) return undefined;
+  // 히어로(0)와 CTA(마지막)는 제외 — 그 둘은 각자 다른 임무가 있다
+  const mid = plan.slice(1, -1);
+  const hit = mid.findIndex(p => {
+    const n = (p.name ?? '').toLowerCase();
+    return KILLER_PREFERRED.some(k => n.includes(k.toLowerCase()));
+  });
+  return hit >= 0 ? hit + 1 : Math.floor(plan.length / 2);   // 못 찾으면 페이지 한가운데
+}
 const COPY_PARALLEL = 4;
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -184,8 +209,17 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
     job.stages.copy.total = plan.length;
     job.stages.copy.chunkSize = size;
     job.stages.copy.chunks = [];
-    for (let i = 0; i < plan.length; i += size) {
-      job.stages.copy.chunks.push({ status: 'pending', startIndex: i, count: Math.min(size, plan.length - i) });
+    if (salesModeOn() && plan.length > 1) {
+      // ★히어로 독립 청크(2026-08-01) — 첫 섹션을 혼자 돌려 훅 전용 규칙을 온전히 받게 한다.
+      //   같은 청크에 묶이면 나머지 섹션과 같은 규칙·같은 리듬으로 쓰여 '격이 다른 한 줄'이 안 나온다.
+      job.stages.copy.chunks.push({ status: 'pending', startIndex: 0, count: 1 });
+      for (let i = 1; i < plan.length; i += size) {
+        job.stages.copy.chunks.push({ status: 'pending', startIndex: i, count: Math.min(size, plan.length - i) });
+      }
+    } else {
+      for (let i = 0; i < plan.length; i += size) {
+        job.stages.copy.chunks.push({ status: 'pending', startIndex: i, count: Math.min(size, plan.length - i) });
+      }
     }
     await save({ stage: 'copy', status: 'pending' });
   }
@@ -212,6 +246,9 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
         totalSections: total,
         cat, ch, out, depth,
         knownFacts: knownFactsStr,
+        // ★판매 디렉팅 강화 — 킬러 라인 섹션은 코드가 지정(병렬 청크는 서로를 못 본다)
+        salesMode: salesModeOn(),
+        killerLineIndex: salesModeOn() ? pickKillerLineIndex(plan) : undefined,
         jobKey: job.input.jobKey,   // ★결제 검증(P0 2차)
       });
       if (r?.error) throw new Error(r.error);
