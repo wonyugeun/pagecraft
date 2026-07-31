@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
 import { ensureSchemaOnce, saveFeedback, checkRateLimit, clientIp, sql } from '@/lib/db';
 import { isAdminEmail } from '@/lib/portone';
+import { kakaoConfigured, sendKakaoMemo } from '@/lib/kakaoNotify';
 
 /**
  * 고객의 소리(2026-07-30).
@@ -80,10 +81,15 @@ export async function GET(req: NextRequest) {
  *   · 슬랙/디스코드: 발급받은 Incoming Webhook URL 그대로
  */
 function notify(email: string, rating: number | null, message: string, id: number): void {
+  const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
+
+  // ★카카오톡 나에게 보내기 — 유근님 기본 알림 경로. 설정돼 있으면 항상 보낸다.
+  if (kakaoConfigured()) {
+    void sendKakaoMemo(text, 'https://www.flik.kr');
+  }
+
   const url = process.env.FEEDBACK_WEBHOOK_URL;
   if (!url) return;
-
-  const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
 
   // 텔레그램만 형식이 다르다(chat_id 필수). 나머지는 content/text를 같이 보내면 각자 자기 필드만 읽는다.
   const isTelegram = url.includes('api.telegram.org');
