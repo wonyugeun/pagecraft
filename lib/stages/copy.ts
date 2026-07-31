@@ -475,7 +475,9 @@ function isOpenAIModel(model: string): boolean {
   return /^(gpt-|o[134])/.test(model);
 }
 
-async function callCopyModel(model: string, system: string, user: string): Promise<LlmReply> {
+/** ★export 이유: 훅 후보 생성 하네스(scripts/hook-candidates.mts)가 실서비스와 동일한 모델·설정으로
+ *  호출해야 비교가 성립한다. 하네스 전용 경로를 따로 만들면 하네스에서만 좋은 결과가 나온다. */
+export async function callCopyModel(model: string, system: string, user: string): Promise<LlmReply> {
   if (isOpenAIModel(model)) {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
