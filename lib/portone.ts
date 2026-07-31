@@ -8,7 +8,10 @@
  *
  * ★테스트 모드는 코드가 아니라 포트원 콘솔의 채널 설정에서 [테스트]로 지정한다.
  *   따라서 심사용 테스트 결제는 '테스트 채널의 channelKey'를 넣는 것으로 전환된다.
+ *
+ * ⚠️이 모듈은 서버 전용이다(node:crypto·API 시크릿 사용). 클라이언트 컴포넌트에서 import 금지.
  */
+import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const PORTONE_STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID ?? '';
 export const PORTONE_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY ?? '';
@@ -35,11 +38,14 @@ export function newPaymentId(): string {
 
 export interface PortOnePayment {
   status?: string;
-  amount?: { total?: number };
+  /** cancelled = 취소된 누계 금액. total과 같으면 전액 취소다. */
+  amount?: { total?: number; cancelled?: number };
   currency?: string;
   orderName?: string;
   method?: { type?: string };
   failure?: { message?: string };
+  cancelledAt?: string;
+  channel?: { type?: string; pgProvider?: string };
 }
 
 /**
@@ -76,6 +82,60 @@ export async function cancelPortOnePayment(paymentId: string, reason: string): P
   if (!res.ok) {
     throw new Error(`포트원 결제 취소 실패(${res.status}): ${body?.message ?? body?.type ?? '알 수 없는 오류'}`);
   }
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * 웹훅 서명 검증 — Standard Webhooks 규격(포트원 V2가 이 규격을 따른다).
+ *
+ * 헤더: webhook-id / webhook-timestamp / webhook-signature
+ * 서명 대상 문자열: `{id}.{timestamp}.{원문 본문}`  ← ⚠️파싱 전 raw body여야 한다
+ * 키: PORTONE_WEBHOOK_SECRET (`whsec_` 접두사 뒤가 base64 키)
+ * 서명 헤더 형식: `v1,<base64>` 공백 구분 다중 가능(키 롤링 대비)
+ * ──────────────────────────────────────────────────────────────── */
+
+export type WebhookVerdict =
+  | { ok: true }
+  | { ok: false; reason: string }
+  | { ok: 'unconfigured'; reason: string };
+
+/** 재생 공격 방지 — 이 시간(초)보다 오래된 웹훅은 거부 */
+const WEBHOOK_TOLERANCE_SEC = 300;
+
+export function verifyPortOneWebhook(rawBody: string, headers: Headers): WebhookVerdict {
+  const secret = process.env.PORTONE_WEBHOOK_SECRET;
+  if (!secret) {
+    return { ok: 'unconfigured', reason: 'PORTONE_WEBHOOK_SECRET 미설정' };
+  }
+
+  const id = headers.get('webhook-id');
+  const ts = headers.get('webhook-timestamp');
+  const sigHeader = headers.get('webhook-signature');
+  if (!id || !ts || !sigHeader) return { ok: false, reason: '서명 헤더 누락' };
+
+  const sent = Number(ts);
+  if (!Number.isFinite(sent)) return { ok: false, reason: 'timestamp 형식 오류' };
+  const drift = Math.abs(Date.now() / 1000 - sent);
+  if (drift > WEBHOOK_TOLERANCE_SEC) {
+    return { ok: false, reason: `timestamp 허용 범위 초과(${Math.round(drift)}초)` };
+  }
+
+  const key = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+  const expected = createHmac('sha256', key)
+    .update(`${id}.${ts}.${rawBody}`)
+    .digest();
+
+  // `v1,<sig> v1,<sig2>` — 하나라도 일치하면 통과
+  for (const part of sigHeader.split(' ')) {
+    const comma = part.indexOf(',');
+    if (comma < 0) continue;
+    if (part.slice(0, comma) !== 'v1') continue;
+    let given: Buffer;
+    try { given = Buffer.from(part.slice(comma + 1), 'base64'); } catch { continue; }
+    if (given.length === expected.length && timingSafeEqual(given, expected)) {
+      return { ok: true };
+    }
+  }
+  return { ok: false, reason: '서명 불일치' };
 }
 
 /** 관리자 이메일 화이트리스트 — ADMIN_EMAILS(쉼표 구분). 미설정이면 아무도 관리자가 아니다. */

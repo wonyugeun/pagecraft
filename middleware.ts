@@ -6,7 +6,13 @@ import type { NextRequest } from 'next/server';
  * API 로그인 가드 — 돈 새는 구멍 차단.
  *
  * 과금(Claude/OpenAI/Gemini) API를 "로그인한 사용자만" 호출하게 한다.
- * - /api/* 전부 보호. 단 /api/auth/*(NextAuth 로그인 자체)는 제외(로그인이 막히면 안 됨).
+ * - /api/* 전부 보호. 단 아래 둘만 제외한다.
+ *   1) /api/auth/*          NextAuth 로그인 자체(여기가 막히면 아무도 로그인 못 함)
+ *   2) /api/payments/webhook 포트원 → 우리 서버로 오는 서버 간 호출. 브라우저가 아니라
+ *      세션 쿠키가 존재할 수 없다. 여기를 막으면 결제 취소·누락 알림이 전부 401로 튕겨
+ *      "돈은 돌려줬는데 크레딧은 남는" 상태가 그대로 방치된다.
+ *      ⚠️대신 무인증이 아니다 — 라우트가 HMAC 서명(PORTONE_WEBHOOK_SECRET)을 직접 검증하고,
+ *        상태 판단은 본문이 아니라 포트원 API 재조회로만 한다.
  * - 공개 페이지(랜딩 / /login / 마케팅)는 매처에 없으므로 0접촉 — 그대로 열린다.
  * - 세션(JWT 쿠키)이 없으면 생성 로직이 돌기 전에 401 JSON으로 차단(과금 발생 안 함).
  *
@@ -29,6 +35,8 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // /api/* 전부 보호하되 /api/auth/*(NextAuth)만 제외. 공개 페이지는 매처에 없어 미접촉.
-  matcher: ['/api/((?!auth).*)'],
+  // /api/* 전부 보호하되 NextAuth와 포트원 웹훅만 제외. 공개 페이지는 매처에 없어 미접촉.
+  // ⚠️여기에 경로를 추가한다는 것은 '로그인 없이 호출 가능해진다'는 뜻이다.
+  //   그 라우트는 반드시 자체 인증(서명 검증 등)을 갖고 있어야 한다.
+  matcher: ['/api/((?!auth|payments/webhook).*)'],
 };

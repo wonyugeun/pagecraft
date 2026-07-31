@@ -280,6 +280,9 @@ export async function ensureCreditTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`;
   await sql`CREATE INDEX IF NOT EXISTS credit_lots_email_idx ON credit_lots (user_email)`;
+  /* ★lot ↔ 결제 연결(2026-07-31) — 같은 플랜을 두 번 결제하면 plan_id만으로는 어느 묶음이
+   *  어느 결제의 것인지 구분되지 않아, 환불 시 엉뚱한 묶음을 무효화할 수 있었다. */
+  await sql`ALTER TABLE credit_lots ADD COLUMN IF NOT EXISTS payment_id TEXT`;
   /* ★결제 주문(2026-07-30) — 포트원 V2 인증결제.
    *  ⚠️금액은 반드시 서버가 정한다. 클라이언트가 보낸 금액을 신뢰하면 1원 결제로 크레딧을 받는다.
    *  prepare에서 주문을 만들고(서버 가격), complete에서 포트원 조회 금액과 이 주문 금액을 대조한다. */
@@ -411,7 +414,7 @@ export async function settlePaidOrder(paymentId: string): Promise<SettleResult> 
 
   if (r.granted_balance !== null && r.granted_balance !== undefined) {
     // 구매 lot 기록 — 유효기간(개월) 기준. 실패해도 잔액엔 영향 없음.
-    await recordCreditLot(order.user_email, order.credits, 'purchase', order.valid_months * 30, order.plan_id);
+    await recordCreditLot(order.user_email, order.credits, 'purchase', order.valid_months * 30, order.plan_id, paymentId);
     return { status: 'granted', balance: r.granted_balance, credits: order.credits };
   }
   return { status: 'duplicate', balance: r.current_balance ?? 0 };
@@ -503,15 +506,30 @@ export async function evaluateRefund(paymentId: string): Promise<RefundEvaluatio
   return { ...base, ...info, eligible: true, reason: '환불 가능 — 7일 이내, 미사용, 다운로드 없음' };
 }
 
-/** 환불 확정 — 크레딧 회수 + 묶음 무효화 + 원장 기록(원자적). 포트원 취소는 호출부가 먼저 성공시킨다. */
-export async function revokeRefundedCredits(paymentId: string): Promise<{ balance: number }> {
+/**
+ * 환불 확정 — 크레딧 회수 + 묶음 무효화 + 원장 기록(원자적). 포트원 취소는 호출부가 먼저 성공시킨다.
+ *
+ * ★안전장치 3가지:
+ *  1) 지급된 적 없으면 회수하지 않는다 — `payment:{id}` 지급 원장이 있을 때만 동작한다.
+ *     (pending 주문이 외부에서 취소됐을 때 주지도 않은 크레딧을 빼앗는 것을 막는다.)
+ *  2) 회수는 멱등 — `refund:payment:{id}` 유니크키. 웹훅 재전송·관리자 중복 실행에도 1회만.
+ *  3) 무효화할 묶음은 payment_id로 특정한다. 같은 플랜을 두 번 산 계정에서 엉뚱한 묶음이
+ *     날아가지 않게. (payment_id가 없는 과거 묶음만 기존 규칙으로 1건 대체 처리)
+ *
+ * ⚠️이미 쓴 크레딧은 되돌릴 수 없으므로 잔액은 0에서 멈춘다(음수 금지). 이 경우는 로그로 남긴다.
+ */
+export async function revokeRefundedCredits(paymentId: string): Promise<{ balance: number; revoked: boolean }> {
   const order = await getPaymentOrder(paymentId);
   if (!order) throw new Error('주문을 찾을 수 없어요.');
   const key = `refund:payment:${paymentId}`;
   const rows = await sql`
-    WITH l AS (
+    WITH granted AS (
+      SELECT 1 FROM credit_ledger WHERE idempotency_key = ${'payment:' + paymentId}
+    ),
+    l AS (
       INSERT INTO credit_ledger (user_email, amount, type, reason, idempotency_key)
-      VALUES (${order.user_email}, ${-order.credits}, 'refund', ${'refund:' + order.plan_id}, ${key})
+      SELECT ${order.user_email}, ${-order.credits}, 'refund', ${'refund:' + order.plan_id}, ${key}
+      WHERE EXISTS (SELECT 1 FROM granted)
       ON CONFLICT (idempotency_key) DO NOTHING
       RETURNING id
     ),
@@ -520,10 +538,21 @@ export async function revokeRefundedCredits(paymentId: string): Promise<{ balanc
       WHERE user_email = ${order.user_email} AND EXISTS (SELECT 1 FROM l)
       RETURNING balance
     ),
+    linked AS (
+      SELECT id FROM credit_lots
+      WHERE user_email = ${order.user_email} AND swept_at IS NULL AND payment_id = ${paymentId}
+    ),
+    legacy AS (
+      SELECT id FROM credit_lots
+      WHERE user_email = ${order.user_email} AND swept_at IS NULL AND payment_id IS NULL
+        AND kind = 'purchase' AND plan_id = ${order.plan_id}
+        AND NOT EXISTS (SELECT 1 FROM linked)
+      ORDER BY created_at DESC LIMIT 1
+    ),
     lot AS (
       UPDATE credit_lots SET swept_at = now()
-      WHERE user_email = ${order.user_email} AND kind = 'purchase' AND plan_id = ${order.plan_id}
-        AND swept_at IS NULL AND EXISTS (SELECT 1 FROM l)
+      WHERE id IN (SELECT id FROM linked UNION SELECT id FROM legacy)
+        AND EXISTS (SELECT 1 FROM l)
       RETURNING id
     ),
     o AS (
@@ -531,8 +560,11 @@ export async function revokeRefundedCredits(paymentId: string): Promise<{ balanc
       WHERE payment_id = ${paymentId} AND EXISTS (SELECT 1 FROM l)
       RETURNING payment_id
     )
-    SELECT COALESCE((SELECT balance FROM c), (SELECT balance FROM credits WHERE user_email = ${order.user_email}), 0) AS balance`;
-  return { balance: Number((rows[0] as { balance: number }).balance) };
+    SELECT (SELECT count(*) FROM l) AS revoked,
+           COALESCE((SELECT balance FROM c),
+                    (SELECT balance FROM credits WHERE user_email = ${order.user_email}), 0) AS balance`;
+  const r = rows[0] as { revoked: string; balance: number };
+  return { balance: Number(r.balance), revoked: Number(r.revoked) > 0 };
 }
 
 /** 결제 실패·취소 기록(정보용) */
@@ -545,16 +577,17 @@ export async function markPaymentFailed(paymentId: string): Promise<void> {
 /** 만료되는 크레딧 지급 기록 — 잔액 증가는 호출부(기존 로직)가 하고, 여기서는 만료 정보만 남긴다. */
 export async function recordCreditLot(
   email: string, amount: number, kind: 'trial' | 'purchase' | 'refund',
-  validDays: number | null, planId?: string,
+  validDays: number | null, planId?: string, paymentId?: string,
 ): Promise<void> {
   if (amount <= 0) return;
   try {
     if (validDays === null) {
-      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, expires_at)
-                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, NULL)`;
+      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, payment_id, expires_at)
+                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, ${paymentId ?? null}, NULL)`;
     } else {
-      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, expires_at)
-                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, now() + (${validDays} || ' days')::interval)`;
+      await sql`INSERT INTO credit_lots (user_email, amount, kind, plan_id, payment_id, expires_at)
+                VALUES (${email}, ${amount}, ${kind}, ${planId ?? null}, ${paymentId ?? null},
+                        now() + (${validDays} || ' days')::interval)`;
     }
   } catch (e) {
     // 만료 기록 실패가 지급 자체를 막지 않게(잔액은 이미 증가). 다음 충전 때 다시 기록된다.

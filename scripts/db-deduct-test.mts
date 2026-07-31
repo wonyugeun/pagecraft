@@ -21,16 +21,20 @@ const col = await sql`SELECT column_name FROM information_schema.columns WHERE t
 chk('credit_ledger.idempotency_key 존재', col.length === 1);
 
 const u = `deduct+${Date.now()}@example.com`;
-console.log(`\n테스트 유저: ${u} (신규 30)`);
+// ★잔액을 명시적으로 고정한다 — 가입 지급액(SIGNUP_GRANT)에 기대면 정책이 바뀔 때마다
+//   차감 로직과 무관한 이유로 이 테스트가 깨진다(실제로 30→10 변경 때 깨졌다).
+const START = 30;
 await getOrCreateBalance(u);
+await sql`UPDATE credits SET balance = ${START} WHERE user_email = ${u}`;
+console.log(`\n테스트 유저: ${u} (잔액 ${START}으로 고정)`);
 
 console.log('\n1) 정상 차감');
 const r1 = await deductCreditsAtomic(u, C, 'keyA');
-chk('차감 → deducted, 잔액 20', r1.status === 'deducted' && r1.balance === 30 - C, `status=${r1.status} bal=${r1.balance}`);
+chk('차감 → deducted, 잔액 20', r1.status === 'deducted' && r1.balance === START - C, `status=${r1.status} bal=${r1.balance}`);
 
 console.log('\n2) ★이중차감 — 같은 키 재호출');
 const r2 = await deductCreditsAtomic(u, C, 'keyA');
-chk('같은 키 → duplicate, 잔액 그대로 20(재차감 X)', r2.status === 'duplicate' && r2.balance === 30 - C, `status=${r2.status} bal=${r2.balance}`);
+chk('같은 키 → duplicate, 잔액 그대로 20(재차감 X)', r2.status === 'duplicate' && r2.balance === START - C, `status=${r2.status} bal=${r2.balance}`);
 
 console.log('\n3) 잔액 소진 + 부족');
 const r3 = await deductCreditsAtomic(u, C, 'keyB'); // 20→10
