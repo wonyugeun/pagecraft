@@ -561,11 +561,14 @@ ${imgsHtml}
     .sec-blocks { padding-top: 0; padding-bottom: 0; }
     .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
     .sec h2 { font-size: 27px; font-weight: 800; text-align: left; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.5px; word-break: keep-all; }
-    .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center { text-align: center; }
     .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
     .sec .bodytext { font-size: 17px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; word-break: keep-all; }
     .sec .bodytext:last-of-type { margin-bottom: 0; }
     .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
+    /* ★센터 정렬은 반드시 위 .sec 규칙들 '뒤'에 온다 — 특정도가 같아서(둘 다 클래스 2개)
+       순서가 곧 승패다. 앞에 두면 .sec .subcopy / .sec .bodytext 가 다시 left로 덮어써서
+       제목만 가운데 오고 본문은 왼쪽에 남는다(2026-08-01 유근님 발견). 위로 옮기지 말 것. */
+    .sec-center, .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center p { text-align: center; }
     .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
     .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
     .img-icon { font-size: 36px; }
