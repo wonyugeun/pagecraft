@@ -69,15 +69,42 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ feedback: rows });
 }
 
-/** 새 의견 알림 — FEEDBACK_WEBHOOK_URL(디스코드·슬랙 등)이 있으면 전송 */
+/**
+ * 새 의견 알림 — FEEDBACK_WEBHOOK_URL이 있으면 전송. 텔레그램·슬랙·디스코드를 모두 받는다.
+ *
+ * ★의견이 DB에만 쌓이면 없는 기능이나 마찬가지다. 셀러가 불편을 말한 그날 답이 가야 의미가 있다.
+ * ★설정 방법은 채널마다 다르지만 넣는 곳은 환경변수 하나로 통일한다 — 나중에 채널을 갈아타도
+ *   코드를 고칠 필요가 없게.
+ *   · 텔레그램: FEEDBACK_WEBHOOK_URL=https://api.telegram.org/bot<토큰>/sendMessage
+ *              + FEEDBACK_TELEGRAM_CHAT_ID=<본인 chat id>
+ *   · 슬랙/디스코드: 발급받은 Incoming Webhook URL 그대로
+ */
 function notify(email: string, rating: number | null, message: string, id: number): void {
   const url = process.env.FEEDBACK_WEBHOOK_URL;
   if (!url) return;
+
   const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
+
+  // 텔레그램만 형식이 다르다(chat_id 필수). 나머지는 content/text를 같이 보내면 각자 자기 필드만 읽는다.
+  const isTelegram = url.includes('api.telegram.org');
+  const chatId = process.env.FEEDBACK_TELEGRAM_CHAT_ID;
+  if (isTelegram && !chatId) {
+    console.error('[feedback] 텔레그램 알림 실패 — FEEDBACK_TELEGRAM_CHAT_ID 미설정');
+    return;
+  }
+  const payload = isTelegram
+    ? { chat_id: chatId, text, disable_web_page_preview: true }
+    : { content: text, text };
+
   void fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // 디스코드는 content, 슬랙은 text — 둘 다 보내면 각자 자기 필드만 읽는다
-    body: JSON.stringify({ content: text, text }),
-  }).catch(e => console.error('[feedback] 알림 실패:', e));
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10_000),
+  })
+    .then(async res => {
+      // 조용히 실패하면 '알림이 오는 줄 알았는데 안 오는' 최악의 상태가 된다 — 응답까지 확인한다.
+      if (!res.ok) console.error(`[feedback] 알림 실패(${res.status}): ${(await res.text()).slice(0, 200)}`);
+    })
+    .catch(e => console.error('[feedback] 알림 실패:', e));
 }
