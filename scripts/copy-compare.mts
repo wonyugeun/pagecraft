@@ -15,7 +15,13 @@ if (!beforeDir || !afterDir) { console.error('사용법: copy-compare.mts <befor
 
 const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-interface Sec { num: string; name: string; headline: string; subcopy?: string; body?: string }
+/* ⚠️블록(steps·checklist·stats…)까지 반드시 그린다.
+ *   본문만 보여줬더니 "이 순서만 기억해주세요" 뒤가 비어 보여, 실제로는 있는 steps 블록을
+ *   없는 것처럼 오판하게 만들었다(2026-08-01). 검수 도구가 실물의 일부를 숨기면 검수가 틀린다. */
+interface Sec {
+  num: string; name: string; headline: string; subcopy?: string; body?: string;
+  blocks?: Array<Record<string, unknown>>;
+}
 interface Raw { product: { productName: string; fields: string[] }; sections: Sec[] }
 
 const A = JSON.parse(fs.readFileSync(path.join(beforeDir, 'raw.json'), 'utf8')) as Raw;
@@ -47,12 +53,42 @@ function markup(text: string): string {
 const bodyLen = (s: Sec) => (s.body ?? '').length;
 const rows = Math.max(A.sections.length, B.sections.length);
 
+/** 블록 렌더 — 본문이 "아래 순서대로"라고 가리키는 대상이 실제로 여기 있다 */
+function blockHtml(b: Record<string, unknown>): string {
+  const t = String(b.type);
+  const wrap = (inner: string) => `<div class="blk"><span class="bt">${esc(t)}</span>${inner}</div>`;
+  switch (t) {
+    case 'steps':
+      return wrap(`<ol>${(b.items as { title: string; desc?: string }[]).map(i =>
+        `<li><b>${esc(i.title)}</b>${i.desc ? ` — ${esc(i.desc)}` : ''}</li>`).join('')}</ol>`);
+    case 'checklist':
+      return wrap(`<ul>${(b.items as string[]).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`);
+    case 'iconcards':
+      return wrap(`<ul>${(b.cards as { title: string; desc?: string }[]).map(c =>
+        `<li><b>${esc(c.title)}</b>${c.desc ? ` — ${esc(c.desc)}` : ''}</li>`).join('')}</ul>`);
+    case 'stats':
+      return wrap(`<ul>${(b.items as { value: string; label: string }[]).map(i =>
+        `<li><b>${esc(i.value)}</b> ${esc(i.label)}</li>`).join('')}</ul>`);
+    case 'compare': {
+      const h = b.headers as string[]; const rows = b.rows as string[][];
+      return wrap(`<table><tr>${h.map(x => `<th>${esc(x)}</th>`).join('')}</tr>${
+        rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`);
+    }
+    case 'quote': return wrap(`<blockquote>${esc(b.text)}</blockquote>`);
+    case 'faq': return wrap(`<ul>${(b.items as { q: string; a: string }[]).map(f =>
+      `<li><b>Q. ${esc(f.q)}</b><br>A. ${esc(f.a)}</li>`).join('')}</ul>`);
+    case 'cta': return wrap(`<p>${esc(b.text)} <b>[${esc(b.button)}]</b></p>`);
+    default: return wrap(`<p>${esc(JSON.stringify(b).slice(0, 200))}</p>`);
+  }
+}
+
 const cell = (s: Sec | undefined) => s ? `
     <div class="sec">
       <div class="nm">${esc(s.name)} <span class="len">${bodyLen(s)}자</span></div>
       <div class="h">${markup(s.headline)}</div>
       ${s.subcopy ? `<div class="s">${markup(s.subcopy)}</div>` : ''}
       <div class="b">${markup(s.body ?? '')}</div>
+      ${(s.blocks ?? []).map(blockHtml).join('')}
     </div>` : '<div class="sec empty">—</div>';
 
 const stat = (d: Raw) => {
@@ -82,6 +118,12 @@ const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
  .bold{color:#111;font-weight:800}
  .point{font-style:normal;font-weight:700;color:#6D4CFF}
  .fab{background:#FFE3E3;color:#C92A2A;border-radius:3px;padding:0 3px;font-weight:700}
+ .blk{margin-top:12px;background:#F8F9FC;border:1px solid #ECECF2;border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.75}
+ .blk .bt{display:inline-block;font-size:10.5px;font-weight:800;color:#8B95A1;background:#fff;border:1px solid #E5E5EC;border-radius:99px;padding:2px 8px;margin-bottom:8px}
+ .blk ul,.blk ol{margin:0;padding-left:20px} .blk li{margin:4px 0}
+ .blk table{width:100%;border-collapse:collapse;font-size:12.5px}
+ .blk th{background:#EFEFF5;padding:6px;text-align:center} .blk td{border-top:1px solid #E5E5EC;padding:6px;text-align:center}
+ .blk blockquote{margin:0;padding-left:10px;border-left:3px solid #D7DBE0;color:#555}
  details{background:#fff;border-radius:12px;padding:0;margin-bottom:20px}
  summary{cursor:pointer;padding:14px 18px;font-size:13.5px;font-weight:700;color:#4E5968}
  .fields{padding:0 18px 18px;font-size:13px} .fields div{padding:5px 0;border-top:1px dashed #E5E5EC}
