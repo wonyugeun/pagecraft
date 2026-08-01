@@ -49,7 +49,7 @@ export interface CreditPlan {
 export const COMMON_BENEFITS: string[] = [
   '블로그형·슬라이드형·HTML형 전부 사용',
   '섹션당 첫 이미지 무료 포함',
-  '이미지 무료 재생성 (16섹션당 10장)',
+  '이미지 무료 재생성 (8섹션당 5장)',
   '카피 직접 수정 · 결과물 다운로드 무제한',
   '생성 실패 시 크레딧 자동 환불',
   '셀러가 입력하지 않은 정보는 만들지 않아요',
@@ -81,8 +81,9 @@ export function currentPrice(plan: CreditPlan): number {
   return PROMO.active ? plan.price : plan.listPrice;
 }
 
-/** 크레딧 1개 = 상세페이지 섹션 1개 생성 */
-export const CREDIT_UNIT_NOTE = '크레딧 1개 = 상세페이지 섹션 1개 생성';
+/** ★크레딧 소모량 안내(2026-08-01) — 출력형태별로 다르다(lib/pricing.ts creditPerSection).
+ *  블로그형은 카피 2안을 다 만들고 본문이 길어 원가가 높아 섹션당 1.25크레딧이다. */
+export const CREDIT_UNIT_NOTE = '블로그형 8섹션 = 10크레딧 · 슬라이드형 8섹션 = 8크레딧';
 
 export const PLANS: CreditPlan[] = [
   {
@@ -101,7 +102,7 @@ export const PLANS: CreditPlan[] = [
     nameEn: 'STANDARD',
     price: 29000,
     listPrice: 39000,
-    credits: 70,
+    credits: 65,
     validMonths: 2,
     tagline: '상품 여러 개를 준비하는 셀러',
   },
@@ -111,7 +112,7 @@ export const PLANS: CreditPlan[] = [
     nameEn: 'PRO',
     price: 59000,
     listPrice: 79000,
-    credits: 160,
+    credits: 140,
     validMonths: 3,
     tagline: '정기적으로 신상품을 올리는 스토어',
     recommended: true,
@@ -122,7 +123,7 @@ export const PLANS: CreditPlan[] = [
     nameEn: 'MAX',
     price: 119000,
     listPrice: 159000,
-    credits: 350,
+    credits: 305,
     validMonths: 6,
     tagline: '여러 스토어를 운영하거나 대량 등록하는 팀',
   },
@@ -133,9 +134,10 @@ export function pricePerCredit(plan: CreditPlan): number {
   return Math.round(currentPrice(plan) / plan.credits);
 }
 
-/** 표시용 — 16섹션 페이지 몇 개 분량인지(소수 1자리) */
-export function pagesPerPlan(plan: CreditPlan, sectionsPerPage = 16): number {
-  return Math.round((plan.credits / sectionsPerPage) * 10) / 10;
+/** 표시용 — 상세페이지 몇 장 분량인지(소수 1자리).
+ *  기본은 블로그형 8섹션 = 10크레딧 기준(가장 많이 쓰는 조합). */
+export function pagesPerPlan(plan: CreditPlan, creditsPerPage = 10): number {
+  return Math.round((plan.credits / creditsPerPage) * 10) / 10;
 }
 
 /* ── ★상위 플랜의 '실제' 이득(2026-07-30) — 기능을 잠그지 않으므로 차등은 단가에서만 나온다.

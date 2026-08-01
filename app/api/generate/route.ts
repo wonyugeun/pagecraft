@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (!rl.allowed) {
       return NextResponse.json({ error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.' }, { status: 429 });
     }
-    const cost = calculateGenerationCost({ sectionCount: count });
+    const cost = calculateGenerationCost({ sectionCount: count, out: resolvedOut });
     try {
       const r = await deductCreditsAtomic(email, cost, jobKey, generationReason(count));
       if (r.status === 'insufficient') {

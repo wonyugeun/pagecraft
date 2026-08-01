@@ -7,7 +7,18 @@
  * ★순수 함수·의존성 0 — 서버 라우트와 클라 UI가 같은 함수를 import(가격 이원화 차단).
  */
 
-export const CREDIT_PER_SECTION = 1;
+/* ★출력형태별 섹션 단가(2026-08-01 개편) — 원가 실측 결과 두 형태의 구조가 달랐다.
+ *   블로그형 8섹션 1장 = 2,156원 (카피 A안+B안 둘 다 생성, 본문이 길어 LLM이 비쌈)
+ *   슬라이드형 8섹션 1장 = 1,947원 (B안 없음·본문 1~2문장, 대신 전 섹션 4:5라 이미지가 비쌈)
+ *   섹션당 1크레딧 일률 과금으로는 인플루언서 커미션 20%를 주면 상위 플랜이 적자였다.
+ *   블로그를 1.25로 올려 8섹션=10크레딧으로 맞춘다(슬라이드는 1.0 유지 = 8섹션 8크레딧). */
+export const CREDIT_PER_SECTION = 1;              // 슬라이드·HTML·썸네일·빠른제작 기본
+export const CREDIT_PER_SECTION_BLOG = 1.25;      // 블로그형 — 8섹션 = 10크레딧
+
+/** 출력형태 → 섹션당 크레딧. out 미지정(썸네일·빠른제작 등 단건)은 기본 1.0 */
+export function creditPerSection(out?: string | null): number {
+  return out === 'blog' ? CREDIT_PER_SECTION_BLOG : CREDIT_PER_SECTION;
+}
 
 /** 섹션 수 서비스 한도 — 기존 /api/generate의 50 상한과 동일 기준 */
 export const MAX_BILLABLE_SECTIONS = 50;
@@ -25,6 +36,8 @@ export const MIN_BILLABLE_SECTIONS = 1;
 
 export interface GenerationPricingInput {
   sectionCount: number;
+  /** 출력형태 — 'blog'만 1.25배. 미지정 시 1.0(썸네일·빠른제작 등 단건 경로 그대로) */
+  out?: string | null;
   // ── 확장 슬롯(타입만 예약 — 오늘 계산식 미반영) ──
   imageQuality?: 'medium' | 'high';   // 추후: 이미지 품질 배수
   regenerationCount?: number;         // 추후: 재생성 과금
@@ -32,11 +45,13 @@ export interface GenerationPricingInput {
   premiumTemplate?: boolean;          // 추후: 프리미엄 템플릿 비용
 }
 
-/** 생성 1회 비용(크레딧). sectionCount 정수화 + [1, 50] clamp. */
+/** 생성 1회 비용(크레딧). sectionCount 정수화 + [1, 50] clamp.
+ *  ★블로그형은 섹션당 1.25라 소수가 나온다 — 올림한다(셀러에게 유리한 내림은 원가를 못 덮는다).
+ *    8섹션=10 / 12섹션=15 / 16섹션=20 크레딧. */
 export function calculateGenerationCost(input: GenerationPricingInput): number {
   const raw = Math.floor(Number(input.sectionCount));
   const sections = Math.min(Math.max(Number.isFinite(raw) ? raw : MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
-  return sections * CREDIT_PER_SECTION;
+  return Math.ceil(sections * creditPerSection(input.out));
 }
 
 /* ── 이미지 quota 정책(P0, 2026-07-08) — "결제된 jobKey로 generate-image 무한 호출" 차단 ──

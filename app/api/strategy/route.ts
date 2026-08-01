@@ -18,8 +18,9 @@ import { calculateGenerationCost, generationReason } from '@/lib/pricing';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const { cat, ch, productName, productExtra, referenceStyle, sectionCount, jobKey, speechLevel } = await req.json() as {
+  const { cat, ch, out, productName, productExtra, referenceStyle, sectionCount, jobKey, speechLevel } = await req.json() as {
     cat?: string; ch?: string; productName?: string; productExtra?: string;
+    out?: string;            // ★출력형태 — 블로그형은 섹션당 1.25크레딧(lib/pricing)
     referenceStyle?: string; sectionCount?: number; jobKey?: string;
     speechLevel?: string;   // ★셀러 지정 카피 어투(2026-07-29) — 미지정이면 AI가 선택
   };
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (!jobKey || typeof jobKey !== 'string' || typeof sectionCount !== 'number') {
       return NextResponse.json({ error: '생성 요청에 jobKey와 sectionCount가 필요해요.' }, { status: 400 });
     }
-    const cost = calculateGenerationCost({ sectionCount });
+    const cost = calculateGenerationCost({ sectionCount, out });
     try {
       const r = await deductCreditsAtomic(email, cost, jobKey, generationReason(sectionCount));
       if (r.status === 'insufficient') {

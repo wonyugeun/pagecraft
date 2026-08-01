@@ -205,7 +205,7 @@ export default function GeneratingScreen() {
     // ★재개 의도는 크레딧 체크보다 먼저 소비 — 재개는 이미 선차감된 job(같은 jobKey=서버 duplicate)이라
     //   크레딧 체크 대상이 아니다(2026-07-18: 새로고침 재개가 로드 전 기본값 30<32로 "부족" 오탐하던 사고).
     const resume = USE_NEW_ENGINE ? consumeResumeIntent() : false;
-    const generationCost = calculateGenerationCost({ sectionCount: secCnt });   // 1섹션=1크레딧(서버와 동일 함수)
+    const generationCost = calculateGenerationCost({ sectionCount: secCnt, out });   // 서버와 동일 함수(블로그 1.25/섹션)
     // ★클라 체크는 UX용 사전 안내일 뿐(실집행은 서버 선차감) — 서버 잔액 로드 전(creditsLoaded=false)에는
     //   기본값으로 오탐하지 않도록 판정을 건너뛰고 진행(부족이면 서버가 402로 막음).
     if (!isDev && !resume && creditsLoadedRef.current && creditsRef.current < generationCost) {
@@ -445,7 +445,7 @@ export default function GeneratingScreen() {
           현재 잔액 <b style={{ color: '#dc2626' }}>{credits} 크레딧</b>
         </div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32, textAlign: 'center' }}>
-          상세페이지 생성에 <b>{calculateGenerationCost({ sectionCount: secCnt })} 크레딧</b>이 필요해요
+          상세페이지 생성에 <b>{calculateGenerationCost({ sectionCount: secCnt, out })} 크레딧</b>이 필요해요
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
           <button className="btn-back" onClick={() => cancel()}>← 이전으로</button>
