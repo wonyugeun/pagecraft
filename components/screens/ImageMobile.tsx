@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Zap, UploadCloud, Sparkles, ChevronDown, Lightbulb,
   Image as ImageIcon, Sun, Palette, FileText, X,
@@ -37,6 +37,21 @@ const fileToBase64 = (file: File): Promise<string> =>
   });
 
 export default function ImageMobile() {
+  /* ★다운로드 정책 사전 고지(2026-08-01) — 데스크탑(ImageScreen)과 동일. 이탈은 '속았다'에서 온다. */
+  const [showDownloadNote, setShowDownloadNote] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/entitlements');
+        if (!res.ok) return;
+        const d = await res.json() as { canDownload?: boolean };
+        if (!cancelled) setShowDownloadNote(d.canDownload === false);
+      } catch { /* 조회 실패 시 표시하지 않는다 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const {
     setProductImages, go,
     sectionStructure,
@@ -421,6 +436,16 @@ export default function ImageMobile() {
           )}
         </div>
       </section>
+
+      {showDownloadNote && (
+        <div style={{
+          margin: '0 0 16px', background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 12,
+          padding: '13px 15px', fontSize: 12.5, color: '#5B3FD6', lineHeight: 1.75,
+        }}>
+          <b style={{ fontWeight: 700 }}>체험으로 만드는 페이지입니다</b> — 완성된 결과를 화면에서 전부 확인하고
+          카피·이미지를 수정할 수 있어요. <b style={{ fontWeight: 700 }}>파일 다운로드는 크레딧을 충전하면 열립니다.</b>
+        </div>
+      )}
 
       {/* 8) 하단 버튼 */}
       <nav style={{

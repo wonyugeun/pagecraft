@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { compressUpload } from '@/lib/imageCompress';
 import { useApp } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
@@ -95,6 +95,24 @@ function EmptySlot({ onClick, label, tone }: { onClick: () => void; label: strin
 }
 
 export default function ImageScreen() {
+  /* ★다운로드 정책 사전 고지(2026-08-01) — 이탈은 '막았다'가 아니라 '속았다'에서 온다.
+   *  예전엔 결과 화면에서야 알려줘서, 셀러가 10분을 쓰고 마지막에 알게 됐다(심리적 최악의 위치).
+   *  생성을 시작하기 직전인 이 화면에서 미리 알려 기대치를 맞춘다.
+   *  판정은 서버(/api/entitlements) — 유료 이력이 있으면 아예 표시하지 않는다. */
+  const [showDownloadNote, setShowDownloadNote] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/entitlements');
+        if (!res.ok) return;
+        const d = await res.json() as { canDownload?: boolean };
+        if (!cancelled) setShowDownloadNote(d.canDownload === false);
+      } catch { /* 조회 실패 시엔 표시하지 않는다 — 없는 제한을 알리는 게 더 나쁘다 */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const isMobile = useIsMobile();
   const { setProductImages, go, sectionStructure, packagingRefImage, setPackagingRefImage } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
@@ -430,6 +448,17 @@ export default function ImageScreen() {
           ))}
         </div>
       </div>
+
+      {showDownloadNote && (
+        <div style={{
+          marginTop: 24, background: '#F4F0FF', border: '1px solid #E6DEFF', borderRadius: 12,
+          padding: '14px 16px', fontSize: 13, color: '#5B3FD6', lineHeight: 1.75,
+        }}>
+          <b style={{ fontWeight: 700 }}>체험으로 만드는 페이지입니다</b> — 완성된 결과를 화면에서 전부 확인하고
+          카피·이미지를 직접 수정할 수 있어요.{' '}
+          <b style={{ fontWeight: 700 }}>파일 다운로드는 크레딧을 충전하면 열립니다.</b>
+        </div>
+      )}
 
       <div style={{ marginTop: 24 }}>
         <FlowNav
