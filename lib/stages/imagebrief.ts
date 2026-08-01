@@ -25,6 +25,13 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // V2는 image_mission 7필드를 섹션마다 길게 생성해 V1보다 출력이 훨씬 길다.
 // → 청크당 섹션 수를 줄이고(16→8) max_tokens를 넉넉히(8000→16000) 상향, 잘림 시 1회 자동 재시도.
+/* ★디렉터 주도 모드(2026-08-02, 실험) — 컷 종류·제품 노출 비중을 코드 표가 아니라
+ *  장면을 설계하는 쪽(디렉터/모델)이 정하게 한다.
+ *  기존 구조: 섹션 이름 키워드 → 아키타입 8종 → 제품 노출 % 강제 clamp → 첫 섹션 무조건 hero.
+ *  상품이 뭐든 이름만 같으면 같은 컷이 나오는 원인이었다(비율에서 겪은 문제와 동일).
+ *  ⚠️검증 전까지 기본 OFF — 이상하면 IMAGE_DIRECTOR_LEAD를 지우면 즉시 롤백된다. */
+const DIRECTOR_LEAD = process.env.IMAGE_DIRECTOR_LEAD === '1';
+
 const CHUNK_SIZE = 8;
 const MAX_TOKENS = 16000;
 const MAX_ATTEMPTS = 2; // 최초 1 + 자동 재시도 1
@@ -154,8 +161,9 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
    *  키워드로 못 박으면 상품이 뭐든 같은 결과가 나온다 — 장면을 설계한 모델이 정하는 게 맞다. */
   const ratioFallback: ImageAspect[] = plan.map(s => aspectRatioFor(s.name, undefined, resolvedOut));
   // ★섹션별 컷 아키타입(8종) — 첫 섹션은 무조건 hero. 브리프 장면 지시 + visibility 밴드 양쪽에 사용.
+  //  ★디렉터 주도 모드에선 첫 섹션도 강제하지 않는다 — 상품에 따라 히어로가 모델컷이 아닐 수 있다.
   const archetypeByIdx: CutArchetype[] = plan.map((s, i) =>
-    i === 0 ? 'hero' : classifyCutArchetype(s.name, s.role, s.emotion_goal));
+    (i === 0 && !DIRECTOR_LEAD) ? 'hero' : classifyCutArchetype(s.name, s.role, s.emotion_goal));
   // 섹션별 제품 노출 권장 비중 [min,max] (코드 가드 — Claude 응답을 이 범위로 clamp)
   const bandByIdx = archetypeByIdx.map(a => ARCHETYPE_BAND[a]);
   const isSlideOut = resolvedOut === 'slide';
@@ -213,8 +221,11 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
    ★독자가 느껴야 할 감정(emotion_goal): ${s.emotion_goal || '(미정)'}
    헤드라인(headline — 이 섹션의 핵심 감정 문장. body와 동급으로 반드시 반영, 무시 금지): ${c?.headline || '(없음)'}
    본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.replace(/\*\*|\(\(|\)\)/g, '').slice(0, 280) : '(없음)'}
-   제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
-   컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}
+${DIRECTOR_LEAD
+  ? `   제품 노출 비중(product_visibility, 0~100 — 이 섹션이 무엇을 말해야 하는지 보고 직접 정하세요)
+   참고 컷 성격(강제 아님 — 더 맞는 방식이 있으면 그렇게 하세요): ${archetypeByIdx[gi]}`
+  : `   제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
+   컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}`}
    추천 비율(ratio — 참고값일 뿐입니다. 아래 [비율 선택]을 읽고 이 장면에 맞는 것으로 직접 고르세요): ${ratioFallback[gi]}`;
     }).join('\n\n');
 
@@ -331,7 +342,8 @@ ${sectionList}
         desired_reaction:   typeof im.desired_reaction === 'string' ? im.desired_reaction : '',
         target_desire_link: typeof im.target_desire_link === 'string' ? im.target_desire_link : '',
         visual_focus:       typeof im.visual_focus === 'string' ? im.visual_focus : '',
-        product_visibility: clamp(rawVis, vmin, vmax),  // ← 코드 가드: 섹션 role 기반 비중으로 강제
+        // ★디렉터 주도 모드에선 모델 판단을 존중(0~100만 보장). 기존 모드는 아키타입 밴드로 clamp.
+        product_visibility: DIRECTOR_LEAD ? clamp(rawVis, 0, 100) : clamp(rawVis, vmin, vmax),
         visual_priority:    Array.isArray(im.visual_priority) ? im.visual_priority.map(String) : [],
       };
       const basePrompt = typeof s.prompt === 'string' ? s.prompt : '';

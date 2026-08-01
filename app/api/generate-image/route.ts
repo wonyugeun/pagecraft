@@ -174,8 +174,17 @@ export async function POST(req: NextRequest) {
 
   // 인물 정책 — ★슬라이드형만 모델 허용(제품 든/사용하는 에디토리얼 히어로컷). 블로그·기타는 얼굴 화보 금지 유지.
   //   플레이트 모드는 무인물 배경판 — 모델 강제 지시가 오배동하지 않게 별도 처리.
+  /* ★인물 규칙 — 출력형태로만 갈리고 상품 종류를 보지 않던 구조(2026-08-02).
+   *  화장품 기준으로 만든 '얼굴 필수'가 가습기·무쇠팬에도 똑같이 걸려, 손만 나오는 편이
+   *  나은 상품에서도 모델 화보가 강제됐다. 디렉터 주도 모드에선 장면 설명을 따른다. */
+  const DIRECTOR_LEAD = process.env.IMAGE_DIRECTOR_LEAD === '1';
   const PEOPLE_RULES = plateMode
     ? `No people, no hands, no body parts in the frame.`
+    : isSlide && DIRECTOR_LEAD
+    ? `Follow the scene description for whether a person appears — do not add one that is not described, ` +
+      `and do not remove one that is. If a person is described, show them naturally for this product ` +
+      `(a full face, a partial view or hands only — whichever the scene calls for). ` +
+      `The product in the person's hands MUST exactly match the reference product (same shape, color, label).`
     : isSlide
     ? `If the scene describes a model/person, you MUST render that model with a fully visible face (Korean beauty-ad ` +
       `editorial, upper body) — do NOT crop out the face or substitute hands-only shots. ` +

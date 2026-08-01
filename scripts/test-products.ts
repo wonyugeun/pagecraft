@@ -24,6 +24,10 @@ export interface TestProduct {
   photoPrompt: string;
   /** 정보량 수준 — 결과 품질과의 상관을 보기 위한 라벨 */
   density: '높음' | '보통' | '낮음';
+  /** ★폼 원본(ProductScreen의 answers) — 필드 id → 값.
+   *  앱은 answers를 조립해 productExtra를 만든다. 브라우저 테스트에서 productExtra만 넣으면
+   *  화면의 폼이 비어 보이고, 상품정보 화면을 다시 지나가면 빈 answers로 덮어써진다(2026-08-02). */
+  answers?: Record<string, string | string[]>;
 }
 
 export const TEST_PRODUCTS: TestProduct[] = [
@@ -174,6 +178,30 @@ export const TEST_PRODUCTS: TestProduct[] = [
       '[기타 추가 정보]: 하루 한 알이라 챙겨 먹기 부담 없습니다.',
     ],
     photoPrompt: 'A white plastic supplement bottle about 10cm tall with a blank label, standing on a plain wooden desk next to a few orange soft capsules, photographed straight on with a smartphone in ordinary indoor daylight. Slight desk clutter blurred behind. No readable text on the label. Ordinary seller product photo.',
+  },
+  {
+    key: '11-화장품-시카토너',
+    cat: '화장품', ch: '스마트스토어', density: '보통',
+    productName: 'LEAFGREEN 시카 토너 250ml',
+    answers: {
+      c1: ['스킨/토너'],
+      c2: ['민감성/자극 잦은', '건조함/수분 부족'],
+      c3: ['병풀 추출물(진정)'],
+      c4: ['무알콜', '무향(프래그런스 프리)', '무색소'],
+      c6: ['20대 후반~30대', '민감성 피부 전용'],
+      c9: '화장품법에 따른 일반 화장품입니다. 질병의 예방 및 치료를 위한 의약품이 아닙니다. 사용 중 붉은 반점, 부어오름, 가려움 등의 이상 증상이 있을 경우 사용을 중지하고 전문의와 상담하십시오.',
+      c10: '250ml 대용량이라 토너패드처럼 듬뿍 써도 부담 없습니다. 세안 직후 물기가 남은 상태에서 발라주세요.',
+    },
+    fields: [
+      '[화장품 종류]: 스킨/토너',
+      '[주요 피부 고민]: 민감성/자극 잦은, 건조함/수분 부족',
+      '[핵심 성분]: 병풀 추출물(진정)',
+      '[인증 및 특징]: 무알콜, 무향(프래그런스 프리), 무색소',
+      '[주요 타겟]: 20대 후반~30대, 민감성 피부 전용',
+      '[⚠️ 법적 고지 (화장품 필수 표시)]: 화장품법에 따른 일반 화장품입니다. 질병의 예방 및 치료를 위한 의약품이 아닙니다. 사용 중 붉은 반점, 부어오름, 가려움 등의 이상 증상이 있을 경우 사용을 중지하고 전문의와 상담하십시오.',
+      '[기타 추가 정보]: 250ml 대용량이라 토너패드처럼 듬뿍 써도 부담 없습니다. 세안 직후 물기가 남은 상태에서 발라주세요.',
+    ],
+    photoPrompt: '(실제 제품 사진 사용 — test-assets/leafgreen.png)',
   },
   {
     key: '10-스포츠-요가매트',

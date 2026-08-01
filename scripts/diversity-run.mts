@@ -122,8 +122,28 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
 
   if (copyOnly) return m;
 
-  /* ── 2. 이미지 — ResultScreen 블로그 경로 미러 ── */
+  /* ── 2. 이미지 — ResultScreen 경로 미러 ── */
   const t1 = Date.now();
+
+  /* ★디렉터(2026-08-02) — 실제 앱은 비블로그에서 페이지당 1회 디렉터를 부르고,
+   *  그 결과가 컨셉·인물 사용 여부·섹션별 포맷을 정한다. 하네스가 이걸 건너뛰면
+   *  '인물이 매 컷 제멋대로 나오는' 다른 결과를 보게 된다(2026-08-02 실측). */
+  let directorPlan: unknown = null;
+  if (OUT !== 'blog') {
+    try {
+      const dr = await fetch(`${BASE_URL}/api/director`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          jobKey: job.input.jobKey, cat: p.cat, ch: p.ch,
+          productName: p.productName, productExtra: p.fields.join('\n'),
+          sections: result.sections.map(s => ({ name: s.name, headline: s.headline, subcopy: s.subcopy })),
+          productImage: refs[0] ?? null,
+        }),
+      });
+      directorPlan = (await dr.json() as { plan?: unknown }).plan ?? null;
+      console.log(`  [director] ${directorPlan ? '플랜 확보' : '실패 — 자유 브리프 폴백'}`);
+    } catch { console.log('  [director] 호출 실패 — 자유 브리프 폴백'); }
+  }
   interface Task { key: string; file: string; prompt: string; aspect: string; label: string }
   const tasks: Task[] = [];
   result.sections.forEach((sec, i) => {
@@ -135,7 +155,7 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
       ? buildSectionBrief({
           productName: p.productName, productExtra: p.fields.join('\n'),
           headline: sec.headline, subcopy: sec.subcopy, visual: result.visual,
-          director: null, sectionName: sec.name, sectionIndex: i,
+          director: directorPlan as never, sectionName: sec.name, sectionIndex: i,
           auxRefCount: Math.max(0, refs.length - 1),
         })
       : (sec.imageBrief?.prompt || sec.imageBrief?.mood || '');
