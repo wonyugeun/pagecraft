@@ -22,12 +22,23 @@ function sellerHasReviews(allow: string): boolean {
 }
 
 /** 셀러에게 말을 거는 안내문 제거 — 고객 노출용 카피에 남으면 안 되는 메타 문구.
- *  (후기 미입력 시엔 의도적으로 붙이는 안내라 호출부에서 조건 분기한다.) */
+ *  ⚠️조건 없이 항상 적용한다. 안내가 필요하면 화면 UI로 보여줄 일이지 카피에 넣을 일이 아니다. */
+/* ⚠️두 가지 함정을 피한다:
+ *  1) g 플래그 정규식을 test()와 replace()에 함께 쓰면 lastIndex가 이월돼 한 번씩 건너뛴다
+ *     → 판정용(비전역)과 치환용(전역)을 분리한다.
+ *  2) '💡?'는 이모지 전체가 아니라 서로게이트 페어의 뒤쪽에만 ?가 걸려 앞쪽이 필수가 된다
+ *     → 이모지를 그룹으로 묶어야 '이모지 없는 안내문'도 잡힌다. */
+const SELLER_HINT_SRC = '\\s*(?:💡)?\\s*실제 후기를 입력하면[^\\n]*';
+const SELLER_HINT_TEST = new RegExp(SELLER_HINT_SRC);
 function stripSellerHint(text: string): string {
+  /* ⚠️순서가 중요하다 — 예전엔 '줄 통째로 거르기'를 먼저 해서, 안내문이 문장 뒤에 붙으면
+   *  앞의 멀쩡한 카피까지 함께 사라졌다("편하게 입으실 수 있어요. 💡실제 후기를…" → 빈 줄).
+   *  먼저 안내문만 잘라내고, 그 결과 빈 줄이 된 경우에만 줄을 없앤다. */
   return text
     .split('\n')
-    .filter(l => !/💡\s*실제 후기를 입력하면/.test(l))
-    .map(l => l.replace(/\s*💡\s*실제 후기를 입력하면[^\n]*$/, '').trimEnd())
+    .map(l => ({ had: SELLER_HINT_TEST.test(l), cleaned: l.replace(new RegExp(SELLER_HINT_SRC, 'g'), '').trimEnd() }))
+    .filter(x => !(x.had && x.cleaned === ''))   // 안내문만 있던 줄은 제거, 내용이 남으면 유지
+    .map(x => x.cleaned)
     .join('\n');
 }
 
@@ -136,12 +147,12 @@ export function scrubText(text: string | undefined, allow: string): string {
   if (!sellerHasReviews(allow)) {
     out = stripRatings(out);
     out = out.split('\n').filter(l => !isTestimonialLine(l)).join('\n');
-  } else {
-    // ★셀러 안내문 오출력 제거(2026-07-29): "💡 실제 후기를 입력하면…"은 후기 '미입력' 시에만
-    //   붙이도록 지시했는데, 후기를 입력한 경우에도 모델이 습관적으로 덧붙이는 사례가 실측됐다
-    //   (Sonnet 5·Opus 4.8 공통). 이 문구는 셀러에게 하는 말이라 고객이 보는 페이지에 나가면 안 된다.
-    out = stripSellerHint(out);
   }
+  // ★셀러 안내문은 후기 입력 여부와 무관하게 항상 제거한다(2026-08-01).
+  //   예전엔 '후기 미입력 시에는 의도적으로 붙이는 안내'라 조건부로만 지웠는데, 이 문구는
+  //   셀러에게 하는 말이라 고객이 보는 상세페이지·다운로드 파일에 실리면 안 된다.
+  //   후기 입력을 권하는 안내는 편집 화면(ResultScreen)이 따로 보여준다.
+  out = stripSellerHint(out);
 
   // 6) 음수 온도 부호 복원 — "-40℃" 입력이 "40℃"로 출력되는 사실 왜곡 교정
   out = fixNegativeTemps(out, allow);

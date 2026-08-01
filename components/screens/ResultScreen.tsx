@@ -1388,7 +1388,7 @@ export function buildPurchaseInfo(src: {
 /* ─── 메인 ─── */
 export default function ResultScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits, regularPrice, salePrice, showPrice, speechLevel, credits } = useApp();
+  const { cat, ch, type, out, sections, productName, productExtra, brand, brandIntro, diff, productForm, productVolume, productImages, packagingRefImage, generationJobKey, go, restoredImages, restoredBlockImages, restoredOverrides, updateLatestHistoryImages, updateLatestHistoryOverrides, setCredits, regularPrice, salePrice, showPrice, speechLevel, credits, reviews } = useApp();
   const [lightboxSecNum, setLightboxSecNum] = useState<string | null>(null);
   const [textModalOpen,  setTextModalOpen]  = useState(false);
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
@@ -1397,6 +1397,11 @@ export default function ResultScreen() {
   // ★다운로드 권한(2026-07-30) — 체험 계정은 미리보기까지만. 판정은 서버(/api/entitlements)가 한다.
   const [canDownload, setCanDownload] = useState<boolean | null>(null);   // null = 확인 중
   const [feedbackOpen, setFeedbackOpen] = useState(false);   // ★고객의 소리(2026-07-30)
+  /* ★후기 입력 안내(2026-08-01) — 예전엔 이 문구를 카피 body에 넣게 했는데, 셀러에게 하는 말이
+   *  고객이 보는 상세페이지와 다운로드 파일에 그대로 실렸다. 카피에서는 제거하고(factScrub),
+   *  안내가 있어야 할 자리인 편집 화면에만 띄운다. 이 배너는 React 요소라 내보내기에 포함되지 않는다. */
+  const needsReviewHint = !reviews.trim()
+    && sections.some(s => /후기|리뷰|증언|고객\s*평/.test(s.name ?? ''));
   const [mergeLoading,   setMergeLoading]   = useState(false);
   const [htmlLoading,    setHtmlLoading]    = useState(false);
   // ★채널 맞춤 내보내기(2026-07-21 최종) — 스마트스토어 HTML 복사 + 통이미지(전체 1장) 2종만
@@ -2268,6 +2273,20 @@ export default function ResultScreen() {
                       borderRadius: 8, padding: '7px 13px', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
                     }}
                   >요금제 보기</a>
+                </div>
+              )}
+
+              {/* ★후기 미입력 안내(2026-08-01) — 카피 본문에 넣던 문구를 이 자리로 옮겼다.
+                  셀러에게 하는 말은 셀러 화면에만 있어야 한다(고객 페이지·다운로드 파일에 남으면 안 됨). */}
+              {needsReviewHint && (
+                <div style={{
+                  background: '#FFF9E8', border: '1px solid #FFE9A8', borderRadius: 8,
+                  padding: '11px 14px', fontSize: 12.5, color: '#7A5C00',
+                  marginBottom: 12, lineHeight: 1.7,
+                }}>
+                  💡 후기 섹션이 <b style={{ fontWeight: 700 }}>기대형 문장</b>으로 쓰였어요 — 실제 후기가 없어서예요.
+                  상품정보에 진짜 후기를 넣으면 그대로 인용돼 훨씬 강해집니다.
+                  <span style={{ color: '#A08A4A' }}> (없는 후기를 지어내지는 않습니다)</span>
                 </div>
               )}
 
