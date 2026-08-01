@@ -431,6 +431,16 @@ const HTML_BLOCKS_CSS = `
 `;
 
 /* ─── HTML 다운로드 ─── */
+/**
+ * 결과물 내보내기 — ★파일 조립은 서버가 한다(2026-08-01).
+ *
+ * 이전엔 브라우저가 HTML을 만들었고 서버는 "권한 있음/없음"만 알려줬다. 그래서 개발자도구로
+ * 그 판정을 바꾸면 체험 계정도 결과물을 받아갈 수 있었다 — 게이트가 사실상 없는 것과 같았다.
+ * 이제 /api/export/html이 권한을 확인한 뒤에만 파일을 만들어 내려준다.
+ *
+ * 여기 남는 일은 브라우저만 할 수 있는 둘뿐이다: 이미지 압축(canvas)과 파일 저장.
+ * 압축본을 보내므로 업로드량도 줄어든다.
+ */
 export async function downloadHtml(
   sections: Section[],
   meta: string,
@@ -438,150 +448,39 @@ export async function downloadHtml(
   imgMap: Record<string, ImgState>,
   blockImgMap: Record<string, ImgState>,
   isSlide = false,   // 슬라이드형: 텍스트가 이미지에 baked → 이미지만 세로 스택(여백 0)
-  purchaseInfo?: { ico: string; label: string; value: string }[],   // ★구매 정보 스트립(2026-07-27) — 마지막 섹션 블록 위
-): Promise<boolean> {
+  purchaseInfo?: { ico: string; label: string; value: string }[],
+): Promise<boolean | 'locked'> {
   try {
-    // ── 슬라이드형: 섹션당 <img>만, 카피/블록 렌더 전부 제외(이미 이미지에 합성됨) ──
-    if (isSlide) {
-      const rawUrls: Record<string, string> = {};
-      for (const sec of sections) {
-        const u = imgMap[sec.num]?.url;
-        if (u) rawUrls[sec.num] = u;
-      }
-      const compressed = await compressMap(rawUrls);
-      const imgsHtml = sections
-        .map(sec => compressed[sec.num]
-          ? `  <img src="${compressed[sec.num]}" alt="${escHtml(sec.imageLabel)}" style="width:100%;display:block;margin:0;padding:0;" />`
-          : '')
-        .filter(Boolean)
-        .join('\n');
-      const slideHtml = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escHtml(productName || '상세페이지')}</title>
-  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { max-width: 860px; margin: 0 auto; background: #fff; font-size: 0; }</style>
-</head>
-<body>
-  <!-- Flik 생성 · ${escHtml(meta)} -->
-${imgsHtml}
-</body>
-</html>`;
-      const blob = new Blob([slideHtml], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(productName || 'flik').replace(/[/\\?%*:|"<>]/g, '_')}_detail.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-      return true;
-    }
+    // ── 이미지 압축(800px / JPEG 0.7) — canvas가 필요해 브라우저에 남는다 ──
+    const rawSectionUrls: Record<string, string> = {};
+    for (const [k, st] of Object.entries(imgMap)) if (st?.url) rawSectionUrls[k] = st.url;
+    const sectionImages = await compressMap(rawSectionUrls);
 
-    // 블록 이미지 압축본으로 추출 (800px / JPEG 0.7)
     const rawBlockUrls: Record<string, string> = {};
+    const blockAspects: Record<string, string> = {};
     for (const [k, st] of Object.entries(blockImgMap)) {
       if (st?.url) rawBlockUrls[k] = st.url;
+      if (st?.aspectRatio) blockAspects[k] = st.aspectRatio;
     }
-    const compressedBlockUrls = await compressMap(rawBlockUrls);
+    const blockImages = await compressMap(rawBlockUrls);
 
-    // 블록 이미지 비율 맵 — 표시 시 비율 그대로 보존(잘림 0).
-    const blockAspectMap: Record<string, string> = {};
-    for (const [k, st] of Object.entries(blockImgMap)) {
-      if (st?.aspectRatio) blockAspectMap[k] = st.aspectRatio;
+    const res = await fetch('/api/export/html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sections, meta, productName, isSlide,
+        sectionImages, blockImages, blockAspects, purchaseInfo,
+      }),
+    });
+
+    // ★게이트는 서버가 판정한다 — 402면 결제가 필요하다는 뜻
+    if (res.status === 402) return 'locked';
+    if (!res.ok) {
+      console.error('[downloadHtml] 서버 오류', res.status, await res.text().catch(() => ''));
+      return false;
     }
 
-    // 섹션 대표 이미지도 압축본(base64 data URL)으로 임베드 — 파일 하나로 이미지까지 보이게.
-    const rawSectionUrls: Record<string, string> = {};
-    for (const [k, st] of Object.entries(imgMap)) {
-      if (st?.url) rawSectionUrls[k] = st.url;
-    }
-    const compressedSectionUrls = await compressMap(rawSectionUrls);
-
-    // 제품 테마색(visualPalette) — 다운로드도 화면과 같은 색. CSS 변수로 주입(보라 폴백).
-    const themeV = sections.find(s => s.visual)?.visual;
-    const cP = themeV?.primary_color ?? '#6D4CFF';
-    const cSoft = themeV?.soft_color ?? '#F4F0FF';
-    const cSB = themeV?.soft_border ?? '#E6DEFF';
-
-    const sectionsHtml = sections.map((sec, idx) => {
-      // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
-      const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
-      const tPrimary = sec.visual?.primary_color ?? '#6D4CFF';
-      const tSoft = sec.visual?.soft_color ?? '#F4F0FF';
-      const tBorder = sec.visual?.soft_border ?? '#E6DEFF';
-      const tag = kind
-        ? `\n      <span class="sec-tag" style="background:${tSoft};border:1px solid ${tBorder};color:${tPrimary};">${kind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}</span>`
-        : '';
-      // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
-      const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
-      const markHtml = (t: string) => escHtml(t)
-        .replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>')
-        .replace(/\(\(([\s\S]+?)\)\)/g, `<em style="font-style:normal;font-weight:700;color:${sec.visual?.accent_color ?? cP};">$1</em>`);
-      const sub = sec.subcopy ? `\n      <p class="subcopy">${markHtml(sec.subcopy)}</p>` : '';
-      // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
-      const bodyHtml = sec.body
-        ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
-            .map(p => `<p class="bodytext">${p.split('\n').map(l => markHtml(l.trim())).join('<br>')}</p>`)
-            .join('\n      ')
-        : '';
-      // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
-      const secImgUrl = compressedSectionUrls[sec.num];
-      const imgTag = secImgUrl
-        ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel)}" style="width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;" />`
-        : '';
-      // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
-      const blocksHtml = sec.blocks?.length
-        ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n      </div>`
-        : '';
-      // ★구매 정보 스트립(2026-07-27) — 마지막 섹션에서 블록 위에 노출(화면 BlogSection과 동일 위치)
-      const stripHtml = (idx === sections.length - 1 && purchaseInfo?.length)
-        ? `\n      <div style="display:grid;grid-template-columns:repeat(${Math.min(purchaseInfo.length, 4)},1fr);gap:10px;margin-top:32px;">${purchaseInfo.map(it =>
-            `<div style="background:${tSoft};border:1px solid ${tBorder};border-radius:12px;padding:14px 10px;text-align:center;"><div style="font-size:20px;margin-bottom:6px;">${it.ico}</div><div style="font-size:11px;font-weight:700;color:${tPrimary};margin-bottom:3px;">${escHtml(it.label)}</div><div style="font-size:12.5px;font-weight:600;color:#333;line-height:1.4;word-break:keep-all;">${escHtml(it.value)}</div></div>`).join('')}</div>`
-        : '';
-      // ★샌드위치 배치(2026-07-27): 헤드라인 → 이미지 → 본문. 짧은 카피는 센터 정렬(화면 렌더와 동일 기준 260자).
-      const centered = (sec.body ?? '').length <= 260;
-      return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${head}${sub}${imgTag}${bodyHtml}${stripHtml}${blocksHtml}\n    </section>`;
-    }).join('\n');
-    const html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escHtml(productName || '상세페이지')} — Flik</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-  <style>
-    :root { --p: ${cP}; --soft: ${cSoft}; --sb: ${cSB}; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, -apple-system, sans-serif; background: #fff; color: #111; max-width: 800px; margin: 0 auto; padding: 0 0 80px; }
-    .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
-    .sec { padding: 48px 48px 0; }
-    .sec-blocks { padding-top: 0; padding-bottom: 0; }
-    .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
-    .sec h2 { font-size: 27px; font-weight: 800; text-align: left; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.5px; word-break: keep-all; }
-    .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
-    .sec .bodytext { font-size: 17px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; word-break: keep-all; }
-    .sec .bodytext:last-of-type { margin-bottom: 0; }
-    .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
-    /* ★센터 정렬은 반드시 위 .sec 규칙들 '뒤'에 온다 — 특정도가 같아서(둘 다 클래스 2개)
-       순서가 곧 승패다. 앞에 두면 .sec .subcopy / .sec .bodytext 가 다시 left로 덮어써서
-       제목만 가운데 오고 본문은 왼쪽에 남는다(2026-08-01 유근님 발견). 위로 옮기지 말 것. */
-    .sec-center, .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center p { text-align: center; }
-    .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
-    .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
-    .img-icon { font-size: 36px; }
-    .img-label { font-size: 14px; font-weight: 700; color: #64748b; }
-    ${HTML_BLOCKS_CSS}
-  </style>
-</head>
-<body>
-  <!-- Flik 생성 · ${escHtml(meta)} -->
-${sectionsHtml}
-</body>
-</html>`;
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1915,9 +1814,8 @@ export default function ResultScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  /** 내보내기 게이트 — 체험 계정이면 결제 안내를 띄우고 중단. true면 계속 진행. */
-  const passDownloadGate = (): boolean => {
-    if (canDownload !== false) return true;
+  /** 다운로드 잠금 안내 — 결제 경로를 함께 준다 */
+  const showDownloadLocked = () => {
     const go = window.confirm(
       '결과물 다운로드는 유료 플랜에서 가능해요.\n\n'
       + '체험 크레딧으로는 완성된 페이지를 화면에서 확인하고 카피·이미지를 수정할 수 있어요.\n'
@@ -1925,6 +1823,14 @@ export default function ResultScreen() {
       + '요금제를 확인하시겠어요?',
     );
     if (go) window.open('/pricing', '_blank', 'noopener,noreferrer');
+  };
+
+  /** ★내보내기 사전 안내 — 실제 판정은 서버(/api/export/html)가 한다.
+   *  여기서 막는 건 '헛수고 방지'용이다(이미지 압축·업로드를 하고 나서 거절당하지 않게).
+   *  이 값을 개발자도구로 바꿔도 서버가 402로 막으므로 게이트는 유지된다. */
+  const passDownloadGate = (): boolean => {
+    if (canDownload !== false) return true;
+    showDownloadLocked();
     return false;
   };
 
@@ -1946,7 +1852,9 @@ export default function ResultScreen() {
     await new Promise(r => setTimeout(r, 50));
     // 화면에 보이는 그대로 (순서 + 숨김 + 텍스트 수정/재생성 반영). 슬라이드형은 이미지만 스택.
     const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide, purchaseInfo);
-    if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
+    // ★서버가 최종 판정한다 — 클라 게이트를 우회해도 여기서 막힌다
+    if (ok === 'locked') showDownloadLocked();
+    else if (!ok) alert('HTML 다운로드 중 오류가 발생했어요. 다시 시도해주세요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };
 

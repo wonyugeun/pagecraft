@@ -1,0 +1,329 @@
+/**
+ * 내보내기 HTML 조립 — 서버·클라이언트 공용 순수 함수(2026-08-01).
+ *
+ * ★왜 lib으로 옮겼나: 다운로드 게이트가 브라우저 안에만 있어서 무력했다.
+ *   서버는 "권한 있음/없음"만 알려주고 파일은 브라우저가 만들었기 때문에,
+ *   개발자도구로 그 판정을 바꾸면 체험 계정도 결과물을 받아갈 수 있었다.
+ *   조립을 서버(/api/export/html)로 옮겨 '권한을 통과해야 파일이 나오는' 구조로 바꾼다.
+ *
+ * ★이 파일은 DOM에 의존하지 않는다 — 이미지 압축(canvas)과 파일 저장은 브라우저에 남고,
+ *   여기서는 이미 압축된 data URL을 받아 문자열만 만든다.
+ *
+ * ⚠️화면 렌더(ResultScreen)와 규칙이 어긋나면 '보던 것과 다른 파일'이 나간다.
+ *   센터 정렬(body 260자 이하)·강조 마킹·섹션 태그·테마색은 화면과 같은 기준을 쓴다.
+ */
+import type { Block } from '@/store/AppContext';
+import { compareColumns } from '@/components/result/BlockRenderer';
+
+export interface ExportSection {
+  num: string;
+  name?: string;
+  headline: string;
+  subcopy?: string;
+  body?: string;
+  blocks?: Block[];
+  imageLabel?: string;
+  visual?: { primary_color?: string; soft_color?: string; soft_border?: string; accent_color?: string };
+}
+export type PurchaseInfo = { ico: string; label: string; value: string }[];
+
+
+/* ─── HTML 이스케이프 ─── */
+export function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+}
+
+export const HTML_BLOCKS_CSS = `
+:root { color-scheme: light; }
+.hero { margin-bottom: 32px; }
+.hero h1 { font-size: 34px; font-weight: 900; line-height: 1.35; letter-spacing: -0.04em; color: #111; }
+.hero-sub { margin-top: 20px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
+.heading { margin: 40px 0 16px; border-left: 4px solid var(--p,#6D4CFF); padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
+.paragraph { margin-bottom: 24px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
+
+.checklist { list-style: none; margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
+.checklist li { display: flex; gap: 12px; font-size: 15px; line-height: 1.7; color: #333; padding: 6px 0; }
+.checklist li::before { content: '\\2713'; color: var(--p,#6D4CFF); font-weight: 700; flex-shrink: 0; }
+
+.steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
+.steps li { display: flex; gap: 16px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
+.step-num { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--p,#6D4CFF); color: #fff; font-size: 14px; font-weight: 700; }
+.steps li strong { display: block; font-size: 16px; font-weight: 700; color: #111; }
+.steps li p { margin-top: 4px; font-size: 14px; line-height: 1.7; color: #666; }
+
+.iconcards { margin-bottom: 32px; display: grid; gap: 12px; }
+.iconcard { border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
+.iconcard-icon { margin: 0 auto 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--soft,#F4F0FF); color: var(--p,#6D4CFF); font-size: 22px; }
+.iconcard strong { display: block; font-size: 14px; font-weight: 700; color: #111; }
+.iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
+
+.stats { margin-bottom: 32px; display: grid; column-gap: 12px; }
+.stat { padding: 22px 12px; text-align: center; border: 1px solid var(--sb,#E6DEFF); border-radius: 18px; background: #fff; }
+.stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: var(--p,#6D4CFF); line-height: 1.2; }
+.stat small { margin-top: 6px; display: block; font-size: 13px; font-weight: 600; color: #333; line-height: 1.45; }
+
+.compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
+.compare th, .compare td { padding: 16px; text-align: center; }
+.compare th { background: #FAFAFC; font-weight: 700; color: #111; }
+.compare th.hilite { background: var(--p,#6D4CFF); color: #fff; }
+.compare td { border-top: 1px solid #ECECF2; }
+.compare td.firstcol { font-weight: 500; color: #111; }
+.compare td.hilite { background: var(--soft,#FBFAFF); font-weight: 700; color: var(--p,#6D4CFF); }
+.compare .check { display: block; margin: 0 auto 4px; color: var(--p,#6D4CFF); font-weight: 900; }
+
+.quote { margin-bottom: 32px; border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 24px; }
+.quote-icon { font-size: 36px; line-height: 1; color: var(--p,#6D4CFF); font-family: Georgia, serif; margin-bottom: 8px; }
+.quote p { font-size: 16px; line-height: 1.85; color: #333; white-space: pre-line; }
+.quote footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.quote .stars { color: var(--p,#6D4CFF); font-size: 14px; letter-spacing: 2px; }
+.quote .author { font-size: 13px; color: #666; }
+.quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; align-items: stretch; }
+.quote-grid .quote-compact { margin-bottom: 0; padding: 20px; height: 100%; display: flex; flex-direction: column; }
+.quote-grid .quote-compact p { font-size: 15px; line-height: 1.7; flex-grow: 1; }
+@media (max-width: 560px) { .quote-grid { grid-template-columns: 1fr; } }
+
+.faq { margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; overflow: hidden; }
+.faq dt { padding: 20px 20px 8px; font-size: 15px; font-weight: 700; color: #111; }
+.faq dd { padding: 0 20px 20px; font-size: 14px; line-height: 1.7; color: #666; border-bottom: 1px solid #ECECF2; }
+.faq dd:last-child { border-bottom: none; }
+
+.image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; background: #FAFAFC; }
+.image img { width: 100%; height: 100%; display: block; }
+.image-slot { margin-bottom: 32px; width: 100%; background: linear-gradient(135deg,var(--soft,#F4F0FF),#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--p,#6D4CFF); }
+
+.cta { border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 32px; text-align: center; margin-bottom: 32px; }
+.cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
+.cta-close { margin-top: 20px; font-size: 17px; font-weight: 700; color: var(--p,#6D4CFF); letter-spacing: -0.2px; }
+`;
+
+/* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
+export function blocksToHtml(
+  blocks: Block[],
+  sectionNum: string,
+  blockImageUrls: Record<string, string>,
+  blockAspects: Record<string, string> = {},
+): string {
+  // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(화면 BlockRenderer와 동일 규칙)
+  const quoteRunLen: Record<number, number> = {};
+  const quoteRunFollower = new Set<number>();
+  for (let qi = 0; qi < blocks.length; qi++) {
+    if (blocks[qi].type !== 'quote' || quoteRunFollower.has(qi) || quoteRunLen[qi]) continue;
+    let qj = qi;
+    while (qj + 1 < blocks.length && blocks[qj + 1].type === 'quote') qj++;
+    if (qj > qi) { quoteRunLen[qi] = qj - qi + 1; for (let qk = qi + 1; qk <= qj; qk++) quoteRunFollower.add(qk); }
+  }
+  const quoteHtml = (b: Extract<Block, { type: 'quote' }>, compact = false) => {
+    const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 0;
+    return `<blockquote class="quote${compact ? ' quote-compact' : ''}">
+  <div class="quote-icon">&ldquo;</div>
+  <p>${escHtml(b.text)}</p>
+  <footer>
+    ${stars > 0 ? `<span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>` : '<span></span>'}
+    ${b.author ? `<span class="author">${escHtml(b.author)}</span>` : ''}
+  </footer>
+</blockquote>`;
+  };
+  return blocks.map((b, i) => {
+    switch (b.type) {
+      case 'hero':
+        return `<header class="hero">
+  <h1>${escHtml(b.title).replace(/\n/g, '<br>')}</h1>
+  ${b.subtitle ? `<p class="hero-sub">${escHtml(b.subtitle).replace(/\n/g, '<br>')}</p>` : ''}
+</header>`;
+      case 'heading':
+        return `<h2 class="heading">${escHtml(b.text).replace(/\n/g, '<br>')}</h2>`;
+      case 'paragraph':
+        return `<p class="paragraph">${escHtml(b.text)}</p>`;
+      case 'checklist':
+        return `<ul class="checklist">${b.items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`;
+      case 'steps':
+        return `<ol class="steps">${b.items.map((s, idx) => `<li>
+  <span class="step-num">${idx + 1}</span>
+  <div><strong>${escHtml(s.title)}</strong>${s.desc ? `<p>${escHtml(s.desc)}</p>` : ''}</div>
+</li>`).join('')}</ol>`;
+      case 'iconcards': {
+        const cols = b.cards.length >= 4 ? 4 : Math.max(2, b.cards.length);
+        return `<div class="iconcards" style="grid-template-columns:repeat(${cols},1fr);">${b.cards.map(c => `<div class="iconcard">
+  <div class="iconcard-icon">✦</div>
+  <strong>${escHtml(c.title)}</strong>
+  ${c.desc ? `<p>${escHtml(c.desc)}</p>` : ''}
+</div>`).join('')}</div>`;
+      }
+      case 'stats':
+        return `<div class="stats" style="grid-template-columns:repeat(${b.items.length},1fr);">${b.items.map(s => `<div class="stat">
+  <strong>${escHtml(s.value)}</strong>
+  <small>${escHtml(s.label)}</small>
+</div>`).join('')}</div>`;
+      case 'compare': {
+        const { ourIdx } = compareColumns(b.headers);  // 우리 제품 컬럼을 데이터로 판정해 강조(화면과 동일)
+        return `<table class="compare">
+  <thead><tr>${b.headers.map((h, idx) => `<th class="${idx === ourIdx ? 'hilite' : ''}">${escHtml(h)}</th>`).join('')}</tr></thead>
+  <tbody>${b.rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === ourIdx ? 'hilite' : idx === 0 ? 'firstcol' : ''}">${idx === ourIdx ? '<span class="check">✓</span>' : ''}${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
+</table>`;
+      }
+      case 'quote': {
+        if (quoteRunFollower.has(i)) return '';   // 런 후속 — 시작 인덱스에서 그리드로 함께 출력
+        const runLen = quoteRunLen[i];
+        if (runLen) {
+          const run = blocks.slice(i, i + runLen).filter((qb): qb is Extract<Block, { type: 'quote' }> => qb.type === 'quote');
+          return `<div class="quote-grid">${run.map(qb => quoteHtml(qb, true)).join('\n')}</div>`;
+        }
+        return quoteHtml(b);
+      }
+      case 'faq':
+        return `<dl class="faq">${b.items.map(f => `<dt>Q. ${escHtml(f.q)}</dt>
+<dd>${escHtml(f.a)}</dd>`).join('')}</dl>`;
+      case 'image': {
+        const key = `${sectionNum}#${i}`;
+        const url = blockImageUrls[key];
+        const cssAspect = (blockAspects[key] ?? '1:1').replace(':', '/');
+        const imgStyle = `aspect-ratio:${cssAspect};object-fit:contain;`;
+        // ★이미지 없는 블록은 스킵(슬롯 플레이스홀더 미노출) — 셀러 결과물에 내부 안내 요소 0.
+        return url
+          ? `<figure class="image" style="aspect-ratio:${cssAspect};"><img src="${url}" alt="${escHtml(b.label)}" style="${imgStyle}" /></figure>`
+          : '';
+      }
+      case 'cta':
+        // ⚠️가짜 버튼 제거(2026-07-21) — 클릭 안 되는 '구매하기' 모양 요소는 기만 소지. 마감 문구로만.
+        return `<div class="cta">
+  <h2>${escHtml(b.text).replace(/\n/g, '<br>')}</h2>
+  ${b.button ? `<p class="cta-close">${escHtml(b.button)}</p>` : ''}
+</div>`;
+      default:
+        return '';
+    }
+  }).join('\n');
+}
+
+/* ─── 디자인 블록 판정 — 섹션 role 미보유라 name 키워드 + 블록 타입으로 Problem/Feature 분류.
+   Hero(첫)·CTA(끝)·Comparison(compare 블록)은 제외(이미 전용 디자인). 색은 BlogSection이 테마로 주입. ─── */
+const PROBLEM_KEYS = ['공감', '고민', '일상', '불편', '걱정', '망설'];
+const FEATURE_KEYS = ['솔루션', '해결', '성분', '제형', '특징', '효능', '원료'];
+export function sectionDesignKind(sec: ExportSection, isFirst: boolean, isLast: boolean): 'problem' | 'feature' | null {
+  if (isFirst || isLast) return null;
+  if (sec.blocks?.some((b: Block) => b.type === 'compare')) return null; // Comparison 영역
+  // ⚠️섹션 이름(역할)만으로 판정. 블록 타입 폴백은 원인/후기/신뢰를 오태깅하므로 쓰지 않음.
+  const name = (sec.name ?? '').toLowerCase();
+  const hit = (keys: string[]) => keys.some(k => name.includes(k.toLowerCase()));
+  if (hit(PROBLEM_KEYS)) return 'problem';
+  if (hit(FEATURE_KEYS)) return 'feature';
+  return null;
+}
+/** 슬라이드형 — 텍스트가 이미지에 합성돼 있어 이미지만 세로로 쌓는다(여백 0). */
+export function buildSlideExportHtml(
+  sections: ExportSection[], meta: string, productName: string,
+  compressed: Record<string, string>,
+): string {
+  const imgsHtml = sections
+    .map(sec => compressed[sec.num]
+      ? `  <img src="${compressed[sec.num]}" alt="${escHtml(sec.imageLabel ?? '')}" style="width:100%;display:block;margin:0;padding:0;" />`
+      : '')
+    .filter(Boolean)
+    .join('\n');
+    const slideHtml = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escHtml(productName || '상세페이지')}</title>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { max-width: 860px; margin: 0 auto; background: #fff; font-size: 0; }</style>
+</head>
+<body>
+  <!-- Flik 생성 · ${escHtml(meta)} -->
+${imgsHtml}
+</body>
+</html>`;
+  return slideHtml;
+}
+
+/** 블로그형 — 카피·블록·이미지를 화면과 같은 규칙으로 조립한다. */
+export function buildBlogExportHtml(
+  sections: ExportSection[], meta: string, productName: string,
+  compressedSectionUrls: Record<string, string>,
+  compressedBlockUrls: Record<string, string>,
+  blockAspectMap: Record<string, string>,
+  purchaseInfo?: PurchaseInfo,
+): string {
+  // 제품 테마색(visualPalette) — 다운로드도 화면과 같은 색. CSS 변수로 주입(보라 폴백).
+  const themeV = sections.find(s => s.visual)?.visual;
+  const cP = themeV?.primary_color ?? '#6D4CFF';
+  const cSoft = themeV?.soft_color ?? '#F4F0FF';
+  const cSB = themeV?.soft_border ?? '#E6DEFF';
+
+  const sectionsHtml = sections.map((sec, idx) => {
+    // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
+    const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
+    const tPrimary = sec.visual?.primary_color ?? '#6D4CFF';
+    const tSoft = sec.visual?.soft_color ?? '#F4F0FF';
+    const tBorder = sec.visual?.soft_border ?? '#E6DEFF';
+    const tag = kind
+      ? `\n      <span class="sec-tag" style="background:${tSoft};border:1px solid ${tBorder};color:${tPrimary};">${kind === 'problem' ? '이런 고민, 있으셨나요?' : '이렇게 해결합니다'}</span>`
+      : '';
+    // 카피(headline + subcopy + body)는 분기 무관 항상 포함 — 화면 렌더와 동일하게 카피 소실 방지.
+    const head = `<h2>${escHtml(sec.headline).replace(/\n/g, '<br>')}</h2>`;
+    const markHtml = (t: string) => escHtml(t)
+      .replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>')
+      .replace(/\(\(([\s\S]+?)\)\)/g, `<em style="font-style:normal;font-weight:700;color:${sec.visual?.accent_color ?? cP};">$1</em>`);
+    const sub = sec.subcopy ? `\n      <p class="subcopy">${markHtml(sec.subcopy)}</p>` : '';
+    // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
+    const bodyHtml = sec.body
+      ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+          .map(p => `<p class="bodytext">${p.split('\n').map(l => markHtml(l.trim())).join('<br>')}</p>`)
+          .join('\n      ')
+      : '';
+    // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
+    const secImgUrl = compressedSectionUrls[sec.num];
+    const imgTag = secImgUrl
+      ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel ?? '')}" style="width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;" />`
+      : '';
+    // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
+    const blocksHtml = sec.blocks?.length
+      ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n      </div>`
+      : '';
+    // ★구매 정보 스트립(2026-07-27) — 마지막 섹션에서 블록 위에 노출(화면 BlogSection과 동일 위치)
+    const stripHtml = (idx === sections.length - 1 && purchaseInfo?.length)
+      ? `\n      <div style="display:grid;grid-template-columns:repeat(${Math.min(purchaseInfo.length, 4)},1fr);gap:10px;margin-top:32px;">${purchaseInfo.map(it =>
+          `<div style="background:${tSoft};border:1px solid ${tBorder};border-radius:12px;padding:14px 10px;text-align:center;"><div style="font-size:20px;margin-bottom:6px;">${it.ico}</div><div style="font-size:11px;font-weight:700;color:${tPrimary};margin-bottom:3px;">${escHtml(it.label)}</div><div style="font-size:12.5px;font-weight:600;color:#333;line-height:1.4;word-break:keep-all;">${escHtml(it.value)}</div></div>`).join('')}</div>`
+      : '';
+    // ★샌드위치 배치(2026-07-27): 헤드라인 → 이미지 → 본문. 짧은 카피는 센터 정렬(화면 렌더와 동일 기준 260자).
+    const centered = (sec.body ?? '').length <= 260;
+    return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${head}${sub}${imgTag}${bodyHtml}${stripHtml}${blocksHtml}\n    </section>`;
+  }).join('\n');
+  const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escHtml(productName || '상세페이지')} — Flik</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+  <style>
+  :root { --p: ${cP}; --soft: ${cSoft}; --sb: ${cSB}; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, -apple-system, sans-serif; background: #fff; color: #111; max-width: 800px; margin: 0 auto; padding: 0 0 80px; }
+  .meta { background: #f8f9fa; padding: 12px 20px; font-size: 12px; color: #888; border-bottom: 1px solid #eee; }
+  .sec { padding: 48px 48px 0; }
+  .sec-blocks { padding-top: 0; padding-bottom: 0; }
+  .sec-tag { display: inline-block; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 14px; }
+  .sec h2 { font-size: 27px; font-weight: 800; text-align: left; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.5px; word-break: keep-all; }
+  .sec .subcopy { font-size: 17px; font-weight: 600; text-align: left; line-height: 1.6; color: #5b5b66; margin: 0 0 18px; letter-spacing: -0.2px; }
+  .sec .bodytext { font-size: 17px; line-height: 1.85; text-align: left; color: #34343c; margin: 0 0 15px; letter-spacing: -0.2px; word-break: keep-all; }
+  .sec .bodytext:last-of-type { margin-bottom: 0; }
+  .sec p { font-size: 15px; line-height: 2.1; text-align: left; color: #555; white-space: pre-line; }
+  /* ★센터 정렬은 반드시 위 .sec 규칙들 '뒤'에 온다 — 특정도가 같아서(둘 다 클래스 2개)
+     순서가 곧 승패다. 앞에 두면 .sec .subcopy / .sec .bodytext 가 다시 left로 덮어써서
+     제목만 가운데 오고 본문은 왼쪽에 남는다(2026-08-01 유근님 발견). 위로 옮기지 말 것. */
+  .sec-center, .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center p { text-align: center; }
+  .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
+  .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
+  .img-icon { font-size: 36px; }
+  .img-label { font-size: 14px; font-weight: 700; color: #64748b; }
+  ${HTML_BLOCKS_CSS}
+  </style>
+</head>
+<body>
+  <!-- Flik 생성 · ${escHtml(meta)} -->
+${sectionsHtml}
+</body>
+</html>`;
+  return html;
+}

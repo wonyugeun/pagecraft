@@ -514,7 +514,11 @@ export default function ResultMobile() {
     setHtmlLoading(true);
     await new Promise(r => setTimeout(r, 50));
     const ok = await downloadHtml(finalSectionsForExport, meta, productName, sectionImages, blockImages, isSlide, purchaseInfo);
-    if (!ok) alert('HTML 다운로드 중 오류가 발생했어요.');
+    // ★서버가 최종 판정한다 — 클라 게이트를 우회해도 여기서 막힌다
+    if (ok === 'locked') {
+      const go = window.confirm('결과물 다운로드는 유료 플랜에서 가능해요.\n\n요금제를 확인하시겠어요?');
+      if (go) window.open('/pricing', '_blank', 'noopener,noreferrer');
+    } else if (!ok) alert('HTML 다운로드 중 오류가 발생했어요.');
     setTimeout(() => setHtmlLoading(false), 2000);
   };
   const handleMergeDownload = async () => {
