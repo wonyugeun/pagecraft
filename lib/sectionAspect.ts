@@ -35,11 +35,35 @@ function matchByKeywords(name: string, keys: string[]): boolean {
   return keys.some(k => lower.includes(k.toLowerCase()));
 }
 
-export function aspectRatioFor(sectionName?: string, blockType?: string, out?: string): ImageAspect {
-  // ★슬라이드형: 카드 스택이 한 세트로 보이도록 전 섹션 4:5 고정(크기 제각각 방지). 블로그·기타는 기존 로직.
-  if (out === 'slide') return '4:5';
+/* ★슬라이드형 비율(2026-08-01 개편) — 이전엔 전 섹션 4:5 고정이었다.
+ *  "카드 스택이 한 세트로 보이게"가 이유였지만, 스마트스토어 상세페이지는 이미지가 세로로
+ *  이어지는 형태라 높이가 조금 달라도 제각각으로 보이기보다 리듬으로 읽힌다(유근님 지적).
+ *
+ *  ⚠️단 슬라이드는 텍스트가 이미지에 박혀 나온다(baked). 그래서 가로형(16:9)은 쓰지 않는다 —
+ *    세로 여백이 부족해 한글 헤드라인이 눌리거나 잘린다. 4:5와 1:1만 허용한다.
+ *
+ *  1:1은 정보 밀도가 높고 카피가 짧은 섹션(성분·스펙·비교·수치)에만 준다.
+ *  히어로·CTA·감성 컷은 4:5를 유지해 페이지의 뼈대를 잡는다.
+ *  부수 효과로 원가도 내려간다(1024x1536 135원 → 1024x1024 90원). */
+/** 정보형(팩트를 늘어놓는) 섹션 — 정사각이 어울리고 카피도 짧다 */
+const SLIDE_SQUARE_KEYS = [
+  '성분', '비교', '스펙', '수치', '통계', '함량', '인증', '원료', '구성', '가격', '옵션',
+  '신뢰', '안심', '무첨가', '검증', '안전', 'faq', 'q&a', '반론', '보관', '배송', '주의',
+];
+/** 페이지의 뼈대 — 첫 컷과 마지막 컷은 항상 세로로 크게 잡아 시작·끝을 분명히 한다 */
+const SLIDE_TALL_KEYS = ['히어로', 'hero', 'cta', '구매 유도', '구매유도', '마무리'];
 
+export function aspectRatioFor(sectionName?: string, blockType?: string, out?: string): ImageAspect {
   const name = (sectionName ?? '').trim();
+
+  if (out === 'slide') {
+    // 골격(히어로·CTA)이 먼저 — 이름에 '안심·신뢰'가 섞여 있어도 뼈대는 4:5를 유지한다.
+    if (name && matchByKeywords(name, SLIDE_TALL_KEYS))   return '4:5';
+    if (name && matchByKeywords(name, SLIDE_SQUARE_KEYS)) return '1:1';
+    if (blockType && SQUARE_BLOCK_TYPES.has(blockType))   return '1:1';
+    return '4:5';
+  }
+
 
   if (name) {
     if (matchByKeywords(name, HERO_KEYS))   return '4:5';

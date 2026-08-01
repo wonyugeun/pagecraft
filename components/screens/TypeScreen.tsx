@@ -5,6 +5,7 @@ import {
   Check, ArrowLeft, ArrowRight, ThumbsUp, ScanSearch, Eye, X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { calculateGenerationCost } from '@/lib/pricing';
 import { useApp, CH_CFG } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
@@ -272,7 +273,9 @@ export default function TypeScreen() {
                       {t.secLabel}
                     </span>
                     <span style={{ fontSize: '11px', color: '#9CA3AF', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션 · {t.secCount}크레딧
+                      {/* ★크레딧은 출력형태(다음 화면)에 따라 갈린다 — 블로그 1.25/섹션, 슬라이드 1.0/섹션.
+                          여기서 한 값만 적으면 다음 화면에서 숫자가 바뀌어 불신을 부르므로 범위로 표기한다. */}
+                      <span style={{ fontSize: '17px', fontWeight: 800, color: t.accent, letterSpacing: '-0.02em' }}>{t.secCount}</span>개 섹션 · {calculateGenerationCost({ sectionCount: t.secCount ?? 0, out: 'slide' })}~{calculateGenerationCost({ sectionCount: t.secCount ?? 0, out: 'blog' })}크레딧
                     </span>
                   </div>
                   {/* 분량 바 — 프리미엄형(최대) 대비 상대 길이 */}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Star, Zap, Check, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '@/store/AppContext';
+import { calculateGenerationCost } from '@/lib/pricing';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
 
@@ -137,7 +138,7 @@ function SlidePreview() {
 
 /* ── 메인 ── */
 export default function OutputScreen() {
-  const { ch, type, out, setOut, go } = useApp();
+  const { ch, type, out, setOut, go, secCnt } = useApp();
 
   const OUTPUTS = [
     {
@@ -221,6 +222,18 @@ export default function OutputScreen() {
               </p>
 
               <o.Preview />
+
+              {/* ★크레딧 — 출력형태가 정해지는 화면이므로 여기서 정확한 값을 보여준다.
+                  블로그형은 카피 2안을 다 만들고 본문이 길어 원가가 높아 섹션당 1.25크레딧이다. */}
+              <div style={{
+                display: 'flex', alignItems: 'baseline', gap: 5,
+                fontSize: '12.5px', color: selected ? '#6D4CFF' : '#8B95A1', fontWeight: 600,
+              }}>
+                <span style={{ fontSize: '15px', fontWeight: 800 }}>
+                  {calculateGenerationCost({ sectionCount: secCnt, out: o.key })}크레딧
+                </span>
+                <span style={{ fontWeight: 500 }}>· {secCnt}개 섹션 기준</span>
+              </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {o.feats.map(f => (

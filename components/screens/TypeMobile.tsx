@@ -6,6 +6,7 @@ import {
   Zap, Clock, BarChart3, TrendingUp, Star, StarHalf, ScanSearch,
 } from 'lucide-react';
 import { useState } from 'react';
+import { calculateGenerationCost } from '@/lib/pricing';
 import { useApp } from '@/store/AppContext';
 import TypeExampleModal from '@/components/modals/TypeExampleModal';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
@@ -289,7 +290,7 @@ export default function TypeMobile() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#5B3FD6' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{premiumCount}</span>개 · {premiumCount}크레딧
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{premiumCount}</span>개 · {calculateGenerationCost({ sectionCount: premiumCount, out: 'slide' })}~{calculateGenerationCost({ sectionCount: premiumCount, out: 'blog' })}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
@@ -366,7 +367,7 @@ export default function TypeMobile() {
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7B6FB4' }}>예시 섹션</span>
                   <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{basicCount}</span>개 · {basicCount}크레딧
+                    <span style={{ fontSize: 16, fontWeight: 800, color: '#6D4CFF' }}>{basicCount}</span>개 · {calculateGenerationCost({ sectionCount: basicCount, out: 'slide' })}~{calculateGenerationCost({ sectionCount: basicCount, out: 'blog' })}크레딧
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
