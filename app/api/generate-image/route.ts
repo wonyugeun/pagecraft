@@ -150,8 +150,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /* ★참조 사진이 제품 색의 유일한 근거다(2026-08-01 보강).
+   *  실측 사고: 전략 단계가 텍스트만 보고 페이지 팔레트를 gray로 정했고, 그 팔레트가 브리프를 거쳐
+   *  "#4B5563 charcoal cardigan"처럼 제품 자체를 수식하는 색으로 프롬프트에 박혔다.
+   *  기존 규칙("EXACT color 유지")은 있었지만, 장면 설명에 색이 명시되면 그쪽이 이겼다.
+   *  → 프롬프트 안의 제품 색 표현을 '무시하라'고 명시적으로 순위를 정해준다. imagebrief 쪽에서
+   *    애초에 안 쓰게 막았고(1차), 여기는 그래도 새어 나올 때의 안전망(2차)이다. */
   const PRODUCT_RULES = hasRefImages
     ? `The reference images above show the actual product. CRITICAL: maintain the product's EXACT appearance, color, shape, label, and branding identically in every image. ` +
+      `⚠️COLOR PRIORITY: the product's colour, material and finish come ONLY from the reference images. ` +
+      `If the scene description above names any colour, tone, hex code or material for the product itself ` +
+      `(e.g. "charcoal cardigan", "beige pouch", "#4B5563 knit"), IGNORE that wording and reproduce the reference colour exactly. ` +
+      `Colour words in the scene apply to the background, lighting and props only — never to the product. ` +
       `Do NOT change, translate, restyle, or re-write ANY label text — reproduce the reference label lettering exactly as-is, even if the scene description mentions a product name or ingredient in words.`
     : '';
   // ★Fidelity A/B(갈치, 2026-07-05)에서 확인된 라벨 날조 차단 — 레퍼런스에 없는 소매 포장·라벨 스티커·

@@ -165,8 +165,19 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
   if (understanding) console.log(`[imagebrief V2] product understanding ON — ${understanding.slice(0, 120)}...`);
 
   // ★페이지 공통 팔레트 — Stage1 큐레이션 hex(visualPalette)를 값으로 주입(임의 창작 아님). 색·조명 페이지 통일.
+  /* ★페이지 팔레트는 '배경·조명·소품'의 색이지 '제품'의 색이 아니다(2026-08-01 수정).
+   *  전략 단계는 상품 사진을 보지 않고 텍스트만으로 팔레트를 정한다. 그래서 베이지 가디건에
+   *  gray 팔레트가 붙었고, 이 지시를 받은 모델이 제품 자체를 "#4B5563 charcoal cardigan"으로
+   *  묘사해 실제 색과 다른 이미지가 나왔다(같은 페이지 안에서 색이 섞이기까지 했다).
+   *  제품 색은 오직 참조 사진에만 있다 — 팔레트가 제품을 덮어쓰지 못하게 못 박는다. */
   const paletteLine = visual?.primary_color
-    ? `\n- ⭐페이지 팔레트(전 섹션의 palette 필드가 이 색 계열을 준수 — 섹션마다 색이 튀면 실패): main ${visual.primary_color}, accent ${visual.accent_color ?? ''}, soft ${visual.soft_color ?? ''}${visual.mood ? `, mood: ${visual.mood}` : ''}. 조명(light)도 페이지 전체 한 가지 톤으로 정해 모든 섹션 prompt에 동일하게 기술하세요(예: soft diffused daylight).`
+    ? `\n- ⭐페이지 팔레트 — ⚠️이 색은 **배경·조명·소품·분위기**에만 적용합니다: main ${visual.primary_color}, accent ${visual.accent_color ?? ''}, soft ${visual.soft_color ?? ''}${visual.mood ? `, mood: ${visual.mood}` : ''}. 조명(light)도 페이지 전체 한 가지 톤으로 통일하세요(예: soft diffused daylight).
+  ⛔⛔ 제품 자체의 색에는 절대 적용하지 마세요. 제품의 색·소재·질감은 참조 사진에 있는 그대로이며,
+     당신은 그 사진을 보지 못합니다. 그러니 prompt·palette 어디에도 **제품을 수식하는 색 표현**을 쓰지 마세요.
+     ❌ "charcoal cardigan" / "beige pouch" / "#4B5563 knit" / "warm brown jar"
+     ✅ "the cardigan from the reference" / "the product" / "the jar" — 색 없이 사물만 지칭.
+     배경·소품은 팔레트대로 쓰면 됩니다(예: "on a #EEF1F4 background, soft grey linen prop").
+     ⚠️제품 색을 지어내면 셀러가 실물과 다른 사진으로 판매하게 되어 반품·표시광고 문제가 됩니다.`
     : '';
 
   const strategyBlock = `[이 페이지의 전략 — 이미지 무드·색조가 이 톤을 일관되게 따라야 합니다]

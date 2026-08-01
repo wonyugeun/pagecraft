@@ -34,11 +34,13 @@ import { TEST_PRODUCTS, type TestProduct } from './test-products';
 
 const SECTION_COUNT = 8;
 
+/** ⚠️process.env에도 반드시 넣는다 — 파이프라인 청킹·판매모드 판정(salesModeOn)이 이 프로세스에서
+ *  일어나므로, 반환값만 쓰면 플래그가 꺼진 채로 돌아 '켜고 테스트했다고 착각'하게 된다(2026-08-01 실측). */
 function loadEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   for (const line of fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    if (m) { env[m[1]] = m[2].replace(/^["']|["']$/g, ''); process.env[m[1]] ??= env[m[1]]; }
   }
   return env;
 }
@@ -189,7 +191,8 @@ async function main() {
   const authHeaders = { Cookie: `next-auth.session-token=${sessionToken}` };
 
   fs.mkdirSync(OUT_ROOT, { recursive: true });
-  console.log(`다양성 테스트 — ${targets.length}종 × ${SECTION_COUNT}섹션 (${BASE_URL})\n`);
+  console.log(`다양성 테스트 — ${targets.length}종 × ${SECTION_COUNT}섹션 (${BASE_URL})`);
+  console.log(`판매모드(COPY_SALES_MODE) ${process.env.COPY_SALES_MODE === '1' ? 'ON' : 'OFF'}\n`);
 
   const metrics: Metric[] = [];
   for (const [i, p] of targets.entries()) {
