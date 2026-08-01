@@ -62,7 +62,7 @@ const SECTION_COUNT = 8;   // ★중요 섹션만 — 짧은 페이지 테스트
 
 interface RunSection {
   num: string; name: string; headline: string; subcopy?: string; body?: string;
-  blocks?: Block[]; imageDesc: string;
+  blocks?: Block[]; imageDesc: string; imageRatio?: string;
 }
 
 async function main() {
@@ -109,7 +109,7 @@ async function main() {
   const sections: RunSection[] = result.sections.map(ps => ({
     num: ps.num, name: ps.name, headline: ps.headline, subcopy: ps.subcopy || undefined,
     body: ps.body || undefined, blocks: ps.blocks,
-    imageDesc: ps.imageBrief?.prompt || ps.imageBrief?.mood || '',
+    imageDesc: ps.imageBrief?.prompt || ps.imageBrief?.mood || '', imageRatio: ps.imageBrief?.ratio,
   }));
   fs.writeFileSync(path.join(outDir, 'raw.json'), JSON.stringify({ visual: result.visual, sections: result.sections }, null, 2));
   console.log(`[run] 카피 완료 — ${sections.length}섹션, ${Math.round((Date.now() - t0) / 1000)}초`);
@@ -127,7 +127,7 @@ async function main() {
     if (sec.imageDesc) {
       imgTasks.push({
         key: sec.num, file: `sec${String(i + 1).padStart(2, '0')}.png`,
-        prompt: sec.imageDesc, aspect: aspectRatioFor(sec.name, undefined, 'blog'),
+        prompt: sec.imageDesc, aspect: sec.imageRatio ?? aspectRatioFor(sec.name, undefined, 'blog'),   // 브리프 우선(리듬 보정 반영)
         label: `${i + 1}. ${sec.name}`,
       });
     }

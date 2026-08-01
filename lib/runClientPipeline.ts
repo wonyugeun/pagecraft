@@ -124,6 +124,7 @@ export async function runClientPipeline(
     body:       ps.body,                 // 주 카피 원문 그대로(절단·병합 없음)
     imageLabel: ps.imageBrief?.shot_type ? `📸 ${ps.imageBrief.shot_type}` : '📸 이미지 슬롯',
     imageDesc:  ps.imageBrief?.prompt || ps.imageBrief?.mood || '',
+    imageRatio: ps.imageBrief?.ratio,    // ★비율 단일 소스 — 화면에서 재계산 금지
     blocks:     ps.blocks,
     altCopy:    ps.altCopy,              // ★블로그형 카피 2안(B안) — 히스토리·스냅샷 자동 보존
     bodyFlow:   true,                    // body + blocks 공존 렌더 지시(ResultScreen 분기)

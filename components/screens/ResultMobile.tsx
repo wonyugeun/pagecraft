@@ -10,7 +10,7 @@ import {
 import { useApp, Section } from '@/store/AppContext';
 import { resolveOutputType } from '@/lib/outputType';
 import { compressMap } from '@/lib/imageCompress';
-import { aspectRatioFor } from '@/lib/sectionAspect';
+import { aspectRatioFor, type ImageAspect } from '@/lib/sectionAspect';
 import {
   ImgState, EMPTY_IMG, BlogSection, SlideCard, ImageSection, buildPurchaseInfo,
   EnhancedLightbox, downloadHtml, downloadMergedImage, downloadFullLongImage,
@@ -199,7 +199,9 @@ export default function ResultMobile() {
 
   // 데스크탑과 동일한 이미지 생성 함수
   const generateImage = useCallback(async (sec: Section, signal: AbortSignal, opts?: { editRequest?: string }) => {
-    const aspect = aspectRatioFor(sec.name, undefined, effectiveOut);   // 슬라이드는 전 섹션 4:5 고정
+    // ★비율은 이미지브리프가 단일 소스 — imagebrief 단계가 페이지 전체를 보고 리듬을 보정해 넣는다.
+    //   여기서 다시 계산하면 그 보정이 사라져 브리프와 실제 생성이 어긋난다(구 데이터만 폴백).
+    const aspect = (sec.imageRatio as ImageAspect | undefined) ?? aspectRatioFor(sec.name, undefined, effectiveOut);
     setSectionImages(p => ({ ...p, [sec.num]: { loading: true, url: null, error: false, aspectRatio: aspect } }));
     try {
       const images = productImagesRef.current;

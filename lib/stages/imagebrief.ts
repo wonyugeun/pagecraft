@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
-import { aspectRatioFor } from '@/lib/sectionAspect';
+import { normalizeAspectsForPage, aspectRatioFor, type ImageAspect } from '@/lib/sectionAspect';
 import { buildV2ImageRules, isProductHeroCategory } from '@/lib/imagePromptRules';
 import { classifyCutArchetype, type CutArchetype } from '@/lib/sectionArchetype';
 
@@ -149,7 +149,10 @@ export async function runImagebrief(input: ImagebriefInput): Promise<ImagebriefR
   const imageRules = buildV2ImageRules(category, resolvedOut === 'slide');
 
   // 섹션별 ratio를 코드에서 확정 (9:16 절대 없음. ★슬라이드형은 전 섹션 4:5 고정 — 카드 스택 일관성)
-  const ratioByIdx = plan.map(s => aspectRatioFor(s.name, undefined, resolvedOut));
+  /* ★비율은 '모델이 고르고 코드가 교정한다'(2026-08-01).
+   *  아래 값은 모델이 응답을 안 주거나 이상한 값을 줬을 때의 폴백일 뿐, 강제값이 아니다.
+   *  키워드로 못 박으면 상품이 뭐든 같은 결과가 나온다 — 장면을 설계한 모델이 정하는 게 맞다. */
+  const ratioFallback: ImageAspect[] = plan.map(s => aspectRatioFor(s.name, undefined, resolvedOut));
   // ★섹션별 컷 아키타입(8종) — 첫 섹션은 무조건 hero. 브리프 장면 지시 + visibility 밴드 양쪽에 사용.
   const archetypeByIdx: CutArchetype[] = plan.map((s, i) =>
     i === 0 ? 'hero' : classifyCutArchetype(s.name, s.role, s.emotion_goal));
@@ -201,7 +204,7 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
    본문(body — 구체 상황/맥락. visual_focus를 여기서 도출, 추상 은유로 점프 금지): ${c?.body ? c.body.replace(/\*\*|\(\(|\)\)/g, '').slice(0, 280) : '(없음)'}
    제품 노출 권장 비중(product_visibility, 이 범위 내로): ${vmin}~${vmax}%
    컷 아키타입(archetype, 변경 금지 — 장면·구도를 이 종류로 설계): ${archetypeByIdx[gi]}
-   고정 비율(ratio, 변경 금지): ${ratioByIdx[gi]}`;
+   추천 비율(ratio — 참고값일 뿐입니다. 아래 [비율 선택]을 읽고 이 장면에 맞는 것으로 직접 고르세요): ${ratioFallback[gi]}`;
     }).join('\n\n');
 
     const userPrompt = `당신은 화장품 상세페이지의 이미지 아트디렉터입니다. 아래 ${items.length}개 섹션 각각에 대해, 먼저 image_mission("왜 이 사진이 필요한가")을 확정한 뒤, 이를 만족시키는 Gemini 촬영 브리프를 작성하세요.
@@ -209,6 +212,14 @@ ${targetFear ? `- target_fear(공감·원인에서 건드릴 두려움): ${targe
 ${strategyBlock}
 
 [형태 규칙] ${formNote}
+
+[비율 선택 — 섹션마다 ratio를 직접 고르세요]
+당신이 설계한 '장면'에 맞는 비율을 고르는 겁니다. 섹션 이름이 아니라 찍을 그림을 보고 정하세요.
+ · "4:5"  세로 — 인물·제품 전신, 서 있는 대상, 위아래로 쌓인 연출. 히어로·CTA처럼 힘을 줄 자리.
+ · "1:1"  정사각 — 원료·질감 클로즈업, 단독 제품컷, 정보를 또렷이 보여줄 때.
+ · "16:9" 가로 — 공간·풍경·상황, 나란히 놓인 비교, 옆으로 흐르는 장면.
+⚠️같은 비율이 서너 개 연속되면 페이지가 단조로워집니다. 인접 섹션과 다른 비율을 섞으세요.
+${isBlogOutput ? '' : '⚠️슬라이드형은 텍스트가 이미지에 박히므로 "16:9"를 쓰지 마세요 — 한글 헤드라인이 눌립니다.'}
 
 ${imageRules}
 
@@ -316,7 +327,8 @@ ${sectionList}
       const finalPrompt = basePrompt + (basePrompt ? understanding : '');
       return {
         section:       typeof s.section === 'string' ? s.section : (items[j]?.name ?? ''),
-        ratio:         ratioByIdx[gi],
+        // ★모델이 고른 값을 그대로 받는다 — 유효성·리듬 교정은 전 청크 취합 후 한 번에(아래 normalizeAspectsForPage)
+        ratio:         typeof s.ratio === 'string' ? s.ratio : ratioFallback[gi],
         image_mission,
         shot_type:     typeof s.shot_type === 'string' ? s.shot_type : '',
         mood:          typeof s.mood === 'string' ? s.mood : '',
@@ -330,6 +342,12 @@ ${sectionList}
   // ★청크 병렬 — 순차 대기 제거(16섹션 = 2청크 동시). 결과 순서는 청크 배열 순서로 보존.
   const parts = await Promise.all(chunks.map(c => runChunk(c.items, c.startIdx)));
   const briefs: Brief[] = parts.flat();
+
+  /* ★비율 교정 — 청크가 병렬이라 모델은 페이지 전체를 못 본다.
+   *  여기서만 강제한다: 슬라이드 16:9 금지 + 같은 비율 4연속 금지. 나머지는 모델 선택을 존중. */
+  const fixed = normalizeAspectsForPage(briefs.map(b => b.ratio), ratioFallback, resolvedOut);
+  briefs.forEach((b, i) => { b.ratio = fixed[i]; });
+  console.log(`[imagebrief V2] 비율 — 모델선택 ${briefs.map(b => b.ratio).join(',')}`);
 
   return {
     briefs,

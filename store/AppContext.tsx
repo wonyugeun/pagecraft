@@ -51,6 +51,9 @@ export interface Section {
   body: string;
   imageLabel: string;
   imageDesc: string;
+  /** ★이미지브리프가 정한 비율(2026-08-01) — 모델이 장면 보고 고르고 코드가 리듬 교정한 값.
+   *  화면에서 다시 계산하면 그 보정이 사라지므로 이 값을 그대로 쓴다. 구 기록은 undefined → 폴백. */
+  imageRatio?: string;
   blocks?: Block[];
   subcopy?: string;     // 새 엔진(v5) 서브카피 — 블로그형에서 headline 아래 부제로 렌더
   bodyFlow?: boolean;   // 새 엔진 섹션: body(주 카피)와 blocks(보조)를 공존 렌더(기존 generate는 미설정)

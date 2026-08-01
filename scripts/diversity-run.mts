@@ -126,7 +126,9 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
     if (prompt) {
       tasks.push({
         key: sec.num, file: `sec${String(i + 1).padStart(2, '0')}.png`, prompt,
-        aspect: aspectRatioFor(sec.name, undefined, 'blog'), label: `${i + 1}.${sec.name}`,
+        // 브리프 우선 — imagebrief가 페이지 전체를 보고 넣은 리듬 보정을 그대로 쓴다
+        aspect: (sec.imageBrief?.ratio as string | undefined) ?? aspectRatioFor(sec.name, undefined, 'blog'),
+        label: `${i + 1}.${sec.name}`,
       });
     }
     sec.blocks?.forEach((b, bi) => {
