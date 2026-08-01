@@ -32,7 +32,12 @@ const keyPrefix = process.argv[2] ?? '01';
 const p = TEST_PRODUCTS.find(x => x.key.startsWith(keyPrefix));
 if (!p) { console.error(`상품을 찾을 수 없습니다: ${keyPrefix}`); process.exit(1); }
 
-const N = 6;
+/* ★내부로는 넉넉히 뽑고, 밖으로는 추려서 보여준다.
+ *   6개를 늘어놓으면 고르는 사람이 지친다("너무 많음" — 유근님). 그렇다고 처음부터 3개만
+ *   요구하면 시도 횟수가 줄어 평균값이 나온다. 그래서 6개를 만들게 한 뒤 같은 호출 안에서
+ *   가장 센 3개만 남기게 한다(각도가 겹치는 것부터 탈락). */
+const GEN = 6;
+const N = 3;
 const MATERIALS = [p.productName, ...p.fields].join('\n');
 
 const SYSTEM = `당신은 한국 이커머스 상세페이지 카피라이터입니다.
@@ -51,9 +56,15 @@ const SYSTEM = `당신은 한국 이커머스 상세페이지 카피라이터입
 const USER = `[상품 재료 — 이것이 당신이 아는 전부입니다]
 ${MATERIALS}
 
-[요청]
-아래 두 가지를 각각 ${N}개씩, 서로 최대한 다른 각도로 써주세요.
-${N}개가 비슷하면 실패입니다 — 각도가 겹치면 다시 고르세요.
+[요청 — 2단계로 진행하세요]
+1단계: 아래 두 가지를 각각 ${GEN}개씩, 서로 최대한 다른 각도로 머릿속에서 써보세요.
+2단계: 그중 ★가장 강한 ${N}개만 골라 출력하세요. 나머지는 버립니다.
+
+고르는 기준(이 순서대로):
+ · 읽는 순간 멈칫하게 하는가 — 무난하게 좋은 것보다 하나라도 튀는 것.
+ · 이 상품이 아니면 못 쓰는 문장인가 — 아무 상품에나 갖다 붙일 수 있으면 탈락.
+ · ${N}개의 각도가 서로 겹치지 않는가 — 비슷한 둘이 있으면 약한 쪽을 버리고 다른 각도로 교체.
+출력에는 고른 ${N}개만 넣으세요(탈락한 후보는 쓰지 마세요).
 
 1) 히어로 훅 (headline + body)
    · 상세페이지 첫 화면. 3초 안에 계속 볼지 나갈지 결정되는 자리입니다.
@@ -73,18 +84,18 @@ ${N}개가 비슷하면 실패입니다 — 각도가 겹치면 다시 고르세
    · 정보 요약이 아니라, 읽는 순간 '어' 하고 멈추게 하는 문장.
    · 짧게. 수식어 없이. 한 문장으로.
    · ★여기서는 단점을 장점의 증거로 뒤집는 각도가 강하게 먹힙니다(히어로와 달리 이미 관심이 생긴 뒤라
-     솔직함이 신뢰로 읽힙니다). 단, 그 각도만 반복하지 말고 ${N}개 각도를 다양하게 가져가세요.
+     솔직함이 신뢰로 읽힙니다). 단, 그 각도만 반복하지 말고 각도를 다양하게 가져가세요.
 
 [출력 형식] 다른 텍스트 없이 아래 JSON만:
 {
-  "hooks": [ { "angle": "각도 이름(장면/반전 등)", "headline": "...", "body": "..." } ],
-  "killers": [ { "angle": "각도 이름", "line": "..." } ]
+  "hooks": [ { "angle": "각도 이름", "headline": "...", "body": "...", "why": "이걸 고른 이유 한 줄" } ],
+  "killers": [ { "angle": "각도 이름", "line": "...", "why": "이걸 고른 이유 한 줄" } ]
 }`;
 
 console.log(`훅·킬러라인 후보 ${N}개씩 생성 — ${p.productName} (${COPY_MODEL})\n`);
 const r = await callCopyModel(COPY_MODEL, SYSTEM, USER);
 const jsonText = r.raw.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
-let parsed: { hooks: { angle: string; headline: string; body: string }[]; killers: { angle: string; line: string }[] };
+let parsed: { hooks: { angle: string; headline: string; body: string; why?: string }[]; killers: { angle: string; line: string; why?: string }[] };
 try {
   parsed = JSON.parse(jsonText.slice(jsonText.indexOf('{'), jsonText.lastIndexOf('}') + 1));
 } catch {
@@ -112,29 +123,30 @@ const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
  .bd{font-size:14.5px;line-height:1.85;color:#34343c;white-space:pre-line}
  .kl{font-size:17px;font-weight:700;line-height:1.6;color:#191F28}
  .len{float:right;font-size:11.5px;color:#B0B8C1;font-weight:600}
+ .why{margin-top:9px;font-size:12.5px;color:#8B95A1;line-height:1.6;border-top:1px dashed #ECECF2;padding-top:9px}
  .fab{background:#FFE3E3;color:#C92A2A;border-radius:3px;padding:0 3px;font-weight:700}
  details{background:#fff;border-radius:12px;margin-bottom:8px}
  summary{cursor:pointer;padding:13px 18px;font-size:13px;font-weight:700;color:#4E5968}
  .fields{padding:0 18px 16px;font-size:12.5px} .fields div{padding:4px 0;border-top:1px dashed #E5E5EC}
 </style></head><body><div class="w">
 <h1>훅·킬러라인 후보 — ${esc(p.productName)}</h1>
-<p class="sub">같은 재료로 각도만 달리해 ${N}개씩 뽑았습니다. 점수를 매기지 않았습니다 — 직접 보고 고르세요.<br>
+<p class="sub">같은 재료로 ${GEN}개씩 만든 뒤 가장 센 ${N}개만 추렸습니다. 점수를 매기지 않았습니다 — 직접 보고 고르세요.<br>
 후보가 전부 밋밋하면 <b>재료가 부족한 것</b>이고, 하나가 확 살아나면 <b>뽑기 횟수가 부족했던 것</b>입니다.<br>
 <span class="fab">빨간 표시</span>는 셀러 입력에 없는 표현입니다(있으면 안 됩니다).</p>
 <details><summary>▸ 셀러가 입력한 재료 (${p.fields.length}개)</summary>
 <div class="fields">${p.fields.map(f => `<div>${esc(f)}</div>`).join('')}</div></details>
 
-<h2>히어로 훅 ${N}개</h2>
+<h2>히어로 훅 ${parsed.hooks.length}개</h2>
 ${parsed.hooks.map((h, i) => `<div class="c">
   <span class="ang">${i + 1}. ${esc(h.angle)}</span><span class="len">${h.body.length}자</span>
   <div class="hl">${flag(esc(h.headline))}</div>
-  <div class="bd">${flag(esc(h.body))}</div>
+  <div class="bd">${flag(esc(h.body))}</div>${h.why ? `<div class="why">${esc(h.why)}</div>` : ''}
 </div>`).join('')}
 
-<h2>킬러 라인 ${N}개</h2>
+<h2>킬러 라인 ${parsed.killers.length}개</h2>
 ${parsed.killers.map((k, i) => `<div class="c">
   <span class="ang">${i + 1}. ${esc(k.angle)}</span>
-  <div class="kl">${flag(esc(k.line))}</div>
+  <div class="kl">${flag(esc(k.line))}</div>${k.why ? `<div class="why">${esc(k.why)}</div>` : ''}
 </div>`).join('')}
 </div></body></html>`;
 
