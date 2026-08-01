@@ -1832,16 +1832,39 @@ export default function ResultScreen() {
   const doneCount    = Object.values(sectionImages).filter(s => !s.loading).length;
   const isGenerating = Object.values(sectionImages).some(s => s.loading);
 
+  /* ★카피 재생성(2026-08-01) — 무료 재생성은 이미지와 한 통을 나눠 쓴다(8섹션 5회).
+   *  소진되면 서버가 무과금으로 quota_exhausted를 돌려주고, 셀러가 동의해야 1크레딧을 차감한다.
+   *  (확인 없이 돈이 빠지면 다크패턴이다 — 이미지 경로와 동일한 흐름) */
   const regenFn = useCallback(async (sec: Section): Promise<Section | null> => {
-    try {
+    const body = {
+      cat, ch, type, out, productName, productExtra,
+      sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined,
+    };
+    const call = async (extra?: Record<string, unknown>) => {
       const res = await fetch('/api/regen-section', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, ...extra }),
         signal: AbortSignal.timeout(30_000),
       });
-      const data = await res.json();
-      return data.section ?? null;
+      return { status: res.status, data: await res.json() as Record<string, unknown> };
+    };
+    try {
+      let r = await call();
+      if (r.status === 429 && (r.data as { code?: string }).code === 'quota_exhausted') {
+        const cost = (r.data as { extraCost?: number }).extraCost ?? 1;
+        const qLimit = (r.data as { quotaLimit?: number }).quotaLimit;
+        const ok = window.confirm(
+          `무료 재생성을 모두 사용했어요.${qLimit ? `\n(이 작업 무료 ${qLimit}회 — 카피·이미지 합산)` : ''}\n\n계속하면 ${cost}크레딧이 차감됩니다. 진행할까요?`,
+        );
+        if (!ok) return null;
+        // 멱등키 — 같은 키 재사용은 서버가 막는다(이중차감 방지)
+        r = await call({ chargeExtra: true, extraChargeKey: crypto.randomUUID() });
+      }
+      if (r.status === 402) {
+        window.alert(String((r.data as { error?: string }).error ?? '크레딧이 부족해요.'));
+        return null;
+      }
+      return (r.data as { section?: Section }).section ?? null;
     } catch (err) {
       console.error('[regenFn] error:', err);
       return null;

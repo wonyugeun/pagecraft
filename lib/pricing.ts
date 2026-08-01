@@ -68,7 +68,14 @@ export const IMAGE_QUOTA_PER_SECTION = 1;
 export const REGEN_UNIT_SECTIONS = 16;
 export const REGEN_FREE_PER_UNIT = 10;
 
-/** 결제된 섹션 수 → jobKey당 무료 재생성 장수(첫 생성분 제외). 16섹션=10, 32섹션=20, 1섹션=0 */
+/* ★재생성 통합(2026-08-01 유근님 확정) — 카피와 이미지가 무료 재생성 한 통을 나눠 쓴다.
+ *  이전엔 이미지 5장 + 카피 무제한(섹션×3+10)으로 따로였다. 카피 재생성이 사실상 공짜라
+ *  원가가 새고 있었고, 셀러 입장에서도 "이미지는 5번, 카피는 몇 번?"이 헷갈렸다.
+ *  이제 8섹션이면 카피·이미지 합쳐 5회가 무료이고, 그 뒤로는 둘 다 1크레딧이다.
+ *  ⚠️'첫 생성'은 이 통에서 빠진다 — 섹션당 이미지 1장은 생성 비용에 이미 포함된 몫이다.
+ *    그래서 카운터를 둘로 나눈다: imgfirst:{jobKey}:{섹션} (섹션당 1장) / freeregen:{jobKey} (공용). */
+
+/** 결제된 섹션 수 → jobKey당 무료 재생성 횟수(첫 생성분 제외, 카피·이미지 공용). 8섹션=5, 16섹션=10 */
 export function calculateFreeRegenQuota(paidSections: number): number {
   const sections = Math.min(Math.max(Math.floor(paidSections) || MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
   return Math.floor((sections * REGEN_FREE_PER_UNIT) / REGEN_UNIT_SECTIONS);

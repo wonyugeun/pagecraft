@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPaidJob, creditsBypassEnabled, consumeUsageQuota, checkRateLimit, clientIp, deductCreditsAtomic, refundImageExtraCharge } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
-import { calculateImageQuota, imageQuotaWeight } from '@/lib/pricing';
+import { calculateFreeRegenQuota, imageQuotaWeight } from '@/lib/pricing';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 
 /**
@@ -228,12 +228,19 @@ export async function POST(req: NextRequest) {
   // ★남은 무료 재생성 안내(2026-07-27) — 성공 응답에도 실어 셀러가 잔여 장수를 화면에서 볼 수 있게.
   let quotaInfo: { limit: number; used: number; freeRegenLeft: number } | null = null;
   if (paidSections !== null) {
-    const quotaLimit = calculateImageQuota(paidSections);
+    const quotaLimit = calculateFreeRegenQuota(paidSections);
     const weight = imageQuotaWeight(quality);
     try {
-      const q = await consumeUsageQuota(`img:${jobKey}`, weight, quotaLimit);
+      /* ★재생성 통합(2026-08-01) — 첫 생성과 재생성을 분리해 카운트한다.
+       *  · imgfirst:{jobKey}:{섹션}  섹션당 1장은 항상 무료(생성 비용에 포함된 몫)
+       *  · freeregen:{jobKey}        그 이후는 카피 재생성과 '한 통'을 나눠 쓴다(8섹션 5회)
+       *  분리하지 않으면 카피를 먼저 다시 뽑았을 때 이미지 첫 생성분을 까먹어,
+       *  아직 안 만든 섹션이 유료가 되는 사고가 난다. */
+      const first = await consumeUsageQuota(`imgfirst:${jobKey}:${sectionNum}`, 1, 1);
+      const q = first.allowed
+        ? { allowed: true, used: 0 }                                    // 첫 장 — 공용 통을 건드리지 않는다
+        : await consumeUsageQuota(`freeregen:${jobKey}`, weight, quotaLimit);
       if (q.allowed) {
-        // 첫 생성분(섹션당 1장)을 뺀 '무료 재생성' 잔여 — 음수는 0으로
         quotaInfo = { limit: quotaLimit, used: q.used, freeRegenLeft: Math.max(0, quotaLimit - q.used) };
       }
       if (!q.allowed) {

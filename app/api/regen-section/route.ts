@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { consumeUsageQuota, verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp } from '@/lib/db';
+import { consumeUsageQuota, verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp, deductCreditsAtomic } from '@/lib/db';
+import { calculateFreeRegenQuota } from '@/lib/pricing';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
@@ -13,7 +14,8 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const maxDuration = 60;   // ★배포 안정화: Claude 1회 호출 — 플랫폼 기본 한도에 잘리지 않게 명시
 
 export async function POST(req: NextRequest) {
-  const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName, jobKey } = await req.json();
+  const { cat, ch, type, out, productName, productExtra, sectionNum, sectionName, jobKey,
+          chargeExtra, extraChargeKey } = await req.json();
 
   // ── ★유료 뒷문 가드(P0 2차) — Claude 호출 전: 결제된 jobKey 검증.
   //    이번 범위는 추가 차감 없음(기본 생성 크레딧 포함) — 추후 pricing 확장 슬롯
@@ -29,14 +31,34 @@ export async function POST(req: NextRequest) {
     }
     const check = await verifyPaidJob(email, jobKey);
     if (!check.ok) return NextResponse.json({ error: check.error, code: check.code }, { status: check.status });
-    // ★jobKey당 재작성 상한(2026-07-27 보안점검) — 결제된 섹션 수 기준 넉넉한 상한(섹션당 3회 + 10).
-    //   상한이 없으면 결제된 jobKey 하나로 무한 Sonnet 재작성이 가능했다(잔액 0에서도).
-    const cap = await consumeUsageQuota(`regen:${jobKey}`, 1, check.paidSections * 3 + 10);
+    /* ★재생성 통합(2026-08-01) — 카피와 이미지가 무료 재생성 한 통(freeregen:{jobKey})을 나눠 쓴다.
+     *  이전엔 카피만 섹션×3+10회가 사실상 공짜여서 원가가 샜고, 셀러도 "이미지는 5번, 카피는?"이 헷갈렸다.
+     *  한도를 넘으면 이미지와 똑같이 1크레딧을 차감한다 — 다만 클라 확인 없이 돈이 빠지면 안 되므로
+     *  1차 응답은 무과금 안내(quotaExhausted)로 돌려주고, 확인 후 chargeExtra로 다시 부른다. */
+    const free = calculateFreeRegenQuota(check.paidSections);
+    const cap = await consumeUsageQuota(`freeregen:${jobKey}`, 1, free);
     if (!cap.allowed) {
-      return NextResponse.json(
-        { error: '이 작업의 카피 재생성 횟수를 모두 사용했어요. 새로 생성해주세요.', code: API_ERROR_CODES.rateLimited },
-        { status: 429 },
-      );
+      if (!chargeExtra || typeof extraChargeKey !== 'string' || !extraChargeKey.trim() || !email) {
+        return NextResponse.json(
+          { error: '무료 재생성을 모두 사용했어요. 추가 재생성은 1크레딧이 차감돼요.',
+            code: API_ERROR_CODES.quotaExhausted, quotaLimit: free, quotaUsed: cap.used, extraCost: 1 },
+          { status: 429 },
+        );
+      }
+      // ★키 재사용 차단 — 같은 키로 무한 재작성이 되지 않게 1회용 강제(이미지 경로와 동일 방식)
+      const key = `copy-extra:${jobKey}:${extraChargeKey.trim().slice(0, 64)}`;
+      const claim = await consumeUsageQuota(`copy-extra-use:${key}`, 1, 1);
+      if (!claim.allowed) {
+        return NextResponse.json({ error: '이미 사용된 추가 재생성 요청이에요. 다시 시도해주세요.' }, { status: 409 });
+      }
+      const r = await deductCreditsAtomic(email, 1, key, 'copy-regen-extra');
+      if (r.status === 'insufficient') {
+        return NextResponse.json(
+          { error: `크레딧이 부족해요. (추가 재생성 1크레딧 / 보유 ${r.balance})`,
+            code: API_ERROR_CODES.insufficientCredits, balance: r.balance },
+          { status: 402 },
+        );
+      }
     }
   }
 

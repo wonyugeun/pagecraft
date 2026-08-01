@@ -385,15 +385,36 @@ export default function ResultMobile() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionImages, blockImages]);
 
+  /* ★카피 재생성 — 무료분은 이미지와 한 통(8섹션 5회). 소진 시 동의 후 1크레딧(데스크탑과 동일 흐름) */
   const regenFn = useCallback(async (sec: Section): Promise<Section | null> => {
-    try {
+    const body = {
+      cat, ch, type, out, productName, productExtra,
+      sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined,
+    };
+    const call = async (extra?: Record<string, unknown>) => {
       const res = await fetch('/api/regen-section', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cat, ch, type, out, productName, productExtra, sectionNum: sec.num, sectionName: sec.name, jobKey: generationJobKey ?? undefined }),
+        body: JSON.stringify({ ...body, ...extra }),
         signal: AbortSignal.timeout(30_000),
       });
-      const data = await res.json();
-      return data.section ?? null;
+      return { status: res.status, data: await res.json() as Record<string, unknown> };
+    };
+    try {
+      let r = await call();
+      if (r.status === 429 && (r.data as { code?: string }).code === 'quota_exhausted') {
+        const cost = (r.data as { extraCost?: number }).extraCost ?? 1;
+        const qLimit = (r.data as { quotaLimit?: number }).quotaLimit;
+        const ok = window.confirm(
+          `무료 재생성을 모두 사용했어요.${qLimit ? `\n(이 작업 무료 ${qLimit}회 — 카피·이미지 합산)` : ''}\n\n계속하면 ${cost}크레딧이 차감됩니다. 진행할까요?`,
+        );
+        if (!ok) return null;
+        r = await call({ chargeExtra: true, extraChargeKey: crypto.randomUUID() });
+      }
+      if (r.status === 402) {
+        window.alert(String((r.data as { error?: string }).error ?? '크레딧이 부족해요.'));
+        return null;
+      }
+      return (r.data as { section?: Section }).section ?? null;
     } catch (err) {
       console.error('[regenFn] error:', err);
       return null;
