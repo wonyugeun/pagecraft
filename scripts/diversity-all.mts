@@ -36,6 +36,11 @@ interface Raw {
   visual?: Visual; sections: Sec[];
 }
 
+/* ★슬라이드형은 카피가 이미지에 박혀 나온다 — 실제 다운로드 파일도 이미지만 세로로 쌓는다.
+ *  블로그처럼 헤드라인·본문을 따로 그리면 같은 글자가 두 번 보여 검수가 틀린다.
+ *  폴더 이름으로 판정한다(diversity-slide). */
+const IS_SLIDE = REL.includes('slide');
+
 function markHtml(t: string, accent: string, src: string): string {
   let h = esc(t)
     .replace(/\*\*([\s\S]+?)\*\*/g, '<b>$1</b>')
@@ -125,7 +130,11 @@ for (const d of dirs) {
     <td class="${fabs.length ? 'warn' : 'ok'}">${fabs.length ? fabs.join(', ') : '0건'}</td>
   </tr>`);
 
-  const secHtml = raw.sections.map((s, idx) => {
+  const secHtml = IS_SLIDE
+    ? raw.sections.map(s => files[s.num]
+        ? `<img class="slide" src="${files[s.num]}" alt="${esc(s.name)}">`
+        : `<div class="miss">이미지 없음 — ${esc(s.name)}</div>`).join('')
+    : raw.sections.map((s, idx) => {
     const t = {
       primary: s.visual?.primary_color ?? pv.primary_color,
       soft: s.visual?.soft_color ?? pv.soft_color,
@@ -153,6 +162,7 @@ for (const d of dirs) {
       <details><summary>▸ 셀러가 입력한 상품정보 (${p.fields.length}항목)</summary>
         <div class="fields">${p.fields.map(f => `<div>${esc(f)}</div>`).join('')}</div></details>
     </div>
+    ${IS_SLIDE ? '<div class="slidenote">슬라이드형은 카피가 이미지에 합성돼 나옵니다 — 실제 다운로드 파일과 같이 이미지만 세로로 쌓아 보여줍니다.</div>' : ''}
     ${secHtml}
   </div>`);
 }
@@ -223,12 +233,14 @@ const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
  .cta{border-radius:20px;border:1px solid var(--sb);background:var(--soft);padding:28px;text-align:center}
  .cta span{display:inline-block;background:var(--p);color:#fff;font-weight:800;border-radius:999px;padding:11px 26px;margin-top:11px}
  .miss{background:#fee;color:#c00;padding:18px;border-radius:10px;text-align:center;font-size:13px}
+ .slide{width:100%;display:block;margin:0;padding:0}
+ .slidenote{background:#FFF9E8;border-bottom:1px solid #FFE9A8;padding:11px 26px;font-size:12px;color:#7A5C00;line-height:1.7}
  .fab{background:#FFE3E3;color:#C92A2A;border-radius:3px;padding:0 3px;font-weight:700}
  @media(max-width:900px){.wrap{grid-template-columns:1fr}nav{position:static;height:auto}}
 </style></head><body>
 <div class="wrap">
 <nav>
-  <h1>다양성 테스트</h1>
+  <h1>다양성 테스트</h1>\n  <div class="sub" style="margin-bottom:8px">${IS_SLIDE ? '슬라이드형' : '블로그형'}</div>
   <div class="sub">신규 상품 ${dirs.length}종 · 블로그형 8섹션<br>모델이 비율 선택 · salesMode ON</div>
   <a href="#summary">📊 요약 지표</a>
   ${dirs.map(d => `<a href="#${esc(d)}">${esc(d.replace(/^\d+-/, ''))}</a>`).join('')}

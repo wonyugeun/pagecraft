@@ -24,15 +24,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const BASE_URL = process.env.FLIK_BASE_URL ?? 'http://localhost:3000';
 const PHOTO_DIR = path.join(ROOT, 'test-assets', 'diversity');
-const OUT_ROOT = path.join(ROOT, 'runs', 'diversity');
+const OUT_ROOT = path.join(ROOT, 'runs', process.argv.includes('--out') && process.argv[process.argv.indexOf('--out')+1] === 'slide' ? 'diversity-slide' : 'diversity');
 
 import { createJob, runJob, getJobResult } from '../lib/pipelineJob';
 import type { StageCall } from '../lib/pipelineJob';
 import { aspectRatioFor } from '../lib/sectionAspect';
+import { buildSectionBrief } from '../lib/adBrief';
 import { runPool } from '../lib/asyncPool';
 import { TEST_PRODUCTS, type TestProduct } from './test-products';
 
 const SECTION_COUNT = 8;
+/** ★출력형태 — 블로그·슬라이드 원가/리듬 구조가 달라 둘 다 확인해야 한다(--out slide) */
+const OUT = (process.argv[process.argv.indexOf('--out') + 1] === 'slide' ? 'slide' : 'blog') as 'blog' | 'slide';
 
 /** ⚠️process.env에도 반드시 넣는다 — 파이프라인 청킹·판매모드 판정(salesModeOn)이 이 프로세스에서
  *  일어나므로, 반환값만 쓰면 플래그가 꺼진 채로 돌아 '켜고 테스트했다고 착각'하게 된다(2026-08-01 실측). */
@@ -88,7 +91,7 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
   /* ── 1. 카피 파이프라인 ── */
   const t0 = Date.now();
   const job = createJob({
-    cat: p.cat, ch: p.ch, out: 'blog',
+    cat: p.cat, ch: p.ch, out: OUT,
     productName: p.productName, productExtra: p.fields.join('\n'),
     sectionCount: SECTION_COUNT,
     jobKey: crypto.randomUUID(),
@@ -124,12 +127,23 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
   interface Task { key: string; file: string; prompt: string; aspect: string; label: string }
   const tasks: Task[] = [];
   result.sections.forEach((sec, i) => {
-    const prompt = sec.imageBrief?.prompt || sec.imageBrief?.mood || '';
+    /* ★출력형태별로 프롬프트 소스가 다르다 — 실제 앱(ResultScreen.generateImage)과 같아야 한다.
+     *  블로그형: imagebrief의 prompt(글자 없는 깨끗한 사진)
+     *  슬라이드형: buildSectionBrief(headline·subcopy 포함) — 글자를 이미지에 합성하라는 지시
+     *  이걸 안 맞춰서 슬라이드 테스트가 '글자 없는 사진'만 뽑혔다(2026-08-01). */
+    const prompt = OUT === 'slide'
+      ? buildSectionBrief({
+          productName: p.productName, productExtra: p.fields.join('\n'),
+          headline: sec.headline, subcopy: sec.subcopy, visual: result.visual,
+          director: null, sectionName: sec.name, sectionIndex: i,
+          auxRefCount: Math.max(0, refs.length - 1),
+        })
+      : (sec.imageBrief?.prompt || sec.imageBrief?.mood || '');
     if (prompt) {
       tasks.push({
         key: sec.num, file: `sec${String(i + 1).padStart(2, '0')}.png`, prompt,
         // 브리프 우선 — imagebrief가 페이지 전체를 보고 넣은 리듬 보정을 그대로 쓴다
-        aspect: (sec.imageBrief?.ratio as string | undefined) ?? aspectRatioFor(sec.name, undefined, 'blog'),
+        aspect: (sec.imageBrief?.ratio as string | undefined) ?? aspectRatioFor(sec.name, undefined, OUT),
         label: `${i + 1}.${sec.name}`,
       });
     }
@@ -149,7 +163,7 @@ async function runOne(p: TestProduct, authHeaders: Record<string, string>, copyO
       method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({
         prompt: t.prompt, sectionNum: t.key, productImages: refs,
-        outputType: 'blog', aspectRatio: t.aspect, jobKey: job.input.jobKey,
+        outputType: OUT, aspectRatio: t.aspect, jobKey: job.input.jobKey,
       }),
     });
     const data = await res.json() as { imageBase64?: string; error?: string };
@@ -192,7 +206,7 @@ async function main() {
 
   fs.mkdirSync(OUT_ROOT, { recursive: true });
   console.log(`다양성 테스트 — ${targets.length}종 × ${SECTION_COUNT}섹션 (${BASE_URL})`);
-  console.log(`판매모드(COPY_SALES_MODE) ${process.env.COPY_SALES_MODE === '1' ? 'ON' : 'OFF'}\n`);
+  console.log(`출력형태 ${OUT} · 판매모드(COPY_SALES_MODE) ${process.env.COPY_SALES_MODE === '1' ? 'ON' : 'OFF'}\n`);
 
   const metrics: Metric[] = [];
   for (const [i, p] of targets.entries()) {
