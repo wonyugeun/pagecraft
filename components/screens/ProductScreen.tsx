@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset, TEST_PRESETS, type TestPreset } from '@/lib/testPresets';
@@ -1175,7 +1175,7 @@ export default function ProductScreen() {
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
       <StepHeader
-        step={5} label="상품 정보"
+        step={STEP_MAP['s5'] ?? 5} label="상품 정보"
         title="상품 정보를 입력해주세요"
         sub={`${cat} · ${ch} · ${type} 기준 — 꼭 필요한 정보만 물어볼게요`}
         marginBottom={24}

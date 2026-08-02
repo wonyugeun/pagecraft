@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
@@ -131,7 +131,7 @@ export default function SectionStructureScreen() {
   return (
     <div className="inner">
       <StepHeader
-        step={6} label="섹션 구조"
+        step={STEP_MAP['s5b'] ?? 6} label="섹션 구조"
         title="섹션 구조를 확인해주세요"
         sub={`${fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'} — 순서 변경·추가·삭제가 가능해요`}
         marginBottom={28}

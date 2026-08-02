@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, ShoppingCart, Rocket, Store, Lightbulb, type LucideIcon } from 'lucide-react';
 import { R, SHADOW, ICON } from '@/lib/designTokens';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
 import ChannelMobile from './ChannelMobile';
@@ -85,7 +85,7 @@ export default function ChannelScreen() {
       <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px 90px' }}>
 
         <StepHeader
-          step={2} label="판매 채널"
+          step={STEP_MAP['s2'] ?? 2} label="판매 채널"
           title={<>어디에서 <span style={{ color: '#6D4CFF' }}>판매</span>하시나요?</>}
           sub="채널을 선택하면 페이지 구조가 채널 특성에 맞게 설계돼요"
         />

@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { TOTAL_STEPS } from '@/store/AppContext';
 
 /**
  * 플로우 공용 헤더(2026-07-27 폴리시 스프린트) — 모든 생성 단계 화면의 타이틀 규격을 하나로.
@@ -24,7 +25,8 @@ export default function StepHeader({ step, label, title, sub, marginBottom = 36 
         fontSize: 12, fontWeight: 700, color: '#6D4CFF', letterSpacing: '0.05em',
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
-        STEP {step}/9 · {label}
+        {/* ★총 단계는 하드코딩하지 않는다 — 플로우가 9→6으로 줄었을 때 여기만 남아 'STEP 1/9'를 보여줬다 */}
+        STEP {step}/{TOTAL_STEPS} · {label}
       </div>
       <h1 style={{
         fontSize: 28, fontWeight: 800, color: '#191F28',

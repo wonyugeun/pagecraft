@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { calculateGenerationCost } from '@/lib/pricing';
-import { useApp, CH_CFG } from '@/store/AppContext';
+import { useApp, CH_CFG, STEP_MAP } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
 import TypeExampleModal from '@/components/modals/TypeExampleModal';
@@ -122,7 +122,7 @@ export default function TypeScreen() {
     <div style={{ maxWidth: '1240px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       <StepHeader
-        step={3} label="타입"
+        step={STEP_MAP['s3'] ?? 3} label="타입"
         title={<>어떤 <span style={{ color: '#6D4CFF' }}>방향으로</span> 만들까요?</>}
         sub={<>AI가 카테고리·채널·상품을 분석해 적정 섹션 수를 자동 추천해요 — <b style={{ color: '#6D4CFF', fontWeight: 600 }}>방향만 정하면 됩니다</b></>}
       />

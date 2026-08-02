@@ -6,7 +6,7 @@ import {
   Bot, Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, Car, Dumbbell,
   Gift, ChevronRight,
 } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import CategoryMobile from './CategoryMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -59,7 +59,7 @@ export default function CategoryScreen() {
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '36px 48px 60px' }}>
 
           <StepHeader
-            step={1} label="카테고리"
+            step={STEP_MAP['s1'] ?? 1} label="카테고리"
             title={<>어떤 <span style={{ color: '#6D4CFF' }}>카테고리</span>의 상세페이지를 만들까요?</>}
             sub="카테고리를 선택하면 최적화된 기획 구조로 자동 설계됩니다"
           />

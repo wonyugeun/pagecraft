@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { compressUpload } from '@/lib/imageCompress';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
 import ImageMobile from './ImageMobile';
@@ -216,7 +216,7 @@ export default function ImageScreen() {
       fontFamily: 'var(--f)',
     }}>
       <StepHeader
-        step={7} label="이미지"
+        step={STEP_MAP['s6'] ?? 7} label="이미지"
         title="제품 사진 한 장만 주세요"
         sub={<>제품이 잘 보이는 사진이면 충분해요 — AI가 <b style={{ color: '#6D4CFF', fontWeight: 700 }}>{secCount}개 섹션</b>에 필요한 이미지를 전부 만들어요</>}
         marginBottom={28}

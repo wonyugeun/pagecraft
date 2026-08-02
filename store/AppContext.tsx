@@ -308,6 +308,9 @@ export const CHAT_A: Record<string, string> = {
  *  ⚠️검증 전까지 플래그로 가른다 — 끄면 기존 9단계로 즉시 복귀한다. */
 export const NEW_START_FLOW = (process.env.NEXT_PUBLIC_NEW_START_FLOW ?? '1') === '1';
 
+/** 진행 표시·STEP 배지가 함께 보는 총 단계 수 — 한 곳에서만 정한다 */
+export const TOTAL_STEPS = NEW_START_FLOW ? 6 : 9;
+
 export const STEP_MAP: Record<string, number> = NEW_START_FLOW
   ? { s1: 1, 's5-5': 1, s5: 2, 's5b': 3, s6: 4, s7: 5, s8: 6 }
   : { s1: 1, s2: 2, s3: 3, 's5-5': 3, s3b: 4, s5: 5, 's5b': 6, s6: 7, s7: 8, s8: 9 };

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, HeartPulse, Car, Box, ChevronDown } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
 import StepHeader from '@/components/layout/StepHeader';
 
@@ -125,9 +125,14 @@ export default function StartScreen() {
   };
 
   return (
-    <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
+    /* ★폭 1040(2026-08-02) — 760은 데스크탑에서 가운데 좁은 띠처럼 보였다.
+     *  넓히기만 하면 카드가 늘어져 오히려 허전하므로, 남는 가로를 '채널↔추천'을
+     *  나란히 놓는 데 쓴다. 세로 스크롤이 줄고 고른 결과를 바로 옆에서 확인하게 된다.
+     *  ⚠️미디어쿼리 대신 auto-fit/minmax로 접는다 — 인라인 스타일이라 @media를 못 쓰고,
+     *    창을 줄이면 한 줄로 무너지며 원래 읽는 순서(채널→추천)가 그대로 유지된다. */
+    <div style={{ maxWidth: 1040, margin: '0 auto', padding: '48px 28px 110px', fontFamily: 'var(--f)' }}>
       <StepHeader
-        step={1} label="시작"
+        step={STEP_MAP['s1'] ?? 1} label="시작"
         /* ★"상품명만 입력하면"이라고 쓰지 않는다(2026-08-02) — 다음 화면이 상품정보 폼이라
          *  거짓이 되고, 그 지점에서 배신감이 이탈을 만든다. "전환되는"도 쓰지 않는다 —
          *  실증할 수 없는 효과 주장(표시광고법)이고, 셀러에겐 날조하지 말라면서
@@ -138,28 +143,29 @@ export default function StartScreen() {
 
       {/* 상품명 — 첫 화면에서 바로 자기 일을 시작하게 */}
       <div style={{
-        border: `2px solid ${productName.trim() ? '#6D4CFF' : '#E5E5EC'}`, borderRadius: 14,
-        padding: '15px 17px', display: 'flex', alignItems: 'center', gap: 11,
-        background: productName.trim() ? '#FBFAFF' : '#fff', marginBottom: 9,
+        border: `2px solid ${productName.trim() ? '#6D4CFF' : '#E5E5EC'}`, borderRadius: 16,
+        padding: '19px 22px', display: 'flex', alignItems: 'center', gap: 13,
+        background: productName.trim() ? '#FBFAFF' : '#fff', marginBottom: 10,
       }}>
-        <span style={{ fontSize: 17 }}>🛍️</span>
+        <span style={{ fontSize: 20 }}>🛍️</span>
         <input
           value={productName}
           onChange={e => setProductName(e.target.value)}
           placeholder="상품명을 입력해주세요"
           style={{
-            border: 'none', outline: 'none', fontSize: 16, fontFamily: 'inherit',
+            border: 'none', outline: 'none', fontSize: 17.5, fontFamily: 'inherit',
             flex: 1, background: 'transparent', color: '#191F28',
           }}
         />
       </div>
-      <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 26, paddingLeft: 3 }}>
+      <div style={{ fontSize: 12.5, color: '#8B95A1', marginBottom: 32, paddingLeft: 3 }}>
         예) 제주 접짝뼈국 밀키트 800g · 오버핏 울 니트 가디건
       </div>
 
       {/* 카테고리 */}
       <Label>카테고리</Label>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(108px, 1fr))', gap: 8, marginBottom: showAllCats ? 22 : 10 }}>
+      {/* minmax(150px) — 1040 폭에서 기본 6개가 정확히 한 줄, 창을 줄이면 알아서 접힌다 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginBottom: showAllCats ? 28 : 11 }}>
         {visibleCats.map(c => {
           const on = cat === c.id;
           const Icon = c.icon;
@@ -167,17 +173,17 @@ export default function StartScreen() {
             <div
               key={c.id} onClick={() => setCat(c.id)}
               style={{
-                border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 13,
-                padding: '12px 9px', textAlign: 'center', cursor: 'pointer',
+                border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 14,
+                padding: '17px 11px', textAlign: 'center', cursor: 'pointer',
                 background: on ? '#FBFAFF' : '#fff', transition: 'all 120ms ease',
               }}
             >
               <div style={{
-                width: 32, height: 32, borderRadius: 10, background: c.bg, color: c.fg,
-                display: 'grid', placeItems: 'center', margin: '0 auto 7px',
-              }}><Icon size={16} /></div>
-              <b style={{ display: 'block', fontSize: 12.5, fontWeight: 700 }}>{c.id}</b>
-              <span style={{ display: 'block', fontSize: 10.5, color: '#8B95A1', marginTop: 2, lineHeight: 1.4 }}>{c.desc}</span>
+                width: 40, height: 40, borderRadius: 12, background: c.bg, color: c.fg,
+                display: 'grid', placeItems: 'center', margin: '0 auto 9px',
+              }}><Icon size={20} /></div>
+              <b style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{c.id}</b>
+              <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 3, lineHeight: 1.45 }}>{c.desc}</span>
             </div>
           );
         })}
@@ -186,40 +192,47 @@ export default function StartScreen() {
         <div
           onClick={() => setShowAllCats(true)}
           style={{
-            textAlign: 'center', fontSize: 12.5, color: '#6D4CFF', fontWeight: 700,
-            padding: 9, border: '1px dashed #D9CDFF', borderRadius: 10, marginBottom: 22, cursor: 'pointer',
+            textAlign: 'center', fontSize: 13, color: '#6D4CFF', fontWeight: 700,
+            padding: 11, border: '1px dashed #D9CDFF', borderRadius: 11, marginBottom: 28, cursor: 'pointer',
           }}
         >＋ 다른 카테고리 보기</div>
       )}
 
-      {/* 채널 */}
-      <Label hint="채널에 맞는 형태를 추천해드려요">어디에 올리시나요?</Label>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-        {CHANNELS.map(c => {
-          const on = ch === c.id;
-          return (
-            <div
-              key={c.id} onClick={() => pickChannel(c)}
-              style={{
-                border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 12,
-                padding: '13px 14px', cursor: 'pointer', background: on ? '#FBFAFF' : '#fff', position: 'relative',
-              }}
-            >
-              {c.popular && (
-                <span style={{
-                  position: 'absolute', top: 10, right: 11, fontSize: 10, fontWeight: 800,
-                  color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '2px 7px',
-                }}>가장 많이 써요</span>
-              )}
-              <b style={{ fontSize: 13.5 }}>{c.id}</b>
-              <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 2 }}>{c.desc}</span>
-            </div>
-          );
-        })}
-      </div>
+      {/* 채널 ↔ 추천을 나란히 — 고른 즉시 옆에서 결과가 바뀌는 게 보인다 */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(370px, 1fr))',
+        gap: 20, alignItems: 'start', marginBottom: 30,
+      }}>
+        <div>
+          <Label hint="채널에 맞는 형태를 추천해드려요">어디에 올리시나요?</Label>
+          {/* 세로 한 줄 — 오른쪽 추천 카드와 높이가 맞고, 채널 설명도 잘려 보이지 않는다 */}
+          <div style={{ display: 'grid', gap: 9 }}>
+            {CHANNELS.map(c => {
+              const on = ch === c.id;
+              return (
+                <div
+                  key={c.id} onClick={() => pickChannel(c)}
+                  style={{
+                    border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 13,
+                    padding: '15px 17px', cursor: 'pointer', background: on ? '#FBFAFF' : '#fff', position: 'relative',
+                  }}
+                >
+                  {c.popular && (
+                    <span style={{
+                      position: 'absolute', top: 13, right: 14, fontSize: 10.5, fontWeight: 800,
+                      color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '3px 8px',
+                    }}>가장 많이 써요</span>
+                  )}
+                  <b style={{ fontSize: 14.5 }}>{c.id}</b>
+                  <span style={{ display: 'block', fontSize: 12, color: '#8B95A1', marginTop: 3 }}>{c.desc}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-      {/* 추천 — 고르라고 묻지 않고 정해서 보여준다 */}
-      <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 26 }}>
+        {/* 추천 — 고르라고 묻지 않고 정해서 보여준다 */}
+        <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 16, padding: '18px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10 }}>
           <b style={{ fontSize: 13.5, color: '#5B3FD6' }}>
             {channel.id}엔 {effOut === 'blog' ? '블로그형' : '슬라이드형'}을 추천해요
@@ -296,14 +309,17 @@ export default function StartScreen() {
             </p>
           </div>
         )}
+        </div>
       </div>
 
+      {/* 폭이 넓어져도 버튼은 늘리지 않는다 — 1040을 가로지르는 막대는 버튼으로 안 읽힌다 */}
       <button
         onClick={start} disabled={!ready}
         style={{
-          width: '100%', border: 'none', borderRadius: 13, padding: '16px 0',
+          display: 'block', width: '100%', maxWidth: 460, margin: '0 auto',
+          border: 'none', borderRadius: 14, padding: '17px 0',
           background: ready ? '#6D4CFF' : '#F1F1F5', color: ready ? '#fff' : '#B0B8C1',
-          fontSize: 15, fontWeight: 700, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit',
+          fontSize: 15.5, fontWeight: 700, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit',
         }}
       >
         {ready ? '상품정보 입력하러 가기 →' : '상품명과 카테고리를 정해주세요'}

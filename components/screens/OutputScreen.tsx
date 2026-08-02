@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Star, Zap, Check, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
 import StepHeader from '@/components/layout/StepHeader';
 import FlowNav from '@/components/layout/FlowNav';
@@ -169,7 +169,7 @@ export default function OutputScreen() {
     <div style={{ maxWidth: '880px', margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
 
       <StepHeader
-        step={4} label="출력 형태"
+        step={STEP_MAP['s3b'] ?? 4} label="출력 형태"
         title={<>어떤 형태로 <span style={{ color: '#6D4CFF' }}>출력</span>할까요?</>}
         sub={`${ch} · ${type} — 나중에 언제든 변경할 수 있어요`}
       />
