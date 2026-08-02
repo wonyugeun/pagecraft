@@ -1121,43 +1121,9 @@ export default function ProductScreen() {
          *  ⚠️단, 헤드가 부드러워진 만큼 '무엇이 빠지나'는 아래 카드가 구체적으로 말해야 한다.
          *    그 카드를 걷어내고 이 문구만 남기면 셀러는 또 결과를 모른 채 대충 채운다. */
         title="적어주신 만큼 좋아집니다"
-        sub="Flik은 있는 사실로만 씁니다. 지어낸 수치나 후기가 없으니 안심하고 쓰실 수 있고, 대신 적어주신 정보가 곧 페이지의 재료가 돼요."
+        sub="Flik은 있는 사실로만 씁니다. 지어낸 수치나 후기를 만들어 넣지 않으니 안심하고 쓰실 수 있고, 대신 적어주신 정보가 곧 페이지의 재료가 돼요."
         marginBottom={20}
       />
-
-      {/* 시작 화면에서 정한 값 — 카테고리는 질문 구성을 바꾸는 값인데 여기서 보이지 않았다.
-          잘못 골랐으면 폼이 통째로 엉뚱해지므로, 되돌아갈 길을 함께 둔다. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap',
-        border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
-        padding: '11px 15px', marginBottom: 14,
-      }}>
-        {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
-          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#4E5968', fontWeight: 600 }}>
-            {i > 0 && <span style={{ color: '#D8DCE3' }}>·</span>}{v}
-          </span>
-        ))}
-        <button
-          onClick={() => go(prevScreen as any)}
-          style={{
-            marginLeft: 'auto', border: '1px solid #E5E5EC', background: '#fff', color: '#6D4CFF',
-            borderRadius: 8, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >바꾸기</button>
-      </div>
-
-      {/* ⚠️ 법적 경고 — 입력 정보는 그대로 상세페이지에 반영, 책임은 판매자 (입력 처리 로직 불변, 안내 UI만) */}
-      <div style={{
-        display: 'flex', gap: 10, alignItems: 'flex-start',
-        background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 12,
-        padding: '12px 14px', marginTop: 14, marginBottom: 28,
-      }}>
-        <span style={{ fontSize: 15, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
-        <div style={{ fontSize: 12.5, lineHeight: 1.6, color: '#92400E' }}>
-          <b style={{ fontWeight: 700 }}>실측·검증된 정보만 입력해 주세요.</b><br />
-          입력하신 수치·효능·인증 정보는 그대로 상세페이지에 반영됩니다. 과장되거나 사실과 다른 정보 입력 시 표시광고법 위반이 될 수 있으며, 책임은 판매자에게 있습니다.
-        </div>
-      </div>
 
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 
@@ -1679,6 +1645,43 @@ export default function ProductScreen() {
               입력한 정보가 <b>실제 제품과 일치하는 정확한 정보</b>임을 확인합니다. <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(필수)</span>
             </span>
           </label>
+
+          {/* ⚠️ 법적 고지 — 위쪽에 두면 시작하기도 전에 읽을 것만 늘어난다.
+              내용을 지우지 말 것: 입력값은 그대로 페이지에 실리고 책임은 판매자에게 간다.
+              대신 '위반·책임'을 앞세우는 대신 '무엇을 적으면 되는지'를 먼저 말한다. */}
+          <div style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 12,
+            padding: '13px 15px', marginTop: 22,
+          }}>
+            <span style={{ fontSize: 14, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
+            <div style={{ fontSize: 12, lineHeight: 1.7, color: '#6B7684' }}>
+              <b style={{ fontWeight: 700, color: '#4E5968' }}>검증된 정보만 입력해 주세요.</b><br />
+              입력하신 수치·효능·인증은 그대로 페이지에 반영됩니다. 근거 없는 표현은 표시광고법 위반이 될 수 있으니,
+              시험성적서나 실측값으로 확인 가능한 내용만 적어주세요. 이에 대한 책임은 판매자에게 있습니다.
+            </div>
+          </div>
+
+          {/* 시작 화면에서 정한 값 — 카테고리는 질문 구성을 바꾸는 값인데 여기서 보이지 않았다.
+              잘못 골랐으면 폼이 통째로 엉뚱해지므로, 되돌아갈 길을 함께 둔다. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap',
+            border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
+            padding: '11px 15px', marginTop: 12,
+          }}>
+            {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#4E5968', fontWeight: 600 }}>
+                {i > 0 && <span style={{ color: '#D8DCE3' }}>·</span>}{v}
+              </span>
+            ))}
+            <button
+              onClick={() => go(prevScreen as any)}
+              style={{
+                marginLeft: 'auto', border: '1px solid #E5E5EC', background: '#fff', color: '#6D4CFF',
+                borderRadius: 8, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >바꾸기</button>
+          </div>
 
           {/* Navigation footer */}
           <div className="cta-row" style={{ marginTop: 14 }}>
