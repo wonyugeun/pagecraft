@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useApp, STEP_MAP } from '@/store/AppContext';
+import { calculateGenerationCost } from '@/lib/pricing';
 import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
@@ -79,7 +80,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { go, out, secCnt, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -169,6 +170,27 @@ export default function SectionStructureScreen() {
             flexShrink: 0,
           }} />
           <Sparkles size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
+        </div>
+      )}
+
+      {/* ★섹션을 더하고 빼면 크레딧이 바뀐다(2026-08-02) — 여기서 secCnt가 갱신되는데
+          화면엔 개수도 크레딧도 없었다. 시작 화면에서 본 값과 달라졌으면 그 자리에서 알려준다. */}
+      {!recommendLoading && secs.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          border: '1px solid #E6DEFF', background: '#FBFAFF', borderRadius: 12,
+          padding: '12px 15px', marginBottom: 14,
+        }}>
+          <b style={{ fontSize: 13.5, color: '#191F28' }}>{secs.length}섹션</b>
+          <span style={{ color: '#D8DCE3' }}>·</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>
+            {calculateGenerationCost({ sectionCount: secs.length, out })}크레딧
+          </span>
+          {secCnt > 0 && secs.length !== secCnt && (
+            <span style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 999, padding: '3px 10px' }}>
+              처음 고른 {secCnt}섹션에서 바뀌었어요
+            </span>
+          )}
         </div>
       )}
 

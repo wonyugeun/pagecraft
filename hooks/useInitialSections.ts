@@ -19,7 +19,7 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
  *                 생기는 '이중 인스턴스'가 store를 덮어쓰지 않게(데스크탑 인스턴스 enabled=!isMobile).
  */
 export function useInitialSections(enabled: boolean = true) {
-  const { cat, ch, type, productName, productExtra, referenceAnalysis, captureAnalysis,
+  const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
     sectionStructure, setSectionStructure, originalSections, setOriginalSections } = useApp();
 
   const [recommendLoading, setRecommendLoading] = useState(false);
@@ -41,9 +41,22 @@ export function useInitialSections(enabled: boolean = true) {
 
     const depth: '간결' | '풍부' =
       (type === '풍부' || type === '프리미엄형') ? '풍부' : '간결';
-    const fallback = (): string[] =>
-      CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
-      ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
+    /* ★폴백도 고른 개수에 맞춘다(2026-08-02) — CAT_DEFAULTS는 9~13개 고정이라
+     *  AI 추천이 실패하면 8/16/32 중 무엇을 골랐든 같은 개수가 나왔다. */
+    const fallback = (): string[] => {
+      const base = CAT_DEFAULTS[cat || '']?.[type || '기본형'] ??
+        ['히어로', '공감', 'USP', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
+      const n = secCnt > 0 ? secCnt : base.length;
+      if (base.length === n) return [...base];
+      const tail = base[base.length - 1];                       // CTA는 항상 끝
+      if (base.length > n) return [...base.slice(0, n - 1), tail];
+      const out = base.slice(0, -1);
+      const extra = ['상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '보관/관리'];
+      for (const e of extra) { if (out.length >= n - 1) break; if (!out.includes(e)) out.push(e); }
+      let i = 2;
+      while (out.length < n - 1) out.push(`추가 섹션 ${i++}`);
+      return [...out, tail];
+    };
 
     setRecommendLoading(true);
     fetch('/api/recommend-sections', {
@@ -54,6 +67,7 @@ export function useInitialSections(enabled: boolean = true) {
         ch: ch ?? '스마트스토어',
         productName: productName ?? '',
         depth,
+        sectionCount: secCnt || undefined,   // ★셀러가 고른 8/16/32가 우선한다
         productExtra: productExtra ?? undefined,
       }),
       signal: AbortSignal.timeout(60_000),

@@ -5,7 +5,8 @@
  *   - cat: 카테고리 (예: '화장품')
  *   - ch: 판매 채널 (예: '스마트스토어' | '쿠팡' | '와디즈' | '자사몰')
  *   - productName: 상품명
- *   - depth: '간결' | '풍부'  — 카테고리 기준값 분기
+ *   - sectionCount?: 셀러가 시작 화면에서 고른 섹션 수(8/16/32) — 있으면 이 값이 우선한다.
+ *   - depth: '간결' | '풍부'  — sectionCount가 없을 때만 쓰는 카테고리 기준값 분기(구 흐름)
  *   - productExtra?: 상품 핵심 정보(선택)
  *
  * 처리: Claude가 카테고리·채널·상품·깊이를 보고 적정 섹션 이름 배열만 추천.
@@ -61,6 +62,7 @@ interface ReqBody {
   ch: string;
   productName: string;
   depth: '간결' | '풍부';
+  sectionCount?: number;
   productExtra?: string;
 }
 
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { cat, ch, productName, depth, productExtra } = body;
+  const { cat, ch, productName, depth, sectionCount, productExtra } = body;
 
   if (!cat || !ch || !depth) {
     return NextResponse.json(
@@ -99,7 +101,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const targetCount = computeTargetCount(cat, ch, depth);
+  /* ★셀러가 고른 개수가 있으면 그게 답이다(2026-08-02).
+   *  전에는 카테고리 기준값 × 채널 가중치로 우리가 정했다 — 셀러가 시작 화면에서 16섹션을
+   *  고르고 20크레딧을 확인했는데도 쿠팡이면 0.5가 곱해져 8개가 나왔다(반대로 와디즈는 1.4배).
+   *  고른 값과 만들어지는 값이 다르면 화면에 적힌 크레딧이 거짓이 된다.
+   *  구 9단계 흐름은 sectionCount를 안 보내므로 종전 계산을 그대로 쓴다. */
+  const chosen = Number(sectionCount);
+  const targetCount = Number.isFinite(chosen) && chosen >= 6 && chosen <= 50
+    ? Math.round(chosen)
+    : computeTargetCount(cat, ch, depth);
   const normCat = normalizeCat(cat);
 
   const system = `당신은 대한민국 이커머스 상세페이지 기획 전문가입니다.
@@ -126,7 +136,7 @@ export async function POST(req: NextRequest) {
 
 [출력 규칙]
 - 다른 텍스트 없이 JSON 배열만.
-- 배열 길이는 ${targetCount}개에 정확히 맞춘다(±1 허용).
+- 배열 길이는 정확히 ${targetCount}개. 모자라거나 넘치면 안 된다.
 - 각 원소는 한국어 섹션 이름 문자열.`;
 
   const userPrompt = `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
@@ -187,8 +197,28 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       throw new Error('유효한 섹션 이름이 없습니다.');
     }
 
+    /* ★개수를 코드로 확정한다 — 프롬프트만으로는 모델이 한두 개씩 어긋난다.
+     *  셀러가 본 개수(=크레딧)와 실제 구성이 달라지면 안 되므로, 넘치면 뒤에서 자르되
+     *  마지막 섹션(CTA)은 남기고, 모자라면 흔한 보강 섹션으로 채운다. */
+    const FILLERS = ['상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '비교표', '후기', '보관/관리'];
+    let sized = cleaned;
+    if (cleaned.length > targetCount) {
+      const tail = cleaned[cleaned.length - 1];
+      sized = [...cleaned.slice(0, targetCount - 1), tail];
+    } else if (cleaned.length < targetCount) {
+      sized = [...cleaned];
+      const tail = sized.pop() as string;                 // 마지막(CTA)은 항상 끝에 둔다
+      for (const f of FILLERS) {
+        if (sized.length >= targetCount - 1) break;
+        if (!sized.includes(f) && f !== tail) sized.push(f);
+      }
+      let n = 2;
+      while (sized.length < targetCount - 1) { sized.push(`추가 섹션 ${n++}`); }
+      sized.push(tail);
+    }
+
     return NextResponse.json({
-      sections: cleaned,
+      sections: sized,
       targetCount,
       meta: { cat: normCat, ch, depth, weight: CHANNEL_WEIGHT[ch] ?? 1.0 },
     });
