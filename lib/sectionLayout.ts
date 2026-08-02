@@ -19,8 +19,9 @@ import { classifyCutArchetype } from '@/lib/sectionArchetype';
 export type SectionLayout =
   | 'standard'    // 제목 → 이미지 → 본문 (기본)
   | 'textfirst'   // 제목 → 본문 → 이미지 — 글로 먼저 걸고 사진으로 확인시킨다
-  | 'bleed'       // 이미지가 좌우 여백 없이 화면 끝까지 — 사진이 말하는 섹션
-  | 'compact';    // 이미지를 작게 — 글·수치가 주인공이고 사진은 보조
+  | 'bleed';      // 이미지가 좌우 여백 없이 화면 끝까지 — 사진이 말하는 섹션
+/* ★'compact'(이미지 축소)는 폐기(2026-08-03 유근님) — 근거 섹션이라도 사진이 작아지면
+   페이지가 빈약해 보인다. 상세페이지에서 이미지는 줄이는 게 아니라 키우는 쪽이 맞다. */
 
 const MAX_SAME_RUN = 2;
 
@@ -30,15 +31,13 @@ function byRole(name: string, isFirst: boolean, isLast: boolean): SectionLayout 
     case 'empathy':   return 'textfirst';          // 고민을 글로 먼저 짚어야 사진이 '내 얘기'가 된다
     case 'editorial': return 'bleed';              // 브랜드·감성은 사진이 말한다 — 여백이 방해가 된다
     case 'in_use':    return 'bleed';              // 입고 쓰는 장면은 크게 봐야 산다
-    case 'clinical':
-    case 'ingredient_macro': return 'compact';     // 근거·성분은 글과 수치가 주인공
     default:          return 'standard';
   }
 }
 
 /** 같은 뼈대가 이어질 때 바꿔 앉힐 짝 — 성격이 너무 튀지 않는 것끼리 */
 const PARTNER: Record<SectionLayout, SectionLayout> = {
-  standard: 'textfirst', textfirst: 'standard', bleed: 'standard', compact: 'standard',
+  standard: 'textfirst', textfirst: 'standard', bleed: 'standard',
 };
 
 /**

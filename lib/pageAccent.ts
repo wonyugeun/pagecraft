@@ -15,30 +15,44 @@ import { classifyCutArchetype } from '@/lib/sectionArchetype';
 
 const MARK = /\(\(([^)]+)\)\)/g;
 
-/** 강조가 살아남을 섹션 하나를 고른다 — 짧을수록 꽂히므로 가장 짧은 강조 문장을 남긴다 */
-function pickAccentIndex(bodies: string[], preferIdx?: number): number {
-  if (preferIdx !== undefined && MARK.test(bodies[preferIdx] ?? '')) { MARK.lastIndex = 0; return preferIdx; }
-  MARK.lastIndex = 0;
+/**
+ * 페이지에서 포인트 컬러를 남길 섹션들을 고른다.
+ *
+ * ★한 곳만 남겨봤더니 스크롤 내내 색이 한 번도 안 나와 밋밋했다(2026-08-03 유근님).
+ *   반대로 전 섹션에 있으면 문단 장식이 된다. 페이지 길이에 비례해 두는 게 맞다 —
+ *   대략 다섯 섹션에 한 번, 최소 2곳. 8섹션 2곳 · 16섹션 3곳 · 32섹션 6곳.
+ * ★히어로는 우선 남긴다 — 첫 화면에서 한 줄이 튀어야 페이지의 톤이 정해진다.
+ * ★남긴 자리끼리는 최소 3섹션 떨어뜨린다. 붙어 나오면 두 개가 서로를 죽인다.
+ */
+function pickAccentIndexes(bodies: string[], preferIdx?: number): Set<number> {
+  const marked = bodies
+    .map((b, i) => ({ i, m: (b ?? '').match(/\(\(([^)]+)\)\)/) }))
+    .filter(x => x.m)
+    .map(x => ({ i: x.i, len: x.m![1].length }));
+  if (!marked.length) return new Set();
 
-  let best = -1, bestLen = Infinity;
-  bodies.forEach((b, i) => {
-    if (i === 0 || i === bodies.length - 1) return;      // 히어로·CTA는 이미 강한 자리 — 중간에서 튀어야 한다
-    const m = (b ?? '').match(/\(\(([^)]+)\)\)/);
-    if (!m) return;
-    if (m[1].length < bestLen) { bestLen = m[1].length; best = i; }
-  });
-  if (best >= 0) return best;
-  return bodies.findIndex(b => /\(\([^)]+\)\)/.test(b ?? ''));   // 중간에 없으면 아무 데나 하나
+  const quota = Math.min(6, Math.max(2, Math.round(bodies.length / 5)));
+  const keep = new Set<number>();
+  const take = (i: number) => { keep.add(i); };
+
+  if (preferIdx !== undefined && marked.some(x => x.i === preferIdx)) take(preferIdx);
+  if (marked.some(x => x.i === 0)) take(0);                       // 히어로 우선
+
+  // 남은 자리는 강조 문장이 짧은 순 — 짧을수록 꽂힌다
+  for (const cand of [...marked].sort((a, b) => a.len - b.len)) {
+    if (keep.size >= quota) break;
+    if (keep.has(cand.i)) continue;
+    if ([...keep].some(k => Math.abs(k - cand.i) < 3)) continue;  // 너무 붙으면 서로 죽인다
+    take(cand.i);
+  }
+  return keep;
 }
 
-/**
- * 페이지에서 포인트 컬러를 한 곳만 남긴다. 나머지는 괄호만 벗기고 문장은 그대로 둔다.
- * @param preferIdx 코드가 킬러 라인으로 지정한 섹션(있으면 그 자리를 우선)
- */
+/** 포인트 컬러를 정해진 곳에만 남긴다. 나머지는 괄호만 벗기고 문장은 그대로 둔다. */
 export function limitPageAccent(bodies: string[], preferIdx?: number): string[] {
-  const keep = pickAccentIndex(bodies, preferIdx);
+  const keep = pickAccentIndexes(bodies, preferIdx);
   return bodies.map((b, i) =>
-    i === keep ? (b ?? '') : (b ?? '').replace(/\(\(([^)]+)\)\)/g, '$1'));
+    keep.has(i) ? (b ?? '') : (b ?? '').replace(/\(\(([^)]+)\)\)/g, '$1'));
 }
 
 /**
@@ -50,10 +64,10 @@ export function limitPageAccent(bodies: string[], preferIdx?: number): string[] 
 export function isCenteredSection(
   sectionName: string, body: string, isFirst: boolean, isLast: boolean,
 ): boolean {
-  const len = (body ?? '').trim().length;
-  if (len === 0) return true;
-  if (isFirst || isLast) return true;              // 히어로·CTA
-  if (len <= 90) return true;                      // 두세 줄짜리는 왼쪽으로 붙일 이유가 없다
-  const a = classifyCutArchetype(sectionName ?? '');
-  return a === 'editorial' || a === 'empathy';     // 브랜드 무드·공감은 가운데가 어울린다
+  /* ★역할별로 가운데/왼쪽을 섞어봤다가 되돌렸다(2026-08-03 유근님).
+   *  한 페이지에서 정렬이 오가면 리듬이 아니라 정돈이 안 된 것으로 읽힌다 —
+   *  특히 이미지 폭까지 함께 달라지면 "왜 여긴 왼쪽이지" 하는 어긋남이 먼저 보인다.
+   *  가운데를 기본으로 두고, 센터로는 감당 안 되는 아주 긴 본문만 왼쪽으로 내린다(종전 기준). */
+  void sectionName; void isFirst; void isLast;
+  return (body ?? '').length <= 260;
 }

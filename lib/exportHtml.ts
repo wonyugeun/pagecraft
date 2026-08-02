@@ -334,12 +334,10 @@ export function buildBlogExportHtml(
     // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
     const secImgUrl = compressedSectionUrls[sec.num];
     const lay = layouts[idx];
-    // bleed = 좌우 패딩(48px)을 뚫고 화면 끝까지 · compact = 글이 주인공이라 사진을 줄인다
+    // bleed = 좌우 패딩(48px)을 뚫고 화면 끝까지. 그 외에는 줄이지 않는다(compact 폐기 2026-08-03)
     const imgStyleBySec = lay === 'bleed'
       ? 'width:calc(100% + 96px);max-width:none;display:block;margin:28px -48px;border-radius:0;'
-      : lay === 'compact'
-        ? 'width:100%;max-width:520px;display:block;margin:22px auto;border-radius:16px;'
-        : 'width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;';
+      : 'width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;';
     const imgTag = secImgUrl
       ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel ?? '')}" style="${imgStyleBySec}" />`
       : '';

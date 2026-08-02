@@ -601,16 +601,14 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
   /* ★섹션 뼈대(2026-08-03) — 16개 섹션이 전부 '제목 → 이미지 → 본문'이면 블록·정렬을 바꿔도
      같은 페이지로 읽힌다. 역할과 페이지 흐름이 정한 뼈대대로 이미지 폭과 순서를 바꾼다.
        bleed    = 좌우 여백(36px)을 뚫고 끝까지 — 사진이 말하는 섹션
-       compact  = 사진을 줄인다 — 글·수치가 주인공인 섹션
-       textfirst= 글로 먼저 걸고 사진으로 확인시킨다 — 공감·문제 제기 */
+       textfirst= 글로 먼저 걸고 사진으로 확인시킨다 — 공감·문제 제기
+     ★사진을 줄이는 뼈대(compact)는 폐기했다 — 상세페이지에서 이미지는 키우는 쪽이 맞다. */
   const lay: SectionLayout = layout ?? 'standard';
   const imageEl = !(isFirst && sec.bodyFlow) && sec.imageDesc ? (
     <div style={{
       marginTop: 24,
       marginLeft: lay === 'bleed' ? -36 : undefined,
       marginRight: lay === 'bleed' ? -36 : undefined,
-      maxWidth: lay === 'compact' ? 520 : undefined,
-      marginInline: lay === 'compact' ? 'auto' : undefined,
     }}>
       <ImgSlot
         sec={sec} imgState={imgState} onGenerate={onGenerateImage}
