@@ -7,7 +7,8 @@ import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
-import { Ruler, CheckCircle2, Camera, Sparkles, X, Plus, RotateCcw } from 'lucide-react';
+import { groupSections } from '@/lib/sectionGroups';
+import { Ruler, CheckCircle2, Camera, Sparkles, X, Plus, RotateCcw, GripVertical, Search } from 'lucide-react';
 import { ICON } from '@/lib/designTokens';
 import StepHeader from '@/components/layout/StepHeader';
 
@@ -88,6 +89,21 @@ export default function SectionStructureScreen() {
   const { secs, setSecs, recommendLoading, original } = useInitialSections(active);
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const [addQuery, setAddQuery] = useState('');
+  /* ★칸을 끌어서 옮기기(2026-08-02) — 화살표만으로는 16·32섹션에서 한 칸씩 눌러 올려야 했다.
+   *  화살표도 남긴다: 드래그가 어려운 환경(트랙패드·접근성)에서 유일한 수단이 된다. */
+  const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const dropTo = (to: number) => {
+    setSecs(s => {
+      if (dragFrom === null || dragFrom === to) return s;
+      const n = [...s];
+      const [moved] = n.splice(dragFrom, 1);
+      n.splice(to, 0, moved);
+      return n;
+    });
+    setDragFrom(null); setDragOver(null);
+  };
 
   if (isMobile) return <SectionStructureMobile />;
 
@@ -133,8 +149,8 @@ export default function SectionStructureScreen() {
     <div className="inner">
       <StepHeader
         step={STEP_MAP['s5b'] ?? 6} label="섹션 구조"
-        title="섹션 구조를 확인해주세요"
-        sub={`${fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'} — 순서 변경·추가·삭제가 가능해요`}
+        title="이 순서가 잘 팔려요"
+        sub={`${fromRef ? '레퍼런스 분석을 반영했어요. ' : fromCapture ? '캡처 분석을 반영했어요. ' : ''}고객이 상품을 이해하고 결정하는 순서예요. 빼거나 더하고 싶은 섹션은 편하게 조정하세요.`}
         marginBottom={28}
       />
       {(fromRef || fromCapture) && (
@@ -197,11 +213,23 @@ export default function SectionStructureScreen() {
       {/* 섹션 리스트 */}
       <div style={{ marginBottom: 12 }}>
         {secs.map((sec, i) => (
-          <div key={`${sec}-${i}`} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: '#fff', border: '1px solid var(--bd)',
-            borderRadius: 8, padding: '9px 10px', marginBottom: 6,
-          }}>
+          <div
+            key={`${sec}-${i}`}
+            draggable
+            onDragStart={() => setDragFrom(i)}
+            onDragOver={e => { e.preventDefault(); if (dragOver !== i) setDragOver(i); }}
+            onDrop={e => { e.preventDefault(); dropTo(i); }}
+            onDragEnd={() => { setDragFrom(null); setDragOver(null); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: dragFrom === i ? '#F7F4FF' : '#fff',
+              border: `1px solid ${dragOver === i && dragFrom !== null && dragFrom !== i ? 'var(--pu)' : 'var(--bd)'}`,
+              borderRadius: 8, padding: '9px 10px', marginBottom: 6,
+              opacity: dragFrom === i ? 0.5 : 1,
+              cursor: 'grab', transition: 'border-color 120ms, opacity 120ms',
+            }}
+          >
+            <GripVertical size={15} color="#C3C8D0" style={{ flexShrink: 0 }} />
             <span style={{
               minWidth: 22, height: 22, borderRadius: '50%',
               background: 'var(--pu)', color: '#fff',
@@ -243,25 +271,29 @@ export default function SectionStructureScreen() {
       <div style={{ display: 'flex', gap: 8, marginBottom: showAdd ? 10 : 16 }}>
         <button
           onClick={() => setShowAdd(p => !p)}
+          /* ★두 버튼의 높이를 맞춘다 — 한쪽은 padding 10px 0, 다른 쪽은 10px 14px이라
+             글자 크기·테두리 두께까지 달라 나란히 두면 눈에 띄게 어긋나 보였다. */
           style={{
-            flex: 1, padding: '10px 0', border: '1.5px dashed var(--bd)',
-            borderRadius: 8, background: 'transparent', cursor: 'pointer',
+            flex: 1, height: 42, border: '1.5px dashed var(--bd)',
+            borderRadius: 10, background: 'transparent', cursor: 'pointer',
             fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)', fontWeight: 600,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}
         >
-          {showAdd ? <><X size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />닫기</> : <><Plus size={ICON.sm} style={{ verticalAlign: -2, marginRight: 4 }} />섹션 추가</>}
+          {showAdd ? <><X size={ICON.sm} />닫기</> : <><Plus size={ICON.sm} />섹션 추가</>}
         </button>
         {canReset && (
           <button
             onClick={resetToOriginal}
             title="처음 추천받은 구조로 되돌려요 (무료·즉시)"
             style={{
-              flexShrink: 0, padding: '10px 14px', border: '1.5px solid var(--pl)',
-              borderRadius: 8, background: 'var(--pl)', cursor: 'pointer',
+              flexShrink: 0, height: 42, padding: '0 16px', border: '1.5px solid var(--pl)',
+              borderRadius: 10, background: 'var(--pl)', cursor: 'pointer',
               fontSize: 13, color: 'var(--pu)', fontFamily: 'var(--f)', fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             }}
           >
-            <RotateCcw size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />AI 추천 구조로 되돌리기
+            <RotateCcw size={ICON.sm} />AI 추천 구조로 되돌리기
           </button>
         )}
       </div>
@@ -272,22 +304,65 @@ export default function SectionStructureScreen() {
           background: '#f8fafc', border: '1px solid var(--bd)',
           borderRadius: 12, padding: '14px', marginBottom: 16,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--tx3)', marginBottom: 10 }}>클릭해서 추가하세요</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-            {available.map(s => (
-              <button
-                key={s}
-                onClick={() => addSection(s)}
-                title={sectionDescription(s)}
-                style={{
-                  padding: '5px 10px', borderRadius: 20,
-                  border: '1px solid var(--bd)', background: '#fff',
-                  fontSize: 12, color: 'var(--tx1)', cursor: 'pointer',
-                  fontFamily: 'var(--f)', fontWeight: 500,
-                }}
-              >{s}</button>
-            ))}
+          {/* ★알약 칩 62개 나열 → 역할별 묶음 + 설명(2026-08-02).
+              이름만 빽빽하면 고르는 화면인데 고를 근거가 없다. 무엇을 하는 섹션인지 함께 보여준다. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, background: '#fff',
+            border: '1px solid var(--bd)', borderRadius: 10, padding: '9px 12px', marginBottom: 12,
+          }}>
+            <Search size={15} color="#B0B8C1" style={{ flexShrink: 0 }} />
+            <input
+              value={addQuery}
+              onChange={e => setAddQuery(e.target.value)}
+              placeholder="섹션 찾기 (예: 후기, 성분, 배송)"
+              style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, fontFamily: 'var(--f)', background: 'transparent' }}
+            />
           </div>
+
+          {(() => {
+            const q = addQuery.trim().toLowerCase();
+            const hit = q
+              ? available.filter(n => n.toLowerCase().includes(q) || (sectionDescription(n) ?? '').toLowerCase().includes(q))
+              : available;
+            const groups = groupSections(hit);
+            if (!groups.length) {
+              return (
+                <div style={{ fontSize: 12.5, color: 'var(--tx3)', padding: '14px 2px', lineHeight: 1.7 }}>
+                  찾는 섹션이 없네요. 아래에 직접 입력하시면 그 이름 그대로 만들어드려요.
+                </div>
+              );
+            }
+            return groups.map(g => (
+              <div key={g.label} style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 8 }}>
+                  <b style={{ fontSize: 12.5, color: 'var(--tx1)' }}>{g.label}</b>
+                  <span style={{ fontSize: 11.5, color: 'var(--tx3)' }}>{g.desc}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 7 }}>
+                  {g.items.map(n => (
+                    <button
+                      key={n}
+                      onClick={() => addSection(n)}
+                      style={{
+                        textAlign: 'left', border: '1px solid var(--bd)', background: '#fff',
+                        borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--f)',
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: 'var(--tx1)' }}>
+                        <Plus size={12} color="#6D4CFF" />{n}
+                      </span>
+                      {sectionDescription(n) && (
+                        <span style={{ display: 'block', fontSize: 11, color: 'var(--tx3)', lineHeight: 1.5, marginTop: 4 }}>
+                          {sectionDescription(n)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+
           <div style={{ display: 'flex', gap: 6 }}>
             <input
               className="finp"
