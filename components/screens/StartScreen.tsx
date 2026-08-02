@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, HeartPulse, Car, Box, ChevronDown } from 'lucide-react';
+import { Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, HeartPulse, Car, Box, ChevronDown, Check } from 'lucide-react';
 import { useApp, STEP_MAP } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
 import StepHeader from '@/components/layout/StepHeader';
 
 /**
- * 시작 화면 — 카테고리·채널·분량·형태를 한 화면에서(2026-08-02).
+ * 시작 화면 — 카테고리·채널·형태·분량을 한 화면에서(2026-08-02).
  *
  * ★왜 합쳤나: 앞 네 화면(s1~s3b)이 전부 '고르기'만 해서, 셀러 입장에선 네 번을 눌러도
  *   "아직 아무것도 안 했다"는 느낌이었다. 단계마다 이탈도 생긴다.
@@ -17,8 +17,15 @@ import StepHeader from '@/components/layout/StepHeader';
  * ★단 상품정보 폼(s5)은 합치지 않는다. 구조화된 입력이 "셀러가 말한 것만 쓴다"의 근거이고,
  *   화장품법 고지·알레르기 같은 법적 필수 항목의 누락도 폼이라야 감지한다.
  *
- * ★형태(블로그/슬라이드)는 '고르라고 묻지 않고' 채널에 맞춰 정해서 보여준다.
- *   셀러는 우리 용어를 모른다 — 이유와 실제 예시를 함께 보여줘야 납득하고 필요할 때만 바꾼다.
+ * ★접어두기(2026-08-02): 형태·분량은 채널에서 따라 나오는 값이라 기본으로 접는다.
+ *   추천을 그대로 쓸 사람은 아무것도 열지 않고 버튼 하나로 끝난다.
+ *   ⚠️단 접힌 줄에 '고른 값'이 반드시 보여야 한다 — 안 보이면 쿠팡 셀러가 모르고 지나쳐
+ *     블로그형으로 크레딧을 쓴다. 접기의 안전장치는 요약값이지 설명이 아니다.
+ *
+ * ⚠️이 화면에 '전환율 +32%', '신뢰도 92%', 채널 별점 같은 숫자를 넣지 말 것.
+ *   실증 자료가 없어 표시광고법에 걸리고, 셀러에겐 없는 사실을 쓰지 말라면서
+ *   우리 화면이 지어낸 숫자로 신뢰를 만들면 제품의 전제가 무너진다.
+ *   여기 있는 건 전부 확인 가능한 것뿐이다 — 사용 비중('가장 많이 써요'), 네이버 검색 동작, 크레딧 계산값.
  */
 
 const CATEGORIES = [
@@ -99,12 +106,15 @@ export default function StartScreen() {
   const { cat, setCat, ch, setCh, out, setOut, secCnt, setSecCnt, setType, productName, setProductName, go } = useApp();
 
   const [showAllCats, setShowAllCats] = useState(false);
-  const [advOpen, setAdvOpen] = useState(false);
+  /** 채널만 기본으로 연다 — 우리가 추측할 수 없는 유일한 값이고, 여기서 형태가 갈린다 */
+  const [open, setOpen] = useState<Record<string, boolean>>({ ch: true });
+  const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
 
   const chIdx = Math.max(0, CHANNELS.findIndex(c => c.id === ch));
   const channel = CHANNELS[chIdx];
   const effOut = (out as 'blog' | 'slide') || channel.out;
   const depth = secCnt || 16;
+  const cost = calculateGenerationCost({ sectionCount: depth, out: effOut });
 
   const visibleCats = showAllCats ? CATEGORIES : CATEGORIES.slice(0, 6);
   const ready = productName.trim().length > 0 && !!cat;
@@ -125,12 +135,7 @@ export default function StartScreen() {
   };
 
   return (
-    /* ★폭 1040(2026-08-02) — 760은 데스크탑에서 가운데 좁은 띠처럼 보였다.
-     *  넓히기만 하면 카드가 늘어져 오히려 허전하므로, 남는 가로를 '채널↔추천'을
-     *  나란히 놓는 데 쓴다. 세로 스크롤이 줄고 고른 결과를 바로 옆에서 확인하게 된다.
-     *  ⚠️미디어쿼리 대신 auto-fit/minmax로 접는다 — 인라인 스타일이라 @media를 못 쓰고,
-     *    창을 줄이면 한 줄로 무너지며 원래 읽는 순서(채널→추천)가 그대로 유지된다. */
-    <div style={{ maxWidth: 1040, margin: '0 auto', padding: '48px 28px 110px', fontFamily: 'var(--f)' }}>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '46px 28px 110px', fontFamily: 'var(--f)' }}>
       <StepHeader
         step={STEP_MAP['s1'] ?? 1} label="시작"
         /* ★"상품명만 입력하면"이라고 쓰지 않는다(2026-08-02) — 다음 화면이 상품정보 폼이라
@@ -158,183 +163,219 @@ export default function StartScreen() {
           }}
         />
       </div>
-      <div style={{ fontSize: 12.5, color: '#8B95A1', marginBottom: 32, paddingLeft: 3 }}>
+      <div style={{ fontSize: 12.5, color: '#8B95A1', marginBottom: 26, paddingLeft: 3 }}>
         예) 제주 접짝뼈국 밀키트 800g · 오버핏 울 니트 가디건
       </div>
 
-      {/* 카테고리 */}
-      <Label>카테고리</Label>
-      {/* minmax(150px) — 1040 폭에서 기본 6개가 정확히 한 줄, 창을 줄이면 알아서 접힌다 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginBottom: showAllCats ? 28 : 11 }}>
-        {visibleCats.map(c => {
-          const on = cat === c.id;
-          const Icon = c.icon;
-          return (
-            <div
-              key={c.id} onClick={() => setCat(c.id)}
-              style={{
-                border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 14,
-                padding: '17px 11px', textAlign: 'center', cursor: 'pointer',
-                background: on ? '#FBFAFF' : '#fff', transition: 'all 120ms ease',
-              }}
-            >
-              <div style={{
-                width: 40, height: 40, borderRadius: 12, background: c.bg, color: c.fg,
-                display: 'grid', placeItems: 'center', margin: '0 auto 9px',
-              }}><Icon size={20} /></div>
-              <b style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{c.id}</b>
-              <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 3, lineHeight: 1.45 }}>{c.desc}</span>
-            </div>
-          );
-        })}
-      </div>
-      {!showAllCats && (
-        <div
-          onClick={() => setShowAllCats(true)}
-          style={{
-            textAlign: 'center', fontSize: 13, color: '#6D4CFF', fontWeight: 700,
-            padding: 11, border: '1px dashed #D9CDFF', borderRadius: 11, marginBottom: 28, cursor: 'pointer',
-          }}
-        >＋ 다른 카테고리 보기</div>
-      )}
-
-      {/* 채널 ↔ 추천을 나란히 — 고른 즉시 옆에서 결과가 바뀌는 게 보인다 */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(370px, 1fr))',
-        gap: 20, alignItems: 'start', marginBottom: 30,
-      }}>
-        <div>
-          <Label hint="채널에 맞는 형태를 추천해드려요">어디에 올리시나요?</Label>
-          {/* 세로 한 줄 — 오른쪽 추천 카드와 높이가 맞고, 채널 설명도 잘려 보이지 않는다 */}
-          <div style={{ display: 'grid', gap: 9 }}>
-            {CHANNELS.map(c => {
-              const on = ch === c.id;
-              return (
-                <div
-                  key={c.id} onClick={() => pickChannel(c)}
-                  style={{
-                    border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 13,
-                    padding: '15px 17px', cursor: 'pointer', background: on ? '#FBFAFF' : '#fff', position: 'relative',
-                  }}
-                >
-                  {c.popular && (
-                    <span style={{
-                      position: 'absolute', top: 13, right: 14, fontSize: 10.5, fontWeight: 800,
-                      color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '3px 8px',
-                    }}>가장 많이 써요</span>
-                  )}
-                  <b style={{ fontSize: 14.5 }}>{c.id}</b>
-                  <span style={{ display: 'block', fontSize: 12, color: '#8B95A1', marginTop: 3 }}>{c.desc}</span>
-                </div>
-              );
-            })}
-          </div>
+      {/* 01 카테고리 — 접지 않는다. 우리가 채워줄 수 없는 값이라 비어 있으면 시작을 못 한다 */}
+      <Fold no="01" title="카테고리" value={cat || undefined} fixed>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: 10, marginBottom: 11 }}>
+          {visibleCats.map(c => {
+            const on = cat === c.id;
+            const Icon = c.icon;
+            return (
+              <div
+                key={c.id} onClick={() => setCat(c.id)}
+                style={{
+                  border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 14,
+                  padding: '16px 10px', textAlign: 'center', cursor: 'pointer',
+                  background: on ? '#FBFAFF' : '#fff', transition: 'all 120ms ease',
+                }}
+              >
+                <div style={{
+                  width: 38, height: 38, borderRadius: 12, background: c.bg, color: c.fg,
+                  display: 'grid', placeItems: 'center', margin: '0 auto 8px',
+                }}><Icon size={19} /></div>
+                <b style={{ display: 'block', fontSize: 13.5, fontWeight: 700 }}>{c.id}</b>
+                <span style={{ display: 'block', fontSize: 11, color: '#8B95A1', marginTop: 3, lineHeight: 1.45 }}>{c.desc}</span>
+              </div>
+            );
+          })}
         </div>
-
-        {/* 추천 — 고르라고 묻지 않고 정해서 보여준다 */}
-        <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 16, padding: '18px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10 }}>
-          <b style={{ fontSize: 13.5, color: '#5B3FD6' }}>
-            {channel.id}엔 {effOut === 'blog' ? '블로그형' : '슬라이드형'}을 추천해요
-          </b>
-          <span style={{
-            fontSize: 11, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
-            borderRadius: 999, padding: '3px 9px', whiteSpace: 'nowrap',
-          }}>{channel.tag}</span>
-        </div>
-        <p style={{ fontSize: 13, lineHeight: 1.8, color: '#34343c', marginBottom: 10 }}>{channel.why}</p>
-        <ul style={{ listStyle: 'none', marginBottom: 13 }}>
-          {channel.gains.map(g => (
-            <li key={g} style={{ fontSize: 12.5, color: '#4E5968', padding: '3px 0 3px 18px', position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 2, color: '#6D4CFF', fontWeight: 800 }}>✓</span>{g}
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={() => setAdvOpen(v => !v)}
-          style={{
-            width: '100%', border: '1px solid #D9CDFF', background: '#fff', color: '#6D4CFF',
-            borderRadius: 9, padding: '10px 0', fontSize: 12.5, fontWeight: 700,
-            cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex',
-            alignItems: 'center', justifyContent: 'center', gap: 5,
-          }}
-        >
-          형태·분량 직접 고르기
-          <ChevronDown size={14} style={{ transform: advOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
-        </button>
-
-        {advOpen && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed #D9CDFF' }}>
-            <Label>어떤 형태로 보여줄까요</Label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9, marginBottom: 18 }}>
-              {([
-                ['blog', '블로그형', '글로 설명하고 사진을 곁들여요.\n네이버 검색에 걸립니다.'],
-                ['slide', '슬라이드형', '이미지에 글자를 넣어 만들어요.\n모바일에서 눈에 잘 들어옵니다.'],
-              ] as const).map(([k, name, d]) => (
-                <Pick key={k} on={effOut === k} onClick={() => setOut(k)}>
-                  <b style={{ display: 'block', fontSize: 13, marginBottom: 3 }}>{name}</b>
-                  <small style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{d}</small>
-                </Pick>
-              ))}
-            </div>
-
-            <Label hint={`${effOut === 'blog' ? '블로그형' : '슬라이드형'} 기준`}>얼마나 길게 만들까요</Label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
-              {DEPTHS.map(d => {
-                const on = depth === d.n;
-                return (
-                  <Pick key={d.n} on={on} onClick={() => setSecCnt(d.n)} center>
-                    {d.n === 16 && (
-                      <span style={{
-                        position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
-                        fontSize: 10, fontWeight: 800, color: '#fff', background: '#6D4CFF',
-                        borderRadius: 999, padding: '2px 9px', whiteSpace: 'nowrap',
-                      }}>추천</span>
-                    )}
-                    <SheetPreview n={d.n} active={on} />
-                    <b style={{ display: 'block', fontSize: 13.5 }}>{d.n}섹션</b>
-                    <small style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', lineHeight: 1.6 }}>
-                      {d.label}<br />
-                      <span style={{
-                        display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: '#6D4CFF',
-                        background: '#F0ECFF', borderRadius: 999, padding: '2px 8px', marginTop: 3,
-                      }}>{calculateGenerationCost({ sectionCount: d.n, out: effOut })}크레딧</span>
-                    </small>
-                  </Pick>
-                );
-              })}
-            </div>
-            <p style={{ fontSize: 11.5, color: '#8B95A1', lineHeight: 1.7 }}>
-              {DEPTHS.find(d => d.n === depth)?.hint}
-            </p>
-          </div>
+        {!showAllCats && (
+          <div
+            onClick={() => setShowAllCats(true)}
+            style={{
+              textAlign: 'center', fontSize: 12.5, color: '#6D4CFF', fontWeight: 700,
+              padding: 10, border: '1px dashed #D9CDFF', borderRadius: 11, cursor: 'pointer',
+            }}
+          >＋ 다른 카테고리 보기</div>
         )}
-        </div>
-      </div>
+      </Fold>
 
-      {/* 폭이 넓어져도 버튼은 늘리지 않는다 — 1040을 가로지르는 막대는 버튼으로 안 읽힌다 */}
+      {/* 02 채널 — 기본으로 열어둔다 */}
+      <Fold
+        no="02" title="어디에 올리시나요?" value={channel.id}
+        open={!!open.ch} onToggle={() => toggle('ch')}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
+          {CHANNELS.map(c => {
+            const on = channel.id === c.id;
+            return (
+              <div
+                key={c.id} onClick={() => pickChannel(c)}
+                style={{
+                  border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 13,
+                  padding: '15px 15px 14px', cursor: 'pointer',
+                  background: on ? '#FBFAFF' : '#fff', position: 'relative',
+                }}
+              >
+                {c.popular && (
+                  <span style={{
+                    position: 'absolute', top: -8, right: 12, fontSize: 10.5, fontWeight: 800,
+                    color: '#fff', background: '#6D4CFF', borderRadius: 999, padding: '2px 9px',
+                  }}>가장 많이 써요</span>
+                )}
+                <b style={{ fontSize: 14 }}>{c.id}</b>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 3, lineHeight: 1.5 }}>{c.desc}</span>
+              </div>
+            );
+          })}
+        </div>
+        <Note>{channel.why}</Note>
+      </Fold>
+
+      {/* 03 형태 — 채널에서 따라 나오는 값이라 접어둔다 */}
+      <Fold
+        no="03" title="어떤 형태로 보여줄까요"
+        value={<>{effOut === 'blog' ? '블로그형' : '슬라이드형'}{effOut === channel.out && <Tag>추천</Tag>}</>}
+        open={!!open.out} onToggle={() => toggle('out')}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginBottom: 12 }}>
+          {([
+            ['blog', '블로그형', '글로 설명하고 사진을 곁들여요.\n네이버 검색에 걸립니다.'],
+            ['slide', '슬라이드형', '이미지에 글자를 넣어 만들어요.\n모바일에서 눈에 잘 들어옵니다.'],
+          ] as const).map(([k, name, d]) => (
+            <Pick key={k} on={effOut === k} onClick={() => setOut(k)}>
+              <b style={{ display: 'block', fontSize: 13.5, marginBottom: 4 }}>
+                {name}{channel.out === k && <Tag>{channel.id} 추천</Tag>}
+              </b>
+              <small style={{ display: 'block', fontSize: 12, color: '#8B95A1', lineHeight: 1.65, whiteSpace: 'pre-line' }}>{d}</small>
+            </Pick>
+          ))}
+        </div>
+        {effOut === channel.out ? (
+          <ul style={{ listStyle: 'none' }}>
+            {channel.gains.map(g => (
+              <li key={g} style={{ fontSize: 12.5, color: '#4E5968', padding: '3px 0 3px 20px', position: 'relative' }}>
+                <Check size={13} color="#6D4CFF" style={{ position: 'absolute', left: 1, top: 5 }} />{g}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Note>{channel.id}에는 {channel.out === 'blog' ? '블로그형' : '슬라이드형'}을 추천드려요. {channel.why}</Note>
+        )}
+      </Fold>
+
+      {/* 04 분량 */}
+      <Fold
+        no="04" title="얼마나 길게 만들까요"
+        value={<>{depth}섹션 <span style={{ color: '#B0B8C1', fontWeight: 600 }}>·</span> {cost}크레딧</>}
+        open={!!open.len} onToggle={() => toggle('len')}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12, paddingTop: 8 }}>
+          {DEPTHS.map(d => {
+            const on = depth === d.n;
+            return (
+              <Pick key={d.n} on={on} onClick={() => setSecCnt(d.n)} center>
+                {d.n === 16 && (
+                  <span style={{
+                    position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
+                    fontSize: 10.5, fontWeight: 800, color: '#fff', background: '#6D4CFF',
+                    borderRadius: 999, padding: '2px 10px', whiteSpace: 'nowrap',
+                  }}>추천</span>
+                )}
+                <SheetPreview n={d.n} active={on} />
+                <b style={{ display: 'block', fontSize: 14 }}>{d.n}섹션</b>
+                <small style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', lineHeight: 1.6 }}>
+                  {d.label}<br />
+                  <span style={{
+                    display: 'inline-block', fontSize: 11.5, fontWeight: 800, color: '#6D4CFF',
+                    background: '#F0ECFF', borderRadius: 999, padding: '2px 9px', marginTop: 4,
+                  }}>{calculateGenerationCost({ sectionCount: d.n, out: effOut })}크레딧</span>
+                </small>
+              </Pick>
+            );
+          })}
+        </div>
+        <Note>{DEPTHS.find(d => d.n === depth)?.hint}</Note>
+      </Fold>
+
+      {/* 접힌 값이 버튼에도 한 번 더 — 여기가 크레딧을 쓰기 직전 마지막 확인 지점이다 */}
       <button
         onClick={start} disabled={!ready}
         style={{
-          display: 'block', width: '100%', maxWidth: 460, margin: '0 auto',
+          display: 'block', width: '100%', maxWidth: 520, margin: '30px auto 0',
           border: 'none', borderRadius: 14, padding: '17px 0',
           background: ready ? '#6D4CFF' : '#F1F1F5', color: ready ? '#fff' : '#B0B8C1',
           fontSize: 15.5, fontWeight: 700, cursor: ready ? 'pointer' : 'default', fontFamily: 'inherit',
         }}
       >
-        {ready ? '상품정보 입력하러 가기 →' : '상품명과 카테고리를 정해주세요'}
+        {ready ? `이 설정으로 만들기 · ${cost}크레딧 →` : '상품명과 카테고리를 정해주세요'}
       </button>
+      <p style={{ textAlign: 'center', fontSize: 12, color: '#B0B8C1', marginTop: 11 }}>
+        크레딧은 만들기를 누를 때 차감돼요
+      </p>
     </div>
   );
 }
 
 /* ─── 작은 조각들 ─── */
-function Label({ children, hint }: { children: React.ReactNode; hint?: string }) {
+
+/** 접히는 한 줄. ⚠️접힌 상태에서도 value가 보여야 한다 — 요약값이 접기의 안전장치다. */
+function Fold({ no, title, value, open, onToggle, fixed, children }: {
+  no: string; title: string; value?: React.ReactNode;
+  open?: boolean; onToggle?: () => void; fixed?: boolean; children: React.ReactNode;
+}) {
+  const isOpen = fixed ? true : !!open;
   return (
-    <div style={{ fontSize: 12.5, fontWeight: 800, color: '#4E5968', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-      {children}
-      {hint && <span style={{ fontSize: 11, fontWeight: 600, color: '#B0B8C1' }}>{hint}</span>}
+    <div style={{
+      border: `1.5px solid ${isOpen ? '#E6DEFF' : '#ECECF2'}`, borderRadius: 16,
+      background: '#fff', marginBottom: 12, overflow: 'hidden',
+    }}>
+      <div
+        onClick={fixed ? undefined : onToggle}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 11, padding: '17px 20px',
+          cursor: fixed ? 'default' : 'pointer', userSelect: 'none',
+        }}
+      >
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#C3C8D0', letterSpacing: '0.06em' }}>{no}</span>
+        <b style={{ fontSize: 14.5, color: '#191F28' }}>{title}</b>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+          {value && (
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#6D4CFF', display: 'inline-flex', alignItems: 'center' }}>
+              {value}
+            </span>
+          )}
+          {!fixed && (
+            <ChevronDown
+              size={17} color="#B0B8C1"
+              style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }}
+            />
+          )}
+        </span>
+      </div>
+      {isOpen && <div style={{ padding: '2px 20px 20px' }}>{children}</div>}
     </div>
+  );
+}
+
+function Note({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontSize: 12.5, lineHeight: 1.75, color: '#4E5968',
+      background: '#F7F6FD', borderRadius: 10, padding: '11px 14px',
+    }}>{children}</p>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{
+      fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
+      borderRadius: 999, padding: '2px 8px', marginLeft: 6, verticalAlign: 'middle',
+    }}>{children}</span>
   );
 }
 
@@ -346,7 +387,7 @@ function Pick({ on, onClick, center, children }: {
       onClick={onClick}
       style={{
         border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 13,
-        padding: center ? '12px 10px' : 13, background: on ? '#FBFAFF' : '#fff',
+        padding: center ? '13px 11px' : 14, background: on ? '#FBFAFF' : '#fff',
         cursor: 'pointer', position: 'relative', textAlign: center ? 'center' : 'left',
       }}
     >{children}</div>
