@@ -14,6 +14,7 @@
  */
 import type { Block } from '@/store/AppContext';
 import { assignBlockVariants, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
+import { isCenteredSection, limitPageAccent } from '@/lib/pageAccent';
 import { compareColumns } from '@/components/result/BlockRenderer';
 
 export interface ExportSection {
@@ -300,6 +301,9 @@ export function buildBlogExportHtml(
   /* ★페이지 전체를 한 번 보고 블록 생김새를 정한다(2026-08-02) — 청크가 병렬이라
      모델은 페이지 전체를 못 본다. 같은 모양이 줄줄이 이어지는 걸 아는 건 코드뿐이다. */
   const pageVariants = assignBlockVariants(sections.map(sc => sc.blocks ?? []));
+  /* 포인트 컬러는 페이지에 한 곳만 — 카피 청크가 병렬이라 모델은 옆 섹션을 모른다.
+     페이지 전체를 보는 건 여기뿐이므로 여기서 정리한다(문장은 지우지 않고 괄호만 벗긴다). */
+  const accentBodies = limitPageAccent(sections.map(sc => sc.body ?? ''));
 
   const sectionsHtml = sections.map((sec, idx) => {
     // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
@@ -317,8 +321,9 @@ export function buildBlogExportHtml(
       .replace(/\(\(([\s\S]+?)\)\)/g, `<em style="font-style:normal;font-weight:700;color:${sec.visual?.accent_color ?? cP};">$1</em>`);
     const sub = sec.subcopy ? `\n      <p class="subcopy">${markHtml(sec.subcopy)}</p>` : '';
     // body: 이중 줄바꿈(\n\n)=문단, 단일 줄바꿈(\n)=<br>(붙여서). 화면 렌더와 동일한 v5 호흡.
-    const bodyHtml = sec.body
-      ? '\n      ' + sec.body.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+    const secBody = accentBodies[idx];
+    const bodyHtml = secBody
+      ? '\n      ' + secBody.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
           .map(p => `<p class="bodytext">${p.split('\n').map(l => markHtml(l.trim())).join('<br>')}</p>`)
           .join('\n      ')
       : '';
@@ -336,8 +341,10 @@ export function buildBlogExportHtml(
       ? `\n      <div style="display:grid;grid-template-columns:repeat(${Math.min(purchaseInfo.length, 4)},1fr);gap:10px;margin-top:32px;">${purchaseInfo.map(it =>
           `<div style="background:${tSoft};border:1px solid ${tBorder};border-radius:12px;padding:14px 10px;text-align:center;"><div style="font-size:20px;margin-bottom:6px;">${it.ico}</div><div style="font-size:11px;font-weight:700;color:${tPrimary};margin-bottom:3px;">${escHtml(it.label)}</div><div style="font-size:12.5px;font-weight:600;color:#333;line-height:1.4;word-break:keep-all;">${escHtml(it.value)}</div></div>`).join('')}</div>`
       : '';
-    // ★샌드위치 배치(2026-07-27): 헤드라인 → 이미지 → 본문. 짧은 카피는 센터 정렬(화면 렌더와 동일 기준 260자).
-    const centered = (sec.body ?? '').length <= 260;
+    /* ★샌드위치 배치(2026-07-27): 헤드라인 → 이미지 → 본문.
+       정렬은 길이가 아니라 역할이 정한다(2026-08-02) — 260자 기준이던 때는 실제 본문이 128~220자라
+       사실상 전 섹션이 가운데였고, 설명하는 글까지 가운데로 흘러 청첩장처럼 읽혔다. */
+    const centered = isCenteredSection(sec.name ?? '', sec.body ?? '', idx === 0, idx === sections.length - 1);
     return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${head}${sub}${imgTag}${bodyHtml}${stripHtml}${blocksHtml}\n    </section>`;
   }).join('\n');
   const html = `<!DOCTYPE html>

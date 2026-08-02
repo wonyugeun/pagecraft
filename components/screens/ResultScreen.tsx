@@ -14,6 +14,7 @@ import { friendlyGenerationError } from '@/lib/apiErrors';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { blocksToHtml } from '@/lib/exportHtml';
 import { assignBlockVariants } from '@/lib/blockLayout';
+import { isCenteredSection } from '@/lib/pageAccent';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable, stripMarks } from '@/components/result/BlockRenderer';
 import { aspectRatioFor, type ImageAspect } from '@/lib/sectionAspect';
@@ -583,9 +584,10 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
   // Problem/Feature 디자인 블록 판정 + 제품 테마(하드코딩 금지 — 전부 sec.visual)
   const designKind = sectionDesignKind(sec, !!isFirst, isLast);
 
-  // ★가운데 정렬(2026-07-27 유근님) — 간결화된 짧은 카피는 센터가 상세페이지답게 읽힘.
-  //   긴 본문은 센터 시 가독성이 무너지므로 260자 이하일 때만(카피 간결화 상한 220자와 정합).
-  const centered = (sec.body ?? '').length <= 260;
+  /* ★가운데 정렬(2026-07-27 유근님) — 간결화된 짧은 카피는 센터가 상세페이지답게 읽힌다.
+     단 '260자 이하'는 실제 본문이 128~220자라 사실상 전 섹션을 가운데로 만들었다(2026-08-02 실측).
+     첫 화면·마무리·브랜드 무드·공감은 가운데, 설명·근거·사용법은 왼쪽 — 역할이 정한다. */
+  const centered = isCenteredSection(sec.name ?? '', sec.body ?? '', !!isFirst, isLast);
   const copyAlign: 'center' | 'left' = centered ? 'center' : 'left';
   const theme = {
     primary:    sec.visual?.primary_color ?? DEFAULT_THEME.primary,
