@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { productName, hint } = await req.json() as { productName?: string; hint?: string };
+  const { productName, facts, hint } = await req.json() as {
+    productName?: string;
+    facts?: Array<{ label?: string; value?: string }>;
+    hint?: string;                                    // 구버전 클라이언트 호환
+  };
   if (!productName || !productName.trim()) {
     return NextResponse.json({ error: '상품명을 먼저 입력해주세요.' }, { status: 400 });
   }
@@ -46,12 +50,30 @@ ${levels}
 [규칙]
 - 각 어투마다 headline 1줄(20~35자)과 body 2줄을 씁니다. body의 줄바꿈은 \\n.
 - 같은 메시지를 어투만 바꿔 표현하세요. 어미뿐 아니라 문장 길이·호흡도 어투에 맞게 바꿉니다.
-- ⚠️셀러가 준 정보 밖의 성분·수치·효능·인증·후기를 절대 만들지 마세요. 주어진 사실만 사용합니다.
+- ⚠️상품이 아니라 화면·양식을 설명하는 문장은 카피가 아닙니다. 아래는 전부 금지:
+  "제품 정보를 확인합니다" / "제품명은 ○○, 용량은 ○○입니다" / "제품 기본 정보" /
+  "상품 정보를 확인하시기 바랍니다" — 정보를 나열하지 말고, 그 정보가 손님에게 무엇인지를 쓰세요.
+- headline은 손님이 얻는 것이나 손님이 처한 상황으로 시작합니다.
+  상품명·용량을 나열하며 시작하지 마세요(상품명은 필요할 때 한 번만, 자연스럽게).
+- ⚠️셀러가 준 정보 밖의 성분·수치·효능·인증·후기를 절대 만들지 마세요.
+  다만 상품 종류에서 누구나 아는 사용 맥락(크림은 바른다, 밀키트는 끓인다)은 써도 됩니다.
+  재료가 적으면 짧고 담백하게 쓰세요 — 없는 사실로 길이를 채우지 마세요.
 - 과장 최상급 표현(최고·1위·유일·100%) 금지.
 - JSON 배열로만 출력: [{"level":"해요체","headline":"...","body":"...\\n..."}, ...] — ${SPEECH_LEVELS.length}개, 다른 텍스트 없이.`;
 
+  /* 셀러가 폼에 채운 것들을 라벨 그대로 넘긴다. 이게 카피의 전 재료다 —
+     여기 없는 건 페이지에도 없어야 하고, 모델이 지어내서도 안 된다. */
+  const lines = (facts ?? [])
+    .map(f => ({ label: String(f?.label ?? '').trim(), value: String(f?.value ?? '').trim() }))
+    .filter(f => f.label && f.value)
+    .slice(0, 24)
+    .map(f => `- ${f.label}: ${f.value.slice(0, 160)}`);
+  if (!lines.length && hint?.trim()) lines.push(`- 차별점·특징: ${hint.trim().slice(0, 400)}`);
+
+  const thin = lines.length < 3;   // 재료가 이만큼이면 카피가 밋밋할 수밖에 없다 — 화면에서 알린다
   const user = `[상품명] ${productName.trim()}
-${hint?.trim() ? `[차별점·특징] ${hint.trim().slice(0, 400)}` : '(추가 정보 없음 — 상품명만으로 쓰되 없는 사실을 지어내지 마세요)'}`;
+${lines.length ? `[셀러가 알려준 정보]\n${lines.join('\n')}` : '(상품명 외에 알려준 정보가 없습니다)'}
+${thin ? '\n※ 재료가 적습니다. 없는 사실을 채워 넣지 말고, 짧더라도 손님에게 말을 거는 문장으로 쓰세요.' : ''}`;
 
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -86,7 +108,7 @@ ${hint?.trim() ? `[차별점·특징] ${hint.trim().slice(0, 400)}` : '(추가 �
         body: String(x.body ?? '').slice(0, 200),
       }));
 
-    return NextResponse.json({ samples });
+    return NextResponse.json({ samples, thin });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '알 수 없는 오류';
     console.error('[tone-preview]', msg);

@@ -954,6 +954,28 @@ export default function ProductScreen() {
   const [tonePreview, setTonePreview] = useState<Record<string, { headline: string; body: string }>>({});
   const [toneLoading, setToneLoading] = useState(false);
   const [toneErr, setToneErr] = useState('');
+  const [toneThin, setToneThin] = useState(false);   // 재료가 적어 카피가 담백할 수밖에 없는 상태
+  /** 미리보기에 넘길 재료 — 폼에 채워진 것만 라벨 그대로 모은다(빈 칸은 보내지 않는다) */
+  const toneFacts = (): Array<{ label: string; value: string }> => {
+    const out: Array<{ label: string; value: string }> = [];
+    const add = (label: string, v?: string | null) => {
+      const t = (v ?? '').trim();
+      if (t) out.push({ label, value: t.slice(0, 160) });
+    };
+    add('카테고리', cat);
+    add('브랜드', brand);
+    add('제형/형태', productForm);
+    add('용량/사이즈', productVolume);
+    for (const q of qs) {
+      const v = answers[q.id];
+      add(q.label, Array.isArray(v) ? v.join(', ') : (v == null ? '' : String(v)));
+    }
+    add('차별점', diff);
+    add('브랜드 스토리', brandIntro);
+    add('기타 정보', extraNote);
+    return out.slice(0, 24);
+  };
+
   const loadTonePreview = async () => {
     if (toneLoading) return;
     if (!productName.trim()) { setToneErr('상품명을 먼저 입력해주세요.'); return; }
@@ -961,13 +983,18 @@ export default function ProductScreen() {
     try {
       const res = await fetch('/api/tone-preview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productName, hint: [diff, extraNote].filter(Boolean).join(' / ') }),
+        /* ★셀러가 이미 채운 걸 전부 보낸다(2026-08-02).
+         *  전에는 상품명과 차별점만 보냈다 — 성분·고민·기능을 다 채워놔도 모델이 볼 재료가
+         *  상품명뿐이라, "제품명은 닥터자르트 크림, 용량은 50ml입니다" 같은 양식 설명이 나왔다.
+         *  카피가 밋밋했던 건 모델이 아니라 재료를 안 준 우리 탓이다. */
+        body: JSON.stringify({ productName, facts: toneFacts() }),
       });
-      const d = await res.json() as { samples?: Array<{ level: string; headline: string; body: string }>; error?: string };
+      const d = await res.json() as { samples?: Array<{ level: string; headline: string; body: string }>; thin?: boolean; error?: string };
       if (!res.ok) throw new Error(d.error ?? '미리보기 실패');
       const map: Record<string, { headline: string; body: string }> = {};
       for (const x of d.samples ?? []) map[x.level] = { headline: x.headline, body: x.body };
       setTonePreview(map);
+      setToneThin(!!d.thin);
     } catch (e) {
       setToneErr(e instanceof Error ? e.message : '미리보기에 실패했어요.');
     } finally {
@@ -1588,6 +1615,17 @@ export default function ProductScreen() {
             </div>
 
             {toneErr && <div style={{ fontSize: 12, color: '#DC2626', marginTop: 10 }}>{toneErr}</div>}
+
+            {/* 재료가 적으면 카피가 담백해지는 게 정상이다 — 모델 탓으로 오해하지 않게 이유를 밝힌다.
+                여기서 지어내 채우면 그게 바로 우리가 안 하겠다고 한 일이다. */}
+            {toneThin && Object.keys(tonePreview).length > 0 && (
+              <div style={{
+                fontSize: 12, lineHeight: 1.7, color: '#6B7684', background: '#FAFAFC',
+                border: '1px solid #ECECF2', borderRadius: 10, padding: '11px 14px', marginTop: 12,
+              }}>
+                아직 상품명 위주라 예시가 담백해요. 아래 항목을 채우고 다시 눌러보시면 훨씬 구체적인 문장이 나옵니다.
+              </div>
+            )}
 
             {/* 미리보기 결과는 5종 동시 비교 — 카드를 누르면 그 어투로 선택 */}
             {Object.keys(tonePreview).length > 0 ? (
