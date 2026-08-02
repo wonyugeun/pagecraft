@@ -7,7 +7,7 @@ import {
   Zap, ArrowRight, Sparkles, Trash2, Ellipsis, Image as ImageIcon,
   LogOut, ChevronDown,
 } from 'lucide-react';
-import { useApp, HistoryItem } from '@/store/AppContext';
+import { useApp, HistoryItem, NEW_START_FLOW } from '@/store/AppContext';
 import { getImages } from '@/lib/historyDB';
 import DashboardMobile from './DashboardMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -676,7 +676,7 @@ export default function DashboardScreen() {
               {PLATFORM_CATS.map((name, i) => (
                 <div
                   key={name}
-                  onClick={() => { startDetail(); setCat(name); go('s2'); }}
+                  onClick={() => { startDetail(); setCat(name); go(NEW_START_FLOW ? 's1' : 's2'); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '8px 6px', margin: '0 -6px',

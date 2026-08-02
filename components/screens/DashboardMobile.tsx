@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useApp, HistoryItem } from '@/store/AppContext';
+import { useApp, HistoryItem, NEW_START_FLOW } from '@/store/AppContext';
 import UpdateNoticeModal from '@/components/UpdateNoticeModal';
 import { readDraft, type DraftRecord } from '@/store/AppContext';
 import {
@@ -428,7 +428,7 @@ export default function DashboardMobile() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
             {PLATFORM_CATS.map(c => (
               <div key={c.name}
-                onClick={() => { startDetail(); setCat(c.name); go('s2'); }}
+                onClick={() => { startDetail(); setCat(c.name); go(NEW_START_FLOW ? 's1' : 's2'); }}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
                   cursor: 'pointer',

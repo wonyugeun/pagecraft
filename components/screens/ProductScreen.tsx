@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useApp, STEP_MAP } from '@/store/AppContext';
+import { useApp, STEP_MAP, NEW_START_FLOW } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { pickTestPreset, TEST_PRESETS, type TestPreset } from '@/lib/testPresets';
 import StepHeader from '@/components/layout/StepHeader';
 import { SPEECH_LEVELS } from '@/data/speechLevels';
-import { Eye, Sparkles as SparkIcon, FlaskConical, Heart } from 'lucide-react';
+import { Eye, Sparkles as SparkIcon, FlaskConical } from 'lucide-react';
 import { ICON } from '@/lib/designTokens';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import { ChevronDown, ChevronUp, Sparkles, ArrowLeft, X, Check, Star } from 'lucide-react';
@@ -794,70 +794,6 @@ const DIFF_PLACEHOLDERS: Record<string, string> = {
   기타:     '예: 경쟁 제품 대비 차별점을 입력해주세요',
 };
 
-// ★미리보기 = Flik 실생성 완성본(2026-07-21 유근님: unsplash 스톡 제거 → 형태별 실생성물로).
-//   블로그형 = 보우짱 밤호박 블로그형 HTML(글은 텍스트·사진은 사진 — 형태가 정확히 보임)을 iframe 축소 렌더.
-//   슬라이드형 = 밸런스랩 비타민 통이미지(슬라이드형 완성본) 스크롤 뷰.
-const BLOG_PREVIEW_HTML = '/previews/bochan-blog.html';                 // 보우짱 밤호박 — 블로그형 실생성 HTML(자립형)
-const SLIDE_PREVIEW_IMG = '/images/landing/showcase-vitamin.jpg';       // 밸런스랩 — 슬라이드형 실생성 통이미지
-
-// (제거됨 2026-07-21) SLIDE_CONF 코드 재현 카드 — 실생성 통이미지 미리보기로 대체
-
-/* ── s5 미리보기: 블로그형 — 보우짱 밤호박 블로그형 실생성 HTML을 iframe 축소 렌더(2026-07-21 유근님).
-   글은 텍스트·사진은 사진인 진짜 블로그형이 그대로 보이고, 카드 안에서 스크롤로 구경 가능.
-   iframe 반응형 축소 트릭: 부모 100%를 (1/scale)% 크기로 그리고 scale로 되돌림. ── */
-function S5BlogPreview({ cat, productName }: { cat: string | null; productName?: string }) {
-  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
-  const SCALE = 0.4;   // 860px 문서를 카드 폭(~344px)으로 축소
-  return (
-    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none' }}>
-      <div style={{ background: '#fff', padding: '9px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{title}</span>
-        <span style={{ fontSize: 9.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 20, padding: '3px 9px', flexShrink: 0 }}>블로그형 실제 예시</span>
-      </div>
-      <div style={{ height: 340, overflow: 'hidden', position: 'relative' }}>
-        <iframe
-          src={BLOG_PREVIEW_HTML}
-          title="블로그형 실제 생성 예시 — 보우짱 밤호박"
-          style={{
-            width: `${100 / SCALE}%`,
-            height: `${100 / SCALE}%`,
-            transform: `scale(${SCALE})`,
-            transformOrigin: '0 0',
-            border: 0,
-            display: 'block',
-          }}
-        />
-      </div>
-      <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
-        <Heart size={11} style={{ verticalAlign: -1, marginRight: 3 }} fill="currentColor" />Flik이 실제로 생성한 블로그형 페이지예요 — 글은 검색에 잡히는 진짜 텍스트로 만들어집니다.
-      </div>
-    </div>
-  );
-}
-
-/* ── s5 미리보기: 슬라이드형 — 밸런스랩 비타민 실생성 통이미지를 카드 안 스크롤로 구경(2026-07-21 유근님:
-   코드 재현 카드('이상한 한 장')·스톡 사진 폐기 → 잘 나온 실생성 완성본 그대로). ── */
-function S5SlidePreview({ cat, productName }: { cat: string | null; productName?: string }) {
-  const title = productName?.trim() || `${cat ?? '상품'} 상세페이지`;
-  return (
-    <div style={{ background: '#fff', border: '1px solid #E8E4F4', borderRadius: 12, overflow: 'hidden', userSelect: 'none' }}>
-      <div style={{ background: '#fff', padding: '9px 12px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{title}</span>
-        <span style={{ fontSize: 9.5, fontWeight: 700, color: '#6D4CFF', background: '#F4F0FF', borderRadius: 20, padding: '3px 9px', flexShrink: 0 }}>슬라이드형 실제 예시</span>
-      </div>
-      <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={SLIDE_PREVIEW_IMG} alt="슬라이드형 실제 생성 예시 — 밸런스랩 멀티비타민" style={{ width: '100%', height: 'auto', display: 'block' }} />
-      </div>
-      <div style={{ background: '#F7F5FF', padding: '9px 12px', fontSize: 10, color: '#6D4CFF', lineHeight: 1.6, fontWeight: 600 }}>
-        <Heart size={11} style={{ verticalAlign: -1, marginRight: 3 }} fill="currentColor" />Flik이 실제로 생성한 슬라이드형 페이지예요 — 스크롤로 구경해보세요.
-      </div>
-    </div>
-  );
-}
-
 const BRAND_NAME_PLACEHOLDERS: Record<string, string> = {
   화장품:   '예: 이니스프리, 자체브랜드, 무브랜드',
   식품:     '예: 제주농협, 자체브랜드, 무브랜드',
@@ -993,7 +929,7 @@ export function AccordionSection({
 ───────────────────────────────────────────── */
 export default function ProductScreen() {
   const isMobile = useIsMobile();
-  const { cat, ch, type, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
+  const { cat, ch, type, out, secCnt, go, productName, setProductName, setProductExtra, regularPrice, setRegularPrice, salePrice, setSalePrice, showPrice, setShowPrice, productOptions, setProductOptions,
     brand, setBrand, diff, setDiff, extraNote, setExtraNote, brandIntro, setBrandIntro, reviews, setReviews,
     speechLevel, setSpeechLevel,
     productForm, setProductForm, productVolume, setProductVolume, productShapeProfile, setProductShapeProfile,
@@ -1011,7 +947,6 @@ export default function ProductScreen() {
 
   // UI 일시 상태만 로컬 유지
   const [openSecs, setOpenSecs] = useState<Set<string>>(new Set(['s1']));
-  const [previewTab, setPreviewTab] = useState<'blog' | 'slide'>('blog');
   const [agreed, setAgreed] = useState(false);   // ①실측·검증 동의(생성 전 법적 방어선)
 
   // 모바일 분기 — 모든 훅 호출 후
@@ -1067,6 +1002,7 @@ export default function ProductScreen() {
     if (Array.isArray(v)) return v.length > 0;
     return String(v).trim().length > 0;
   });
+  const missingReq = requiredQs.filter(q => !filledReq.includes(q));
   const pct = requiredQs.length > 0
     ? Math.round(((filledReq.length + (productName.trim() ? 1 : 0)) / (requiredQs.length + 1)) * 100)
     : productName.trim() ? 100 : 0;
@@ -1169,17 +1105,43 @@ export default function ProductScreen() {
     go('s5b');
   };
 
-  const prevScreen = ch === '스마트스토어' ? 's3b' : 's3';
+  /* ★새 흐름에선 앞 화면이 통합된 시작 화면 하나뿐이다(2026-08-02) —
+   *  s3b/s3는 구 9단계에만 있어서, 그대로 두면 '이전'이 존재하지 않는 화면으로 간다. */
+  const prevScreen = NEW_START_FLOW ? 's1' : (ch === '스마트스토어' ? 's3b' : 's3');
 
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 24px 80px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 80px' }}>
       <StepHeader
         step={STEP_MAP['s5'] ?? 5} label="상품 정보"
-        title="상품 정보를 입력해주세요"
-        sub={`${cat} · ${ch} · ${type} 기준 — 꼭 필요한 정보만 물어볼게요`}
-        marginBottom={24}
+        /* ★여기가 결과를 가르는 지점이라고 정면으로 말한다(2026-08-02).
+         *  "꼭 필요한 정보만 물어볼게요"는 부담을 덜어주는 대신 '대충 넣어도 되는 칸'처럼 읽혔다.
+         *  귀찮은 구간인 건 사실이니, 왜 귀찮아야 하는지를 알려주는 쪽이 낫다. */
+        title="여기 적은 것만 페이지에 실립니다"
+        sub="상품명은 가져왔어요. 나머지를 얼마나 적느냐가 결과를 가릅니다 — Flik은 없는 사실을 지어내지 않으니까요."
+        marginBottom={20}
       />
+
+      {/* 시작 화면에서 정한 값 — 카테고리는 질문 구성을 바꾸는 값인데 여기서 보이지 않았다.
+          잘못 골랐으면 폼이 통째로 엉뚱해지므로, 되돌아갈 길을 함께 둔다. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap',
+        border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
+        padding: '11px 15px', marginBottom: 14,
+      }}>
+        {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#4E5968', fontWeight: 600 }}>
+            {i > 0 && <span style={{ color: '#D8DCE3' }}>·</span>}{v}
+          </span>
+        ))}
+        <button
+          onClick={() => go(prevScreen as any)}
+          style={{
+            marginLeft: 'auto', border: '1px solid #E5E5EC', background: '#fff', color: '#6D4CFF',
+            borderRadius: 8, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >바꾸기</button>
+      </div>
 
       {/* ⚠️ 법적 경고 — 입력 정보는 그대로 상세페이지에 반영, 책임은 판매자 (입력 처리 로직 불변, 안내 UI만) */}
       <div style={{
@@ -1216,11 +1178,11 @@ export default function ProductScreen() {
         </div>
       )}
 
-      {/* 2-column layout */}
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-
-        {/* ── Left: Form ── */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ★1단(2026-08-02) — 우측 '실시간 미리보기'를 걷어냈다. 그 자리는 다른 상품의 완성본이라
+        여기서 채우는 정보와 아무 관계가 없었고, 정작 필요한 '내가 지금 뭘 빠뜨렸나'를 가렸다.
+        형태 예시는 시작 화면의 '예시 보기'로 옮겼다. */}
+      <div>
+        <div>
 
           {/* 완성도 카드 — 원형 % + 가로 진행바(진행에 따라 색 변화) */}
           <div style={{
@@ -1240,6 +1202,33 @@ export default function ProductScreen() {
             <div style={{ marginTop: 13, height: 8, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: pctColor, transition: 'width .3s ease, background .3s ease' }} />
             </div>
+
+            {/* ★비워둔 칸이 결과에서 무엇이 되는지 지금 보여준다(2026-08-02).
+              *  셀러가 대충 넣는 건 게을러서가 아니라 대충 넣었을 때 뭐가 사라지는지 안 보여서다.
+              *  퍼센트는 '얼마나 남았나'만 말하지 '무엇이 빠지나'를 말하지 못한다.
+              *  ⚠️문구를 '더 좋아집니다'류로 바꾸지 말 것 — 근거를 댈 수 없는 성과 약속이 된다.
+              *    말할 수 있는 건 사실 하나뿐이다: 안 적으면 그 얘기는 페이지에 없다. */}
+            {missingReq.length > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px dashed #E2DDF3' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191F28', marginBottom: 9 }}>
+                  지금 이대로 만들면 <span style={{ color: '#D97706' }}>{missingReq.length}가지</span>가 빠집니다
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 9 }}>
+                  {missingReq.slice(0, 8).map(q => (
+                    <span key={q.id} style={{
+                      fontSize: 11.5, fontWeight: 600, color: '#92400E', background: '#FFFBEB',
+                      border: '1px solid #FDE68A', borderRadius: 999, padding: '4px 10px',
+                    }}>{q.label}</span>
+                  ))}
+                  {missingReq.length > 8 && (
+                    <span style={{ fontSize: 11.5, color: '#9CA3AF', padding: '4px 2px' }}>외 {missingReq.length - 8}가지</span>
+                  )}
+                </div>
+                <p style={{ fontSize: 11.5, lineHeight: 1.7, color: '#8B95A1' }}>
+                  빈 칸은 지어내지 않고 그대로 뺍니다. 그래서 적게 적을수록 어느 상품에나 해당되는 뻔한 페이지가 나와요.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Section 1: 기본 정보 (always open) */}
@@ -1699,87 +1688,6 @@ export default function ProductScreen() {
             <button className="btn-next" onClick={handleNext}>
               다음 단계로 →
             </button>
-          </div>
-        </div>
-
-        {/* ── Right: 실시간 미리보기 panel — sticky로 스크롤 따라옴. 내용(이미지+요약+팁) 자연 높이가 기본정보 카드와 균형 ── */}
-        <div style={{
-          width: 290, flexShrink: 0,
-          position: 'sticky', top: 24,
-          border: '1.5px solid #E5E7EB',
-          borderRadius: 12, overflow: 'hidden',
-          background: '#fff',
-        }}>
-          {/* Panel header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px',
-            borderBottom: '1px solid #F3F4F6',
-            background: '#F7F5FF',
-          }}>
-            {/* 미리보기는 입력 즉시 반영(실시간)이라 새로고침 불필요 — 빈 핸들러 버튼 제거 */}
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>✦ 실시간 미리보기</span>
-          </div>
-
-          {/* Tabs */}
-          <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6' }}>
-            {(['blog', 'slide'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setPreviewTab(t)}
-                style={{
-                  flex: 1, padding: '9px 0', fontSize: 12, fontWeight: 600,
-                  border: 'none', cursor: 'pointer',
-                  background: previewTab === t ? '#fff' : '#FAFAFA',
-                  color: previewTab === t ? '#6D4CFF' : '#9CA3AF',
-                  borderBottom: previewTab === t ? '2px solid #6D4CFF' : '2px solid transparent',
-                  transition: 'all .15s',
-                }}
-              >
-                {t === 'blog' ? '블로그형' : '슬라이드형'}
-              </button>
-            ))}
-          </div>
-
-          {/* Preview card */}
-          <div style={{ padding: '14px 14px 0' }}>
-            {/* ★탭에 따라 블로그형/슬라이드형 형태가 다름(출력형태 s3b와 같은 방식). 카테고리 실제사진·상품명 실시간. */}
-            <div style={{ marginBottom: 14 }}>
-              {previewTab === 'blog'
-                ? <S5BlogPreview cat={cat} productName={productName} />
-                : <S5SlidePreview cat={cat} productName={productName} />}
-            </div>
-
-            {/* 입력 정보 요약 */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 8 }}>입력 정보 요약</div>
-              {[
-                { label: '상품명', value: productName.trim() || '-' },
-                { label: '브랜드', value: brand.trim() || '-' },
-                { label: '카테고리', value: cat ?? '-' },
-              ].map(row => (
-                <div key={row.label} style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '5px 0', borderBottom: '1px solid #F3F4F6',
-                }}>
-                  <span style={{ fontSize: 11, color: '#9CA3AF' }}>{row.label}</span>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, color: '#111',
-                    maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>{row.value}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* AI TIP */}
-            <div style={{
-              background: '#F7F5FF', borderRadius: 8, padding: '10px 12px', marginBottom: 16,
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6D4CFF', marginBottom: 4 }}>✦ AI TIP</div>
-              <div style={{ fontSize: 11, color: '#6D4CFF', lineHeight: 1.6 }}>
-                필수 항목을 모두 채우면 AI가 더 정확한 상세페이지를 만들어드려요. 현재 완성도 {pct}%
-              </div>
-            </div>
           </div>
         </div>
 

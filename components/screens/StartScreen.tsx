@@ -6,6 +6,7 @@ import { useApp, STEP_MAP } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
 import { guessCategory } from '@/lib/categoryGuess';
 import StepHeader from '@/components/layout/StepHeader';
+import SamplePreviewModal from '@/components/SamplePreviewModal';
 
 /**
  * 시작 화면 — 카테고리·채널·형태·분량을 한 화면에서(2026-08-02).
@@ -107,6 +108,7 @@ export default function StartScreen() {
   const { cat, setCat, ch, setCh, out, setOut, secCnt, setSecCnt, setType, productName, setProductName, go } = useApp();
 
   const [showAllCats, setShowAllCats] = useState(false);
+  const [sample, setSample] = useState<'blog' | 'slide' | null>(null);
   /** 채널만 기본으로 연다 — 우리가 추측할 수 없는 유일한 값이고, 여기서 형태가 갈린다 */
   const [open, setOpen] = useState<Record<string, boolean>>({ ch: true });
   const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
@@ -176,6 +178,19 @@ export default function StartScreen() {
         title={<>이 상품, <span style={{ color: '#6D4CFF' }}>팔릴 준비</span> 되셨나요?</>}
         sub="상품 정보를 입력하면 카피와 이미지까지 한 번에 만들어드려요"
       />
+
+      {/* 형태 예시 — 상품정보 화면 우측의 작은 미리보기를 여기로 옮겼다.
+          고르기 전에 제대로 보는 게 맞고, 정보 입력 중에 곁눈질할 것은 아니다. */}
+      <div style={{ textAlign: 'center', margin: '-14px 0 26px' }}>
+        <button
+          onClick={() => setSample(effOut)}
+          style={{
+            border: '1px solid #E5E5EC', background: '#fff', color: '#4E5968',
+            borderRadius: 999, padding: '8px 16px', fontSize: 12.5, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >실제로 만든 예시 보기</button>
+      </div>
 
       {/* 상품명 — 첫 화면에서 바로 자기 일을 시작하게 */}
       <div style={{
@@ -287,6 +302,10 @@ export default function StartScreen() {
                 {name}{channel.out === k && <Tag>{channel.id} 추천</Tag>}
               </b>
               <small style={{ display: 'block', fontSize: 12, color: '#8B95A1', lineHeight: 1.65, whiteSpace: 'pre-line' }}>{d}</small>
+              <span
+                onClick={e => { e.stopPropagation(); setSample(k); }}
+                style={{ display: 'inline-block', marginTop: 9, fontSize: 12, fontWeight: 700, color: '#6D4CFF', textDecoration: 'underline', cursor: 'pointer' }}
+              >예시 보기</span>
             </Pick>
           ))}
         </div>
@@ -352,6 +371,8 @@ export default function StartScreen() {
       <p style={{ textAlign: 'center', fontSize: 12, color: '#B0B8C1', marginTop: 11 }}>
         크레딧은 만들기를 누를 때 차감돼요
       </p>
+
+      {sample && <SamplePreviewModal tab={sample} onTab={setSample} onClose={() => setSample(null)} />}
     </div>
   );
 }
