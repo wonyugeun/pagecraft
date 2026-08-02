@@ -114,7 +114,13 @@ export default function StartScreen() {
   const chIdx = Math.max(0, CHANNELS.findIndex(c => c.id === ch));
   const channel = CHANNELS[chIdx];
   const effOut = (out as 'blog' | 'slide') || channel.out;
-  const depth = secCnt || 16;
+  /* ★제시한 셋 중 하나로 맞춘다(2026-08-02) — 섹션구조 화면은 실제 구성 개수를 secCnt에 쓴다.
+   *  거기서 10섹션이 된 뒤 시작 화면으로 돌아오면 '10섹션·13크레딧'처럼 고를 수 없는 값이 뜬다.
+   *  화면에 없는 선택지를 값으로 보여주면 셀러는 자기가 고른 적 없는 크레딧을 보게 된다.
+   *  ⚠️표시만 바꾸면 버튼의 크레딧과 실제 차감이 어긋난다 — 상태까지 같이 맞춘다. */
+  const depth = DEPTHS.reduce((best, d) =>
+    Math.abs(d.n - secCnt) < Math.abs(best - secCnt) ? d.n : best, DEPTHS[1].n);
+  useEffect(() => { if (secCnt !== depth) setSecCnt(depth); }, [secCnt, depth, setSecCnt]);
   const cost = calculateGenerationCost({ sectionCount: depth, out: effOut });
 
   /* ★상품명으로 카테고리를 골라둔다(2026-08-02) — 셀러는 자기 상품을 안다.

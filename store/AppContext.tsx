@@ -367,7 +367,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [type, setTypeState] = useState<string | null>(null);
   const [out, setOutState] = useState<string | null>(null);
   const [imgMode, setImgModeState] = useState<string | null>(null);
-  const [secCnt, setSecCntState] = useState(10);
+  /* ★기본 16(2026-08-02) — 10은 카테고리별로 분량이 제각각(12·14·16·22·28·32)이던 시절의 잔재다.
+   *  시작 화면이 8/16/32 셋만 제시하므로 기본값도 그 안에 있어야 한다(없으면 '10섹션 13크레딧'처럼
+   *  고를 수 없는 값이 화면에 뜬다). 구 9단계 흐름은 종전값을 유지한다. */
+  const [secCnt, setSecCntState] = useState(NEW_START_FLOW ? 16 : 10);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
