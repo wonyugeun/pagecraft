@@ -98,12 +98,18 @@ export interface ImagebriefResult {
 const ARCHETYPE_BAND: Record<CutArchetype, [number, number]> = {
   hero:             [60, 100],
   empathy:          [0, 20],
+  // 사람이 쓰거나 입은 컷 — 상황도 보이고 제품도 또렷해야 한다(둘 중 하나만 되면 실패)
+  in_use:           [40, 85],
   ingredient_macro: [10, 40],
   texture:          [20, 60],
   clinical:         [50, 80],
   editorial:        [20, 60],
   product_only:     [70, 100],
   cta:              [80, 100],
+  /* ★분류 근거가 없을 때(2026-08-02) — 좁게 잠그지 않는다. 제품 단독컷으로 떨어뜨리면
+   *  '코디 제안'도 '공간 변화'도 제품 사진 한 장이 된다(62개 중 34개가 그랬다).
+   *  셀러가 직접 입력한 섹션도 전부 여기로 온다. 장면은 모델이 정하고 코드는 극단만 막는다. */
+  open:             [10, 95],
 };
 
 function clamp(n: number, min: number, max: number): number {
