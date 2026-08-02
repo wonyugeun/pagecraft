@@ -128,8 +128,12 @@ export default function StartScreen() {
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 100px', fontFamily: 'var(--f)' }}>
       <StepHeader
         step={1} label="시작"
-        title={<>어떤 상품의 <span style={{ color: '#6D4CFF' }}>상세페이지</span>를 만드시나요?</>}
-        sub="상품명만 적으면 나머지는 추천해드려요"
+        /* ★"상품명만 입력하면"이라고 쓰지 않는다(2026-08-02) — 다음 화면이 상품정보 폼이라
+         *  거짓이 되고, 그 지점에서 배신감이 이탈을 만든다. "전환되는"도 쓰지 않는다 —
+         *  실증할 수 없는 효과 주장(표시광고법)이고, 셀러에겐 날조하지 말라면서
+         *  우리 카피가 근거 없는 성과를 말하면 앞뒤가 맞지 않는다. */
+        title={<>이 상품, <span style={{ color: '#6D4CFF' }}>팔릴 준비</span> 되셨나요?</>}
+        sub="상품 정보를 입력하면 카피와 이미지까지 한 번에 만들어드려요"
       />
 
       {/* 상품명 — 첫 화면에서 바로 자기 일을 시작하게 */}
