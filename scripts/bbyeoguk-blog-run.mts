@@ -175,7 +175,9 @@ async function main() {
       case 'compare': return `<table class="cmp"><tr>${b.headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr>${b.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</table>`;
       case 'quote': return `<blockquote>${esc(b.text)}${b.author ? `<cite>— ${esc(b.author)}</cite>` : ''}</blockquote>`;
       case 'faq': return b.items.map(f => `<div class="faq"><b>Q. ${esc(f.q)}</b><p>A. ${esc(f.a)}</p></div>`).join('');
-      case 'cta': return `<div class="cta"><p>${esc(b.text)}</p><span>${esc(b.button)}</span></div>`;
+      // ⚠️가짜 버튼 금지 — 실제 제품(ResultScreen·exportHtml)은 2026-07-21에 뺐다.
+      //   하네스만 그리면 테스트 결과가 제품과 달라져 사람을 속인다.
+      case 'cta': return `<div class="cta"><p>${esc(b.text)}</p>${b.button ? `<em>${esc(b.button)}</em>` : ''}</div>`;
       case 'image': {
         const f = fileByKey[`${sec.num}#${bi}`];
         return f ? `<img src="${f}" alt="${esc(b.label)}">` : `<div class="miss">이미지 실패: ${esc(b.label)}</div>`;
@@ -202,7 +204,7 @@ async function main() {
   .cmp{width:100%;border-collapse:collapse;font-size:13.5px}.cmp th{background:${accent}18;padding:8px}.cmp td{border-top:1px solid #eee;padding:8px;text-align:center}
   blockquote{background:#faf8f5;border-left:3px solid ${accent};margin:14px 0;padding:14px 18px;border-radius:0 10px 10px 0}cite{display:block;font-size:12px;color:#999;margin-top:6px}
   .faq{margin:12px 0}.faq p{margin:4px 0 0;color:#555}
-  .cta{background:${accent};color:#fff;border-radius:14px;padding:24px;text-align:center}.cta span{display:inline-block;background:#fff;color:${accent};font-weight:800;border-radius:99px;padding:10px 26px;margin-top:10px}
+  .cta{background:${accent};color:#fff;border-radius:14px;padding:24px;text-align:center}.cta em{display:block;font-style:normal;font-weight:800;margin-top:10px}
   .miss{background:#fee;color:#c00;padding:20px;border-radius:10px;text-align:center;font-size:13px}
 </style>
 <div class="wrap">

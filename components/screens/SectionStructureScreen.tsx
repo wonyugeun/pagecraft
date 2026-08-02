@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
 import { groupSections } from '@/lib/sectionGroups';
+import { materialNeedFor } from '@/lib/sectionMaterials';
 import { Ruler, CheckCircle2, Camera, Sparkles, X, Plus, RotateCcw, GripVertical, Search } from 'lucide-react';
 import { ICON } from '@/lib/designTokens';
 import StepHeader from '@/components/layout/StepHeader';
@@ -81,7 +82,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, out, secCnt, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { go, out, secCnt, productExtra, productName, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -144,6 +145,13 @@ export default function SectionStructureScreen() {
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
   const fromCapture = !fromRef && Boolean(captureAnalysis?.섹션목록?.length);
   const available = ALL_SECTIONS.filter(s => !secs.includes(s));
+
+  /* ★재료가 있어야 성립하는 섹션 알림(2026-08-02) — 막지 않고 알린다.
+   *  실제 실행에서 확인된 문제다: 재료가 없으면 모델이 추천 주체·교환 규정·개발 서사를 지어낸다.
+   *  진짜 인증을 받은 셀러를 막아버리면 그게 더 답답하므로, 무엇을 적어야 하는지만 알려준다. */
+  const facts = `${productName ?? ''}\n${productExtra ?? ''}`;
+  const needs = secs.map(n => materialNeedFor(n, facts));
+  const needCount = needs.filter(Boolean).length;
 
   return (
     <div className="inner">
@@ -210,6 +218,16 @@ export default function SectionStructureScreen() {
         </div>
       )}
 
+      {needCount > 0 && (
+        <div style={{
+          border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 12,
+          padding: '12px 15px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.7, color: '#92400E',
+        }}>
+          <b style={{ fontWeight: 700 }}>{needCount}개 섹션은 상품정보에 내용을 적어주셔야 제대로 나와요.</b><br />
+          Flik은 없는 사실을 만들지 않기 때문에, 재료가 없으면 그 섹션은 두루뭉술해집니다. 아래 표시된 섹션을 확인해주세요.
+        </div>
+      )}
+
       {/* 섹션 리스트 */}
       <div style={{ marginBottom: 12 }}>
         {secs.map((sec, i) => (
@@ -242,6 +260,11 @@ export default function SectionStructureScreen() {
               <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--tx1)' }}>{sec}</span>
               {sectionDescription(sec) && (
                 <span style={{ display: 'block', fontSize: 11.5, color: 'var(--tx3)', marginTop: 2, lineHeight: 1.45 }}>{sectionDescription(sec)}</span>
+              )}
+              {needs[i] && (
+                <span style={{ display: 'block', fontSize: 11.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '5px 9px', marginTop: 5, lineHeight: 1.5 }}>
+                  <b style={{ fontWeight: 700 }}>{needs[i]!.need}</b>를 상품정보에 적어주세요 · {needs[i]!.risk}
+                </span>
               )}
             </span>
             <div style={{ display: 'flex', gap: 4 }}>
