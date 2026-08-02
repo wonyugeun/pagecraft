@@ -1166,6 +1166,17 @@ export default function ProductScreen() {
                   <span style={{ fontSize: 17, fontWeight: 800, color: pctColor, letterSpacing: '-0.02em' }}>{pct}%</span>
                 </div>
                 <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 3 }}>{pctMsg}</div>
+                {/* ★시작 화면에서 정한 값(2026-08-02) — 카테고리는 질문 구성을 통째로 바꾸는 값인데
+                    이 화면에 흔적이 없었다. 자동으로 골라주기 시작한 뒤로는 잘못 골랐을 때
+                    알아챌 방법이 아예 없다. 읽기 전용으로만 둔다 — 고치는 길은 아래 '이전'. */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                  {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
+                    <span key={i} style={{
+                      fontSize: 11, fontWeight: 700, color: '#6B7684', background: '#fff',
+                      border: '1px solid #E9E7F3', borderRadius: 999, padding: '3px 10px',
+                    }}>{v}</span>
+                  ))}
+                </div>
               </div>
             </div>
             <div style={{ marginTop: 13, height: 8, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
@@ -1618,11 +1629,40 @@ export default function ProductScreen() {
                 })}
               </div>
             ) : (
-              <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 12, lineHeight: 1.6 }}>
-                {speechLevel
-                  ? `“${SPEECH_LEVELS.find(l => l.key === speechLevel)?.sample ?? ''}” 같은 말투로 써드려요.`
-                  : '미리보기를 누르면 내 상품 카피를 어투별로 비교할 수 있어요.'}
-              </div>
+              /* ★고른 어투가 어떤 문장을 만드는지 세 줄로 보여준다(2026-08-02).
+               *  한 줄 회색 글씨로는 해요체와 합니다체가 어미 하나 차이로만 보여 고를 이유가 안 생긴다.
+               *  훅·설명·마무리를 나란히 놓으면 어투가 문장 길이와 호흡까지 바꾼다는 게 보인다.
+               *  ⚠️'다른 상품으로 만든 예시'다 — 내 상품 카피는 아래 미리보기 버튼이 만든다. */
+              speechLevel ? (() => {
+                const lv = SPEECH_LEVELS.find(l => l.key === speechLevel);
+                if (!lv) return null;
+                return (
+                  <div style={{
+                    marginTop: 13, border: '1px solid #E6DEFF', background: '#FBFAFF',
+                    borderRadius: 12, padding: '15px 17px',
+                  }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 800, color: '#6D4CFF', marginBottom: 10, letterSpacing: '0.02em' }}>
+                      {lv.label}로 쓰면 이런 문장이 나와요
+                    </div>
+                    {lv.samples.map((line, i) => (
+                      <p key={i} style={{
+                        fontSize: i === 0 ? 16 : 14,
+                        fontWeight: i === 0 ? 700 : 500,
+                        color: i === 0 ? '#191F28' : '#4E5968',
+                        lineHeight: 1.6, marginBottom: i === lv.samples.length - 1 ? 0 : 7,
+                        wordBreak: 'keep-all',
+                      }}>{line}</p>
+                    ))}
+                    <p style={{ fontSize: 11.5, color: '#B0B8C1', marginTop: 11 }}>
+                      어투를 보여주는 예시예요 · 내 상품 카피는 위 버튼으로 확인하세요
+                    </p>
+                  </div>
+                );
+              })() : (
+                <div style={{ fontSize: 12.5, color: '#8B95A1', marginTop: 12, lineHeight: 1.6 }}>
+                  미리보기를 누르면 내 상품 카피를 어투별로 비교할 수 있어요.
+                </div>
+              )
             )}
           </div>
 
@@ -1660,27 +1700,6 @@ export default function ProductScreen() {
               입력하신 수치·효능·인증은 그대로 페이지에 반영됩니다. 근거 없는 표현은 표시광고법 위반이 될 수 있으니,
               시험성적서나 실측값으로 확인 가능한 내용만 적어주세요. 이에 대한 책임은 판매자에게 있습니다.
             </div>
-          </div>
-
-          {/* 시작 화면에서 정한 값 — 카테고리는 질문 구성을 바꾸는 값인데 여기서 보이지 않았다.
-              잘못 골랐으면 폼이 통째로 엉뚱해지므로, 되돌아갈 길을 함께 둔다. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap',
-            border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
-            padding: '11px 15px', marginTop: 12,
-          }}>
-            {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
-              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#4E5968', fontWeight: 600 }}>
-                {i > 0 && <span style={{ color: '#D8DCE3' }}>·</span>}{v}
-              </span>
-            ))}
-            <button
-              onClick={() => go(prevScreen as any)}
-              style={{
-                marginLeft: 'auto', border: '1px solid #E5E5EC', background: '#fff', color: '#6D4CFF',
-                borderRadius: 8, padding: '5px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >바꾸기</button>
           </div>
 
           {/* Navigation footer */}
