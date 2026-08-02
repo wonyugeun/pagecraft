@@ -15,6 +15,7 @@
 import type { Block } from '@/store/AppContext';
 import { assignBlockVariants, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
 import { isCenteredSection, limitPageAccent } from '@/lib/pageAccent';
+import { assignSectionLayouts } from '@/lib/sectionLayout';
 import { compareColumns } from '@/components/result/BlockRenderer';
 
 export interface ExportSection {
@@ -304,6 +305,9 @@ export function buildBlogExportHtml(
   /* 포인트 컬러는 페이지에 한 곳만 — 카피 청크가 병렬이라 모델은 옆 섹션을 모른다.
      페이지 전체를 보는 건 여기뿐이므로 여기서 정리한다(문장은 지우지 않고 괄호만 벗긴다). */
   const accentBodies = limitPageAccent(sections.map(sc => sc.body ?? ''));
+  /* 섹션 뼈대도 페이지 흐름이 정한다 — 16개가 전부 '제목 → 이미지 → 본문'이면
+     블록·정렬을 아무리 바꿔도 같은 페이지로 읽힌다(2026-08-03). */
+  const layouts = assignSectionLayouts(sections.map(sc => sc.name ?? ''));
 
   const sectionsHtml = sections.map((sec, idx) => {
     // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
@@ -329,8 +333,15 @@ export function buildBlogExportHtml(
       : '';
     // 섹션 대표 이미지(base64 임베드) — 블록 유무 무관 카피 아래에 노출(화면과 동일: 본문→이미지→블록).
     const secImgUrl = compressedSectionUrls[sec.num];
+    const lay = layouts[idx];
+    // bleed = 좌우 패딩(48px)을 뚫고 화면 끝까지 · compact = 글이 주인공이라 사진을 줄인다
+    const imgStyleBySec = lay === 'bleed'
+      ? 'width:calc(100% + 96px);max-width:none;display:block;margin:28px -48px;border-radius:0;'
+      : lay === 'compact'
+        ? 'width:100%;max-width:520px;display:block;margin:22px auto;border-radius:16px;'
+        : 'width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;';
     const imgTag = secImgUrl
-      ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel ?? '')}" style="width:100%;max-width:860px;display:block;margin:24px auto;border-radius:16px;" />`
+      ? `\n      <img src="${secImgUrl}" alt="${escHtml(sec.imageLabel ?? '')}" style="${imgStyleBySec}" />`
       : '';
     // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
     const blocksHtml = sec.blocks?.length
@@ -345,7 +356,11 @@ export function buildBlogExportHtml(
        정렬은 길이가 아니라 역할이 정한다(2026-08-02) — 260자 기준이던 때는 실제 본문이 128~220자라
        사실상 전 섹션이 가운데였고, 설명하는 글까지 가운데로 흘러 청첩장처럼 읽혔다. */
     const centered = isCenteredSection(sec.name ?? '', sec.body ?? '', idx === 0, idx === sections.length - 1);
-    return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${head}${sub}${imgTag}${bodyHtml}${stripHtml}${blocksHtml}\n    </section>`;
+    // textfirst = 글로 먼저 걸고 사진으로 확인시킨다(공감·문제 제기형)
+    const flow = lay === 'textfirst'
+      ? `${head}${sub}${bodyHtml}${imgTag}`
+      : `${head}${sub}${imgTag}${bodyHtml}`;
+    return `\n    <section class="sec${centered ? ' sec-center' : ''}">${tag}\n      ${flow}${stripHtml}${blocksHtml}\n    </section>`;
   }).join('\n');
   const html = `<!DOCTYPE html>
 <html lang="ko">

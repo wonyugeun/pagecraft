@@ -15,6 +15,7 @@ import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import { blocksToHtml } from '@/lib/exportHtml';
 import { assignBlockVariants } from '@/lib/blockLayout';
 import { isCenteredSection } from '@/lib/pageAccent';
+import { assignSectionLayouts, type SectionLayout } from '@/lib/sectionLayout';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable, stripMarks } from '@/components/result/BlockRenderer';
 import { aspectRatioFor, type ImageAspect } from '@/lib/sectionAspect';
@@ -562,8 +563,10 @@ function sectionDesignKind(sec: Section, isFirst: boolean, isLast: boolean): 'pr
 }
 
 /* ─── 블로그형 섹션 ─── (controlled: sec 표시 + body 수정/재생성은 외부 위임) */
-export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile, purchaseInfo }: {
+export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onGenerateImage, isLast, isFirst, onLightbox, blockImages, onLightboxBlock, isMobile, purchaseInfo, layout }: {
   sec: Section;
+  /** ★섹션 뼈대(2026-08-03) — 역할과 페이지 흐름이 정한다(lib/sectionLayout). 없으면 기본형 */
+  layout?: SectionLayout;
   onRegen: () => void;
   regenLoading: boolean;
   onPatch?: (patch: Partial<Section>) => void;   // body/headline/subcopy/blocks 등 인라인 편집 patch (AI 0). body도 인라인으로 통일.
@@ -594,6 +597,36 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
     soft:       sec.visual?.soft_color   ?? DEFAULT_THEME.soft,
     softBorder: sec.visual?.soft_border  ?? DEFAULT_THEME.softBorder,
   };
+
+  /* ★섹션 뼈대(2026-08-03) — 16개 섹션이 전부 '제목 → 이미지 → 본문'이면 블록·정렬을 바꿔도
+     같은 페이지로 읽힌다. 역할과 페이지 흐름이 정한 뼈대대로 이미지 폭과 순서를 바꾼다.
+       bleed    = 좌우 여백(36px)을 뚫고 끝까지 — 사진이 말하는 섹션
+       compact  = 사진을 줄인다 — 글·수치가 주인공인 섹션
+       textfirst= 글로 먼저 걸고 사진으로 확인시킨다 — 공감·문제 제기 */
+  const lay: SectionLayout = layout ?? 'standard';
+  const imageEl = !(isFirst && sec.bodyFlow) && sec.imageDesc ? (
+    <div style={{
+      marginTop: 24,
+      marginLeft: lay === 'bleed' ? -36 : undefined,
+      marginRight: lay === 'bleed' ? -36 : undefined,
+      maxWidth: lay === 'compact' ? 520 : undefined,
+      marginInline: lay === 'compact' ? 'auto' : undefined,
+    }}>
+      <ImgSlot
+        sec={sec} imgState={imgState} onGenerate={onGenerateImage}
+        slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: lay === 'bleed' ? 0 : 8 }}
+        onLightbox={onLightbox}
+      />
+    </div>
+  ) : null;
+
+  const bodyEl = !(isFirst && sec.bodyFlow) && (sec.body || onPatch) ? (
+    <div style={{ padding: '24px 36px 0', textAlign: copyAlign }}>
+      <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
+        markAccent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
+        style={{ fontSize: 17, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px', wordBreak: 'keep-all' }} />
+    </div>
+  ) : null;
 
   // 섹션 재생성 버튼 — 첫 image 블록 우상단 오버레이 (데스크탑 hover 표시, 모바일 항상 표시)
   const regenOverlayBtn = (
@@ -670,27 +703,11 @@ export function BlogSection({ sec, onRegen, regenLoading, onPatch, imgState, onG
           </div>
         )}
 
-        {/* ── 섹션 대표 이미지 — ★샌드위치 배치(2026-07-27 유근님): 헤드라인 → 이미지 → 본문.
-            이미지가 스크롤을 잡고 본문이 받아 설명하는 리듬. 첫 섹션(Hero)은 HeroBlock 내부 이미지라 제외. ── */}
-        {!(isFirst && sec.bodyFlow) && sec.imageDesc && (
-          <div style={{ marginTop: 24 }}>
-            <ImgSlot
-              sec={sec} imgState={imgState} onGenerate={onGenerateImage}
-              slotStyle={{ width: '100%', aspectRatio: imgState?.aspectRatio ? imgState.aspectRatio.replace(':', '/') : '4/3', background: '#f4f6f8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8 }}
-              onLightbox={onLightbox}
-            />
-          </div>
-        )}
-
-        {/* ── 본문(body) — 이미지 아래로 이동(샌드위치). 인라인 편집 유지, pre-wrap이 v5 호흡 유지.
-            ★타이포: 16→17. 짧은 카피는 센터 정렬. Hero는 HeroBlock bodySlot에서 렌더하므로 제외. ── */}
-        {!(isFirst && sec.bodyFlow) && (sec.body || onPatch) && (
-          <div style={{ padding: '24px 36px 0', textAlign: copyAlign }}>
-            <Editable multiline value={sec.body ?? ''} onCommit={onPatch ? v => onPatch({ body: v }) : undefined}
-              markAccent={sec.visual?.accent_color ?? DEFAULT_THEME.accent}
-              style={{ fontSize: 17, fontWeight: 400, color: '#34343c', lineHeight: 1.85, letterSpacing: '-0.2px', wordBreak: 'keep-all' }} />
-          </div>
-        )}
+        {/* ── 이미지와 본문 — 기본은 샌드위치(2026-07-27 유근님: 제목 → 이미지 → 본문)이고,
+            공감·문제 제기 섹션만 글을 먼저 보여준다(2026-08-03). 첫 섹션은 HeroBlock이 대신 그린다. ── */}
+        {lay === 'textfirst'
+          ? <>{bodyEl}{imageEl}</>
+          : <>{imageEl}{bodyEl}</>}
 
         {/* ── ★구매 정보 스트립(2026-07-27) — CTA 직전 구매 결정 정보 요약(셀러 입력값만) ── */}
         {isLast && !!purchaseInfo?.length && (
@@ -1844,6 +1861,9 @@ export default function ResultScreen() {
       realIdx,
     }));
 
+  /* 섹션 뼈대는 페이지 전체를 봐야 정할 수 있다 — 같은 뼈대가 이어지면 코드가 끊는다 */
+  const blogLayouts = assignSectionLayouts(orderedVisibleSections.map(o => o.section.name ?? ''));
+
   // 다운로드용 최종 섹션 배열 (순서 + 숨김 + override 모두 반영)
   const finalSectionsForExport = orderedVisibleSections.map(o => o.section);
 
@@ -2157,6 +2177,7 @@ export default function ResultScreen() {
                       onGenerateImage={() => generateImage(sec, AbortSignal.timeout(130_000))}
                       isLast={displayIdx === orderedVisibleSections.length - 1}
                       isFirst={displayIdx === 0}
+                      layout={blogLayouts[displayIdx]}
                       onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
                       blockImages={blockImages}
                       onLightboxBlock={(key: string) => setLightboxSecNum(key)}
