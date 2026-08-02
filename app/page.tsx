@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import LandingPage from '@/components/landing/LandingPage';
-import { AppProvider, useApp } from '@/store/AppContext';
+import { AppProvider, useApp, NEW_START_FLOW } from '@/store/AppContext';
 import { USE_NEW_ENGINE } from '@/lib/engineFlag';
 import { getActiveJobId, clearActiveJobId, markResumeIntent } from '@/lib/activeJob';
 import { getJob } from '@/lib/historyDB';
@@ -27,6 +27,7 @@ import CreditModal from '@/components/modals/CreditModal';
 import QuickScreen from '@/components/screens/QuickScreen';
 import ThumbScreen from '@/components/screens/ThumbScreen';
 import OutputScreen from '@/components/screens/OutputScreen';
+import StartScreen from '@/components/screens/StartScreen';
 import { STEP_MAP } from '@/store/AppContext';
 
 // ★모바일 자체 헤더(로고·크레딧·스텝)를 렌더하는 화면들 — 이 화면들은 모바일에서 앱 레벨
@@ -69,7 +70,8 @@ function App() {
     's-dash': <DashboardScreen />,
     's-quick': <QuickScreen />,
     's-thumb': <ThumbScreen />,
-    's1': <CategoryScreen />,
+    // ★시작 화면 통합(2026-08-02) — 플래그를 끄면 기존 카테고리 화면으로 즉시 복귀
+    's1': NEW_START_FLOW ? <StartScreen /> : <CategoryScreen />,
     's2': <ChannelScreen />,
     's3': <TypeScreen />,
     's3b': <OutputScreen />,

@@ -303,9 +303,14 @@ export const CHAT_A: Record<string, string> = {
 };
 
 // ★래퍼런스 독립 단계 폐지(2026-07-22) — s5-5(래퍼런스 분석)는 타입(3)의 갈래라 같은 단계로 표시. 총 9단계.
-export const STEP_MAP: Record<string, number> = {
-  s1: 1, s2: 2, s3: 3, 's5-5': 3, s3b: 4, s5: 5, 's5b': 6, s6: 7, s7: 8, s8: 9,
-};
+/* ★시작 화면 통합(2026-08-02) — 카테고리·채널·타입·출력형태 네 화면을 s1 하나로 합친다.
+ *  단계마다 이탈이 생기고, 앞 네 화면은 전부 '고르기'만 해서 셀러가 "아직 시작도 못 했다"고 느낀다.
+ *  ⚠️검증 전까지 플래그로 가른다 — 끄면 기존 9단계로 즉시 복귀한다. */
+export const NEW_START_FLOW = (process.env.NEXT_PUBLIC_NEW_START_FLOW ?? '1') === '1';
+
+export const STEP_MAP: Record<string, number> = NEW_START_FLOW
+  ? { s1: 1, 's5-5': 1, s5: 2, 's5b': 3, s6: 4, s7: 5, s8: 6 }
+  : { s1: 1, s2: 2, s3: 3, 's5-5': 3, s3b: 4, s5: 5, 's5b': 6, s6: 7, s7: 8, s8: 9 };
 
 /* ── 새로고침 복원: 단계+입력값을 sessionStorage에 영속화(탭 닫으면 정리). 크레딧·생성결과·이미지는 제외(부작용 방지). ── */
 const PERSIST_KEY = 'pc_wizard_v1';
