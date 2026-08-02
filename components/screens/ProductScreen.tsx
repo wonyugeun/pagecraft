@@ -1704,8 +1704,25 @@ export default function ProductScreen() {
             )}
           </div>
 
-          {/* ★노란 배너 다이어트(2026-07-27): 하단 중복 경고 제거 — 법적 경고는 상단 1곳,
-              여기는 동의 체크만(중립 톤, 체크 시 그린). 노랑 3연발 → 1곳으로 줄여 실제로 읽히게. */}
+          {/* ⚠️ 법적 고지 — 위쪽에 두면 시작하기도 전에 읽을 것만 늘어난다.
+              내용을 지우지 말 것: 입력값은 그대로 페이지에 실리고 책임은 판매자에게 간다.
+              대신 '위반·책임'을 앞세우는 대신 '무엇을 적으면 되는지'를 먼저 말한다. */}
+          <div style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 12,
+            padding: '13px 15px', marginTop: 24,
+          }}>
+            <span style={{ fontSize: 14, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
+            <div style={{ fontSize: 12, lineHeight: 1.7, color: '#6B7684' }}>
+              <b style={{ fontWeight: 700, color: '#4E5968' }}>검증된 정보만 입력해 주세요.</b><br />
+              입력하신 수치·효능·인증은 그대로 페이지에 반영됩니다. 근거 없는 표현은 표시광고법 위반이 될 수 있으니,
+              시험성적서나 실측값으로 확인 가능한 내용만 적어주세요. 이에 대한 책임은 판매자에게 있습니다.
+            </div>
+          </div>
+
+          {/* ★동의는 고지 '다음'에 온다(2026-08-02) — 앞서 있던 순서에선 무엇에 동의하는지
+              읽기도 전에 체크하게 됐다. 동의를 법적 방어선으로 쓰려면 근거 문구를 먼저 보여야 한다.
+              (톤은 중립, 체크하면 그린 — 노란 경고 3연발을 줄인 2026-07-27 결정은 유지) */}
           <label style={{
             display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 24,
             padding: '12px 14px', borderRadius: 12,
@@ -1723,22 +1740,6 @@ export default function ProductScreen() {
               입력한 정보가 <b>실제 제품과 일치하는 정확한 정보</b>임을 확인합니다. <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(필수)</span>
             </span>
           </label>
-
-          {/* ⚠️ 법적 고지 — 위쪽에 두면 시작하기도 전에 읽을 것만 늘어난다.
-              내용을 지우지 말 것: 입력값은 그대로 페이지에 실리고 책임은 판매자에게 간다.
-              대신 '위반·책임'을 앞세우는 대신 '무엇을 적으면 되는지'를 먼저 말한다. */}
-          <div style={{
-            display: 'flex', gap: 10, alignItems: 'flex-start',
-            background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 12,
-            padding: '13px 15px', marginTop: 22,
-          }}>
-            <span style={{ fontSize: 14, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
-            <div style={{ fontSize: 12, lineHeight: 1.7, color: '#6B7684' }}>
-              <b style={{ fontWeight: 700, color: '#4E5968' }}>검증된 정보만 입력해 주세요.</b><br />
-              입력하신 수치·효능·인증은 그대로 페이지에 반영됩니다. 근거 없는 표현은 표시광고법 위반이 될 수 있으니,
-              시험성적서나 실측값으로 확인 가능한 내용만 적어주세요. 이에 대한 책임은 판매자에게 있습니다.
-            </div>
-          </div>
 
           {/* Navigation footer */}
           <div className="cta-row" style={{ marginTop: 14 }}>
