@@ -13,6 +13,7 @@
  *   센터 정렬(body 260자 이하)·강조 마킹·섹션 태그·테마색은 화면과 같은 기준을 쓴다.
  */
 import type { Block } from '@/store/AppContext';
+import { assignBlockVariants, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
 import { compareColumns } from '@/components/result/BlockRenderer';
 
 export interface ExportSection {
@@ -94,6 +95,43 @@ export const HTML_BLOCKS_CSS = `
 .cta { border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 32px; text-align: center; margin-bottom: 32px; }
 .cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
 .cta-close { margin-top: 20px; font-size: 17px; font-weight: 700; color: var(--p,#6D4CFF); letter-spacing: -0.2px; }
+
+/* ★생김새 수식자(2026-08-02) — 내용과 페이지 흐름이 고른다(lib/blockLayout).
+   ⚠️어느 조합에서도 읽히기만 하면 된다. 화려함이 아니라 '같아 보이지 않기'가 목적이다. */
+.stats.v-solo { display: block; border: none; padding: 0; }
+.stats.v-solo .stat { border: none; background: transparent; padding: 6px 0 0; text-align: left; }
+.stats.v-solo .stat strong { font-size: 40px; letter-spacing: -0.04em; }
+.stats.v-solo .stat small { font-size: 15px; color: #666; margin-top: 8px; }
+.stats.v-stack { display: block; border-top: 1px solid var(--sb,#E6DEFF); }
+.stats.v-stack .stat { display: flex; align-items: baseline; gap: 14px; text-align: left;
+  border: none; border-bottom: 1px solid var(--sb,#E6DEFF); border-radius: 0; background: transparent; padding: 15px 2px; }
+.stats.v-stack .stat strong { font-size: 22px; flex-shrink: 0; min-width: 30%; }
+.stats.v-stack .stat small { margin-top: 0; color: #555; }
+.stats.v-rail { grid-template-columns: repeat(2, 1fr) !important; row-gap: 12px; }
+.stats.v-rail .stat { border: none; background: var(--sf,#F7F6FD); border-radius: 14px; padding: 16px 12px; }
+
+.iconcards.v-stack { grid-template-columns: 1fr !important; }
+.iconcards.v-stack .iconcard { display: grid; grid-template-columns: 34px 1fr; align-items: start;
+  column-gap: 14px; text-align: left; padding: 18px; }
+.iconcards.v-stack .iconcard-icon { margin: 0; }
+.iconcards.v-stack .iconcard p { grid-column: 2; }
+.iconcards.v-plain .iconcard { border: none; background: transparent; padding: 10px 0; }
+.iconcards.v-plain .iconcard-icon { display: none; }
+.iconcards.v-plain .iconcard strong { font-size: 15px; }
+
+.steps.v-rail { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.steps.v-rail li { display: block; padding: 15px 16px; }
+.steps.v-rail .step-num { display: inline-block; margin-bottom: 7px; }
+.steps.v-flow li { border: none; background: transparent; border-left: 2px solid var(--sb,#E6DEFF);
+  border-radius: 0; padding: 6px 0 18px 20px; margin-left: 9px; gap: 12px; }
+.steps.v-flow .step-num { margin-left: -31px; }
+
+.checklist.v-rail { display: grid; grid-template-columns: repeat(2, 1fr); column-gap: 18px; }
+
+@media (max-width: 520px) {
+  .stats.v-rail, .steps.v-rail, .checklist.v-rail { grid-template-columns: 1fr !important; }
+  .stats.v-solo .stat strong { font-size: 32px; }
+}
 `;
 
 /* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
@@ -102,7 +140,12 @@ export function blocksToHtml(
   sectionNum: string,
   blockImageUrls: Record<string, string>,
   blockAspects: Record<string, string> = {},
+  /** ★생김새 수식자(2026-08-02) — 없으면 내용만 보고 정한다(lib/blockLayout 참고).
+   *  페이지 전체 리듬까지 반영하려면 assignBlockVariants 결과를 넘긴다. */
+  variants?: BlockVariant[],
 ): string {
+  const vs = variants ?? variantsForSection(blocks);
+  const vc = (i: number) => (vs[i] ? ` v-${vs[i]}` : '');
   // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(화면 BlockRenderer와 동일 규칙)
   const quoteRunLen: Record<number, number> = {};
   const quoteRunFollower = new Set<number>();
@@ -135,25 +178,29 @@ export function blocksToHtml(
       case 'paragraph':
         return `<p class="paragraph">${escHtml(b.text)}</p>`;
       case 'checklist':
-        return `<ul class="checklist">${b.items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`;
+        return `<ul class="checklist${vc(i)}">${b.items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`;
       case 'steps':
-        return `<ol class="steps">${b.items.map((s, idx) => `<li>
+        return `<ol class="steps${vc(i)}">${b.items.map((s, idx) => `<li>
   <span class="step-num">${idx + 1}</span>
   <div><strong>${escHtml(s.title)}</strong>${s.desc ? `<p>${escHtml(s.desc)}</p>` : ''}</div>
 </li>`).join('')}</ol>`;
       case 'iconcards': {
         const cols = b.cards.length >= 4 ? 4 : Math.max(2, b.cards.length);
-        return `<div class="iconcards" style="grid-template-columns:repeat(${cols},1fr);">${b.cards.map(c => `<div class="iconcard">
+        const colStyle = vs[i] === 'stack' ? '' : ` style="grid-template-columns:repeat(${cols},1fr);"`;
+        return `<div class="iconcards${vc(i)}"${colStyle}>${b.cards.map(c => `<div class="iconcard">
   <div class="iconcard-icon">✦</div>
   <strong>${escHtml(c.title)}</strong>
   ${c.desc ? `<p>${escHtml(c.desc)}</p>` : ''}
 </div>`).join('')}</div>`;
       }
-      case 'stats':
-        return `<div class="stats" style="grid-template-columns:repeat(${b.items.length},1fr);">${b.items.map(s => `<div class="stat">
+      case 'stats': {
+        const wide = vs[i] === 'stack' || vs[i] === 'solo';
+        const colStyle = wide ? '' : ` style="grid-template-columns:repeat(${b.items.length},1fr);"`;
+        return `<div class="stats${vc(i)}"${colStyle}>${b.items.map(s => `<div class="stat">
   <strong>${escHtml(s.value)}</strong>
   <small>${escHtml(s.label)}</small>
 </div>`).join('')}</div>`;
+      }
       case 'compare': {
         const { ourIdx } = compareColumns(b.headers);  // 우리 제품 컬럼을 데이터로 판정해 강조(화면과 동일)
         return `<table class="compare">
@@ -250,6 +297,10 @@ export function buildBlogExportHtml(
   const cSoft = themeV?.soft_color ?? '#F4F0FF';
   const cSB = themeV?.soft_border ?? '#E6DEFF';
 
+  /* ★페이지 전체를 한 번 보고 블록 생김새를 정한다(2026-08-02) — 청크가 병렬이라
+     모델은 페이지 전체를 못 본다. 같은 모양이 줄줄이 이어지는 걸 아는 건 코드뿐이다. */
+  const pageVariants = assignBlockVariants(sections.map(sc => sc.blocks ?? []));
+
   const sectionsHtml = sections.map((sec, idx) => {
     // Problem/Feature 태그 — 텍스트로(SEO), 색은 제품 테마(sec.visual)
     const kind = sectionDesignKind(sec, idx === 0, idx === sections.length - 1);
@@ -278,7 +329,7 @@ export function buildBlogExportHtml(
       : '';
     // 화면 BlogSection과 동일하게 블록 컨테이너에 위 여백(36px) — 이미지-KPI/블록이 딱 붙지 않게.
     const blocksHtml = sec.blocks?.length
-      ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap)}\n      </div>`
+      ? `\n      <div style="padding-top:36px;">\n${blocksToHtml(sec.blocks, sec.num, compressedBlockUrls, blockAspectMap, pageVariants[idx])}\n      </div>`
       : '';
     // ★구매 정보 스트립(2026-07-27) — 마지막 섹션에서 블록 위에 노출(화면 BlogSection과 동일 위치)
     const stripHtml = (idx === sections.length - 1 && purchaseInfo?.length)

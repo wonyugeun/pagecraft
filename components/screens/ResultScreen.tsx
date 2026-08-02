@@ -12,6 +12,8 @@ import type { DirectorPlan } from '@/lib/stages/director';
 import { selectRequiredAssetIndex, buildPlatePrompt, compositeRequiredAsset } from '@/lib/sectionReference';
 import { friendlyGenerationError } from '@/lib/apiErrors';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
+import { blocksToHtml } from '@/lib/exportHtml';
+import { assignBlockVariants } from '@/lib/blockLayout';
 import { runPool } from '@/lib/asyncPool';
 import BlockRenderer, { HeroBlock, DEFAULT_THEME, compareColumns, Editable, stripMarks } from '@/components/result/BlockRenderer';
 import { aspectRatioFor, type ImageAspect } from '@/lib/sectionAspect';
@@ -268,103 +270,6 @@ export async function captureBlockShots(container: HTMLElement): Promise<Record<
 }
 
 /* ─── 블록 → HTML 변환 (블로그형 blocks 모드) ─── */
-function blocksToHtml(
-  blocks: Block[],
-  sectionNum: string,
-  blockImageUrls: Record<string, string>,
-  blockAspects: Record<string, string> = {},
-): string {
-  // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(화면 BlockRenderer와 동일 규칙)
-  const quoteRunLen: Record<number, number> = {};
-  const quoteRunFollower = new Set<number>();
-  for (let qi = 0; qi < blocks.length; qi++) {
-    if (blocks[qi].type !== 'quote' || quoteRunFollower.has(qi) || quoteRunLen[qi]) continue;
-    let qj = qi;
-    while (qj + 1 < blocks.length && blocks[qj + 1].type === 'quote') qj++;
-    if (qj > qi) { quoteRunLen[qi] = qj - qi + 1; for (let qk = qi + 1; qk <= qj; qk++) quoteRunFollower.add(qk); }
-  }
-  const quoteHtml = (b: Extract<Block, { type: 'quote' }>, compact = false) => {
-    const stars = typeof b.rating === 'number' && b.rating > 0 ? Math.min(5, Math.max(0, Math.round(b.rating))) : 0;
-    return `<blockquote class="quote${compact ? ' quote-compact' : ''}">
-  <div class="quote-icon">&ldquo;</div>
-  <p>${escHtml(b.text)}</p>
-  <footer>
-    ${stars > 0 ? `<span class="stars">${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}</span>` : '<span></span>'}
-    ${b.author ? `<span class="author">${escHtml(b.author)}</span>` : ''}
-  </footer>
-</blockquote>`;
-  };
-  return blocks.map((b, i) => {
-    switch (b.type) {
-      case 'hero':
-        return `<header class="hero">
-  <h1>${escHtml(b.title).replace(/\n/g, '<br>')}</h1>
-  ${b.subtitle ? `<p class="hero-sub">${escHtml(b.subtitle).replace(/\n/g, '<br>')}</p>` : ''}
-</header>`;
-      case 'heading':
-        return `<h2 class="heading">${escHtml(b.text).replace(/\n/g, '<br>')}</h2>`;
-      case 'paragraph':
-        return `<p class="paragraph">${escHtml(b.text)}</p>`;
-      case 'checklist':
-        return `<ul class="checklist">${b.items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`;
-      case 'steps':
-        return `<ol class="steps">${b.items.map((s, idx) => `<li>
-  <span class="step-num">${idx + 1}</span>
-  <div><strong>${escHtml(s.title)}</strong>${s.desc ? `<p>${escHtml(s.desc)}</p>` : ''}</div>
-</li>`).join('')}</ol>`;
-      case 'iconcards': {
-        const cols = b.cards.length >= 4 ? 4 : Math.max(2, b.cards.length);
-        return `<div class="iconcards" style="grid-template-columns:repeat(${cols},1fr);">${b.cards.map(c => `<div class="iconcard">
-  <div class="iconcard-icon">✦</div>
-  <strong>${escHtml(c.title)}</strong>
-  ${c.desc ? `<p>${escHtml(c.desc)}</p>` : ''}
-</div>`).join('')}</div>`;
-      }
-      case 'stats':
-        return `<div class="stats" style="grid-template-columns:repeat(${b.items.length},1fr);">${b.items.map(s => `<div class="stat">
-  <strong>${escHtml(s.value)}</strong>
-  <small>${escHtml(s.label)}</small>
-</div>`).join('')}</div>`;
-      case 'compare': {
-        const { ourIdx } = compareColumns(b.headers);  // 우리 제품 컬럼을 데이터로 판정해 강조(화면과 동일)
-        return `<table class="compare">
-  <thead><tr>${b.headers.map((h, idx) => `<th class="${idx === ourIdx ? 'hilite' : ''}">${escHtml(h)}</th>`).join('')}</tr></thead>
-  <tbody>${b.rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === ourIdx ? 'hilite' : idx === 0 ? 'firstcol' : ''}">${idx === ourIdx ? '<span class="check">✓</span>' : ''}${escHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-</table>`;
-      }
-      case 'quote': {
-        if (quoteRunFollower.has(i)) return '';   // 런 후속 — 시작 인덱스에서 그리드로 함께 출력
-        const runLen = quoteRunLen[i];
-        if (runLen) {
-          const run = blocks.slice(i, i + runLen).filter((qb): qb is Extract<Block, { type: 'quote' }> => qb.type === 'quote');
-          return `<div class="quote-grid">${run.map(qb => quoteHtml(qb, true)).join('\n')}</div>`;
-        }
-        return quoteHtml(b);
-      }
-      case 'faq':
-        return `<dl class="faq">${b.items.map(f => `<dt>Q. ${escHtml(f.q)}</dt>
-<dd>${escHtml(f.a)}</dd>`).join('')}</dl>`;
-      case 'image': {
-        const key = `${sectionNum}#${i}`;
-        const url = blockImageUrls[key];
-        const cssAspect = (blockAspects[key] ?? '1:1').replace(':', '/');
-        const imgStyle = `aspect-ratio:${cssAspect};object-fit:contain;`;
-        // ★이미지 없는 블록은 스킵(슬롯 플레이스홀더 미노출) — 셀러 결과물에 내부 안내 요소 0.
-        return url
-          ? `<figure class="image" style="aspect-ratio:${cssAspect};"><img src="${url}" alt="${escHtml(b.label)}" style="${imgStyle}" /></figure>`
-          : '';
-      }
-      case 'cta':
-        // ⚠️가짜 버튼 제거(2026-07-21) — 클릭 안 되는 '구매하기' 모양 요소는 기만 소지. 마감 문구로만.
-        return `<div class="cta">
-  <h2>${escHtml(b.text).replace(/\n/g, '<br>')}</h2>
-  ${b.button ? `<p class="cta-close">${escHtml(b.button)}</p>` : ''}
-</div>`;
-      default:
-        return '';
-    }
-  }).join('\n');
-}
 
 // 색은 CSS 변수(--p 제품 primary / --soft / --sb soft-border)로. 다운로드 시 제품 테마로 치환됨(보라 폴백).
 const HTML_BLOCKS_CSS = `

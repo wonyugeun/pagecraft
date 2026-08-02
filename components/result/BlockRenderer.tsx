@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode, type CSSProperties } from 'react';
 import { Block } from '@/store/AppContext';
+import { variantsForSection, type BlockVariant } from '@/lib/blockLayout';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
 
@@ -223,10 +224,16 @@ function ParagraphBlock({ text, onChange }: { text: string; onChange?: (b: Block
 
 /* ─── checklist ─── */
 // 공감(Problem) 섹션 체크리스트 — 항목별 soft 테마 카드 + 원형 체크아이콘. 색은 ThemeContext.
-function ChecklistBlock({ items, onChange }: { items: string[]; onChange?: (b: Block) => void }) {
+function ChecklistBlock({ items, variant, onChange }: { items: string[]; variant?: BlockVariant; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
-    <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    /* rail = 항목이 많거나 짧을 때 2열 — 한 줄짜리 카드가 세로로 여섯 개 쌓이면 목록이 아니라 벽이 된다 */
+    <div style={{
+      marginBottom: 32,
+      display: variant === 'rail' ? 'grid' : 'flex',
+      gridTemplateColumns: variant === 'rail' ? 'repeat(2, 1fr)' : undefined,
+      flexDirection: 'column', gap: 10,
+    }}>
       {items.map((item, i) => (
         <div key={i} style={{
           display: 'flex', gap: 12, alignItems: 'flex-start',
@@ -249,23 +256,33 @@ function ChecklistBlock({ items, onChange }: { items: string[]; onChange?: (b: B
 }
 
 /* ─── steps ─── */
-function StepsBlock({ items, onChange }: { items: { title: string; desc?: string }[]; onChange?: (b: Block) => void }) {
+function StepsBlock({ items, variant, onChange }: { items: { title: string; desc?: string }[]; variant?: BlockVariant; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   const patch = (i: number, key: 'title' | 'desc', v: string) =>
     onChange?.({ type: 'steps', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
   return (
-    <div style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    /* rail = 제목만 있는 단계(카드가 헐렁해짐) · flow = 다섯 단계 이상(번호 원형이 무거워짐) */
+    <div style={{
+      marginBottom: 32,
+      display: variant === 'rail' ? 'grid' : 'flex',
+      gridTemplateColumns: variant === 'rail' ? 'repeat(2, 1fr)' : undefined,
+      flexDirection: 'column', gap: variant === 'flow' ? 0 : (variant === 'rail' ? 10 : 12),
+    }}>
       {items.map((step, i) => (
-        <div key={i} style={{
-          display: 'flex', gap: 16,
+        <div key={i} style={variant === 'flow' ? {
+          display: 'flex', gap: 12, marginLeft: 9, paddingLeft: 20, paddingBottom: 18,
+          borderLeft: `2px solid ${t.softBorder}`,
+        } : {
+          display: 'flex', gap: variant === 'rail' ? 12 : 16,
           borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-          padding: 20,
+          padding: variant === 'rail' ? '15px 16px' : 20,
         }}>
           <div style={{
             width: 32, height: 32, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: '50%', background: t.primary,
             color: COLORS.white, fontSize: 14, fontWeight: 700,
+            marginLeft: variant === 'flow' ? -31 : 0,
           }}>
             {i + 1}
           </div>
@@ -287,27 +304,39 @@ function StepsBlock({ items, onChange }: { items: { title: string; desc?: string
 
 /* ─── iconcards ─── */
 // 솔루션(Feature) 성분/기능 카드 — 데스크탑 2x2(4개)·모바일 1열. 색은 ThemeContext.
-function IconCardsBlock({ cards, isMobile, onChange }: { cards: { title: string; desc?: string }[]; isMobile?: boolean; onChange?: (b: Block) => void }) {
+function IconCardsBlock({ cards, isMobile, variant, onChange }: { cards: { title: string; desc?: string }[]; isMobile?: boolean; variant?: BlockVariant; onChange?: (b: Block) => void }) {
+  const stack = variant === 'stack';
+  const plain = variant === 'plain';
   const t = useBlockTheme();
   const cols = isMobile ? 1 : (cards.length >= 4 ? 2 : Math.max(2, cards.length));
   const patch = (i: number, key: 'title' | 'desc', v: string) =>
     onChange?.({ type: 'iconcards', cards: cards.map((c, j) => (j === i ? { ...c, [key]: v } : c)) });
   return (
+    /* stack = 설명이 길 때(가로 카드로는 글이 눌린다) · plain = 설명이 없을 때(카드가 빈 상자로 보인다) */
     <div style={{
       marginBottom: 32,
-      display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12,
+      display: 'grid',
+      gridTemplateColumns: stack || plain ? '1fr' : `repeat(${cols}, 1fr)`,
+      gap: plain ? 2 : 12,
     }}>
       {cards.map((card, i) => {
         const Icon = ICONS[i % ICONS.length];
         return (
-          <div key={i} style={{
+          <div key={i} style={plain ? {
+            padding: '10px 0', textAlign: 'left',
+          } : stack ? {
+            display: 'grid', gridTemplateColumns: '48px 1fr', columnGap: 14, alignItems: 'start',
+            borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
+            padding: 18, textAlign: 'left', boxShadow: SHADOW,
+          } : {
             borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
             padding: 20, textAlign: 'center',
             boxShadow: SHADOW,
           }}>
             <div style={{
-              margin: '0 auto 12px', width: 48, height: 48,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: plain ? 'none' : 'flex',
+              margin: stack ? 0 : '0 auto 12px', width: 48, height: 48,
+              alignItems: 'center', justifyContent: 'center',
               borderRadius: '50%', background: t.soft, color: t.primary,
             }}>
               <Icon size={24} />
@@ -338,35 +367,72 @@ function statIcon(value: string, label: string) {
   if (/방울|수분|보습|워터|함량%?/.test(s)) return Droplets;
   return Leaf;
 }
-function StatsBlock({ items, isMobile, onChange }: { items: { value: string; label: string }[]; isMobile?: boolean; onChange?: (b: Block) => void }) {
+function StatsBlock({ items, isMobile, variant, onChange }: { items: { value: string; label: string }[]; isMobile?: boolean; variant?: BlockVariant; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
-  const cols = isMobile ? 2 : Math.min(items.length, 4);
   const patch = (i: number, key: 'value' | 'label', v: string) =>
     onChange?.({ type: 'stats', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
+
+  /* ★생김새는 내용이 정한다(2026-08-02, lib/blockLayout) — 숫자 하나면 카드로 가둘 이유가 없고,
+     라벨이 길면 N등분이 좁아 안 읽힌다. 어느 모양이든 값·라벨은 그대로 나온다. */
+  const solo  = variant === 'solo';
+  const stack = variant === 'stack';
+  const rail  = variant === 'rail';
+
+  if (solo || stack) {
+    return (
+      <div style={{ marginBottom: 32, borderTop: stack ? `1px solid ${t.softBorder}` : undefined }}>
+        {items.map((s, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: stack ? 'baseline' : 'flex-start',
+            flexDirection: solo ? 'column' : 'row', gap: stack ? 14 : 6,
+            padding: stack ? '15px 2px' : '4px 0',
+            borderBottom: stack ? `1px solid ${t.softBorder}` : undefined,
+          }}>
+            <div style={{
+              fontSize: solo ? (isMobile ? 32 : 40) : 22, fontWeight: 800,
+              letterSpacing: '-0.035em', color: t.primary, lineHeight: 1.15,
+              flexShrink: 0, minWidth: stack ? '30%' : undefined,
+            }}>
+              <Editable value={s.value} onCommit={onChange ? v => patch(i, 'value', v) : undefined} />
+            </div>
+            <div style={{ fontSize: solo ? 15 : 14, fontWeight: 600, color: '#555', lineHeight: 1.55 }}>
+              <Editable value={s.label} onCommit={onChange ? v => patch(i, 'label', v) : undefined} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const cols = isMobile ? 2 : rail ? 2 : Math.min(items.length, 4);
   return (
     <div style={{
       marginBottom: 32,
       display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
-      columnGap: isMobile ? 16 : 12, rowGap: isMobile ? 28 : 0,
+      columnGap: isMobile ? 16 : 12, rowGap: rail ? 12 : (isMobile ? 28 : 0),
     }}>
       {items.map((s, i) => {
         const Icon = statIcon(s.value, s.label);
         return (
           <div key={i} style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-            padding: '22px 12px', borderRadius: 18, border: `1px solid ${t.softBorder}`, background: COLORS.white,
+            padding: rail ? '16px 12px' : '22px 12px', borderRadius: rail ? 14 : 18,
+            border: rail ? 'none' : `1px solid ${t.softBorder}`,
+            background: rail ? t.soft : COLORS.white,
           }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: t.soft, color: t.primary,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-            }}>
-              <Icon size={26} strokeWidth={1.8} />
-            </div>
+            {!rail && (
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: t.soft, color: t.primary,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+              }}>
+                <Icon size={26} strokeWidth={1.8} />
+              </div>
+            )}
             <div style={{ fontSize: isMobile ? 19 : 21, fontWeight: 800, letterSpacing: '-0.03em', color: t.primary, lineHeight: 1.2 }}>
               <Editable value={s.value} onCommit={onChange ? v => patch(i, 'value', v) : undefined} />
             </div>
-            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: COLORS.text333, lineHeight: 1.45 }}>
+            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: '#333', lineHeight: 1.45 }}>
               <Editable value={s.label} onCommit={onChange ? v => patch(i, 'label', v) : undefined} />
             </div>
           </div>
@@ -619,8 +685,10 @@ function CtaBlock({ text, button, isMobile, onChange }: { text: string; button: 
 }
 
 /* ─── 메인 렌더러 ─── */
-export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay, onBlocksChange, primaryColor, accentColor, softColor, softBorder }: {
+export default function BlockRenderer({ blocks, sectionNum, blockImages, onLightboxBlock, isMobile, regenOverlay, onBlocksChange, variants, primaryColor, accentColor, softColor, softBorder }: {
   blocks: Block[];
+  /** ★페이지 전체 흐름까지 반영한 생김새(2026-08-02) — 없으면 이 섹션 내용만 보고 정한다 */
+  variants?: BlockVariant[];
   sectionNum?: string;
   blockImages?: Record<string, BlockImgState>;
   onLightboxBlock?: (key: string) => void;
@@ -652,6 +720,8 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
     soft:       softColor    ?? DEFAULT_THEME.soft,
     softBorder: softBorder   ?? DEFAULT_THEME.softBorder,
   };
+  const vs = variants ?? variantsForSection(blocks);
+
   return (
     <ThemeCtx.Provider value={theme}>
     <div style={{
@@ -668,10 +738,10 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
             case 'hero':      return <HeroBlock      headline={b.title} subcopy={b.subtitle} primary={theme.primary} accent={theme.accent} soft={theme.soft} softBorder={theme.softBorder} />;
             case 'heading':   return <HeadingBlock   text={b.text} onChange={oc} />;
             case 'paragraph': return <ParagraphBlock text={b.text} onChange={oc} />;
-            case 'checklist': return <ChecklistBlock items={b.items} onChange={oc} />;
-            case 'steps':     return <StepsBlock     items={b.items} onChange={oc} />;
-            case 'iconcards': return <IconCardsBlock cards={b.cards} isMobile={isMobile} onChange={oc} />;
-            case 'stats':     return <StatsBlock     items={b.items} isMobile={isMobile} onChange={oc} />;
+            case 'checklist': return <ChecklistBlock items={b.items} variant={vs[i]} onChange={oc} />;
+            case 'steps':     return <StepsBlock     items={b.items} variant={vs[i]} onChange={oc} />;
+            case 'iconcards': return <IconCardsBlock cards={b.cards} isMobile={isMobile} variant={vs[i]} onChange={oc} />;
+            case 'stats':     return <StatsBlock     items={b.items} isMobile={isMobile} variant={vs[i]} onChange={oc} />;
             case 'compare':   return <CompareBlock   headers={b.headers} rows={b.rows} isMobile={isMobile} onChange={oc} />;
             case 'quote': {
               if (quoteRunFollower.has(i)) return null;   // 런 후속 — 시작 인덱스에서 그리드로 함께 렌더
