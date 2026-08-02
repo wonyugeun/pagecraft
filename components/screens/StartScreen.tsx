@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, HeartPulse, Car, Box, ChevronDown, Check } from 'lucide-react';
 import { useApp, STEP_MAP } from '@/store/AppContext';
 import { calculateGenerationCost } from '@/lib/pricing';
+import { guessCategory } from '@/lib/categoryGuess';
 import StepHeader from '@/components/layout/StepHeader';
 
 /**
@@ -116,7 +117,31 @@ export default function StartScreen() {
   const depth = secCnt || 16;
   const cost = calculateGenerationCost({ sectionCount: depth, out: effOut });
 
-  const visibleCats = showAllCats ? CATEGORIES : CATEGORIES.slice(0, 6);
+  /* ★상품명으로 카테고리를 골라둔다(2026-08-02) — 셀러는 자기 상품을 안다.
+   *  분류를 고르는 건 우리 편의지 셀러의 일이 아니다.
+   *  ⚠️사람이 고른 값은 절대 덮어쓰지 않는다. 우리가 넣어둔 값(autoRef)일 때만 갱신한다 —
+   *    안 그러면 상품명을 고치는 순간 셀러가 직접 고른 카테고리가 사라진다. */
+  const guess = useMemo(() => guessCategory(productName), [productName]);
+  const autoRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!guess || guess === cat) return;
+    if (cat && cat !== autoRef.current) return;   // 사람이 고른 값 — 건드리지 않는다
+    autoRef.current = guess;
+    setCat(guess);
+  }, [guess, cat, setCat]);
+  const autoPicked = !!cat && cat === autoRef.current;
+
+  const pickCat = (id: string) => { autoRef.current = null; setCat(id); };
+
+  /* 고른 카테고리가 접힌 뒤쪽(스포츠·유아·건강·자동차·기타)이면 목록에 끌어올린다 —
+     추측이 맞았는데 화면에 안 보이면 셀러는 틀렸다고 여긴다 */
+  const head = CATEGORIES.slice(0, 6);
+  const visibleCats = showAllCats
+    ? CATEGORIES
+    : (cat && !head.some(c => c.id === cat)
+        ? [...head.slice(0, 5), ...CATEGORIES.filter(c => c.id === cat)]
+        : head);
+
   const ready = productName.trim().length > 0 && !!cat;
 
   /** 채널을 고르면 추천 형태도 함께 따라간다 — 셀러가 형태를 직접 건드리기 전까지는 추천을 따른다 */
@@ -175,7 +200,7 @@ export default function StartScreen() {
             const Icon = c.icon;
             return (
               <div
-                key={c.id} onClick={() => setCat(c.id)}
+                key={c.id} onClick={() => pickCat(c.id)}
                 style={{
                   border: `${on ? 2 : 1.5}px solid ${on ? '#6D4CFF' : '#ECECF2'}`, borderRadius: 14,
                   padding: '16px 10px', textAlign: 'center', cursor: 'pointer',
@@ -192,6 +217,11 @@ export default function StartScreen() {
             );
           })}
         </div>
+        {autoPicked && (
+          <p style={{ fontSize: 12, color: '#8B95A1', margin: '0 0 11px', paddingLeft: 3 }}>
+            상품명을 보고 <b style={{ color: '#6D4CFF', fontWeight: 700 }}>{cat}</b>으로 골라뒀어요 · 아니면 다시 눌러주세요
+          </p>
+        )}
         {!showAllCats && (
           <div
             onClick={() => setShowAllCats(true)}
