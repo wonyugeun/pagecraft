@@ -158,16 +158,29 @@ export default function ImageScreen() {
     }
   };
 
+  /* ★한 번에 여러 장(2026-08-04) — 한 장씩 눌러 올리게 하면 3장에 클릭이 여섯 번이다.
+     남은 자리만큼만 받고, 넘치면 앞에서부터 채운 뒤 몇 장이 남았는지 알린다. */
   const handleAuxUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const picked = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!file || auxPreviews.length >= MAX_AUX) return;
-    if (file.size > 10 * 1024 * 1024) { alert('이미지 크기는 10MB 이하여야 합니다.'); return; }
+    const room = MAX_AUX - auxPreviews.length;
+    if (!picked.length || room <= 0) return;
+
+    const tooBig = picked.filter(f => f.size > 10 * 1024 * 1024);
+    const usable = picked.filter(f => f.size <= 10 * 1024 * 1024).slice(0, room);
     try {
-      const dataUrl = await compressUpload(await fileToBase64(file));
-      const next = [...auxPreviews, dataUrl];
+      const added: string[] = [];
+      for (const f of usable) added.push(await compressUpload(await fileToBase64(f)));
+      const next = [...auxPreviews, ...added];
       setAuxPreviews(next);
       syncImages(preview, next);
+
+      const dropped = picked.length - usable.length - tooBig.length;
+      const msg = [
+        tooBig.length ? `${tooBig.length}장은 10MB를 넘어 빼놨어요.` : '',
+        dropped > 0 ? `보조컷은 최대 ${MAX_AUX}장이라 ${dropped}장은 담지 못했어요.` : '',
+      ].filter(Boolean).join('\n');
+      if (msg) alert(msg);
     } catch (err) {
       console.error('[ImageScreen] 보조컷 업로드 실패:', err);
     }
@@ -312,7 +325,7 @@ export default function ImageScreen() {
                   </span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: '#191F28' }}>
-                      보조컷 <span style={{ fontWeight: 500, color: '#B8B8C7', fontSize: 11 }}>최대 {MAX_AUX}장</span>
+                      보조컷 <span style={{ fontWeight: 500, color: '#B8B8C7', fontSize: 11 }}>최대 {MAX_AUX}장 · 한 번에 여러 장</span>
                     </div>
                     <div style={{ fontSize: 11, color: '#8B95A1' }}>포장 밖 실물 — AI가 모양을 지어내지 않게</div>
                   </div>
@@ -369,7 +382,7 @@ export default function ImageScreen() {
             </div>
 
             {/* 숨은 파일 입력 — 명시적 ref 클릭 방식(라벨 연결보다 신뢰성↑) */}
-            <input ref={auxFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAuxUpload} />
+            <input ref={auxFileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleAuxUpload} />
             <input ref={packFileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePackUpload} />
           </div>
 
