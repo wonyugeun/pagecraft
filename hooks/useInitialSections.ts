@@ -21,7 +21,8 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
 export function useInitialSections(enabled: boolean = true) {
   const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
     sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs,
-    structureForCount, setStructureForCount, setSectionSuggestions } = useApp();
+    structureForCount, setStructureForCount, setSectionSuggestions,
+    structureForFacts, setStructureForFacts } = useApp();
 
   const [recommendLoading, setRecommendLoading] = useState(false);
   const initCalledRef = useRef(false);
@@ -102,6 +103,7 @@ export function useInitialSections(enabled: boolean = true) {
         setSectionStructure(data.sections as string[]);
         if (data.sectionDescs) setSectionDescs(data.sectionDescs as Record<string, string>);
         setStructureForCount(secCnt || (data.sections as string[]).length);
+        setStructureForFacts(productExtra ?? '');
         setSectionSuggestions(Array.isArray(data.sectionSuggestions ?? data.suggestions) ? (data.suggestions ?? []) : []);
       })
       .catch(err => {
@@ -109,6 +111,7 @@ export function useInitialSections(enabled: boolean = true) {
         const fb = fallback();
         setSectionStructure(fb);
         setStructureForCount(secCnt || fb.length);
+        setStructureForFacts(productExtra ?? '');
       })
       .finally(() => setRecommendLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -122,5 +125,18 @@ export function useInitialSections(enabled: boolean = true) {
     }
   }, [enabled, sectionStructure, originalSections.length, setOriginalSections]);
 
-  return { secs, setSecs, recommendLoading, original: originalSections };
+  /* 상품정보가 이 구조를 만든 뒤로 달라졌는가 — 셀러가 '상품정보에 더 적기'로 다녀온 경우 */
+  const factsChanged = structureForFacts !== '' && (productExtra ?? '') !== structureForFacts;
+
+  /** 셀러가 눌렀을 때만 다시 잡는다(무료·AI 재호출). 손으로 고친 구성이 사라지므로 확인은 호출부에서. */
+  const rebuild = () => {
+    initCalledRef.current = false;
+    setSectionStructure([]);
+    setOriginalSections([]);
+    setSectionDescs({});
+    setSectionSuggestions([]);
+    setStructureForFacts('');
+  };
+
+  return { factsChanged, rebuild, secs, setSecs, recommendLoading, original: originalSections };
 }

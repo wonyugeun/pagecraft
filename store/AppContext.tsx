@@ -186,6 +186,11 @@ interface AppContextType extends AppState {
    *  after = 이 순번 '뒤'에 들어가야 하는 자리(맨 아래 붙으면 아무도 안 쓴다). */
   sectionSuggestions: Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>;
   setSectionSuggestions: (v: Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>) => void;
+  /** ★이 구조를 만들 때의 상품정보(2026-08-04) — 셀러가 정보를 더 적고 돌아와도
+   *  구조는 그대로라 "적었는데 아무것도 안 달라졌다"가 된다. 달라진 걸 감지해 알린다.
+   *  ⚠️자동으로 다시 잡지 않는다 — 셀러가 손으로 고친 순서·삭제가 통째로 날아간다. */
+  structureForFacts: string;
+  setStructureForFacts: (v: string) => void;
   structureForCount: number;
   setStructureForCount: (v: number) => void;
   setSectionDescs: (v: Record<string, string>) => void;
@@ -387,6 +392,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [secCnt, setSecCntState] = useState(NEW_START_FLOW ? 16 : 10);
   const [sectionDescs, setSectionDescs] = useState<Record<string, string>>({});
   const [structureForCount, setStructureForCount] = useState(0);
+  const [structureForFacts, setStructureForFacts] = useState('');
   const [sectionSuggestions, setSectionSuggestions] = useState<Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
@@ -951,7 +957,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, sectionDescs, setSectionDescs, structureForCount, setStructureForCount, sectionSuggestions, setSectionSuggestions, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+      screen, cat, ch, type, out, imgMode, secCnt, sectionDescs, setSectionDescs, structureForCount, setStructureForCount, structureForFacts, setStructureForFacts, sectionSuggestions, setSectionSuggestions, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditsLoaded, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
       go,

@@ -86,7 +86,7 @@ export default function SectionStructureScreen() {
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
   const active = typeof window === 'undefined' || window.innerWidth >= 768;
-  const { secs, setSecs, recommendLoading, original } = useInitialSections(active);
+  const { secs, setSecs, recommendLoading, original, factsChanged, rebuild } = useInitialSections(active);
   const [customInput, setCustomInput] = useState('');
   /* ★칸을 끌어서 옮기기(2026-08-02) — 화살표만으로는 16·32섹션에서 한 칸씩 눌러 올려야 했다.
    *  화살표도 남긴다: 드래그가 어려운 환경(트랙패드·접근성)에서 유일한 수단이 된다. */
@@ -199,6 +199,32 @@ export default function SectionStructureScreen() {
             flexShrink: 0,
           }} />
           <Sparkles size={ICON.sm} style={{ verticalAlign: -2, marginRight: 5 }} />AI가 카테고리·채널·상품을 분석해 섹션을 구성하는 중...
+        </div>
+      )}
+
+      {/* ★상품정보를 고치고 돌아왔을 때(2026-08-04) — 자동으로 다시 잡지 않는다.
+          손으로 고친 순서·삭제가 통째로 날아가기 때문이다. 달라졌다는 사실만 알리고 셀러가 정한다. */}
+      {factsChanged && !recommendLoading && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 12,
+          padding: '12px 15px', marginBottom: 14, fontSize: 12.5, lineHeight: 1.7, color: '#92400E',
+        }}>
+          <span style={{ flex: 1, minWidth: 240 }}>
+            <b style={{ fontWeight: 700 }}>상품정보가 바뀌었어요.</b> 지금 구성은 바뀌기 전 정보로 만든 거예요 —
+            새로 적어주신 내용을 반영하려면 구조를 다시 잡아야 합니다.
+          </span>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' &&
+                !window.confirm('새 상품정보로 구조를 다시 만듭니다. 지금 손보신 순서·삭제는 사라져요. 계속할까요?')) return;
+              rebuild();
+            }}
+            style={{
+              flexShrink: 0, border: '1px solid #FDE68A', background: '#fff', color: '#92400E',
+              borderRadius: 9, padding: '8px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)',
+            }}
+          >구조 다시 잡기</button>
         </div>
       )}
 
