@@ -64,10 +64,16 @@ export function useInitialSections(enabled: boolean = true) {
       const tail = base[base.length - 1];                       // CTA는 항상 끝
       if (base.length > n) return [...base.slice(0, n - 1), tail];
       const out = base.slice(0, -1);
-      const extra = ['상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '보관/관리'];
+      /* ★뜻 없는 이름을 만들지 않는다(2026-08-03) — 전엔 '추가 섹션 2·3·4…'로 채웠다.
+         AI 호출이 실패했을 때 쓰는 마지막 안전망인데, 여기서 자리표시자를 깔면
+         셀러 화면엔 그냥 고장으로 보이고 그 자리에도 크레딧이 붙는다.
+         실제로 쓰이는 이름으로 채우고, 모자라면 그만큼 적게 만든다. */
+      const extra = [
+        '상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '보관/관리',
+        '구성품 안내', '이런 분께', '색상·옵션 안내', '가격 안내', '주의사항', '사용 순서',
+        '제품 특징 요약', '선택 가이드', '사이즈·용량 안내', '첫 사용 안내', '관리 팁', '브랜드 약속',
+      ];
       for (const e of extra) { if (out.length >= n - 1) break; if (!out.includes(e)) out.push(e); }
-      let i = 2;
-      while (out.length < n - 1) out.push(`추가 섹션 ${i++}`);
       return [...out, tail];
     };
 
@@ -86,7 +92,7 @@ export function useInitialSections(enabled: boolean = true) {
         sectionCount: secCnt || undefined,   // ★셀러가 고른 8/16/32가 우선한다
         productExtra: productExtra ?? undefined,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(120_000),   // 32섹션은 desc까지 쓰느라 60초를 넘긴다(실측 44초+)
     })
       .then(async r => {
         const data = await r.json();

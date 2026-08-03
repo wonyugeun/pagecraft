@@ -194,7 +194,10 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
   try {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
+      /* ★섹션 수에 맞춰 늘린다(2026-08-03) — 3000 고정이던 때 32섹션 요청이 잘려
+       *  JSON 파싱에 실패했고, 클라이언트가 폴백으로 '추가 섹션 2·3·4…'를 깔았다.
+       *  이름만 받던 시절의 값이라 desc·suggestions가 붙은 지금은 턱없이 모자랐다. */
+      max_tokens: Math.min(16000, 2000 + targetCount * 220),
       system,
       messages: [{ role: 'user', content: userPrompt }],
     });
@@ -215,14 +218,30 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     }
     const jsonText = useObj ? raw.slice(ob, oe + 1) : raw.slice(ab, ae + 1);
 
+    /* 잘린 응답이라도 완성된 항목은 건진다 — 전부 버리고 폴백으로 가면
+       화면에 뜻 없는 섹션이 깔린다(그게 셀러가 본 고장이다). */
+    const salvage = (txt: string): Array<{ name: string; desc?: string }> => {
+      const out: Array<{ name: string; desc?: string }> = [];
+      for (const m of txt.matchAll(/\{\s*"name"\s*:\s*"([^"]{1,40})"(?:\s*,\s*"desc"\s*:\s*"([^"]{0,200})")?/g)) {
+        out.push({ name: m[1].trim(), desc: m[2]?.trim() || undefined });
+      }
+      return out;
+    };
+
     let parsedRoot: unknown;
     let suggestions: Array<{ name: string; desc?: string; why?: string; after?: number; basedOn?: string }> = [];
     try {
       parsedRoot = JSON.parse(jsonText);
     } catch (parseErr) {
       const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
-      console.error(`[recommend-sections] JSON.parse 실패: ${pmsg}\nraw:\n${jsonText.slice(0, 500)}`);
-      throw new Error(`JSON 파싱 실패: ${pmsg}`);
+      const saved = salvage(jsonText);
+      if (saved.length >= 3) {
+        console.warn(`[recommend-sections] JSON 잘림 — 완성된 ${saved.length}개만 살림: ${pmsg}`);
+        parsedRoot = saved;
+      } else {
+        console.error(`[recommend-sections] JSON.parse 실패: ${pmsg}\nraw:\n${jsonText.slice(0, 500)}`);
+        throw new Error(`JSON 파싱 실패: ${pmsg}`);
+      }
     }
 
     let sections: unknown = parsedRoot;
