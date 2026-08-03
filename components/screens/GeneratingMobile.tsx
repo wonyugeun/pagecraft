@@ -33,6 +33,7 @@ export default function GeneratingMobile() {
     go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     setOut, setCat, setCh, setType, setProductName, setProductExtra,
     toggleChat, productForm, productVolume, productShapeProfile, speechLevel,
+    structureForCount,
   } = useApp();
 
   // 데스크탑과 동일 state
@@ -60,7 +61,7 @@ export default function GeneratingMobile() {
   useEffect(() => {
     // ★재개 의도는 크레딧 체크보다 먼저 소비(데스크톱과 동일) — 재개는 선차감된 job이라 체크 대상 아님
     const resume = USE_NEW_ENGINE ? consumeResumeIntent() : false;
-    const generationCost = calculateGenerationCost({ sectionCount: secCnt, out });   // 서버와 동일 함수(블로그 1.25/섹션)
+    const generationCost = calculateGenerationCost({ sectionCount: secCnt, baseSectionCount: structureForCount, out });   // 서버와 동일 함수(블로그 1.25/섹션)
     // ★서버 잔액 로드 전에는 기본값 오탐 방지 위해 판정 보류(부족이면 서버 402가 실집행)
     if (!isDev && !resume && creditsLoadedRef.current && creditsRef.current < generationCost) {
       setCreditInsufficient(true);
@@ -76,7 +77,7 @@ export default function GeneratingMobile() {
       setPct(8);
       setEngineLabel('전략 분석 중…');
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
         {
           resume,
           isCancelled: () => cancelledRef.current,
@@ -276,7 +277,7 @@ export default function GeneratingMobile() {
         <div style={{ fontSize: 44, marginBottom: 16 }}>⚡</div>
         <div style={{ fontSize: 17, fontWeight: 700, color: '#6D4CFF', marginBottom: 10 }}>크레딧이 부족해요</div>
         <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 24 }}>
-          상세페이지 생성에는 {calculateGenerationCost({ sectionCount: secCnt, out })} 크레딧이 필요해요.<br />
+          상세페이지 생성에는 {calculateGenerationCost({ sectionCount: secCnt, baseSectionCount: structureForCount, out })} 크레딧이 필요해요.<br />
           현재 보유 크레딧: <b>{credits}</b>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

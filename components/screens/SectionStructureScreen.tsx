@@ -81,7 +81,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, out, secCnt, setSectionDescs, productExtra, productName, sectionDescs, sectionSuggestions, setSectionSuggestions, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, setStructureForCount } = useApp();
+  const { go, out, secCnt, setSectionDescs, productExtra, productName, sectionDescs, structureForCount, sectionSuggestions, setSectionSuggestions, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, setStructureForCount } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -213,7 +213,7 @@ export default function SectionStructureScreen() {
           <b style={{ fontSize: 13.5, color: '#191F28' }}>{secs.length}섹션</b>
           <span style={{ color: '#D8DCE3' }}>·</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#6D4CFF' }}>
-            {calculateGenerationCost({ sectionCount: secs.length, out })}크레딧
+            {calculateGenerationCost({ sectionCount: secs.length, baseSectionCount: structureForCount, out })}크레딧
           </span>
           {secCnt > 0 && secs.length !== secCnt && (
             <span style={{ fontSize: 12, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 999, padding: '3px 10px' }}>
@@ -323,8 +323,8 @@ export default function SectionStructureScreen() {
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
             {sectionSuggestions.map(sg => {
-              const delta = calculateGenerationCost({ sectionCount: secs.length + 1, out })
-                - calculateGenerationCost({ sectionCount: secs.length, out });
+              const delta = calculateGenerationCost({ sectionCount: secs.length + 1, baseSectionCount: structureForCount, out })
+                - calculateGenerationCost({ sectionCount: secs.length, baseSectionCount: structureForCount, out });
               const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
               return (
                 <div key={sg.name} style={{ background: '#fff', border: '1px solid #E9E7F3', borderRadius: 11, padding: '12px 14px' }}>

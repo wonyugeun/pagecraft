@@ -146,6 +146,8 @@ ${getCategoryCopyGuard(cat || '')}
 [출력 규칙]
 - 다른 텍스트 없이 JSON 객체 하나만: {"sections": [...], "suggestions": [...]}
 - sections 길이는 정확히 ${targetCount}개. 모자라거나 넘치면 안 된다.
+  ⚠️${targetCount}개는 적은 수가 아닙니다. 큰 주제를 한 섹션에 몰지 말고 각도를 나누세요
+  (예: 성분 → 핵심 성분 / 성분별 역할 / 배합 이유 / 안전성 근거). 개수를 못 맞추면 실패입니다.
   각 원소는 {"name": "섹션 이름", "desc": "셀러가 읽을 한 줄 설명"}.
 
 [suggestions — 이 구성에 '더하면 좋을' 섹션. 최대 5개, 없으면 빈 배열]
@@ -266,7 +268,17 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     /* ★개수를 코드로 확정한다 — 프롬프트만으로는 모델이 한두 개씩 어긋난다.
      *  셀러가 본 개수(=크레딧)와 실제 구성이 달라지면 안 되므로, 넘치면 뒤에서 자르되
      *  마지막 섹션(CTA)은 남기고, 모자라면 흔한 보강 섹션으로 채운다. */
-    const FILLERS = ['상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '비교표', '후기', '보관/관리'];
+    /* ★모자란 만큼 채울 때 뜻 없는 이름을 쓰지 않는다(2026-08-03).
+     *  전엔 예비 8개를 쓴 뒤 '추가 섹션 2·3·4…'로 채웠다 — 32섹션에서 모델이 18개만 주자
+     *  화면에 뜻 없는 자리표시자가 14개 깔렸다. 셀러에겐 그냥 고장으로 보인다.
+     *  실제로 쓰이는 이름 풀에서 채우고, 그래도 모자라면 개수를 줄인다 —
+     *  뜻 없는 섹션을 만들어 크레딧을 받느니 적게 만드는 편이 낫다. */
+    const POOL = [
+      '상세 스펙', '사용 시나리오', '자주 묻는 질문', '배송/교환 안내', '브랜드 소개', '비교표',
+      '후기', '보관/관리', '구성품 안내', '사용 전 확인', '이런 분께', '재구매 이유',
+      '색상·옵션 안내', '가격 안내', '주의사항', '사용 순서', '함께 쓰면 좋은 것', '브랜드 약속',
+      '제품 특징 요약', '만족도 포인트', '선택 가이드', '사이즈·용량 안내', '관리 팁', '첫 사용 안내',
+    ];
     let sized = cleaned;
     if (cleaned.length > targetCount) {
       const tail = cleaned[cleaned.length - 1];
@@ -274,13 +286,14 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     } else if (cleaned.length < targetCount) {
       sized = [...cleaned];
       const tail = sized.pop() as string;                 // 마지막(CTA)은 항상 끝에 둔다
-      for (const f of FILLERS) {
+      for (const f of POOL) {
         if (sized.length >= targetCount - 1) break;
         if (!sized.includes(f) && f !== tail) sized.push(f);
       }
-      let n = 2;
-      while (sized.length < targetCount - 1) { sized.push(`추가 섹션 ${n++}`); }
       sized.push(tail);
+      if (sized.length < targetCount) {
+        console.warn(`[recommend-sections] ${targetCount}개 요청에 ${sized.length}개 — 뜻 없는 이름으로 채우지 않음`);
+      }
     }
 
     const descByName: Record<string, string> = {};

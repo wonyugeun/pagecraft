@@ -35,6 +35,8 @@ export function clampSectionsForTrial(sectionCount: number, hasPaid: boolean): n
 export const MIN_BILLABLE_SECTIONS = 1;
 
 export interface GenerationPricingInput {
+  /** 시작 화면에서 고른 분량(8/16/32). 이걸 넘겨 더한 섹션은 장당 1크레딧으로 친다. */
+  baseSectionCount?: number | null;
   sectionCount: number;
   /** 출력형태 — 'blog'만 1.25배. 미지정 시 1.0(썸네일·빠른제작 등 단건 경로 그대로) */
   out?: string | null;
@@ -51,6 +53,16 @@ export interface GenerationPricingInput {
 export function calculateGenerationCost(input: GenerationPricingInput): number {
   const raw = Math.floor(Number(input.sectionCount));
   const sections = Math.min(Math.max(Number.isFinite(raw) ? raw : MIN_BILLABLE_SECTIONS, MIN_BILLABLE_SECTIONS), MAX_BILLABLE_SECTIONS);
+  const base = Math.floor(Number(input.baseSectionCount));
+
+  /* ★고른 분량을 넘겨 더한 섹션은 장당 1크레딧(2026-08-03 유근님).
+   *  블로그형은 1.25/섹션이라 32→33섹션에서 40→42크레딧, 한 개 더했는데 2가 빠졌다.
+   *  '추가 한 개 = 1크레딧'이 셀러가 예상하는 값이고, 화면 표시와 실제 차감이 같아야 한다.
+   *  ⚠️표시만 1로 바꾸면 결제에서 어긋난다 — 계산 자체를 여기서 바꾼다. */
+  if (Number.isFinite(base) && base >= MIN_BILLABLE_SECTIONS && sections > base) {
+    const billableBase = Math.min(base, MAX_BILLABLE_SECTIONS);
+    return Math.ceil(billableBase * creditPerSection(input.out)) + (sections - billableBase);
+  }
   return Math.ceil(sections * creditPerSection(input.out));
 }
 

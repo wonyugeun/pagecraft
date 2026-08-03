@@ -156,7 +156,7 @@ export function createJob(input: PipelineInput, jobId?: string): JobState {
  */
 export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobState> {
   const { call, persist, onProgress } = opts;
-  const { cat, ch, out, depth, productName, productExtra, sectionCount, sectionStructure, referenceStyle, productForm, productVolume, productShapeProfile, speechLevel } = job.input;
+  const { cat, ch, out, depth, productName, productExtra, sectionCount, baseSectionCount, sectionStructure, referenceStyle, productForm, productVolume, productShapeProfile, speechLevel } = job.input;
 
   const save = async (ev: ProgressEvent) => {
     onProgress?.(job, ev);
@@ -169,7 +169,7 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     try {
       // ★sectionCount+jobKey — 서버 선차감 게이트(1섹션=1크레딧, jobKey 멱등 = 재시도·재개 이중 차감 없음)
-      const r = await call('/api/strategy', { cat, ch, productName, productExtra, referenceStyle, sectionCount, jobKey: job.input.jobKey, speechLevel });
+      const r = await call('/api/strategy', { cat, ch, productName, productExtra, referenceStyle, sectionCount, baseSectionCount, jobKey: job.input.jobKey, speechLevel });
       if (r?.error) throw new Error(r.error);
       job.stages.strategy = { status: 'done', result: r as unknown as StrategyResult };
       // ★서버가 선차감 후 반환한 실시간 잔액을 헤더로 전달(추가 조회 없음). dev bypass 시 credit 없음 → 스킵.
@@ -298,6 +298,8 @@ export function getJobResult(job: JobState): {
   strategy: Record<string, unknown>;
   visual?: StrategyResult['visual'];
   sectionCount: number;
+  /** 시작 화면에서 고른 분량 — 이걸 넘겨 더한 섹션은 장당 1크레딧 */
+  baseSectionCount?: number;
   sections: PipelineSection[];
 } | null {
   const sg = job.stages;

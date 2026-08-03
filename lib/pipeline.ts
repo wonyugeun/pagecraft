@@ -17,6 +17,8 @@ import type { Block } from '@/store/AppContext';
  */
 
 export interface PipelineInput {
+  /** 시작 화면에서 고른 분량(8/16/32) — 이걸 넘겨 더한 섹션은 장당 1크레딧 */
+  baseSectionCount?: number;
   cat?: string;
   ch?: string;
   out?: string | null;
