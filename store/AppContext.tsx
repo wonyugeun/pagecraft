@@ -184,8 +184,8 @@ interface AppContextType extends AppState {
    *    그건 셀러의 편집이지 분량 변경이 아니다. */
   /** ★'더하면 좋을' 섹션 제안(2026-08-03) — 62개 나열 대신, 지금 구성에서 비어 있는 것만.
    *  after = 이 순번 '뒤'에 들어가야 하는 자리(맨 아래 붙으면 아무도 안 쓴다). */
-  sectionSuggestions: Array<{ name: string; desc?: string; why?: string; after?: number }>;
-  setSectionSuggestions: (v: Array<{ name: string; desc?: string; why?: string; after?: number }>) => void;
+  sectionSuggestions: Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>;
+  setSectionSuggestions: (v: Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>) => void;
   structureForCount: number;
   setStructureForCount: (v: number) => void;
   setSectionDescs: (v: Record<string, string>) => void;
@@ -387,7 +387,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [secCnt, setSecCntState] = useState(NEW_START_FLOW ? 16 : 10);
   const [sectionDescs, setSectionDescs] = useState<Record<string, string>>({});
   const [structureForCount, setStructureForCount] = useState(0);
-  const [sectionSuggestions, setSectionSuggestions] = useState<Array<{ name: string; desc?: string; why?: string; after?: number }>>([]);
+  const [sectionSuggestions, setSectionSuggestions] = useState<Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});

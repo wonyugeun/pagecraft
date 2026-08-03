@@ -244,6 +244,17 @@ export default function SectionStructureScreen() {
       {/* ★62개를 늘어놓는 대신 '지금 비어 있는 것'만 짚어준다(2026-08-03).
           ⚠️섹션을 더하면 크레딧이 더 나간다 — 증가분을 숨기지 않는다.
             숨기면 결제 화면에서 "왜 늘었지"가 되고, 그때 추천 영역 전체가 신뢰를 잃는다. */}
+      {/* 0개일 때도 침묵하지 않는다 — 셀러는 '추천이 없는 것'과 '아직 안 나온 것'을 구분 못 한다 */}
+      {!recommendLoading && secs.length > 0 && sectionSuggestions.length === 0 && (
+        <div style={{
+          border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
+          padding: '11px 15px', marginBottom: 14, fontSize: 12.5, color: '#6B7684', lineHeight: 1.7,
+        }}>
+          적어주신 정보가 지금 구성에 다 담겨 있어요 — 더 넣을 만한 섹션이 보이지 않습니다.
+          직접 넣고 싶은 게 있으면 아래 &lsquo;섹션 추가&rsquo;에서 고르시면 돼요.
+        </div>
+      )}
+
       {sectionSuggestions.length > 0 && (
         <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#5B3FD6', marginBottom: 4 }}>
@@ -266,6 +277,11 @@ export default function SectionStructureScreen() {
                     </span>
                   </div>
                   {sg.why && <p style={{ fontSize: 12, color: '#4E5968', lineHeight: 1.65, marginBottom: 8 }}>{sg.why}</p>}
+                  {sg.grounded === false && (
+                    <p style={{ fontSize: 11.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px', marginBottom: 8, lineHeight: 1.55 }}>
+                      이 섹션 내용은 아직 안 적어주셨어요 — 넣으시려면 상품정보에 관련 내용을 더해주세요.
+                    </p>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                     <span style={{ fontSize: 11.5, color: '#8B95A1' }}>
                       {at}번 &lsquo;{secs[at - 1] ?? ''}&rsquo; 다음에 들어갑니다

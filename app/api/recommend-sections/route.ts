@@ -158,9 +158,18 @@ ${getCategoryCopyGuard(cat || '')}
   전문가 추천·수상·특허·인증번호·임상 시험·실제 후기·교환반품 규정.
   제안받은 셀러가 그대로 넣으면 카피가 없는 사실을 지어내고, 책임은 셀러가 집니다.
 - ⛔위 sections에 이미 있는 주제를 다른 이름으로 다시 제안하지 마세요.
-- 근거가 약하면 넣지 마세요. 5개를 채우려 하지 말 것 — 0개도 정답입니다.
+- ⛔셀러가 알려주지 않은 '사용 방법·상황·조합'을 새로 만들어내는 섹션은 제안하지 마세요 —
+  예: 사용 방법이 '화장솜에 적셔 닦아내기'뿐인데 "면봉 활용법"·"부위별 사용 팁"·"계절별 사용법".
+  셀러가 말한 적 없는 사용법이라 카피가 지어내게 됩니다.
+  ✅단, 셀러가 준 사실을 '정리·요약'하는 섹션은 괜찮습니다(예: 어떤 고민을 가진 분께 맞는지 정리).
+  제안의 역할은 이미 말한 사실에 '자리를 만들어 주는 것'이지, 없는 내용을 만들 자리를 여는 게 아닙니다.
+- 판단 기준은 개수가 아니라 근거입니다. 섹션이 이미 많아도(32개라도) 셀러가 준 정보 중
+  안 쓰인 것이 남아 있으면 제안하세요 — '많으니 충분하겠지'로 건너뛰지 마세요.
+  반대로 억지로 채우지도 마세요. 근거가 없으면 그만큼만 내면 됩니다.
 - 각 원소: {"name": "...", "desc": "무엇이 담기는지 한 줄",
   "why": "왜 이 상품에 필요한지 — 셀러가 준 정보를 근거로 한 줄",
+  "basedOn": "위 [상품 핵심 정보]에서 그대로 옮겨 적은 짧은 구절(5~20자). 지어내지 말고 원문 그대로.
+             근거로 삼을 구절이 없으면 빈 문자열 — 그건 셀러가 말한 적 없는 내용이라는 뜻입니다.",
   "after": 이 섹션이 들어갈 자리(위 sections의 순번, 이 번호 '뒤'에 삽입. 1~${targetCount})}`;
 
   const userPrompt = `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
@@ -205,7 +214,7 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     const jsonText = useObj ? raw.slice(ob, oe + 1) : raw.slice(ab, ae + 1);
 
     let parsedRoot: unknown;
-    let suggestions: Array<{ name: string; desc?: string; why?: string; after?: number }> = [];
+    let suggestions: Array<{ name: string; desc?: string; why?: string; after?: number; basedOn?: string }> = [];
     try {
       parsedRoot = JSON.parse(jsonText);
     } catch (parseErr) {
@@ -228,6 +237,7 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
             desc: x.desc ? String(x.desc).trim() : undefined,
             why:  x.why  ? String(x.why).trim()  : undefined,
             after: Number.isFinite(Number(x.after)) ? Math.round(Number(x.after)) : undefined,
+            basedOn: x.basedOn ? String(x.basedOn).trim() : '',
           }));
       }
     }
@@ -281,7 +291,15 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       // ★셀러가 '이게 뭔지' 판단하는 유일한 근거 — 용어집은 AI가 짓는 이름을 따라갈 수 없다
       sectionDescs: descByName,
       // ★'더하면 좋을' 섹션 — 이미 이 상품을 분석한 호출에 얹으므로 추가 원가 0
-      suggestions: suggestions.filter(x => !seen.has(x.name)),
+      /* ★근거를 코드가 확인한다(2026-08-03) — 프롬프트로 '응용하지 말라'고 해도 모델은
+       *  "이미 주신 사용법을 구체화하는 자리"처럼 스스로 정당화한다(실측: 화장솜 선택 가이드).
+       *  셀러 입력에 실제로 있는 구절인지 대조해, 없으면 '재료를 더 적어야 하는 제안'으로 표시한다.
+       *  막지는 않는다 — 셀러가 그 정보를 갖고 있을 수도 있으니 판단은 셀러가 한다. */
+      suggestions: suggestions.filter(x => !seen.has(x.name)).map(x => {
+        const hay = `${productName ?? ''}\n${productExtra ?? ''}`.replace(/\s/g, '');
+        const cite = (x.basedOn ?? '').replace(/\s/g, '');
+        return { ...x, grounded: cite.length >= 2 && hay.includes(cite) };
+      }),
       targetCount,
       meta: { cat: normCat, ch, depth, weight: CHANNEL_WEIGHT[ch] ?? 1.0 },
     });
