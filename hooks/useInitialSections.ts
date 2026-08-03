@@ -20,7 +20,8 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
  */
 export function useInitialSections(enabled: boolean = true) {
   const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
-    sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs } = useApp();
+    sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs,
+    structureForCount, setStructureForCount } = useApp();
 
   const [recommendLoading, setRecommendLoading] = useState(false);
   const initCalledRef = useRef(false);
@@ -30,12 +31,23 @@ export function useInitialSections(enabled: boolean = true) {
   const setSecs = (u: string[] | ((prev: string[]) => string[])) =>
     setSectionStructure(typeof u === 'function' ? (u as (p: string[]) => string[])(sectionStructure) : u);
 
+  /* ★분량이 바뀌면 목록을 다시 만든다(2026-08-03).
+   *  32섹션으로 받아본 뒤 뒤로 가서 16으로 바꿔 돌아오면 목록은 32개 그대로였다 —
+   *  '한 번만 채운다'는 규칙이 '분량이 바뀌었다'는 사정을 몰랐기 때문이다.
+   *  ⚠️secs.length가 아니라 structureForCount와 비교한다. 셀러가 화면에서 직접 더하고 뺀 것은
+   *    분량 변경이 아니므로 다시 만들면 그 편집이 날아간다. */
+  const depthChanged = enabled
+    && structureForCount > 0 && secCnt > 0 && secCnt !== structureForCount;
+
   // 초기 채움(store가 비었을 때만) + AI 추천. enabled=false(비활성 인스턴스)면 아무것도 안 함.
   useEffect(() => {
     if (!enabled) return;
-    if (initCalledRef.current) return;
+    if (initCalledRef.current && !depthChanged) return;
     initCalledRef.current = true;
-    if (sectionStructure.length > 0) return;              // 재진입/저장값 있으면 유지
+    if (depthChanged) {                                    // 분량이 바뀌었으니 새로 받는다
+      setOriginalSections([]);
+      setSectionDescs({});
+    } else if (sectionStructure.length > 0) return;        // 재진입/저장값 있으면 유지
     if (referenceAnalysis?.sections?.length) { setSectionStructure([...referenceAnalysis.sections]); return; }
     if (captureAnalysis?.섹션목록?.length) { setSectionStructure(captureAnalysis.섹션목록.map(s => s.타입)); return; }
 
@@ -79,14 +91,17 @@ export function useInitialSections(enabled: boolean = true) {
         }
         setSectionStructure(data.sections as string[]);
         if (data.sectionDescs) setSectionDescs(data.sectionDescs as Record<string, string>);
+        setStructureForCount(secCnt || (data.sections as string[]).length);
       })
       .catch(err => {
         console.error('[recommend-sections]', err);
-        setSectionStructure(fallback());
+        const fb = fallback();
+        setSectionStructure(fb);
+        setStructureForCount(secCnt || fb.length);
       })
       .finally(() => setRecommendLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, [enabled, depthChanged]);
 
   // ★원본 추천을 store(originalSections)에 처음 1회만 보관(비었을 때만) — 이후 수정·탭이동에도 불변.
   useEffect(() => {

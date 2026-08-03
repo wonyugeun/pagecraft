@@ -82,7 +82,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, out, secCnt, productExtra, productName, sectionDescs, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { go, out, secCnt, productExtra, productName, sectionDescs, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, setStructureForCount } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -129,6 +129,9 @@ export default function SectionStructureScreen() {
   const handleConfirm = () => {
     setSectionStructure(secs);
     setSecCnt(secs.length);
+    /* ★셀러가 직접 더하고 뺀 결과도 '이 분량으로 만든 목록'으로 기록한다(2026-08-03) —
+       안 하면 다음에 이 화면에 올 때 분량이 바뀐 것으로 보여 편집이 통째로 날아간다. */
+    setStructureForCount(secs.length);
     go('s6');
   };
 

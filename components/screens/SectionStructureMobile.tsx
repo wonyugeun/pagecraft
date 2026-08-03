@@ -27,8 +27,7 @@ export default function SectionStructureMobile() {
     go,
     referenceAnalysis, captureAnalysis,
     setSectionStructure, setSecCnt,
-    toggleChat, credits,
-  } = useApp();
+    toggleChat, credits,, setStructureForCount } = useApp();
 
   // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI + 원본 보관). 데·모 섹션 일치.
   const { secs, setSecs, recommendLoading, original } = useInitialSections();
@@ -58,6 +57,9 @@ export default function SectionStructureMobile() {
   const handleConfirm = () => {
     setSectionStructure(secs);
     setSecCnt(secs.length);
+    /* ★셀러가 직접 더하고 뺀 결과도 '이 분량으로 만든 목록'으로 기록한다(2026-08-03) —
+       안 하면 다음에 이 화면에 올 때 분량이 바뀐 것으로 보여 편집이 통째로 날아간다. */
+    setStructureForCount(secs.length);
     go('s6');
   };
 
