@@ -7,9 +7,8 @@ import SectionStructureMobile from './SectionStructureMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
-import { groupSections } from '@/lib/sectionGroups';
 import { materialNeedFor } from '@/lib/sectionMaterials';
-import { Ruler, CheckCircle2, Camera, Sparkles, X, Plus, RotateCcw, GripVertical, Search } from 'lucide-react';
+import { Ruler, CheckCircle2, Camera, Sparkles, Plus, RotateCcw, GripVertical } from 'lucide-react';
 import { ICON } from '@/lib/designTokens';
 import StepHeader from '@/components/layout/StepHeader';
 
@@ -88,9 +87,7 @@ export default function SectionStructureScreen() {
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
   const active = typeof window === 'undefined' || window.innerWidth >= 768;
   const { secs, setSecs, recommendLoading, original } = useInitialSections(active);
-  const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
-  const [addQuery, setAddQuery] = useState('');
   /* ★칸을 끌어서 옮기기(2026-08-02) — 화살표만으로는 16·32섹션에서 한 칸씩 눌러 올려야 했다.
    *  화살표도 남긴다: 드래그가 어려운 환경(트랙패드·접근성)에서 유일한 수단이 된다. */
   const [dragFrom, setDragFrom] = useState<number | null>(null);
@@ -117,10 +114,7 @@ export default function SectionStructureScreen() {
     const n = [...s]; [n[i], n[i + 1]] = [n[i + 1], n[i]]; return n;
   });
   const remove = (i: number) => setSecs(s => s.filter((_, idx) => idx !== i));
-  const addSection = (label: string) => {
-    if (label && !secs.includes(label)) setSecs(s => [...s, label]);
-    setShowAdd(false);
-  };
+
   /* ★제안 섹션은 '지정된 자리'에 꽂는다(2026-08-03) — 맨 아래 붙으면 흐름이 깨져서 아무도 안 쓴다.
      after는 AI가 구조를 설계하며 정한 순번이고, 마음에 안 들면 끌어서 옮기면 된다. */
   const addSuggestion = (sg: { name: string; desc?: string; after?: number }) => {
@@ -133,7 +127,7 @@ export default function SectionStructureScreen() {
 
   const addCustom = () => {
     const t = customInput.trim();
-    if (t && !secs.includes(t)) { setSecs(s => [...s, t]); setCustomInput(''); setShowAdd(false); }
+    if (t && !secs.includes(t)) { setSecs(s => [...s, t]); setCustomInput(''); }
   };
 
   const handleConfirm = () => {
@@ -152,12 +146,10 @@ export default function SectionStructureScreen() {
     if (typeof window !== 'undefined' &&
       !window.confirm('현재 수정한 구조가 사라지고 AI 추천 구조로 돌아갑니다. 계속할까요?')) return;
     setSecs([...original]);
-    setShowAdd(false);
   };
 
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
   const fromCapture = !fromRef && Boolean(captureAnalysis?.섹션목록?.length);
-  const available = ALL_SECTIONS.filter(s => !secs.includes(s));
 
   /* ★재료가 있어야 성립하는 섹션 알림(2026-08-02) — 막지 않고 알린다.
    *  실제 실행에서 확인된 문제다: 재료가 없으면 모델이 추천 주체·교환 규정·개발 서사를 지어낸다.
@@ -244,63 +236,6 @@ export default function SectionStructureScreen() {
       {/* ★62개를 늘어놓는 대신 '지금 비어 있는 것'만 짚어준다(2026-08-03).
           ⚠️섹션을 더하면 크레딧이 더 나간다 — 증가분을 숨기지 않는다.
             숨기면 결제 화면에서 "왜 늘었지"가 되고, 그때 추천 영역 전체가 신뢰를 잃는다. */}
-      {/* 0개일 때도 침묵하지 않는다 — 셀러는 '추천이 없는 것'과 '아직 안 나온 것'을 구분 못 한다 */}
-      {!recommendLoading && secs.length > 0 && sectionSuggestions.length === 0 && (
-        <div style={{
-          border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
-          padding: '11px 15px', marginBottom: 14, fontSize: 12.5, color: '#6B7684', lineHeight: 1.7,
-        }}>
-          적어주신 정보가 지금 구성에 다 담겨 있어요 — 더 넣을 만한 섹션이 보이지 않습니다.
-          직접 넣고 싶은 게 있으면 아래 &lsquo;섹션 추가&rsquo;에서 고르시면 돼요.
-        </div>
-      )}
-
-      {sectionSuggestions.length > 0 && (
-        <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#5B3FD6', marginBottom: 4 }}>
-            이 상품에 더하면 좋아요
-          </div>
-          <div style={{ fontSize: 11.5, color: '#8B95A1', marginBottom: 11 }}>
-            지금 구성에서 비어 있는 것만 골랐어요 · 넣지 않으셔도 됩니다
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {sectionSuggestions.map(sg => {
-              const delta = calculateGenerationCost({ sectionCount: secs.length + 1, out })
-                - calculateGenerationCost({ sectionCount: secs.length, out });
-              const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
-              return (
-                <div key={sg.name} style={{ background: '#fff', border: '1px solid #E9E7F3', borderRadius: 11, padding: '12px 14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <b style={{ fontSize: 13 }}>{sg.name}</b>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '2px 8px' }}>
-                      +{delta}크레딧
-                    </span>
-                  </div>
-                  {sg.why && <p style={{ fontSize: 12, color: '#4E5968', lineHeight: 1.65, marginBottom: 8 }}>{sg.why}</p>}
-                  {sg.grounded === false && (
-                    <p style={{ fontSize: 11.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px', marginBottom: 8, lineHeight: 1.55 }}>
-                      이 섹션 내용은 아직 안 적어주셨어요 — 넣으시려면 상품정보에 관련 내용을 더해주세요.
-                    </p>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <span style={{ fontSize: 11.5, color: '#8B95A1' }}>
-                      {at}번 &lsquo;{secs[at - 1] ?? ''}&rsquo; 다음에 들어갑니다
-                    </span>
-                    <button
-                      onClick={() => addSuggestion(sg)}
-                      style={{
-                        marginLeft: 'auto', border: '1px solid #D9CDFF', background: '#fff', color: '#6D4CFF',
-                        borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)',
-                      }}
-                    >여기에 추가</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* 섹션 리스트 */}
       <div style={{ marginBottom: 12 }}>
         {secs.map((sec, i) => (
@@ -367,21 +302,76 @@ export default function SectionStructureScreen() {
         ))}
       </div>
 
-      {/* 섹션 추가 + AI 추천 구조로 되돌리기 */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: showAdd ? 10 : 16 }}>
+      {/* 0개일 때도 침묵하지 않는다 — 셀러는 '추천이 없는 것'과 '아직 안 나온 것'을 구분 못 한다 */}
+      {!recommendLoading && secs.length > 0 && sectionSuggestions.length === 0 && (
+        <div style={{
+          border: '1px solid #ECECF2', background: '#FAFAFC', borderRadius: 12,
+          padding: '11px 15px', marginBottom: 14, fontSize: 12.5, color: '#6B7684', lineHeight: 1.7,
+        }}>
+          적어주신 정보가 지금 구성에 다 담겨 있어요 — 더 넣을 만한 섹션이 보이지 않습니다.
+          직접 넣고 싶은 게 있으면 아래 &lsquo;섹션 추가&rsquo;에서 고르시면 돼요.
+        </div>
+      )}
+
+      {sectionSuggestions.length > 0 && (
+        <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#5B3FD6', marginBottom: 4 }}>
+            이 상품에 더하면 좋아요
+          </div>
+          <div style={{ fontSize: 11.5, color: '#8B95A1', marginBottom: 11 }}>
+            지금 구성에서 비어 있는 것만 골랐어요 · 넣지 않으셔도 됩니다
+          </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {sectionSuggestions.map(sg => {
+              const delta = calculateGenerationCost({ sectionCount: secs.length + 1, out })
+                - calculateGenerationCost({ sectionCount: secs.length, out });
+              const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
+              return (
+                <div key={sg.name} style={{ background: '#fff', border: '1px solid #E9E7F3', borderRadius: 11, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <b style={{ fontSize: 13 }}>{sg.name}</b>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '2px 8px' }}>
+                      +{delta}크레딧
+                    </span>
+                  </div>
+                  {sg.why && <p style={{ fontSize: 12, color: '#4E5968', lineHeight: 1.65, marginBottom: 8 }}>{sg.why}</p>}
+                  {sg.grounded === false && (
+                    <p style={{ fontSize: 11.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '6px 10px', marginBottom: 8, lineHeight: 1.55 }}>
+                      이 섹션 내용은 아직 안 적어주셨어요 — 넣으시려면 상품정보에 관련 내용을 더해주세요.
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <span style={{ fontSize: 11.5, color: '#8B95A1' }}>
+                      {at}번 &lsquo;{secs[at - 1] ?? ''}&rsquo; 다음에 들어갑니다
+                    </span>
+                    <button
+                      onClick={() => addSuggestion(sg)}
+                      style={{
+                        marginLeft: 'auto', border: '1px solid #D9CDFF', background: '#fff', color: '#6D4CFF',
+                        borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)',
+                      }}
+                    >여기에 추가</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ★62개 칩 목록 폐기(2026-08-03 유근님) — 재료는 상품정보에서 받고 구조는 재료를 보고 만든다.
+          인증서를 가진 셀러가 상품정보에 안 적었다면, 섹션만 추가해봤자 쓸 재료가 없어 빈 섹션이거나
+          날조가 된다. 넣을 자리를 만들어 줄 게 아니라 상품정보로 돌려보내는 것이 맞다. */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
         <button
-          onClick={() => setShowAdd(p => !p)}
-          /* ★두 버튼의 높이를 맞춘다 — 한쪽은 padding 10px 0, 다른 쪽은 10px 14px이라
-             글자 크기·테두리 두께까지 달라 나란히 두면 눈에 띄게 어긋나 보였다. */
+          onClick={() => go('s5')}
           style={{
-            flex: 1, height: 42, border: '1.5px dashed var(--bd)',
+            flex: 1, minWidth: 200, height: 42, border: '1.5px dashed var(--bd)',
             borderRadius: 10, background: 'transparent', cursor: 'pointer',
             fontSize: 13, color: 'var(--tx2)', fontFamily: 'var(--f)', fontWeight: 600,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}
-        >
-          {showAdd ? <><X size={ICON.sm} />닫기</> : <><Plus size={ICON.sm} />섹션 추가</>}
-        </button>
+        ><Plus size={ICON.sm} />상품정보에 더 적기</button>
         {canReset && (
           <button
             onClick={resetToOriginal}
@@ -392,95 +382,30 @@ export default function SectionStructureScreen() {
               fontSize: 13, color: 'var(--pu)', fontFamily: 'var(--f)', fontWeight: 700,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             }}
-          >
-            <RotateCcw size={ICON.sm} />AI 추천 구조로 되돌리기
-          </button>
+          ><RotateCcw size={ICON.sm} />AI 추천 구조로 되돌리기</button>
         )}
       </div>
 
-      {/* 추가 패널 */}
-      {showAdd && (
-        <div style={{
-          background: '#f8fafc', border: '1px solid var(--bd)',
-          borderRadius: 12, padding: '14px', marginBottom: 16,
-        }}>
-          {/* ★알약 칩 62개 나열 → 역할별 묶음 + 설명(2026-08-02).
-              이름만 빽빽하면 고르는 화면인데 고를 근거가 없다. 무엇을 하는 섹션인지 함께 보여준다. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, background: '#fff',
-            border: '1px solid var(--bd)', borderRadius: 10, padding: '9px 12px', marginBottom: 12,
-          }}>
-            <Search size={15} color="#B0B8C1" style={{ flexShrink: 0 }} />
-            <input
-              value={addQuery}
-              onChange={e => setAddQuery(e.target.value)}
-              placeholder="섹션 찾기 (예: 후기, 성분, 배송)"
-              style={{ border: 'none', outline: 'none', flex: 1, fontSize: 13, fontFamily: 'var(--f)', background: 'transparent' }}
-            />
-          </div>
-
-          {(() => {
-            const q = addQuery.trim().toLowerCase();
-            const hit = q
-              ? available.filter(n => n.toLowerCase().includes(q) || (sectionDescription(n) ?? '').toLowerCase().includes(q))
-              : available;
-            const groups = groupSections(hit);
-            if (!groups.length) {
-              return (
-                <div style={{ fontSize: 12.5, color: 'var(--tx3)', padding: '14px 2px', lineHeight: 1.7 }}>
-                  찾는 섹션이 없네요. 아래에 직접 입력하시면 그 이름 그대로 만들어드려요.
-                </div>
-              );
-            }
-            return groups.map(g => (
-              <div key={g.label} style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 8 }}>
-                  <b style={{ fontSize: 12.5, color: 'var(--tx1)' }}>{g.label}</b>
-                  <span style={{ fontSize: 11.5, color: 'var(--tx3)' }}>{g.desc}</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 7 }}>
-                  {g.items.map(n => (
-                    <button
-                      key={n}
-                      onClick={() => addSection(n)}
-                      style={{
-                        textAlign: 'left', border: '1px solid var(--bd)', background: '#fff',
-                        borderRadius: 10, padding: '10px 12px', cursor: 'pointer', fontFamily: 'var(--f)',
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 700, color: 'var(--tx1)' }}>
-                        <Plus size={12} color="#6D4CFF" />{n}
-                      </span>
-                      {sectionDescription(n) && (
-                        <span style={{ display: 'block', fontSize: 11, color: 'var(--tx3)', lineHeight: 1.5, marginTop: 4 }}>
-                          {sectionDescription(n)}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ));
-          })()}
-
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input
-              className="finp"
-              placeholder="직접 입력 (예: 특허 기술 소개)"
-              value={customInput}
-              onChange={e => setCustomInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addCustom()}
-              style={{ flex: 1, marginBottom: 0 }}
-            />
-            <button
-              className="btn-next"
-              onClick={addCustom}
-              disabled={!customInput.trim()}
-              style={{ flexShrink: 0, padding: '0 14px' }}
-            >추가</button>
-          </div>
-        </div>
-      )}
+      {/* 직접 입력 — 상품정보에 적었는데 AI가 그 섹션을 안 만든 경우의 통로 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <input
+          className="finp"
+          placeholder="직접 넣을 섹션 이름 (예: 특허 기술 소개)"
+          value={customInput}
+          onChange={e => setCustomInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addCustom()}
+          style={{ flex: 1, marginBottom: 0 }}
+        />
+        <button
+          className="btn-next"
+          onClick={addCustom}
+          disabled={!customInput.trim()}
+          style={{ flexShrink: 0, padding: '0 14px' }}
+        >추가</button>
+      </div>
+      <p style={{ fontSize: 11.5, color: 'var(--tx3)', lineHeight: 1.6, marginBottom: 16 }}>
+        상품정보에 없는 내용은 지어내지 않아요 — 담고 싶은 내용이 있으면 상품정보에 먼저 적어주세요.
+      </p>
 
       <div className="cta-row">
         <button className="btn-back" onClick={() => go('s5')}>← 이전</button>
