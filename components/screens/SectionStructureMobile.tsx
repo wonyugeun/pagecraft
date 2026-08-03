@@ -27,7 +27,7 @@ export default function SectionStructureMobile() {
     go,
     referenceAnalysis, captureAnalysis,
     setSectionStructure, setSecCnt,
-    toggleChat, credits,, setStructureForCount } = useApp();
+    toggleChat, credits, setStructureForCount } = useApp();
 
   // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI + 원본 보관). 데·모 섹션 일치.
   const { secs, setSecs, recommendLoading, original } = useInitialSections();
