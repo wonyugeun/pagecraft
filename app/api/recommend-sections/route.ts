@@ -193,7 +193,8 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
 
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+      // ★모델 비교용 스위치(2026-08-04) — 미설정 시 종전 모델 그대로. 프로덕션 동작 불변.
+      model: process.env.RECOMMEND_MODEL || 'claude-sonnet-4-6',
       /* ★섹션 수에 맞춰 늘린다(2026-08-03) — 3000 고정이던 때 32섹션 요청이 잘려
        *  JSON 파싱에 실패했고, 클라이언트가 폴백으로 '추가 섹션 2·3·4…'를 깔았다.
        *  이름만 받던 시절의 값이라 desc·suggestions가 붙은 지금은 턱없이 모자랐다. */
@@ -205,7 +206,12 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     if (!message.content || message.content.length === 0) {
       throw new Error('Claude 응답 비어있음');
     }
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    /* ★첫 블록만 보지 않는다(2026-08-04) — 모델에 따라 thinking 블록이 앞에 오면
+     *  content[0]이 텍스트가 아니어서 빈 문자열이 되고 "JSON을 찾을 수 없음"으로 죽는다.
+     *  모델을 바꿔 볼 때마다 이 자리에서 걸리므로 텍스트 블록을 찾아 쓴다. */
+    const raw = message.content
+      .map(b => (b.type === 'text' ? b.text : ''))
+      .join('\n');
     // ★원가 확인용 — 이 호출은 크레딧을 차감하지 않으므로 우리 원가만 남는다(2026-08-04)
     console.log(`[recommend-sections] cat=${normCat} ch=${ch} target=${targetCount} stop=${message.stop_reason} tokens in=${message.usage?.input_tokens ?? '-'} out=${message.usage?.output_tokens ?? '-'}`);
 
