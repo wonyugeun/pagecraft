@@ -313,7 +313,10 @@ export default function SectionStructureScreen() {
         </div>
       )}
 
-      {sectionSuggestions.length > 0 && (
+      {/* ★목록이 준비된 뒤에만 띄운다(2026-08-03) — 구성하는 중에 지난 실행의 추천이 남아 보였고,
+          목록이 비어 있어 '0번 다음에 들어갑니다 · +0크레딧'처럼 값이 무너져 나왔다.
+          추천은 '지금 이 구성'을 근거로 하는 말이라, 구성이 없으면 할 말도 없다. */}
+      {!recommendLoading && secs.length > 0 && sectionSuggestions.length > 0 && (
         <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#5B3FD6', marginBottom: 4 }}>
             이 상품에 더하면 좋아요

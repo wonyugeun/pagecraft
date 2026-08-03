@@ -71,6 +71,9 @@ export function useInitialSections(enabled: boolean = true) {
       return [...out, tail];
     };
 
+    /* 요청을 보내는 순간 지난 추천을 비운다 — 응답이 오기 전까지 이전 구성의 제안이 남아
+       새 구성에 대한 말인 것처럼 보인다(실측: 구성 중인데 추천이 먼저 떠 있었다). */
+    setSectionSuggestions([]);
     setRecommendLoading(true);
     fetch('/api/recommend-sections', {
       method: 'POST',
