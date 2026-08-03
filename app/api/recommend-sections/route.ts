@@ -206,7 +206,8 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       throw new Error('Claude 응답 비어있음');
     }
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-    console.log(`[recommend-sections] cat=${normCat} ch=${ch} depth=${depth} target=${targetCount} stop=${message.stop_reason}`);
+    // ★원가 확인용 — 이 호출은 크레딧을 차감하지 않으므로 우리 원가만 남는다(2026-08-04)
+    console.log(`[recommend-sections] cat=${normCat} ch=${ch} target=${targetCount} stop=${message.stop_reason} tokens in=${message.usage?.input_tokens ?? '-'} out=${message.usage?.output_tokens ?? '-'}`);
 
     /* 객체({sections,suggestions})가 기본이고, 배열만 온 구버전 응답도 계속 받는다 */
     const ob = raw.indexOf('{'), oe = raw.lastIndexOf('}');

@@ -372,13 +372,23 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 6. 응답 파싱 ── { created, data:[{b64_json}], output_format, size, quality, usage }
-    let data: { data?: Array<{ b64_json?: string }>; output_format?: string };
+    let data: {
+      data?: Array<{ b64_json?: string }>; output_format?: string;
+      /** ★레퍼런스 장수가 원가에 얼마나 영향을 주는지 재려면 이게 필요하다(2026-08-04) */
+      usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number;
+                input_tokens_details?: { image_tokens?: number; text_tokens?: number } };
+    };
     try {
       data = await res.json();
     } catch (e) {
       console.error(`[generate-image] 응답 JSON 파싱 실패 (attempt ${attempt}):`, e);
       lastError = 'JSON parse error';
       continue;
+    }
+
+    if (data.usage) {
+      const d = data.usage.input_tokens_details;
+      console.log(`[generate-image] usage ref=${refImages.length} in=${data.usage.input_tokens} (img ${d?.image_tokens ?? '-'} / txt ${d?.text_tokens ?? '-'}) out=${data.usage.output_tokens}`);
     }
 
     const b64 = data.data?.[0]?.b64_json;

@@ -69,7 +69,7 @@ export default function ImageMobile() {
   const auxFileRef = useRef<HTMLInputElement>(null);
   const packFileRef = useRef<HTMLInputElement>(null);
 
-  const MAX_AUX = 2;
+  const MAX_AUX = 3;   // ★데스크탑과 동일(2026-08-04) — 서버 상한 4장(대표1+보조3)
   const syncImages = (main: string | null, aux: string[]) =>
     setProductImages(main ? [main, ...aux] : []);
 

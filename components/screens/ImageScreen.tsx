@@ -125,7 +125,11 @@ export default function ImageScreen() {
   const auxFileRef = useRef<HTMLInputElement>(null);
   const packFileRef = useRef<HTMLInputElement>(null);
 
-  const MAX_AUX = 2;
+  /* ★보조컷 2→3(2026-08-04) — 서버 상한이 4장(MAX_REF_IMAGES)인데 대표1+보조2로 한 칸이 놀았다.
+     패션 색상 3종·화장품 제형·식품 원물처럼 한 장으론 못 보여주는 경우가 있다.
+     ⚠️대표컷은 1장을 유지한다 — 여러 장이면 '이 제품이 무엇인가'의 기준이 흔들려
+       섹션마다 다른 제품처럼 나온다(패션 16섹션 실측에서 대표컷 1장으로 색·형태가 유지됐다). */
+  const MAX_AUX = 3;
   const syncImages = (main: string | null, aux: string[]) =>
     setProductImages(main ? [main, ...aux] : []);
 
