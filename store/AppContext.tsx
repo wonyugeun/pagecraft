@@ -182,6 +182,10 @@ interface AppContextType extends AppState {
    *  분량을 32→16으로 바꾸고 돌아와도 목록이 32개로 남아 있던 버그를 잡는 기준값이다.
    *  ⚠️secs.length와 비교하면 안 된다 — 셀러가 화면에서 직접 더하고 빼면 길이가 달라지는데,
    *    그건 셀러의 편집이지 분량 변경이 아니다. */
+  /** ★'더하면 좋을' 섹션 제안(2026-08-03) — 62개 나열 대신, 지금 구성에서 비어 있는 것만.
+   *  after = 이 순번 '뒤'에 들어가야 하는 자리(맨 아래 붙으면 아무도 안 쓴다). */
+  sectionSuggestions: Array<{ name: string; desc?: string; why?: string; after?: number }>;
+  setSectionSuggestions: (v: Array<{ name: string; desc?: string; why?: string; after?: number }>) => void;
   structureForCount: number;
   setStructureForCount: (v: number) => void;
   setSectionDescs: (v: Record<string, string>) => void;
@@ -383,6 +387,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [secCnt, setSecCntState] = useState(NEW_START_FLOW ? 16 : 10);
   const [sectionDescs, setSectionDescs] = useState<Record<string, string>>({});
   const [structureForCount, setStructureForCount] = useState(0);
+  const [sectionSuggestions, setSectionSuggestions] = useState<Array<{ name: string; desc?: string; why?: string; after?: number }>>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
@@ -946,7 +951,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, sectionDescs, setSectionDescs, structureForCount, setStructureForCount, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+      screen, cat, ch, type, out, imgMode, secCnt, sectionDescs, setSectionDescs, structureForCount, setStructureForCount, sectionSuggestions, setSectionSuggestions, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditsLoaded, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
       go,

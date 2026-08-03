@@ -82,7 +82,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, out, secCnt, productExtra, productName, sectionDescs, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, setStructureForCount } = useApp();
+  const { go, out, secCnt, setSectionDescs, productExtra, productName, sectionDescs, sectionSuggestions, setSectionSuggestions, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt, setStructureForCount } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -121,6 +121,16 @@ export default function SectionStructureScreen() {
     if (label && !secs.includes(label)) setSecs(s => [...s, label]);
     setShowAdd(false);
   };
+  /* ★제안 섹션은 '지정된 자리'에 꽂는다(2026-08-03) — 맨 아래 붙으면 흐름이 깨져서 아무도 안 쓴다.
+     after는 AI가 구조를 설계하며 정한 순번이고, 마음에 안 들면 끌어서 옮기면 된다. */
+  const addSuggestion = (sg: { name: string; desc?: string; after?: number }) => {
+    if (secs.includes(sg.name)) return;
+    const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
+    setSecs(prev => [...prev.slice(0, at), sg.name, ...prev.slice(at)]);
+    if (sg.desc) setSectionDescs({ ...sectionDescs, [sg.name]: sg.desc });
+    setSectionSuggestions(sectionSuggestions.filter(x => x.name !== sg.name));
+  };
+
   const addCustom = () => {
     const t = customInput.trim();
     if (t && !secs.includes(t)) { setSecs(s => [...s, t]); setCustomInput(''); setShowAdd(false); }
@@ -228,6 +238,50 @@ export default function SectionStructureScreen() {
         }}>
           <b style={{ fontWeight: 700 }}>{needCount}개 섹션은 상품정보에 내용을 적어주셔야 제대로 나와요.</b><br />
           Flik은 없는 사실을 만들지 않기 때문에, 재료가 없으면 그 섹션은 두루뭉술해집니다. 아래 표시된 섹션을 확인해주세요.
+        </div>
+      )}
+
+      {/* ★62개를 늘어놓는 대신 '지금 비어 있는 것'만 짚어준다(2026-08-03).
+          ⚠️섹션을 더하면 크레딧이 더 나간다 — 증가분을 숨기지 않는다.
+            숨기면 결제 화면에서 "왜 늘었지"가 되고, 그때 추천 영역 전체가 신뢰를 잃는다. */}
+      {sectionSuggestions.length > 0 && (
+        <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '15px 17px', marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#5B3FD6', marginBottom: 4 }}>
+            이 상품에 더하면 좋아요
+          </div>
+          <div style={{ fontSize: 11.5, color: '#8B95A1', marginBottom: 11 }}>
+            지금 구성에서 비어 있는 것만 골랐어요 · 넣지 않으셔도 됩니다
+          </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {sectionSuggestions.map(sg => {
+              const delta = calculateGenerationCost({ sectionCount: secs.length + 1, out })
+                - calculateGenerationCost({ sectionCount: secs.length, out });
+              const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
+              return (
+                <div key={sg.name} style={{ background: '#fff', border: '1px solid #E9E7F3', borderRadius: 11, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <b style={{ fontSize: 13 }}>{sg.name}</b>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '2px 8px' }}>
+                      +{delta}크레딧
+                    </span>
+                  </div>
+                  {sg.why && <p style={{ fontSize: 12, color: '#4E5968', lineHeight: 1.65, marginBottom: 8 }}>{sg.why}</p>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                    <span style={{ fontSize: 11.5, color: '#8B95A1' }}>
+                      {at}번 &lsquo;{secs[at - 1] ?? ''}&rsquo; 다음에 들어갑니다
+                    </span>
+                    <button
+                      onClick={() => addSuggestion(sg)}
+                      style={{
+                        marginLeft: 'auto', border: '1px solid #D9CDFF', background: '#fff', color: '#6D4CFF',
+                        borderRadius: 8, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--f)',
+                      }}
+                    >여기에 추가</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -21,7 +21,7 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
 export function useInitialSections(enabled: boolean = true) {
   const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
     sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs,
-    structureForCount, setStructureForCount } = useApp();
+    structureForCount, setStructureForCount, setSectionSuggestions } = useApp();
 
   const [recommendLoading, setRecommendLoading] = useState(false);
   const initCalledRef = useRef(false);
@@ -47,6 +47,7 @@ export function useInitialSections(enabled: boolean = true) {
     if (depthChanged) {                                    // 분량이 바뀌었으니 새로 받는다
       setOriginalSections([]);
       setSectionDescs({});
+      setSectionSuggestions([]);
     } else if (sectionStructure.length > 0) return;        // 재진입/저장값 있으면 유지
     if (referenceAnalysis?.sections?.length) { setSectionStructure([...referenceAnalysis.sections]); return; }
     if (captureAnalysis?.섹션목록?.length) { setSectionStructure(captureAnalysis.섹션목록.map(s => s.타입)); return; }
@@ -92,6 +93,7 @@ export function useInitialSections(enabled: boolean = true) {
         setSectionStructure(data.sections as string[]);
         if (data.sectionDescs) setSectionDescs(data.sectionDescs as Record<string, string>);
         setStructureForCount(secCnt || (data.sections as string[]).length);
+        setSectionSuggestions(Array.isArray(data.sectionSuggestions ?? data.suggestions) ? (data.suggestions ?? []) : []);
       })
       .catch(err => {
         console.error('[recommend-sections]', err);

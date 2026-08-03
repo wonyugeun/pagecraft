@@ -144,9 +144,24 @@ ${getCategoryCopyGuard(cat || '')}
 - 와디즈: 스토리텔링·창업 동기·서포터 언어 비중↑.
 
 [출력 규칙]
-- 다른 텍스트 없이 JSON 배열만.
-- 배열 길이는 정확히 ${targetCount}개. 모자라거나 넘치면 안 된다.
-- 각 원소는 {"name": "섹션 이름", "desc": "셀러가 읽을 한 줄 설명"} 객체.`;
+- 다른 텍스트 없이 JSON 객체 하나만: {"sections": [...], "suggestions": [...]}
+- sections 길이는 정확히 ${targetCount}개. 모자라거나 넘치면 안 된다.
+  각 원소는 {"name": "섹션 이름", "desc": "셀러가 읽을 한 줄 설명"}.
+
+[suggestions — 이 구성에 '더하면 좋을' 섹션. 최대 5개, 없으면 빈 배열]
+셀러는 이미 ${targetCount}개를 골랐습니다. 섹션을 더하면 크레딧이 더 나갑니다 —
+근거 없이 채우면 그건 조언이 아니라 영업입니다. 아래를 지키세요.
+- ⭐1순위: 셀러가 알려준 정보 중 위 구성에서 안 쓰인 것. 셀러가 자기 무기를 안 쓰고 있는 자리입니다.
+  (예: 상품 정보에 '무알콜·무향료'가 있는데 그걸 다루는 섹션이 없다 → 그 섹션을 제안)
+- 2순위: 이 카테고리에서 빠지면 이상한 축(화장품이면 성분·사용법·안전 / 식품이면 원산지·보관법).
+- ⛔셀러가 주지 않은 재료를 요구하는 섹션은 절대 제안하지 마세요 —
+  전문가 추천·수상·특허·인증번호·임상 시험·실제 후기·교환반품 규정.
+  제안받은 셀러가 그대로 넣으면 카피가 없는 사실을 지어내고, 책임은 셀러가 집니다.
+- ⛔위 sections에 이미 있는 주제를 다른 이름으로 다시 제안하지 마세요.
+- 근거가 약하면 넣지 마세요. 5개를 채우려 하지 말 것 — 0개도 정답입니다.
+- 각 원소: {"name": "...", "desc": "무엇이 담기는지 한 줄",
+  "why": "왜 이 상품에 필요한지 — 셀러가 준 정보를 근거로 한 줄",
+  "after": 이 섹션이 들어갈 자리(위 sections의 순번, 이 번호 '뒤'에 삽입. 1~${targetCount})}`;
 
   const userPrompt = `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
 
@@ -157,9 +172,13 @@ ${getCategoryCopyGuard(cat || '')}
 - 깊이: ${depth}
 ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
 [출력 형식]
-다른 텍스트 없이 JSON 배열만 반환하세요. 예시 형식:
-[{"name":"히어로","desc":"첫 화면에서 이 상품이 무엇이고 왜 봐야 하는지 한눈에 보여줘요"},
- {"name":"성분 이야기","desc":"병풀·판테놀을 왜 넣었는지 근거와 함께 설명해요"}]`;
+다른 텍스트 없이 JSON 객체만 반환하세요. 예시 형식:
+{"sections":[
+  {"name":"히어로","desc":"첫 화면에서 이 상품이 무엇이고 왜 봐야 하는지 한눈에 보여줘요"},
+  {"name":"성분 이야기","desc":"병풀·판테놀을 왜 넣었는지 근거와 함께 설명해요"}],
+ "suggestions":[
+  {"name":"무알콜·무향료 이야기","desc":"알코올과 향료를 뺀 이유와 그래서 무엇이 달라지는지 보여줘요",
+   "why":"적어주신 '무알콜·무향료'가 지금 구성에 안 쓰였어요 — 민감 피부가 가장 먼저 확인하는 부분입니다","after":5}]}`;
 
   try {
     const message = await client.messages.create({
@@ -175,25 +194,45 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
     console.log(`[recommend-sections] cat=${normCat} ch=${ch} depth=${depth} target=${targetCount} stop=${message.stop_reason}`);
 
-    const first = raw.indexOf('[');
-    const last  = raw.lastIndexOf(']');
-    if (first === -1 || last === -1 || last < first) {
-      console.error('[recommend-sections] JSON 배열 미발견. raw head:', raw.slice(0, 300));
-      throw new Error('응답에서 JSON 배열을 찾을 수 없음');
+    /* 객체({sections,suggestions})가 기본이고, 배열만 온 구버전 응답도 계속 받는다 */
+    const ob = raw.indexOf('{'), oe = raw.lastIndexOf('}');
+    const ab = raw.indexOf('['), ae = raw.lastIndexOf(']');
+    const useObj = ob !== -1 && oe > ob && (ab === -1 || ob < ab);
+    if (!useObj && (ab === -1 || ae < ab)) {
+      console.error('[recommend-sections] JSON 미발견. raw head:', raw.slice(0, 300));
+      throw new Error('응답에서 JSON을 찾을 수 없음');
     }
-    const jsonText = raw.slice(first, last + 1);
+    const jsonText = useObj ? raw.slice(ob, oe + 1) : raw.slice(ab, ae + 1);
 
-    let sections: unknown;
+    let parsedRoot: unknown;
+    let suggestions: Array<{ name: string; desc?: string; why?: string; after?: number }> = [];
     try {
-      sections = JSON.parse(jsonText);
+      parsedRoot = JSON.parse(jsonText);
     } catch (parseErr) {
       const pmsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
       console.error(`[recommend-sections] JSON.parse 실패: ${pmsg}\nraw:\n${jsonText.slice(0, 500)}`);
       throw new Error(`JSON 파싱 실패: ${pmsg}`);
     }
 
+    let sections: unknown = parsedRoot;
+    if (!Array.isArray(parsedRoot) && parsedRoot && typeof parsedRoot === 'object') {
+      const root = parsedRoot as Record<string, unknown>;
+      sections = root.sections;
+      if (Array.isArray(root.suggestions)) {
+        suggestions = (root.suggestions as unknown[])
+          .map(x => (x && typeof x === 'object' ? x as Record<string, unknown> : null))
+          .filter((x): x is Record<string, unknown> => !!x && typeof x.name === 'string' && String(x.name).trim().length > 0)
+          .slice(0, 5)   // ★최대 5개 — 더 늘리면 '추천'이 아니라 또 하나의 목록이 된다
+          .map(x => ({
+            name: String(x.name).trim(),
+            desc: x.desc ? String(x.desc).trim() : undefined,
+            why:  x.why  ? String(x.why).trim()  : undefined,
+            after: Number.isFinite(Number(x.after)) ? Math.round(Number(x.after)) : undefined,
+          }));
+      }
+    }
     if (!Array.isArray(sections)) {
-      throw new Error(`JSON이 배열이 아님: ${typeof sections}`);
+      throw new Error(`sections가 배열이 아님: ${typeof sections}`);
     }
 
     /* 객체({name,desc})와 문자열 양쪽을 받는다 — 모델이 형식을 어겨도 이름은 건진다 */
@@ -241,6 +280,8 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       sections: sized,
       // ★셀러가 '이게 뭔지' 판단하는 유일한 근거 — 용어집은 AI가 짓는 이름을 따라갈 수 없다
       sectionDescs: descByName,
+      // ★'더하면 좋을' 섹션 — 이미 이 상품을 분석한 호출에 얹으므로 추가 원가 0
+      suggestions: suggestions.filter(x => !seen.has(x.name)),
       targetCount,
       meta: { cat: normCat, ch, depth, weight: CHANNEL_WEIGHT[ch] ?? 1.0 },
     });
