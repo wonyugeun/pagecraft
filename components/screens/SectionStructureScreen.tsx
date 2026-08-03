@@ -82,7 +82,7 @@ const BTN_DIS: React.CSSProperties = { ...BTN_SHARED, opacity: 0.3, cursor: 'def
 
 export default function SectionStructureScreen() {
   const isMobile = useIsMobile();
-  const { go, out, secCnt, productExtra, productName, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
+  const { go, out, secCnt, productExtra, productName, sectionDescs, referenceAnalysis, captureAnalysis, setSectionStructure, setSecCnt } = useApp();
 
   // ★이 데스크탑 인스턴스가 실제로 보이는 경우에만 훅 부수효과 동작(모바일이면 <SectionStructureMobile/>가 대신 보임).
   //   useIsMobile은 초기값 false라 깜빡임 → effect 게이트는 동기 window 판정(렌더 출력엔 영향 없음)으로 첫 렌더부터 정확.
@@ -258,8 +258,12 @@ export default function SectionStructureScreen() {
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--tx1)' }}>{sec}</span>
-              {sectionDescription(sec) && (
-                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--tx3)', marginTop: 2, lineHeight: 1.45 }}>{sectionDescription(sec)}</span>
+              {/* ★AI가 준 설명이 우선(2026-08-03) — 이름을 AI가 새로 지으므로 용어집은 절반도 못 덮는다.
+                  실측: 32섹션 중 16개가 설명 없음, 3개는 같은 설명이 중복이었다. */}
+              {(sectionDescs[sec] || sectionDescription(sec)) && (
+                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--tx3)', marginTop: 2, lineHeight: 1.45 }}>
+                  {sectionDescs[sec] || sectionDescription(sec)}
+                </span>
               )}
               {needs[i] && (
                 <span style={{ display: 'block', fontSize: 11.5, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '5px 9px', marginTop: 5, lineHeight: 1.5 }}>

@@ -20,7 +20,7 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
  */
 export function useInitialSections(enabled: boolean = true) {
   const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
-    sectionStructure, setSectionStructure, originalSections, setOriginalSections } = useApp();
+    sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs } = useApp();
 
   const [recommendLoading, setRecommendLoading] = useState(false);
   const initCalledRef = useRef(false);
@@ -78,6 +78,7 @@ export function useInitialSections(enabled: boolean = true) {
           throw new Error(data?.error ?? '추천 실패');
         }
         setSectionStructure(data.sections as string[]);
+        if (data.sectionDescs) setSectionDescs(data.sectionDescs as Record<string, string>);
       })
       .catch(err => {
         console.error('[recommend-sections]', err);

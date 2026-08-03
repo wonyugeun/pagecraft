@@ -321,6 +321,7 @@ export function getJobResult(job: JobState): {
     return {
       num:           String(i + 1),
       name:          c?.name || p.name || `섹션 ${i + 1}`,
+      desc:          p.desc,
       role:          p.role,
       mission:       p.mission,
       emotion_goal:  p.emotion_goal,

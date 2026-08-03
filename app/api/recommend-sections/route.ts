@@ -24,6 +24,7 @@ import { checkRateLimit, clientIp, creditsBypassEnabled } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
 import { API_ERROR_CODES } from '@/lib/apiErrors';
 import { DEPTH_BASE } from '@/lib/sectionDepth';
+import { getCategoryCopyGuard } from '@/lib/copyGuards';
 
 export const maxDuration = 60;
 
@@ -115,6 +116,8 @@ export async function POST(req: NextRequest) {
   const system = `당신은 대한민국 이커머스 상세페이지 기획 전문가입니다.
 카테고리·채널·상품·깊이를 보고 그 상품에 가장 효과적인 상세페이지 섹션 구성을 추천합니다.
 
+${getCategoryCopyGuard(cat || '')}
+
 [섹션 이름 원칙]
 - 한국어. 이커머스 상세페이지에 실제로 쓰이는 명칭.
 - 헤더 카피가 아닌 "섹션의 역할 이름"(예: "히어로", "성분 신뢰", "비교표", "사용법", "후기", "FAQ", "CTA").
@@ -122,6 +125,12 @@ export async function POST(req: NextRequest) {
 - 상품 특성(상품명, 핵심 정보)을 보고 필요한 섹션을 정확히 골라 넣을 것.
 - 동일·중복 섹션 금지.
 - 한 섹션 이름은 12자 이내 권장.
+- ⚠️이름은 '효과 단정'이 아니라 '다룰 주제'로. 이름이 카피의 방향을 정하기 때문입니다.
+    ✗ "트러블 진정 효과" · "주름 개선 효과"      ✓ "진정 성분 이야기" · "탄력 관리 루틴"
+- ⚠️셀러가 갖고 있지 않을 재료를 요구하는 이름을 만들지 마세요 — 그 이름을 받으면 카피가 지어냅니다.
+    ✗ "전문가 추천 코멘트" · "별점·리뷰 요약" · "임상 시험 결과" · "수상 이력"
+- ⚠️섹션마다 desc(셀러가 읽을 한 줄 설명)를 함께 쓰세요. 이름만으로는 '병풀 성분 심층'이
+  무엇을 담는 섹션인지 셀러가 알 수 없습니다. 셀러는 이 설명만 보고 뺄지 말지를 정합니다.
 
 [순서 원칙 — AIDA]
 - Attention(시선 끌기) → Interest(흥미·고민 공감) → Desire(욕구·신뢰 형성) → Action(구매 행동)
@@ -137,7 +146,7 @@ export async function POST(req: NextRequest) {
 [출력 규칙]
 - 다른 텍스트 없이 JSON 배열만.
 - 배열 길이는 정확히 ${targetCount}개. 모자라거나 넘치면 안 된다.
-- 각 원소는 한국어 섹션 이름 문자열.`;
+- 각 원소는 {"name": "섹션 이름", "desc": "셀러가 읽을 한 줄 설명"} 객체.`;
 
   const userPrompt = `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
 
@@ -149,7 +158,8 @@ export async function POST(req: NextRequest) {
 ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
 [출력 형식]
 다른 텍스트 없이 JSON 배열만 반환하세요. 예시 형식:
-["히어로", "피부고민 공감", "성분 신뢰", "USP", "사용법", "비교표", "후기", "FAQ", "CTA"]`;
+[{"name":"히어로","desc":"첫 화면에서 이 상품이 무엇이고 왜 봐야 하는지 한눈에 보여줘요"},
+ {"name":"성분 이야기","desc":"병풀·판테놀을 왜 넣었는지 근거와 함께 설명해요"}]`;
 
   try {
     const message = await client.messages.create({
@@ -186,12 +196,19 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       throw new Error(`JSON이 배열이 아님: ${typeof sections}`);
     }
 
-    // 문자열만 + 중복 제거 + 빈 문자열 제거
-    const cleaned = Array.from(new Set(
-      (sections as unknown[])
-        .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-        .map(s => s.trim()),
-    ));
+    /* 객체({name,desc})와 문자열 양쪽을 받는다 — 모델이 형식을 어겨도 이름은 건진다 */
+    const seen = new Set<string>();
+    const items: Array<{ name: string; desc?: string }> = [];
+    for (const raw of sections as unknown[]) {
+      const name = typeof raw === 'string' ? raw.trim()
+        : (raw && typeof raw === 'object' ? String((raw as Record<string, unknown>).name ?? '').trim() : '');
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
+      const desc = (raw && typeof raw === 'object')
+        ? String((raw as Record<string, unknown>).desc ?? '').trim() : '';
+      items.push(desc ? { name, desc } : { name });
+    }
+    const cleaned = items.map(i => i.name);
 
     if (cleaned.length === 0) {
       throw new Error('유효한 섹션 이름이 없습니다.');
@@ -217,8 +234,13 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       sized.push(tail);
     }
 
+    const descByName: Record<string, string> = {};
+    for (const it of items) if (it.desc) descByName[it.name] = it.desc;
+
     return NextResponse.json({
       sections: sized,
+      // ★셀러가 '이게 뭔지' 판단하는 유일한 근거 — 용어집은 AI가 짓는 이름을 따라갈 수 없다
+      sectionDescs: descByName,
       targetCount,
       meta: { cat: normCat, ch, depth, weight: CHANNEL_WEIGHT[ch] ?? 1.0 },
     });

@@ -175,6 +175,10 @@ interface AppContextType extends AppState {
   setOut: (v: string) => void;
   setImgMode: (v: string) => void;
   setSecCnt: (v: number) => void;
+  /** ★섹션 한 줄 설명(2026-08-03) — AI가 이름을 새로 짓기 때문에 용어집으로는 못 따라간다.
+   *  추천 API가 이름과 함께 준 설명을 그대로 보관해 섹션구조 화면에서 보여준다. */
+  sectionDescs: Record<string, string>;
+  setSectionDescs: (v: Record<string, string>) => void;
   toggleChat: () => void;
   doLogin: () => void;
   startDetail: () => void;
@@ -371,6 +375,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
    *  시작 화면이 8/16/32 셋만 제시하므로 기본값도 그 안에 있어야 한다(없으면 '10섹션 13크레딧'처럼
    *  고를 수 없는 값이 화면에 뜬다). 구 9단계 흐름은 종전값을 유지한다. */
   const [secCnt, setSecCntState] = useState(NEW_START_FLOW ? 16 : 10);
+  const [sectionDescs, setSectionDescs] = useState<Record<string, string>>({});
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
@@ -934,7 +939,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      screen, cat, ch, type, out, imgMode, secCnt, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+      screen, cat, ch, type, out, imgMode, secCnt, sectionDescs, setSectionDescs, chatOpen, loggedIn, sections, productName, productExtra, productImages, packagingRefImage, generationJobKey, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
       credits, creditsLoaded, creditModalOpen, restoredImages, restoredBlockImages, restoredOverrides, sidebarCollapsed, regularPrice, salePrice, showPrice, productOptions,
       brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
       go,
