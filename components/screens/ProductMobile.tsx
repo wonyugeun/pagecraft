@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ReviewsInput from '@/components/product/ReviewsInput';
 import VersionBadge from '@/components/layout/VersionBadge';
 import {
   Zap, Sparkles, ChevronUp, ChevronDown,
@@ -555,13 +556,7 @@ export default function ProductMobile() {
       <section style={{ padding: '20px 20px 0' }}>
         <div className="fg">
           <div className="fl">고객 후기 <span className="fopt">선택</span></div>
-          <textarea
-            className="finp"
-            value={reviews}
-            onChange={e => setReviews(e.target.value)}
-            placeholder={'스토어의 실제 고객 후기를 붙여넣으세요 (여러 개 가능)'}
-            rows={3}
-          />
+          <ReviewsInput value={reviews} onChange={setReviews} />
           <div className="fhint" style={{ marginTop: 6, fontSize: 11.5, color: '#666', lineHeight: 1.5 }}>
             실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반. 비워두면 미래형 기대 시나리오로 자동 대체됩니다.
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import ReviewsInput from '@/components/product/ReviewsInput';
 import { useApp, STEP_MAP, NEW_START_FLOW } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -1475,15 +1476,11 @@ export default function ProductScreen() {
             onToggle={() => toggleSec('s_reviews')}
           >
             <div className="fg">
-              <textarea
-                className="finp"
-                placeholder={'스토어에 등록된 실제 고객 후기를 붙여넣으세요. 여러 개 가능.\n예: "산책을 다시 좋아해요 - 김OO" / "포장이 꼼꼼했어요 ★★★★★"'}
-                value={reviews}
-                onChange={e => setReviews(e.target.value)}
-                style={{ minHeight: 76 }}
-              />
+              {/* ★한 칸 textarea → 후기·이름·별점 구조 입력(2026-08-04 유근님).
+                  저장 형식(문자열)은 그대로 — 파이프라인·저장 무접촉, UI만 바뀐다. */}
+              <ReviewsInput value={reviews} onChange={setReviews} />
               <div className="fhint">
-                실제 고객 후기를 붙여넣으면 후기 섹션에 표시됩니다. ⚠️ 실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반입니다.
+                ⚠️ 실제 후기만 입력하세요 — 가짜 후기·별점은 표시광고법 위반입니다.
                 비워두면 후기 섹션은 미래형 기대 시나리오로 자동 대체됩니다.
               </div>
             </div>
