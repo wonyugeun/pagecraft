@@ -30,13 +30,16 @@ const INGREDIENT_KEYS = ['성분', '원료', '함량', '추출물', '유래', '�
 /* ★상황컷을 둘로 나눈다(2026-08-02) — 밴드가 정반대라 한 묶음으로 두면 한쪽이 반드시 망가진다.
    empathy는 고민을 보여주는 컷이라 제품이 거의 안 보이는 게 맞지만(0~20%),
    '코디 제안'·'착용감'은 입은 옷이 주인공이다. 같은 밴드를 쓰면 정작 팔 물건이 안 보인다. */
-const EMPATHY_KEYS    = ['공감', '고민', '일상', '불편', '걱정', '망설', '원인', '이유', '왜', '문제', '진단'];
+/* '이유'는 뺐다 — '이 토너가 다른 이유'·'성분 배합 이유'까지 공감컷(제품 0~20%)으로 끌고 갔다 */
+const EMPATHY_KEYS    = ['공감', '고민', '일상', '불편', '걱정', '망설', '원인', '왜', '문제', '진단'];
 const IN_USE_KEYS     = ['시나리오', '코디', '착용', '핏', '실루엣', '공간', '활동', '연령', '발달', '적합', '스타일링',
                          '활용', '생활', '장면', '이런 분', '연출'];
-const TEXTURE_KEYS    = ['제형', '텍스처', '발림', '사용감', '사용법', '루틴', '흡수',
+/* '사용'을 넓게 받는다 — '사용법'만 두면 '사용 방법'이 안 걸린다.
+   '사용 시나리오'류는 in_use를 먼저 보므로 여기로 새지 않는다(검사 순서 주의). */
+const TEXTURE_KEYS    = ['제형', '텍스처', '발림', '사용', '루틴', '흡수',
                          '레시피', '조리', '보관', '세탁', '관리', '손질', '설치', '급여', '맛', '신선', '식감',
                          '복용', '섭취', '도포', '세척'];
-const CLINICAL_KEYS   = ['신뢰', '인증', '테스트', '안전', '검증', '비교', '후기', '리뷰', '스펙', 'faq', '의심', '이의', '보증',
+const CLINICAL_KEYS   = ['신뢰', '인증', '테스트', '안전', '검증', '비교', '후기', '리뷰', '스펙', 'faq', '질문', '의심', '이의', '보증',
                          '임상', '근거', '전문가', '추천', '기능성', '시험', '사이즈', '영양'];
 /* 제품 그 자체가 주인공인 컷 — 셀러가 '구성품'·'패키지'처럼 적었을 때 */
 const PRODUCT_KEYS    = ['구성', '패키지', '제품컷', '상품컷', '단독', '언박싱', '증정', '컬러', '색상', '실물'];
@@ -44,8 +47,11 @@ const EDITORIAL_KEYS  = ['브랜드', '스토리', '감성', '무드', '세계�
                          '생산', '공정', '과정', 'sns', '공유', '비전'];
 
 export function classifyCutArchetype(name = '', role = '', emotion = ''): CutArchetype {
-  const hay = `${name} ${role} ${emotion}`.toLowerCase();
-  const hit = (keys: string[]) => keys.some(k => hay.includes(k.toLowerCase()));
+  /* ★띄어쓰기를 무시한다(2026-08-04) — AI가 짓는 이름은 '사용 방법'처럼 띄어 쓰는데
+   *  키워드는 '사용법'이라 매칭을 놓쳤다. 놓치면 open으로 떨어져 분류가 헐거워진다. */
+  const squeeze = (t: string) => t.toLowerCase().replace(/[\s·/]/g, '');
+  const hay = squeeze(`${name} ${role} ${emotion}`);
+  const hit = (keys: string[]) => keys.some(k => hay.includes(squeeze(k)));
   if (hit(CTA_KEYS))        return 'cta';
   if (hit(HERO_KEYS))       return 'hero';
   if (hit(INGREDIENT_KEYS)) return 'ingredient_macro';

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { compressUpload } from '@/lib/imageCompress';
 import { useApp, STEP_MAP } from '@/store/AppContext';
 import StepHeader from '@/components/layout/StepHeader';
+import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import FlowNav from '@/components/layout/FlowNav';
 import ImageMobile from './ImageMobile';
 import { useIsMobile } from '@/hooks/useIsMobile';
@@ -12,18 +13,23 @@ import {
   Image as ImageIcon, Sun, Palette, FileText, X, Plus, FlaskConical, Package,
 } from 'lucide-react';
 
-// 아래는 "어떤 이미지가 만들어지나요" 드롭다운의 예시(컷 종류 안내)용. 실제 섹션 수는 sectionStructure로 동적 표시.
-const sectionImageMap = [
-  { name: '히어로', cut: '정면 누끼컷', why: '첫인상·썸네일' },
-  { name: '피부고민 공감', cut: '사용 장면컷', why: '공감 유도' },
-  { name: '성분 신뢰', cut: '성분/원료컷', why: '신뢰 강화' },
-  { name: 'USP', cut: '텍스처/제형컷', why: '강점 표현' },
-  { name: '사용법', cut: '사용 단계컷', why: '사용감 전달' },
-  { name: '비교표', cut: '제품 비교컷', why: '차별점 강조' },
-  { name: '후기', cut: '전후 비교컷', why: '효과 증명' },
-  { name: 'FAQ', cut: '디테일 클로즈업', why: '정보 보강' },
-  { name: 'CTA', cut: '패키지 상세컷', why: '구매 전환' },
-];
+/* ★내 섹션으로 보여준다(2026-08-04) — 이 목록이 화장품 9섹션으로 고정돼 있었다.
+ *  셀러는 방금 앞 화면에서 자기 섹션 32개('병풀 성분 이야기' 등)를 보고 왔는데
+ *  여기선 남의 9개('피부고민 공감')가 떴다. 식품 셀러에겐 아예 남의 얘기고,
+ *  위에서는 "32개 섹션"이라 해놓고 목록은 9개라 숫자도 어긋났다.
+ *  컷 종류는 실제 이미지 생성이 쓰는 분류(classifyCutArchetype)를 그대로 쓴다 — 지어낸 설명이 아니다. */
+const CUT_LABEL: Record<string, { cut: string; why: string }> = {
+  hero:             { cut: '대표컷',          why: '첫인상·썸네일' },
+  empathy:          { cut: '상황컷',          why: '고민 공감 (제품은 거의 안 보임)' },
+  in_use:           { cut: '사용·착용컷',      why: '쓰는 모습을 보여줘요' },
+  ingredient_macro: { cut: '원료·소재 클로즈업', why: '신뢰 강화' },
+  texture:          { cut: '제형·사용 장면',    why: '사용감 전달' },
+  clinical:         { cut: '근거·비교컷',      why: '수치·비교로 설득' },
+  editorial:        { cut: '브랜드 무드컷',     why: '분위기 전달' },
+  product_only:     { cut: '제품 단독컷',      why: '제품을 그대로' },
+  cta:              { cut: '마무리 구매컷',     why: '구매 전환' },
+  open:             { cut: '상품에 맞춰',      why: 'AI가 장면을 정해요' },
+};
 
 const guides = [
   { icon: ImageIcon, t: '고해상도 사용', d: '가로 2000px 이상 권장' },
@@ -136,7 +142,11 @@ export default function ImageScreen() {
   if (isMobile) return <ImageMobile />;
 
   // ★섹션 수 동적: 섹션구조(STEP 7)에서 정한 실제 개수. 없으면 예시 개수로 폴백.
-  const secCount = sectionStructure.length > 0 ? sectionStructure.length : sectionImageMap.length;
+  const cutList = sectionStructure.map((name, i) => {
+    const a = i === 0 ? 'hero' : classifyCutArchetype(name);
+    return { name, ...(CUT_LABEL[a] ?? CUT_LABEL.open) };
+  });
+  const secCount = cutList.length;
 
   const goPrev = () => go('s5b');
   const goNext = () => go('s7');
@@ -407,7 +417,7 @@ export default function ImageScreen() {
             </button>
             {briefOpen && (
               <div style={{ padding: '0 20px 12px' }}>
-                {sectionImageMap.map((s, idx) => (
+                {cutList.map((s, idx) => (
                   <div
                     key={idx}
                     style={{
