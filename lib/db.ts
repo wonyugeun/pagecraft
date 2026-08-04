@@ -322,6 +322,22 @@ export async function ensureCreditTables(): Promise<void> {
    *  자동으로 붙어야 재현하고 수정할 수 있다. context에 상품정보·생성 설정을 JSON으로 담는다.
    *  이미지는 클라이언트에서 압축(약 800px JPEG)해 data URL로 저장 — 초기 물량에선 충분하다. */
   await sql`
+    CREATE TABLE IF NOT EXISTS job_index (
+      job_key      TEXT PRIMARY KEY,
+      email        TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      cat          TEXT,
+      ch           TEXT,
+      out_type     TEXT,
+      sec_cnt      INTEGER,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`;
+  await sql`CREATE INDEX IF NOT EXISTS job_index_email_idx ON job_index (email, created_at DESC)`;
+  /* ★기기 간 '최근 작업' 목록(2026-08-04) — 목록만 서버에 둔다.
+   *  결과물(섹션 카피·이미지 base64)은 여기 넣지 않는다: 16섹션이면 수십 MB라 DB에 들어갈 것이 아니고,
+   *  넣는 순간 백업·비용·유출 위험이 전부 커진다. 셀러가 폰에서 확인하고 싶은 건 대개 '뭘 만들었나'다.
+   *  ⚠️그래서 다른 기기에서 만든 항목은 열 수 없다 — 화면에서 그 사실을 반드시 밝힐 것(숨기면 고장으로 보인다). */
+  await sql`
     CREATE TABLE IF NOT EXISTS feedback (
       id         BIGSERIAL PRIMARY KEY,
       user_email TEXT NOT NULL,

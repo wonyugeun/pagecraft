@@ -118,6 +118,24 @@ export default function DashboardMobile() {
     } catch {}
   }, [email]);
 
+  /* ★다른 기기에서 만든 작업도 목록에 보인다(2026-08-04) — 서버엔 목록만 있다.
+     ⚠️결과물은 만든 기기에만 있으므로 열 수 없다. 그 사실을 카드에 적는다 —
+       숨기면 눌렀을 때 아무 일도 안 일어나 고장으로 보인다. */
+  const [remoteOnly, setRemoteOnly] = useState<Array<{ jobKey: string; productName: string; cat?: string; out?: string; secCnt?: number; createdAt: string }>>([]);
+  useEffect(() => {
+    if (!email) return;
+    fetch('/api/history')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d?.items) return;
+        let local: Array<{ jobKey?: string }> = [];
+        try { local = JSON.parse(localStorage.getItem(`pc_history_${email}`) || '[]'); } catch {}
+        const has = new Set(local.map(x => x.jobKey).filter(Boolean));
+        setRemoteOnly(d.items.filter((x: { jobKey: string }) => !has.has(x.jobKey)));
+      })
+      .catch(() => {});
+  }, [email]);
+
   // ★임시저장 카드(2026-07-27) — 데스크탑과 동일
   useEffect(() => { setDraft(readDraft(email)); }, [email]);
 

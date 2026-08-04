@@ -221,6 +221,24 @@ export default function DashboardScreen() {
     } catch {}
   }, [email]);
 
+  /* ★다른 기기에서 만든 작업도 목록에 보인다(2026-08-04) — 서버엔 목록만 있다.
+     ⚠️결과물은 만든 기기에만 있으므로 열 수 없다. 그 사실을 카드에 적는다 —
+       숨기면 눌렀을 때 아무 일도 안 일어나 고장으로 보인다. */
+  const [remoteOnly, setRemoteOnly] = useState<Array<{ jobKey: string; productName: string; cat?: string; out?: string; secCnt?: number; createdAt: string }>>([]);
+  useEffect(() => {
+    if (!email) return;
+    fetch('/api/history')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d?.items) return;
+        let local: Array<{ jobKey?: string }> = [];
+        try { local = JSON.parse(localStorage.getItem(`pc_history_${email}`) || '[]'); } catch {}
+        const has = new Set(local.map(x => x.jobKey).filter(Boolean));
+        setRemoteOnly(d.items.filter((x: { jobKey: string }) => !has.has(x.jobKey)));
+      })
+      .catch(() => {});
+  }, [email]);
+
   // ★임시저장 카드(2026-07-27) — 작성 중이던 작업이 있으면 대시보드에서 바로 이어쓰기
   useEffect(() => { setDraft(readDraft(email)); }, [email]);
 
@@ -645,6 +663,34 @@ export default function DashboardScreen() {
                     </div>
                   );
                 })}
+
+                {/* ★다른 기기에서 만든 작업(2026-08-04) — 서버엔 목록만 있어 결과물은 못 연다.
+                    그 사실을 카드에 적는다. 숨기면 눌렀을 때 아무 일도 안 일어나 고장으로 보인다. */}
+                {remoteOnly.slice(0, 5).map(r => (
+                  <div
+                    key={r.jobKey}
+                    title="이 기기에는 결과물이 없어요 — 만든 기기에서 열어주세요"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 6px',
+                      borderBottom: '1px solid #F5F5F7', opacity: 0.62, cursor: 'default',
+                    }}
+                  >
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 10, background: '#F4F4F8',
+                      display: 'grid', placeItems: 'center', fontSize: 18, flexShrink: 0,
+                    }}>📄</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#111', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.productName}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#9CA3AF', marginTop: 2 }}>
+                        다른 기기에서 만들었어요 · 결과물은 만든 기기에 있어요
+                      </div>
+                    </div>
+                    {r.secCnt ? <div style={{ fontSize: 11, color: '#B0B8C1', flexShrink: 0 }}>{r.secCnt}섹션</div> : null}
+                  </div>
+                ))}
+
 
                 {/* CTA 배너 */}
                 <div style={{ padding: '16px 20px', background: '#FAFAFC', borderTop: '1px solid #F4F4F6', display: 'flex', alignItems: 'center', gap: 16 }}>

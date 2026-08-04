@@ -495,6 +495,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (session?.user?.email) clearDraft(session.user.email);
     const key = `pc_history_${email}`;
     try {
+      /* ★목록만 서버에도 남긴다(2026-08-04) — 기기가 달라도 '뭘 만들었는지'는 보이게.
+         결과물은 여기 보내지 않는다(이미지 base64라 수십 MB). 실패해도 무시 — 로컬 기록은 그대로다. */
+      if (data.jobKey && session?.user?.email) {
+        fetch('/api/history', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobKey: data.jobKey, productName: data.productName,
+            cat: data.cat, ch: data.ch, out: data.out, secCnt: data.secCnt,
+          }),
+        }).catch(() => {});
+      }
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       const newItem: HistoryItem = {
         ...data,
