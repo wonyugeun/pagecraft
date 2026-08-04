@@ -2280,7 +2280,7 @@ export default function ResultScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#666' }}>생성 타입</span>
-                <span style={{ fontWeight: 700, color: '#111' }}>{outputTypeLabel}</span>
+                <span style={{ fontWeight: 700, color: '#111' }}>{outputTypeLabel}{isBlog && speechLevel ? `(${speechLevel})` : ''}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#666' }}>전체 길이</span>

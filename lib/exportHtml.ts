@@ -13,7 +13,7 @@
  *   센터 정렬(body 260자 이하)·강조 마킹·섹션 태그·테마색은 화면과 같은 기준을 쓴다.
  */
 import type { Block } from '@/store/AppContext';
-import { assignBlockVariants, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
+import { assignBlockVariants, scrubPriceBlocks, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
 import { isCenteredSection, limitPageAccent } from '@/lib/pageAccent';
 import { assignSectionLayouts } from '@/lib/sectionLayout';
 import { compareColumns } from '@/components/result/BlockRenderer';
@@ -146,6 +146,7 @@ export function blocksToHtml(
    *  페이지 전체 리듬까지 반영하려면 assignBlockVariants 결과를 넘긴다. */
   variants?: BlockVariant[],
 ): string {
+  blocks = scrubPriceBlocks(blocks);   // ★가격·할인 KPI 카드 제거 — 화면(BlockRenderer)과 동일 규칙
   const vs = variants ?? variantsForSection(blocks);
   const vc = (i: number) => (vs[i] ? ` v-${vs[i]}` : '');
   // ★후기 카드 그리드(2026-07-27): 연속 quote 2개 이상 → 2열 그리드(화면 BlockRenderer와 동일 규칙)

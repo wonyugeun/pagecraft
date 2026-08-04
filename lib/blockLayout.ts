@@ -17,6 +17,25 @@
 
 import type { Block } from '@/store/AppContext';
 
+/** ★가격·할인 KPI 제거(2026-08-04 유근님: "할인가 20% 같은 KPI 절대 나오면 안 됨").
+ *  가격은 구매 정보 스트립(셀러 입력값)이 담당한다 — 카피 블록에 겹치면 두 군데가 어긋난다.
+ *  프롬프트로도 금지하지만 모델이 어기므로(오늘 실측) 렌더 직전에 코드로 걷어낸다.
+ *  항목만 제거하고, 남는 항목이 1개 이하면 블록 자체를 뺀다(한 칸짜리 KPI는 더 이상하다). */
+const PRICE_RE = /할인|정가|판매가|가격|₩|\d[\d,]*\s*원/;
+export function scrubPriceBlocks(blocks: Block[]): Block[] {
+  return blocks.map(b => {
+    if (b.type === 'stats') {
+      const items = b.items.filter(i => !PRICE_RE.test(`${i.value} ${i.label}`));
+      return items.length >= 2 ? { ...b, items } : null;
+    }
+    if (b.type === 'iconcards') {
+      const cards = b.cards.filter(c => !PRICE_RE.test(`${c.title} ${c.desc ?? ''}`));
+      return cards.length >= 2 ? { ...b, cards } : null;
+    }
+    return b;
+  }).filter((b): b is Block => b !== null);
+}
+
 /** 블록에 붙는 생김새 수식자(클래스명 접미사). 빈 문자열이면 기본형. */
 export type BlockVariant = '' | 'solo' | 'stack' | 'lead' | 'rail' | 'flow' | 'plain';
 
@@ -36,7 +55,7 @@ function byContent(b: Block): BlockVariant {
       if (n === 1) return 'solo';                                   // 하나뿐이면 카드로 가둘 이유가 없다
       const labels = b.items.map(i => i.label);
       const values = b.items.map(i => i.value);
-      if (maxLen(labels) > 14) return 'stack';                      // 설명이 길면 N등분이 좁아 읽히지 않는다
+      if (maxLen(labels) > 10) return 'stack';                      // 설명이 길면 N등분이 좁아 읽히지 않는다
       if (n >= 4) return 'rail';                                    // 넷 이상은 카드보다 가로 나열이 정갈하다
       if (!values.every(isNumeric)) return 'stack';                 // 수치가 아니면 크게 띄울 이유가 없다
       return '';
@@ -46,13 +65,13 @@ function byContent(b: Block): BlockVariant {
       const descs = b.cards.map(c => c.desc ?? '');
       if (descs.every(d => len(d) === 0)) return 'plain';           // 설명 없으면 카드가 빈 상자로 보인다
       if (n === 2) return 'stack';                                  // 둘뿐이면 가로 카드가 헐렁하다
-      if (maxLen(descs) > 45) return 'stack';                       // 설명이 길면 가로 카드에서 글이 눌린다
+      if (maxLen(descs) > 32) return 'stack';                       // 설명이 길면 가로 카드에서 글이 눌린다(45→32, 다양화)
       return '';
     }
     case 'steps': {
       const descs = b.items.map(s => s.desc ?? '');
       if (descs.every(d => len(d) === 0)) return 'rail';            // 제목만 있으면 타임라인이 과하다
-      if (b.items.length >= 4) return 'flow';                       // 넷부터는 번호 카드가 줄줄이 무거워진다
+      if (b.items.length >= 3) return 'flow';                       // 셋부터 번호 카드가 줄줄이 무거워진다(4→3, 2026-08-04 다양화)
       if (maxLen(descs) <= 24) return 'rail';                       // 설명이 짧으면 카드가 헐렁하다
       return '';
     }

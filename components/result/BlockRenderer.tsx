@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode, type CSSProperties } from 'react';
 import { Block } from '@/store/AppContext';
-import { variantsForSection, type BlockVariant } from '@/lib/blockLayout';
+import { scrubPriceBlocks, variantsForSection, type BlockVariant } from '@/lib/blockLayout';
 
 export type BlockImgState = { loading: boolean; url: string | null; error: boolean; aspectRatio?: string };
 
@@ -132,28 +132,27 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
 }) {
   return (
     <section>
-      {/* 박스 제거(A안) + 공감(Problem) 섹션과 동일 정렬: 태그·제목·설명 왼쪽 정렬, 이미지만 가운데.
-          가로 패딩은 BlogSection의 hero 래퍼(데스크탑 36px)가 제공 → 여기선 세로 패딩만. */}
-      <div className="pb-10 pt-6 md:pb-12">
-        {/* 추천 상품 태그 — 공감 태그처럼 왼쪽 pill(soft 배경 + 점) */}
+      {/* ★히어로 가운데(2026-08-04 유근님) — 7/21 '왼쪽 정렬' 결정을 뒤집는다.
+          첫 화면은 페이지의 얼굴이라 좌우 대칭이 안정적이고, 본문 가운데 기조와도 맞는다. */}
+      <div className="pb-10 pt-6 text-center md:pb-12">
         <div className="inline-flex items-center gap-[7px] rounded-full border px-3.5 py-[7px] text-[13px] font-bold" style={{ background: soft, borderColor: softBorder, color: primary }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: primary, flexShrink: 0 }} />
           추천 상품
         </div>
         <h1
-          className="mt-3.5 text-left font-bold text-zinc-900"
+          className="mt-3.5 text-center font-bold text-zinc-900"
           style={{ fontSize: heroHeadlineSize(), fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.4px', wordBreak: 'keep-all', whiteSpace: 'pre-line' }}
         >
           <Editable value={headline} onCommit={onHeadlineCommit} />
         </h1>
         {(subcopy || onSubcopyCommit) && (
-          <p className="mt-7 text-left" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
+          <p className="mt-7 text-center" style={{ fontSize: 16, fontWeight: 600, color: '#5b5b66', lineHeight: 1.6, letterSpacing: '-0.2px', wordBreak: 'keep-all' }}>
             <Editable value={subcopy ?? ''} onCommit={onSubcopyCommit} />
           </p>
         )}
         {/* 설명 본문 — 헤드라인 → 설명 → 이미지. 왼쪽 정렬. 헤드/서브/본문 3층이 확실히 띄어 보이게(2026-07-21 유근님) */}
         {bodySlot && (
-          <div className="mt-9 text-left">{bodySlot}</div>
+          <div className="mt-9 text-center">{bodySlot}</div>
         )}
         {kpis.length > 0 && (
           <div className="mt-10 grid grid-cols-3 gap-3">
@@ -720,6 +719,7 @@ export default function BlockRenderer({ blocks, sectionNum, blockImages, onLight
     soft:       softColor    ?? DEFAULT_THEME.soft,
     softBorder: softBorder   ?? DEFAULT_THEME.softBorder,
   };
+  blocks = scrubPriceBlocks(blocks);   // ★가격·할인 KPI 카드 제거 — 구매 정보 스트립이 담당
   const vs = variants ?? variantsForSection(blocks);
 
   return (
