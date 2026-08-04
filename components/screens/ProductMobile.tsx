@@ -282,11 +282,14 @@ export default function ProductMobile() {
 
       {/* 5) 완성도 카드 — 원형 + 가로 진행바(진행에 따라 색 변화). 경고와 간격 확보(top 24) */}
       <section style={{ padding: '24px 20px 0' }}>
+        {/* ★카드는 세로, 링+요약만 가로(2026-08-04) — 전엔 카드 자체가 가로 flex라
+            아래에 블록을 하나 더 넣자 그게 같은 줄의 flex 아이템이 되어 폭이 0에 가깝게 눌렸다
+            ('상세페이지 완성도'가 한 글자씩 세로로 쪼개졌다). */}
         <div style={{
           background: '#fff', border: '1.5px solid #ECECF2',
           borderRadius: 18, padding: 16,
-          display: 'flex', alignItems: 'center', gap: 14,
         }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <CompletionRing pct={pct} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
@@ -306,6 +309,7 @@ export default function ProductMobile() {
             <div style={{ marginTop: 9, height: 7, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: pctColor, transition: 'width .3s ease, background .3s ease' }} />
             </div>
+          </div>
           </div>
           {/* ★비워둔 칸이 결과에서 무엇이 되는지 지금 보여준다(2026-08-04, 데스크탑과 동일).
             *  퍼센트는 '얼마나 남았나'만 말하지 '무엇이 빠지나'를 말하지 못한다.
