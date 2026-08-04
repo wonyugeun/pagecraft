@@ -626,9 +626,15 @@ export default function DashboardScreen() {
                               {item.cat}
                             </span>
                           )}
-                          {item.ch && (
+                                                    {item.ch && (
                             <span style={{ background: '#F4F4F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#888' }}>
                               {item.ch}
+                            </span>
+                          )}
+                          {/* 형태 태그(2026-08-04 유근님: "어느 채널에 뭐로 했는지 안 나옴") */}
+                          {item.out && (
+                            <span style={{ background: '#F4F4F6', borderRadius: 999, padding: '3px 10px', fontSize: 11, color: '#888' }}>
+                              {item.out === 'blog' ? '블로그형' : item.out === 'slide' ? '슬라이드형' : item.out}
                             </span>
                           )}
                         </div>

@@ -418,9 +418,17 @@ export default function DashboardMobile() {
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F0FF', color: '#6D4CFF', fontWeight: 600 }}>
                       {item.cat}
                     </span>
-                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F4F7', color: '#666', fontWeight: 600 }}>
-                      {item.ch}
-                    </span>
+                    {item.ch && (
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F4F7', color: '#666', fontWeight: 600 }}>
+                        {item.ch}
+                      </span>
+                    )}
+                    {/* 형태 태그(2026-08-04) — 어느 형태로 만들었는지 목록에서 보이게 */}
+                    {item.out && (
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: '#F4F4F7', color: '#666', fontWeight: 600 }}>
+                        {item.out === 'blog' ? '블로그형' : item.out === 'slide' ? '슬라이드형' : item.out}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>

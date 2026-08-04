@@ -166,6 +166,9 @@ export default function StartScreen() {
     // ★type은 하위 호환용 — 분량으로 대체됐지만 기존 분기(래퍼런스형 등)가 값을 참조한다
     setType(depth >= 32 ? '프리미엄형' : '기본형');
     if (!out) setOut(channel.out);
+    /* ★채널도 저장(2026-08-04) — 화면은 기본값(스마트스토어)을 보여주지만 셀러가 안 누르면
+       store ch는 null로 남아, 생성은 채널 최적화 없이 돌고 최근 작업에도 채널이 안 떴다. */
+    if (!ch) setCh(channel.id);
     go('s5');
   };
 
