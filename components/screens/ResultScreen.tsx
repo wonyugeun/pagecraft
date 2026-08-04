@@ -1650,7 +1650,10 @@ export default function ResultScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionImages, blockImages]);
 
-  const doneCount    = Object.values(sectionImages).filter(s => !s.loading).length;
+  /* ★진행 표시는 '섹션 전체' 기준으로 센다(2026-08-04). sectionImages는 워커 풀(동시 3장)이
+   *  집는 순간에야 키가 생겨서, Object.values로 세면 아직 시작도 안 한 섹션이 분모에서 빠진다.
+   *  8섹션이면 "0/8 → 3/8"이 아니라 한참 뒤에야 숫자가 움직여, 멈춘 것처럼 보였다. */
+  const doneCount    = displaySections.filter(s => sectionImages[s.num] && !sectionImages[s.num].loading).length;
   const isGenerating = Object.values(sectionImages).some(s => s.loading);
 
   /* ★카피 재생성(2026-08-01) — 무료 재생성은 이미지와 한 통을 나눠 쓴다(8섹션 5회).
@@ -2524,8 +2527,11 @@ export default function ResultScreen() {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111', marginBottom: 6 }}>
               더 다양한 수정이 필요하신가요?
             </div>
+            {/* ★상단 진행바는 클릭되지 않는다(ProgressBar에 onClick 없음) — "상단 단계로 돌아가라"고
+                안내하면 셀러가 눌러보다 안 되는 곳을 찾게 된다. 실제로 갈 수 있는 길만 적는다. */}
             <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6 }}>
-              상단의 각 단계를 돌아가면 더 세밀한 설정과 재생성이 가능합니다.
+              아래 <b style={{ fontWeight: 700 }}>← 이전 단계로</b>를 누르면 이미지 단계로 돌아가고,
+              거기서 계속 뒤로 가면 상품정보·섹션구조를 다시 잡을 수 있어요.
             </div>
           </div>
         </div>

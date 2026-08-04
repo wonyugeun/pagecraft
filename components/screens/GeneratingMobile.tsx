@@ -65,8 +65,23 @@ export default function GeneratingMobile() {
       cancelledRef.current = false;
       setPct(8);
       setEngineLabel('전략 분석 중…');
+      // ★레퍼런스 스타일 힌트 — 데스크톱(GeneratingScreen)과 동일하게 전달한다.
+      //   2026-08-04까지 모바일에만 이 인자가 빠져 있었다. 폰으로 만들면 s5-5 분석 카드에서
+      //   보여준 톤·헤드라인 패턴이 카피에 하나도 반영되지 않았다(화면은 반영된 것처럼 보였다).
+      const referenceStyle = referenceAnalysis
+        ? [
+            referenceAnalysis.tone ? `카피 톤: ${referenceAnalysis.tone}` : '',
+            referenceAnalysis.headlinePattern ? `헤드라인 패턴: ${referenceAnalysis.headlinePattern}` : '',
+            referenceAnalysis.emphasisPoints?.length ? `강조 포인트: ${referenceAnalysis.emphasisPoints.join(', ')}` : '',
+          ].filter(Boolean).join('\n') || undefined
+        : captureAnalysis
+          ? [
+              captureAnalysis.전체톤 ? `전체 톤: ${captureAnalysis.전체톤}` : '',
+              captureAnalysis.브랜드무드 ? `브랜드 무드: ${captureAnalysis.브랜드무드}` : '',
+            ].filter(Boolean).join('\n') || undefined
+          : undefined;
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
         {
           resume,
           isCancelled: () => cancelledRef.current,

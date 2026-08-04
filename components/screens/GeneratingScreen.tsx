@@ -174,7 +174,9 @@ export function EngineSteps({ pct, label }: { pct: number; label: string }) {
 }
 
 export default function GeneratingScreen() {
-  const isMobile = useIsMobile();
+  /* ★freeze — 생성 중에 폭이 바뀌어도 변형을 갈지 않는다. 갈면 모바일→데스크톱은 0%에서 멈추고,
+   *  데스크톱→모바일은 두 번째 파이프라인이 새 멱등키로 시작돼 이중과금이 된다(hooks/useIsMobile 주석). */
+  const isMobile = useIsMobile(MOBILE_BREAKPOINT, true);
   const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile, speechLevel , structureForCount} = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
@@ -198,9 +200,10 @@ export default function GeneratingScreen() {
   useEffect(() => { creditsLoadedRef.current = creditsLoaded; }, [creditsLoaded]);
 
   useEffect(() => {
-    // ★모바일 이중 실행 차단(P0-1) — useIsMobile은 첫 렌더에 false라 이 effect가 모바일 분기
-    //   재렌더보다 먼저 발화한다. 뷰포트를 직접 확인해 모바일이면 여기서는 시작하지 않는다
+    // ★모바일 이중 실행 차단(P0-1) — 이 effect는 모바일 분기 재렌더보다 먼저 발화한다.
+    //   뷰포트를 직접 확인해 모바일이면 여기서는 시작하지 않는다
     //   (모바일은 GeneratingMobile이 유일한 시작점 — 파이프라인·멱등키·차감·히스토리 1회 보장).
+    //   위 useIsMobile(freeze)도 같은 window.innerWidth를 보므로 둘의 판정은 언제나 일치한다.
     if (window.innerWidth < MOBILE_BREAKPOINT) return;
     // ★재개 의도는 크레딧 체크보다 먼저 소비 — 재개는 이미 선차감된 job(같은 jobKey=서버 duplicate)이라
     //   크레딧 체크 대상이 아니다(2026-07-18: 새로고침 재개가 로드 전 기본값 30<32로 "부족" 오탐하던 사고).
@@ -432,7 +435,7 @@ export default function GeneratingScreen() {
     return 'wait';
   };
 
-  // 모바일 분기 — 모든 훅 호출 후
+  // 모바일 분기 — 모든 훅 호출 후. 변형은 마운트 때 정해지고 이후 폭 변화로 바뀌지 않는다(freeze 참고).
   if (isMobile) return <GeneratingMobile />;
 
   // ── 크레딧 부족 화면 ── (기존 분기 유지)
