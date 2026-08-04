@@ -5,7 +5,7 @@ import {
   Zap, X, Lightbulb, GripVertical, ChevronUp, ChevronDown,
   Plus, ArrowLeft, ArrowRight, Trash2,
 } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import { ALL_SECTIONS } from './SectionStructureScreen';
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
@@ -150,7 +150,7 @@ export default function SectionStructureMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 6 / 9</span>
+        }}>STEP {STEP_MAP['s5b'] ?? 6} / {TOTAL_STEPS}</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',

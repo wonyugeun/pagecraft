@@ -7,7 +7,7 @@ import {
   FileText, ShoppingBag, ImageIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import { baseSectionCount } from '@/lib/sectionDepth';
 
 type ChannelKey = '스마트스토어' | '쿠팡' | '자사몰' | '와디즈';
@@ -150,7 +150,7 @@ export default function ChannelMobile() {
           color: '#666',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 14px',
-        }}>STEP 2 / 9</span>
+        }}>STEP {STEP_MAP['s2'] ?? 2} / {TOTAL_STEPS}</span>
         <h1 style={{
           margin: '14px 0 0',
           fontSize: 24, fontWeight: 800, color: '#111',

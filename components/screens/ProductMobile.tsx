@@ -5,7 +5,7 @@ import {
   Zap, Sparkles, ChevronUp, ChevronDown,
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import { pickTestPreset } from '@/lib/testPresets';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import {
@@ -268,7 +268,7 @@ export default function ProductMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 5 / 9</span>
+        }}>STEP {STEP_MAP['s5'] ?? 5} / {TOTAL_STEPS}</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',

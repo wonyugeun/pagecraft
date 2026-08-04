@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { calculateGenerationCost } from '@/lib/pricing';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import TypeExampleModal from '@/components/modals/TypeExampleModal';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { baseSectionCount } from '@/lib/sectionDepth';
@@ -186,7 +186,7 @@ export default function TypeMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 3 / 9</span>
+        }}>STEP {STEP_MAP['s3'] ?? 3} / {TOTAL_STEPS}</span>
         <h1 style={{
           margin: '14px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',

@@ -7,7 +7,7 @@ import {
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import { compressUpload } from '@/lib/imageCompress';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 
 const STEPS = [
   { num: 1, label: '카테고리' },
@@ -233,7 +233,7 @@ export default function ImageMobile() {
           background: '#F4F0FF', color: '#6D4CFF',
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
-        }}>STEP 7 / 9</span>
+        }}>STEP {STEP_MAP['s6'] ?? 7} / {TOTAL_STEPS}</span>
         <h1 style={{
           margin: '12px 0 0',
           fontSize: 24, fontWeight: 800, color: '#111',
