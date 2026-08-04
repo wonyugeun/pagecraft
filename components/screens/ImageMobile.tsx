@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import {
   Zap, UploadCloud, Sparkles, ChevronDown, Lightbulb,
   Image as ImageIcon, Sun, Palette, FileText, X,
@@ -24,6 +25,13 @@ const fileToBase64 = (file: File): Promise<string> =>
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+
+/** 컷 종류 라벨 — 데스크탑(ImageScreen)과 같은 분류·같은 말 */
+const CUT_LABEL_M: Record<string, string> = {
+  hero: '대표컷', empathy: '상황컷', in_use: '사용·착용컷', ingredient_macro: '원료 클로즈업',
+  texture: '제형·사용 장면', clinical: '근거·비교컷', editorial: '브랜드 무드컷',
+  product_only: '제품 단독컷', cta: '마무리 구매컷', open: '상품에 맞춰',
+};
 
 export default function ImageMobile() {
   /* ★다운로드 정책 사전 고지(2026-08-01) — 데스크탑(ImageScreen)과 동일. 이탈은 '속았다'에서 온다. */
@@ -407,7 +415,20 @@ export default function ImageMobile() {
               borderTop: '1px solid #F4F4F7',
               fontSize: 12, color: '#666', lineHeight: 1.7,
             }}>
-              제공해주신 대표컷을 기준으로 AI가 섹션별로 필요한 이미지를 자동 생성합니다. 메인 후킹, 성분 클로즈업, 사용 장면, 비교, 후기 등 결과물 단계에서 각 섹션 옆에 함께 만들어져요.
+              {/* ★내 섹션으로 보여준다(2026-08-04) — 예시 나열('성분 클로즈업, 사용 장면…')은
+                  내 상품과 무관하다. 컷 종류는 실제 이미지 생성이 쓰는 분류를 그대로 쓴다. */}
+              {sectionStructure.length === 0
+                ? '제공해주신 대표컷을 기준으로 AI가 섹션마다 필요한 이미지를 만듭니다.'
+                : sectionStructure.map((name, i) => {
+                    const a = i === 0 ? 'hero' : classifyCutArchetype(name);
+                    return (
+                      <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 0', borderTop: i ? '1px solid #F7F7FA' : 'none' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#6D4CFF', width: 22, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: '#111', fontWeight: 600 }}>{name}</span>
+                        <span style={{ fontSize: 11.5, color: '#8B95A1', flexShrink: 0 }}>{CUT_LABEL_M[a] ?? '상품에 맞춰'}</span>
+                      </div>
+                    );
+                  })}
             </div>
           )}
         </div>

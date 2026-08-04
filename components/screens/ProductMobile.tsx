@@ -33,7 +33,7 @@ function CompletionRing({ pct }: { pct: number }) {
 
 export default function ProductMobile() {
   const {
-    cat, ch, go,
+    cat, ch, out, secCnt, go,
     productName, setProductName, setProductExtra,
     regularPrice, salePrice, showPrice,
     setRegularPrice, setSalePrice, setShowPrice,
@@ -82,6 +82,7 @@ export default function ProductMobile() {
     const v = answers[q.id];
     return Array.isArray(v) ? v.length > 0 : !!v;
   });
+  const missingReq = requiredQs.filter(q => !filledReq.includes(q));
   const pct = requiredQs.length > 0
     ? Math.round(((filledReq.length + (productName.trim() ? 1 : 0)) / (requiredQs.length + 1)) * 100)
     : productName.trim() ? 100 : 0;
@@ -293,10 +294,43 @@ export default function ProductMobile() {
               <span style={{ fontSize: 17, fontWeight: 800, color: pctColor, letterSpacing: '-0.02em' }}>{pct}%</span>
             </div>
             <div style={{ marginTop: 3, fontSize: 11.5, color: '#9CA3AF' }}>{pctMsg}</div>
+            {/* ★시작 화면에서 정한 값(2026-08-04) — 카테고리는 질문 구성을 통째로 바꾸는데 흔적이 없었다 */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+              {[cat, ch, out === 'blog' ? '블로그형' : '슬라이드형', `${secCnt}섹션`].filter(Boolean).map((v, i) => (
+                <span key={i} style={{
+                  fontSize: 10.5, fontWeight: 700, color: '#6B7684', background: '#fff',
+                  border: '1px solid #E9E7F3', borderRadius: 999, padding: '2px 8px',
+                }}>{v}</span>
+              ))}
+            </div>
             <div style={{ marginTop: 9, height: 7, borderRadius: 999, background: '#EEEDF5', overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: pctColor, transition: 'width .3s ease, background .3s ease' }} />
             </div>
           </div>
+          {/* ★비워둔 칸이 결과에서 무엇이 되는지 지금 보여준다(2026-08-04, 데스크탑과 동일).
+            *  퍼센트는 '얼마나 남았나'만 말하지 '무엇이 빠지나'를 말하지 못한다.
+            *  ⚠️'더 좋아집니다'류로 바꾸지 말 것 — 근거를 댈 수 없는 성과 약속이 된다. */}
+          {missingReq.length > 0 && (
+            <div style={{ marginTop: 12, paddingTop: 11, borderTop: '1px dashed #E2DDF3' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28', marginBottom: 7 }}>
+                지금 이대로 만들면 <span style={{ color: '#D97706' }}>{missingReq.length}가지</span>가 빠집니다
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 7 }}>
+                {missingReq.slice(0, 6).map(q => (
+                  <span key={q.id} style={{
+                    fontSize: 11, fontWeight: 600, color: '#92400E', background: '#FFFBEB',
+                    border: '1px solid #FDE68A', borderRadius: 999, padding: '3px 9px',
+                  }}>{q.label}</span>
+                ))}
+                {missingReq.length > 6 && (
+                  <span style={{ fontSize: 11, color: '#9CA3AF', padding: '3px 2px' }}>외 {missingReq.length - 6}가지</span>
+                )}
+              </div>
+              <p style={{ fontSize: 11, lineHeight: 1.6, color: '#8B95A1' }}>
+                빈 칸은 지어내지 않고 그대로 뺍니다. 적게 적을수록 어느 상품에나 해당되는 뻔한 페이지가 나와요.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
