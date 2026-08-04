@@ -48,22 +48,23 @@ export const HTML_BLOCKS_CSS = `
 .checklist li { display: flex; gap: 12px; font-size: 15px; line-height: 1.7; color: #333; padding: 6px 0; }
 .checklist li::before { content: '\\2713'; color: var(--p,#6D4CFF); font-weight: 700; flex-shrink: 0; }
 
-.steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
-.steps li { display: flex; gap: 16px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
-.step-num { width: 32px; height: 32px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--p,#6D4CFF); color: #fff; font-size: 14px; font-weight: 700; }
-.steps li strong { display: block; font-size: 16px; font-weight: 700; color: #111; }
+.steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 10px; }
+.steps li { display: flex; gap: 14px; border-radius: 14px; background: #FAFAFC; padding: 16px 17px; }
+.step-num { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--p,#6D4CFF); color: #fff; font-size: 12.5px; font-weight: 700; }
+.steps li strong { display: block; font-size: 15px; font-weight: 700; color: #111; }
 .steps li p { margin-top: 4px; font-size: 14px; line-height: 1.7; color: #666; }
 
-.iconcards { margin-bottom: 32px; display: grid; gap: 12px; }
-.iconcard { border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.04); }
-.iconcard-icon { margin: 0 auto 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--soft,#F4F0FF); color: var(--p,#6D4CFF); font-size: 22px; }
+.iconcards { margin-bottom: 32px; display: grid; gap: 10px; }
+.iconcard { border-radius: 14px; background: #FAFAFC; padding: 18px 17px; text-align: left; }
+.iconcard-icon { margin: 0 0 10px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 9px; background: var(--soft,#F4F0FF); color: var(--p,#6D4CFF); font-size: 14px; }
 .iconcard strong { display: block; font-size: 14px; font-weight: 700; color: #111; }
-.iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.5; color: #666; }
+.iconcard p { margin-top: 4px; font-size: 13px; line-height: 1.55; color: #666; }
 
-.stats { margin-bottom: 32px; display: grid; column-gap: 12px; }
-.stat { padding: 22px 12px; text-align: center; border: 1px solid var(--sb,#E6DEFF); border-radius: 18px; background: #fff; }
-.stat strong { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.03em; color: var(--p,#6D4CFF); line-height: 1.2; }
-.stat small { margin-top: 6px; display: block; font-size: 13px; font-weight: 600; color: #333; line-height: 1.45; }
+.stats { margin-bottom: 32px; display: grid; column-gap: 28px; row-gap: 24px; }
+/* ★리디자인(2026-08-04) — 테두리 카드·아이콘 원 제거. 얇은 포인트 윗줄 + 큰 잉크색 숫자(화면과 동일). */
+.stat { padding-top: 14px; text-align: left; border-top: 2px solid var(--p,#6D4CFF); }
+.stat strong { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.04em; color: #191F28; line-height: 1.15; }
+.stat small { margin-top: 7px; display: block; font-size: 13px; font-weight: 600; color: #6B7684; line-height: 1.5; }
 
 .compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
 .compare th, .compare td { padding: 16px; text-align: center; }

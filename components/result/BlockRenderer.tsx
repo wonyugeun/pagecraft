@@ -272,16 +272,16 @@ function StepsBlock({ items, variant, onChange }: { items: { title: string; desc
           display: 'flex', gap: 12, marginLeft: 9, paddingLeft: 20, paddingBottom: 18,
           borderLeft: `2px solid ${t.softBorder}`,
         } : {
-          display: 'flex', gap: variant === 'rail' ? 12 : 16,
-          borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-          padding: variant === 'rail' ? '15px 16px' : 20,
+          display: 'flex', gap: variant === 'rail' ? 12 : 14,
+          borderRadius: 14, background: '#FAFAFC',
+          padding: variant === 'rail' ? '14px 15px' : '16px 17px',
         }}>
           <div style={{
-            width: 32, height: 32, flexShrink: 0,
+            width: 26, height: 26, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '50%', background: t.primary,
-            color: COLORS.white, fontSize: 14, fontWeight: 700,
-            marginLeft: variant === 'flow' ? -31 : 0,
+            borderRadius: 8, background: t.primary,
+            color: COLORS.white, fontSize: 12.5, fontWeight: 700,
+            marginLeft: variant === 'flow' ? -28 : 0,
           }}>
             {i + 1}
           </div>
@@ -318,27 +318,28 @@ function IconCardsBlock({ cards, isMobile, variant, onChange }: { cards: { title
       gridTemplateColumns: stack || plain ? '1fr' : `repeat(${cols}, 1fr)`,
       gap: plain ? 2 : 12,
     }}>
+      {/* ★리디자인(2026-08-04) — 그림자 카드 + 48px 아이콘 원이 촌스러움의 뿌리.
+          부드러운 배경 판 + 작은 인라인 아이콘으로 정리, 그림자 제거, 왼쪽 정렬 기본. */}
       {cards.map((card, i) => {
         const Icon = ICONS[i % ICONS.length];
         return (
           <div key={i} style={plain ? {
             padding: '10px 0', textAlign: 'left',
           } : stack ? {
-            display: 'grid', gridTemplateColumns: '48px 1fr', columnGap: 14, alignItems: 'start',
-            borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-            padding: 18, textAlign: 'left', boxShadow: SHADOW,
+            display: 'grid', gridTemplateColumns: '30px 1fr', columnGap: 12, alignItems: 'start',
+            borderRadius: 14, background: '#FAFAFC',
+            padding: '16px 17px', textAlign: 'left',
           } : {
-            borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-            padding: 20, textAlign: 'center',
-            boxShadow: SHADOW,
+            borderRadius: 14, background: '#FAFAFC',
+            padding: '18px 17px', textAlign: 'left',
           }}>
             <div style={{
               display: plain ? 'none' : 'flex',
-              margin: stack ? 0 : '0 auto 12px', width: 48, height: 48,
+              margin: stack ? 0 : '0 0 10px', width: 30, height: 30,
               alignItems: 'center', justifyContent: 'center',
-              borderRadius: '50%', background: t.soft, color: t.primary,
+              borderRadius: 9, background: t.soft, color: t.primary,
             }}>
-              <Icon size={24} />
+              <Icon size={16} />
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>
               <Editable value={card.title} onCommit={onChange ? v => patch(i, 'title', v) : undefined} />
@@ -403,40 +404,26 @@ function StatsBlock({ items, isMobile, variant, onChange }: { items: { value: st
     );
   }
 
-  const cols = isMobile ? 2 : rail ? 2 : Math.min(items.length, 4);
+  const cols = isMobile ? Math.min(items.length, 2) : rail ? 2 : Math.min(items.length, 4);
+  /* ★리디자인(2026-08-04 유근님: "촌스러움") — 아이콘 원 + 테두리 카드가 2019년식으로 읽혔다.
+     장식을 걷어내고 '얇은 포인트 윗줄 + 큰 숫자'만 남긴다. 숫자는 제품색이 아니라 잉크색 —
+     색은 윗줄 하나로 충분하고, 큰 글자에 색을 칠하면 촌스러움이 되돌아온다. */
   return (
     <div style={{
       marginBottom: 32,
       display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`,
-      columnGap: isMobile ? 16 : 12, rowGap: rail ? 12 : (isMobile ? 28 : 0),
+      columnGap: isMobile ? 20 : 28, rowGap: 24,
     }}>
-      {items.map((s, i) => {
-        const Icon = statIcon(s.value, s.label);
-        return (
-          <div key={i} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-            padding: rail ? '16px 12px' : '22px 12px', borderRadius: rail ? 14 : 18,
-            border: rail ? 'none' : `1px solid ${t.softBorder}`,
-            background: rail ? t.soft : COLORS.white,
-          }}>
-            {!rail && (
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                background: t.soft, color: t.primary,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-              }}>
-                <Icon size={26} strokeWidth={1.8} />
-              </div>
-            )}
-            <div style={{ fontSize: isMobile ? 19 : 21, fontWeight: 800, letterSpacing: '-0.03em', color: t.primary, lineHeight: 1.2 }}>
-              <Editable value={s.value} onCommit={onChange ? v => patch(i, 'value', v) : undefined} />
-            </div>
-            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 600, color: '#333', lineHeight: 1.45 }}>
-              <Editable value={s.label} onCommit={onChange ? v => patch(i, 'label', v) : undefined} />
-            </div>
+      {items.map((s, i) => (
+        <div key={i} style={{ borderTop: `2px solid ${t.primary}`, paddingTop: 14, background: rail ? t.soft : 'transparent', borderRadius: rail ? 0 : 0, paddingLeft: rail ? 12 : 0, paddingRight: rail ? 12 : 0, paddingBottom: rail ? 12 : 0 }}>
+          <div style={{ fontSize: isMobile ? 24 : 30, fontWeight: 800, letterSpacing: '-0.04em', color: '#191F28', lineHeight: 1.15 }}>
+            <Editable value={s.value} onCommit={onChange ? v => patch(i, 'value', v) : undefined} />
           </div>
-        );
-      })}
+          <div style={{ marginTop: 7, fontSize: 13, fontWeight: 600, color: '#6B7684', lineHeight: 1.5 }}>
+            <Editable value={s.label} onCommit={onChange ? v => patch(i, 'label', v) : undefined} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
