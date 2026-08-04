@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles, Package, Shirt, Sofa, Smartphone, Dog, Volleyball, Baby, HeartPulse, Car, Box, ChevronDown, Check } from 'lucide-react';
 import { useApp, STEP_MAP } from '@/store/AppContext';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { calculateGenerationCost } from '@/lib/pricing';
 import { guessCategory } from '@/lib/categoryGuess';
 import StepHeader from '@/components/layout/StepHeader';
@@ -107,6 +108,7 @@ function SheetPreview({ n, active }: { n: number; active: boolean }) {
 export default function StartScreen() {
   const { cat, setCat, ch, setCh, out, setOut, secCnt, setSecCnt, setType, productName, setProductName, go } = useApp();
 
+  const isMobile = useIsMobile();
   const [showAllCats, setShowAllCats] = useState(false);
   const [sample, setSample] = useState<'blog' | 'slide' | null>(null);
   /** 채널만 기본으로 연다 — 우리가 추측할 수 없는 유일한 값이고, 여기서 형태가 갈린다 */
@@ -168,7 +170,10 @@ export default function StartScreen() {
   };
 
   return (
-    <div style={{ maxWidth: 980, margin: '0 auto', padding: '46px 28px 110px', fontFamily: 'var(--f)' }}>
+    /* ★모바일 대응(2026-08-04) — 이 화면엔 모바일 변형이 없어서 폰으로 들어오면
+       980px 데스크탑 레이아웃이 그대로 눌려 나왔다(기존 CategoryScreen엔 CategoryMobile이 있었다).
+       별도 화면을 또 만들면 두 벌이 갈라지므로(오늘만 세 번 겪었다) 한 벌로 좁은 폭까지 받는다. */
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: isMobile ? '20px 16px 96px' : '46px 28px 110px', fontFamily: 'var(--f)' }}>
       <StepHeader
         step={STEP_MAP['s1'] ?? 1} label="시작"
         /* ★"상품명만 입력하면"이라고 쓰지 않는다(2026-08-02) — 다음 화면이 상품정보 폼이라
@@ -195,7 +200,7 @@ export default function StartScreen() {
       {/* 상품명 — 첫 화면에서 바로 자기 일을 시작하게 */}
       <div style={{
         border: `2px solid ${productName.trim() ? '#6D4CFF' : '#E5E5EC'}`, borderRadius: 16,
-        padding: '19px 22px', display: 'flex', alignItems: 'center', gap: 13,
+        padding: isMobile ? '15px 16px' : '19px 22px', display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 13,
         background: productName.trim() ? '#FBFAFF' : '#fff', marginBottom: 10,
       }}>
         <span style={{ fontSize: 20 }}>🛍️</span>
@@ -204,7 +209,7 @@ export default function StartScreen() {
           onChange={e => setProductName(e.target.value)}
           placeholder="상품명을 입력해주세요"
           style={{
-            border: 'none', outline: 'none', fontSize: 17.5, fontFamily: 'inherit',
+            border: 'none', outline: 'none', fontSize: isMobile ? 16 : 17.5, fontFamily: 'inherit',
             flex: 1, background: 'transparent', color: '#191F28',
           }}
         />
@@ -215,7 +220,7 @@ export default function StartScreen() {
 
       {/* 01 카테고리 — 접지 않는다. 우리가 채워줄 수 없는 값이라 비어 있으면 시작을 못 한다 */}
       <Fold no="01" title="카테고리" value={cat || undefined} fixed>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: 10, marginBottom: 11 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(auto-fill, minmax(135px, 1fr))', gap: isMobile ? 7 : 10, marginBottom: 11 }}>
           {visibleCats.map(c => {
             const on = cat === c.id;
             const Icon = c.icon;
@@ -259,7 +264,7 @@ export default function StartScreen() {
         no="02" title="어디에 올리시나요?" value={channel.id}
         open={!!open.ch} onToggle={() => toggle('ch')}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(180px, 1fr))', gap: isMobile ? 8 : 10, marginBottom: 12 }}>
           {CHANNELS.map(c => {
             const on = channel.id === c.id;
             return (
@@ -292,7 +297,7 @@ export default function StartScreen() {
         value={<>{effOut === 'blog' ? '블로그형' : '슬라이드형'}{effOut === channel.out && <Tag>추천</Tag>}</>}
         open={!!open.out} onToggle={() => toggle('out')}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginBottom: 12 }}>
           {([
             ['blog', '블로그형', '글로 설명하고 사진을 곁들여요.\n네이버 검색에 걸립니다.'],
             ['slide', '슬라이드형', '이미지에 글자를 넣어 만들어요.\n모바일에서 눈에 잘 들어옵니다.'],
@@ -328,7 +333,7 @@ export default function StartScreen() {
         value={<>{depth}섹션 <span style={{ color: '#B0B8C1', fontWeight: 600 }}>·</span> {cost}크레딧</>}
         open={!!open.len} onToggle={() => toggle('len')}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12, paddingTop: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: isMobile ? 7 : 10, marginBottom: 12, paddingTop: 8 }}>
           {DEPTHS.map(d => {
             const on = depth === d.n;
             return (
@@ -393,7 +398,7 @@ function Fold({ no, title, value, open, onToggle, fixed, children }: {
       <div
         onClick={fixed ? undefined : onToggle}
         style={{
-          display: 'flex', alignItems: 'center', gap: 11, padding: '17px 20px',
+          display: 'flex', alignItems: 'center', gap: 11, padding: '15px 16px',
           cursor: fixed ? 'default' : 'pointer', userSelect: 'none',
         }}
       >
@@ -413,7 +418,7 @@ function Fold({ no, title, value, open, onToggle, fixed, children }: {
           )}
         </span>
       </div>
-      {isOpen && <div style={{ padding: '2px 20px 20px' }}>{children}</div>}
+      {isOpen && <div style={{ padding: '2px 16px 18px' }}>{children}</div>}
     </div>
   );
 }
