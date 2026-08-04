@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runCopy, runCopyChunk, COPY_MODEL_ALT, type StrategySummary } from '@/lib/stages/copy';
+import { runCopy, runCopyChunk, enforceSpeechLevel, COPY_MODEL_ALT, type StrategySummary } from '@/lib/stages/copy';
 import { resolveOutputType } from '@/lib/outputType';
 import { verifyPaidJob, creditsBypassEnabled, checkRateLimit, clientIp, consumeUsageQuota } from '@/lib/db';
 import { getSessionEmail } from '@/lib/authToken';
@@ -95,7 +95,18 @@ export async function POST(req: NextRequest) {
       if (typeof jobKey === 'string' && jobKey) {
         try { await consumeUsageQuota(`txt:${jobKey}`, 1, 10_000); } catch { /* 기록 실패는 생성 차단 사유 아님 */ }
       }
-      return NextResponse.json({ sections: out_, sectionsB: outB ?? undefined, chunk: { startIndex, count: out_.length } });
+      /* ★어투 강제 변환(2026-08-04) — 프롬프트 지시는 세 번 실패했다. 셀러가 어투를 직접
+         골랐으면(strategy.speech_level) 생성된 텍스트의 어미를 별도 패스로 맞춘다.
+         A·B안 모두. 실패 시 원문 유지 — 지금보다 나빠질 수 없다. */
+      const lvl = (strategy as { speech_level?: string } | undefined)?.speech_level
+        ?? (strategySummary as { speech_level?: string } | undefined)?.speech_level;
+      const [outFixed, outBFixed] = lvl
+        ? await Promise.all([
+            enforceSpeechLevel(out_, lvl),
+            outB ? enforceSpeechLevel(outB, lvl) : Promise.resolve(undefined),
+          ])
+        : [out_, outB];
+      return NextResponse.json({ sections: outFixed, sectionsB: outBFixed ?? undefined, chunk: { startIndex, count: outFixed.length } });
     } catch (err) {
       console.error('Copy(chunk) error:', err);
       const msg = err instanceof Error ? err.message : '알 수 없는 오류';

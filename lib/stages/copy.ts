@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { SPEECH_LEVELS } from '@/data/speechLevels';
 import { resolveOutputType, OUTPUT_TYPE_LABEL } from '@/lib/outputType';
 import { getCategoryConfig, COPY_PRINCIPLES } from '@/lib/categoryPrompts';
 import { getCategoryCopyGuard } from '@/lib/copyGuards';
@@ -690,4 +691,68 @@ export async function runCopy(input: CopyInput): Promise<CopyResult> {
     sections: results,
     meta: { cat: category, ch: channel, form: formLabel, depth: depth ?? null, count: results.length, outputTypeLabel: OUTPUT_TYPE_LABEL[resolvedOut] },
   };
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * ★어투 강제 변환(2026-08-04) — 프롬프트 지시는 세 번 실패했다.
+ *   생성 프롬프트 안에서 어투는 '대화체로 쓰라'는 문체 지시·화자 지시와 경쟁하다 밀린다.
+ *   그래서 생성이 끝난 텍스트를 받아 "내용은 그대로, 어미만 바꾸는" 별도 패스를 돌린다 —
+ *   단일 목적 변환은 모델이 거의 완벽하게 하는 작업이라 신뢰도가 다르다.
+ *
+ * ⚠️quote 블록은 변환하지 않는다 — 셀러가 준 실제 후기 원문이다(표시광고법).
+ * ⚠️(())·** 마커, 줄바꿈 구조는 보존하라고 지시하고, 응답 항목 수가 어긋나면
+ *   해당 청크는 원문 유지(실패해도 지금보다 나빠지지 않는다).
+ * 비용: haiku, 청크당 1회(~2원). 셀러가 어투를 직접 골랐을 때만 돈다.
+ * ───────────────────────────────────────────────────────────── */
+export async function enforceSpeechLevel(sections: CopyOut[], level: string): Promise<CopyOut[]> {
+  const lv = SPEECH_LEVELS.find(l => l.key === level.trim());
+  if (!lv) return sections;
+
+  // 변환 대상 문자열 수집(위치 기록) — headline·subcopy·body + quote 제외 블록 텍스트
+  const items: string[] = [];
+  const refs: Array<(v: string) => void> = [];
+  const out = sections.map(sec => ({ ...sec, blocks: sec.blocks?.map(b => ({ ...b })) }));
+  const push = (get: string | undefined, set: (v: string) => void) => {
+    if (get && get.trim()) { items.push(get); refs.push(set); }
+  };
+  for (const sec of out) {
+    push(sec.headline, v => { sec.headline = v; });
+    push(sec.subcopy,  v => { sec.subcopy = v; });
+    push(sec.body,     v => { sec.body = v; });
+    for (const b of sec.blocks ?? []) {
+      if (b.type === 'paragraph') push(b.text, v => { (b as { text: string }).text = v; });
+      if (b.type === 'heading')   push(b.text, v => { (b as { text: string }).text = v; });
+      if (b.type === 'checklist') b.items.forEach((it, i) => push(it, v => { b.items[i] = v; }));
+      if (b.type === 'steps')     b.items.forEach(it => { push(it.title, v => { it.title = v; }); push(it.desc, v => { it.desc = v; }); });
+      if (b.type === 'iconcards') b.cards.forEach(c => { push(c.title, v => { c.title = v; }); push(c.desc, v => { c.desc = v; }); });
+      if (b.type === 'stats')     b.items.forEach(it => push(it.label, v => { it.label = v; }));
+      if (b.type === 'faq')       b.items.forEach(it => { push(it.q, v => { it.q = v; }); push(it.a, v => { it.a = v; }); });
+      // quote·compare·hero·cta·image: 후기 원문 보존 / 표 데이터 / 별도 처리 대상 아님
+    }
+  }
+  if (!items.length) return sections;
+
+  const SEP = '\n⟨§⟩\n';
+  try {
+    const res = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
+      system: `한국어 카피의 말투(어미)만 바꾼다. 목표 어투: ${lv.key} — ${lv.rule}
+규칙: 내용·어휘·순서·줄바꿈(\n)·(())·** 마커를 전부 그대로 두고 문장 끝맺음만 목표 어투로 바꾼다.
+이미 목표 어투인 문장은 그대로 둔다. 입력은 ⟨§⟩ 구분자로 나뉜 ${items.length}개 항목이다.
+정확히 같은 개수의 항목을 같은 구분자로 나눠 출력하라. 설명·번호·다른 텍스트 금지.`,
+      messages: [{ role: 'user', content: items.join(SEP) }],
+    });
+    const raw = res.content.map(c => (c.type === 'text' ? c.text : '')).join('');
+    const parts = raw.split('⟨§⟩').map(t => t.trim());
+    if (parts.length !== items.length) {
+      console.warn(`[enforceSpeechLevel] 항목 수 불일치(${parts.length}≠${items.length}) — 원문 유지`);
+      return sections;
+    }
+    parts.forEach((v, i) => { if (v) refs[i](v); });
+    return out;
+  } catch (err) {
+    console.error('[enforceSpeechLevel] 변환 실패 — 원문 유지:', err);
+    return sections;
+  }
 }
