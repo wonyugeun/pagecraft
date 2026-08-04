@@ -938,7 +938,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTypeState(null);
     setOutState(null);
     setImgModeState(null);
-    setSecCntState(10);
+    /* ★구 기본값 10이 남아 있었다(2026-08-04 크롤러 실측) — 새 흐름 시작 화면은 8/16/32만
+     *  제시하고 10을 8로 스냅하므로, 대시보드에서 새 작업을 열면 추천 기본값 16이 아니라
+     *  8섹션으로 시작됐다. 크레딧 안내(10크레딧)도 그 값으로 떴다. */
+    setSecCntState(NEW_START_FLOW ? 16 : 10);
     setProductNameState('');
     setProductExtraState('');
     setProductImagesState([]);
@@ -965,6 +968,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductShapeProfile('');
     setAnswers({});
     setGenerationJobKeyState(null);   // ★새 상품 = 새 결제 키(이전 작업 키 오염 방지)
+    // ★새 작업 초기화에 이번 주 추가분도 포함 — 안 지우면 이전 상품의 섹션 설명·추천이
+    //   다음 상품 구조 화면에 그대로 얹힌다(설명은 fetch 성공 시에만 통째 교체되므로).
+    setSectionDescs({});
+    setSectionSuggestions([]);
+    setStructureForCount(0);
+    setStructureForFacts('');
     currentHistoryIdRef.current = null;   // ★새 작업 = 아직 저장된 항목 없음(다음 saveHistory가 대상 세팅)
     // ★교차상품 유출 차단 — 이전 상품의 '__session__' 제품사진 스냅샷 제거.
     //   안 지우면 새 상품 입력 중 새로고침 시 이전 상품 사진이 복원돼 브랜드가 섞임(edits reference 오염).

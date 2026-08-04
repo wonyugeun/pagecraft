@@ -90,6 +90,13 @@ async function crawlAt(width: number, label: string, cookie: string) {
   });
   page.on('pageerror', err => note(here(), 'pageerror', String(err)));
   page.on('requestfailed', req => note(here(), 'requestfailed', `${req.url()} — ${req.failure()?.errorText}`));
+  // ★alert/confirm은 헤드리스에서 페이지 전체를 멈춘다(실측: 두 폭 모두 s5 '다음 단계로'에서
+  //   필수 항목 alert에 걸려 evaluate가 45초 타임아웃). 자동으로 닫되 내용은 발견사항으로 기록 —
+  //   어떤 안내가 어느 시점에 뜨는지 자체가 점검 대상이다.
+  page.on('dialog', async d => {
+    note(here(), `dialog(${d.type()})`, d.message());
+    await d.accept().catch(() => {});
+  });
   page.on('response', res => {
     if (res.status() >= 400 && !/favicon/.test(res.url())) note(here(), `http ${res.status()}`, res.url());
   });
@@ -149,14 +156,17 @@ async function crawlAt(width: number, label: string, cookie: string) {
   if (fwd1 !== 's5') note(here(), 'back/forward', `앞으로가기 → 기대 s5, 실제 ${fwd1}`);
   await shot(page, `${label}-06-fwd-to-s5(${fwd1})`);
 
-  // ── s5 → s5b (다음 단계로) — 카테고리 '기타'가 아니면 필수문항에 막힐 수 있으므로 결과만 기록 ──
-  await clickText(page, '다음 단계로', 'button');
-  await sleep(600);
-  // 동의 체크가 필요하면 체크 후 재시도
+  // ── s5 채우기 — dev 전용 프리셋 버튼으로 법적 필수까지 채운다(프로덕션엔 없는 버튼) ──
+  await clickText(page, '[DEV]');
+  await sleep(800);
+  // 동의 체크 — '일치' 문구가 있는 라벨의 체크박스를 정확히 짚는다(가격 표시 체크박스 오클릭 방지)
   await page.evaluate(() => {
-    const cb = document.querySelector<HTMLInputElement>('input[type="checkbox"]');
-    if (cb && !cb.checked) cb.click();
+    for (const cb of Array.from(document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'))) {
+      const t = cb.closest('label')?.textContent ?? '';
+      if (t.includes('일치') && !cb.checked) { cb.click(); return; }
+    }
   });
+  await sleep(300);
   await clickText(page, '다음 단계로', 'button');
   await sleep(2500);
   const s5b = await curScreen(page);
