@@ -1215,6 +1215,18 @@ export default function ResultScreen() {
   const [sectionImages,  setSectionImages]  = useState<Record<string, ImgState>>({});
   const [blockImages,    setBlockImages]    = useState<Record<string, ImgState>>({});
   const [freeRegenLeft, setFreeRegenLeft] = useState<number | null>(null);   // ★남은 무료 재생성(서버 응답 기준)
+  /* ★결과 화면에 들어오는 순간 남은 무료 재생성을 읽어둔다(2026-08-04).
+     전엔 재생성을 한 번 눌러 서버 응답을 받아야만 숫자가 떴다 — 셀러는 무료가 몇 번인지
+     모른 채 "누르면 돈 나가나?" 하고 안 누른다. 차감 없는 조회(GET /api/quota)로 미리 채운다. */
+  useEffect(() => {
+    const key = generationJobKey;
+    if (!key || !sections.length) return;
+    fetch(`/api/quota?jobKey=${encodeURIComponent(key)}&sections=${sections.length}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && typeof d.freeRegenLeft === 'number') setFreeRegenLeft(d.freeRegenLeft); })
+      .catch(() => {});   // 조회 실패는 조용히 — 숫자가 안 뜰 뿐 기능은 그대로다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationJobKey, sections.length]);
   // ★다운로드 권한(2026-07-30) — 체험 계정은 미리보기까지만. 판정은 서버(/api/entitlements)가 한다.
   const [canDownload, setCanDownload] = useState<boolean | null>(null);   // null = 확인 중
   const [feedbackOpen, setFeedbackOpen] = useState(false);   // ★고객의 소리(2026-07-30)

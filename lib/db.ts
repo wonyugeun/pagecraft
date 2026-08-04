@@ -57,6 +57,13 @@ export async function consumeUsageQuota(scopeKey: string, weight: number, limit:
   return { allowed: false, used: cur[0]?.count ?? 0 };
 }
 
+/** ★차감 없이 현재 사용량만 읽는다(2026-08-04) — 결과 화면이 '남은 무료 재생성'을
+ *  처음부터 보여주려면 필요하다. 전엔 한 번 재생성해봐야 숫자가 떴다. */
+export async function peekUsageQuota(scopeKey: string): Promise<number> {
+  const rows = await sql`SELECT count FROM usage_counters WHERE scope_key = ${scopeKey}` as Array<{ count: number }>;
+  return rows[0]?.count ?? 0;
+}
+
 /* ── user/IP 시간창 rate limit — usage_counters 재사용(신규 테이블 없음) ── */
 
 export type RateClass = 'image' | 'llm' | 'prep';
