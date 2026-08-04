@@ -7,19 +7,23 @@ import {
 } from 'lucide-react';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import MobileStepRail from '@/components/layout/MobileStepRail';
-import { ALL_SECTIONS } from './SectionStructureScreen';
+
 import { useInitialSections } from '@/hooks/useInitialSections';
 import { sectionDescription } from '@/lib/sectionGlossary';
+import { materialNeedFor } from '@/lib/sectionMaterials';
+import { calculateGenerationCost } from '@/lib/pricing';
 
 export default function SectionStructureMobile() {
   const {
     go,
     referenceAnalysis, captureAnalysis,
     setSectionStructure, setSecCnt,
-    toggleChat, credits, setStructureForCount } = useApp();
+    toggleChat, credits, setStructureForCount, structureForCount,
+    out, secCnt, productExtra, productName, sectionDescs, setSectionDescs,
+    sectionSuggestions, setSectionSuggestions } = useApp();
 
   // ★데스크탑과 동일한 공용 훅 사용(우선순위 저장>레퍼런스>캡처>AI + 원본 보관). 데·모 섹션 일치.
-  const { secs, setSecs, recommendLoading, original } = useInitialSections();
+  const { secs, setSecs, recommendLoading, original, factsChanged, rebuild } = useInitialSections();
   const [showAdd, setShowAdd] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [showTip, setShowTip] = useState(true);
@@ -35,9 +39,18 @@ export default function SectionStructureMobile() {
     const n = [...s]; [n[i], n[i + 1]] = [n[i + 1], n[i]]; return n;
   });
   const remove = (i: number) => setSecs(s => s.filter((_, idx) => idx !== i));
-  const addSection = (label: string) => {
-    if (label && !secs.includes(label)) setSecs(s => [...s, label]);
-    setShowAdd(false);
+
+  /* ★데스크탑과 같은 규칙(2026-08-04) — 재료가 있어야 성립하는 섹션은 무엇을 적어야 하는지 알린다 */
+  const facts = `${productName ?? ''}\n${productExtra ?? ''}`;
+  const needs = secs.map(n => materialNeedFor(n, facts));
+  const needCount = needs.filter(Boolean).length;
+
+  const addSuggestion = (sg: { name: string; desc?: string; after?: number }) => {
+    if (secs.includes(sg.name)) return;
+    const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
+    setSecs(prev => [...prev.slice(0, at), sg.name, ...prev.slice(at)]);
+    if (sg.desc) setSectionDescs({ ...sectionDescs, [sg.name]: sg.desc });
+    setSectionSuggestions(sectionSuggestions.filter(x => x.name !== sg.name));
   };
   const addCustom = () => {
     const t = customInput.trim();
@@ -64,7 +77,6 @@ export default function SectionStructureMobile() {
 
   const fromRef = Boolean(referenceAnalysis?.sections?.length);
   const fromCapture = !fromRef && Boolean(captureAnalysis?.섹션목록?.length);
-  const available = ALL_SECTIONS.filter(s => !secs.includes(s));
 
   return (
     <div style={{
@@ -183,6 +195,65 @@ export default function SectionStructureMobile() {
       )}
 
       {/* 5) 섹션 리스트 */}
+      {/* ★개수·크레딧(2026-08-04) — 섹션을 더하고 빼면 크레딧이 바뀌는데 화면에 둘 다 없었다 */}
+      {!recommendLoading && secs.length > 0 && (
+        <section style={{ padding: '14px 20px 0' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            border: '1px solid #E6DEFF', background: '#FBFAFF', borderRadius: 12, padding: '11px 14px',
+          }}>
+            <b style={{ fontSize: 13 }}>{secs.length}섹션</b>
+            <span style={{ color: '#D8DCE3' }}>·</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#6D4CFF' }}>
+              {calculateGenerationCost({ sectionCount: secs.length, baseSectionCount: structureForCount, out })}크레딧
+            </span>
+            {secCnt > 0 && secs.length !== secCnt && (
+              <span style={{ fontSize: 11, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 999, padding: '2px 8px' }}>
+                처음 고른 {secCnt}섹션에서 바뀌었어요
+              </span>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* 상품정보가 바뀌었을 때 — 자동으로 다시 잡지 않는다(손본 순서·삭제가 날아간다) */}
+      {factsChanged && !recommendLoading && (
+        <section style={{ padding: '12px 20px 0' }}>
+          <div style={{
+            border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 12,
+            padding: '12px 14px', fontSize: 12, lineHeight: 1.65, color: '#92400E',
+          }}>
+            <b style={{ fontWeight: 700 }}>상품정보가 바뀌었어요.</b> 지금 구성은 바뀌기 전 정보로 만든 거예요.
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined' &&
+                  !window.confirm('새 상품정보로 구조를 다시 만듭니다. 지금 손보신 순서·삭제는 사라져요. 계속할까요?')) return;
+                rebuild();
+              }}
+              style={{
+                display: 'block', width: '100%', marginTop: 9,
+                border: '1px solid #FDE68A', background: '#fff', color: '#92400E',
+                borderRadius: 9, padding: '9px 0', fontSize: 12.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >구조 다시 잡기</button>
+          </div>
+        </section>
+      )}
+
+      {/* 재료가 있어야 성립하는 섹션 요약 */}
+      {needCount > 0 && (
+        <section style={{ padding: '12px 20px 0' }}>
+          <div style={{
+            border: '1px solid #FDE68A', background: '#FFFBEB', borderRadius: 12,
+            padding: '11px 14px', fontSize: 12, lineHeight: 1.65, color: '#92400E',
+          }}>
+            <b style={{ fontWeight: 700 }}>{needCount}개 섹션은 상품정보에 내용을 적어주셔야 제대로 나와요.</b><br />
+            Flik은 없는 사실을 만들지 않기 때문에, 재료가 없으면 그 섹션은 두루뭉술해집니다.
+          </div>
+        </section>
+      )}
+
       <section style={{ padding: '14px 20px 0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {secs.map((sec, i) => {
@@ -202,8 +273,15 @@ export default function SectionStructureMobile() {
                 }}>{i + 1}</div>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#111' }}>{sec}</span>
-                  {sectionDescription(sec) && (
-                    <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 2, lineHeight: 1.45 }}>{sectionDescription(sec)}</span>
+                  {(sectionDescs[sec] || sectionDescription(sec)) && (
+                    <span style={{ display: 'block', fontSize: 11.5, color: '#8B95A1', marginTop: 2, lineHeight: 1.45 }}>
+                      {sectionDescs[sec] || sectionDescription(sec)}
+                    </span>
+                  )}
+                  {needs[i] && (
+                    <span style={{ display: 'block', fontSize: 11, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '5px 8px', marginTop: 5, lineHeight: 1.5 }}>
+                      <b style={{ fontWeight: 700 }}>{needs[i]!.need}</b>를 상품정보에 적어주세요
+                    </span>
                   )}
                 </span>
                 {isActive ? (
@@ -275,6 +353,45 @@ export default function SectionStructureMobile() {
       </section>
 
       {/* 6) + 섹션 추가 + AI 추천 구조로 되돌리기 */}
+      {/* ★'더하면 좋을 섹션'(2026-08-04) — 62개 나열 대신 지금 비어 있는 것만.
+          ⚠️크레딧 증가분을 숨기지 않는다. 목록이 준비된 뒤에만 띄운다. */}
+      {!recommendLoading && secs.length > 0 && sectionSuggestions.length > 0 && (
+        <section style={{ padding: '14px 20px 0' }}>
+          <div style={{ border: '1.5px solid #E6DEFF', background: '#FBFAFF', borderRadius: 14, padding: '14px' }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#5B3FD6', marginBottom: 3 }}>이 상품에 더하면 좋아요</div>
+            <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 10 }}>넣지 않으셔도 됩니다</div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {sectionSuggestions.map(sg => {
+                const delta = calculateGenerationCost({ sectionCount: secs.length + 1, baseSectionCount: structureForCount, out })
+                  - calculateGenerationCost({ sectionCount: secs.length, baseSectionCount: structureForCount, out });
+                const at = Math.min(Math.max(Number(sg.after) || secs.length, 1), secs.length);
+                return (
+                  <div key={sg.name} style={{ background: '#fff', border: '1px solid #E9E7F3', borderRadius: 11, padding: '11px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                      <b style={{ fontSize: 12.5 }}>{sg.name}</b>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF', borderRadius: 999, padding: '2px 7px' }}>+{delta}크레딧</span>
+                    </div>
+                    {sg.why && <p style={{ fontSize: 11.5, color: '#4E5968', lineHeight: 1.6, marginBottom: 7 }}>{sg.why}</p>}
+                    {sg.grounded === false && (
+                      <p style={{ fontSize: 11, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '5px 8px', marginBottom: 7, lineHeight: 1.5 }}>
+                        이 섹션 내용은 아직 안 적어주셨어요
+                      </p>
+                    )}
+                    <button
+                      onClick={() => addSuggestion(sg)}
+                      style={{
+                        width: '100%', border: '1px solid #D9CDFF', background: '#fff', color: '#6D4CFF',
+                        borderRadius: 9, padding: '8px 0', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >{at}번 뒤에 추가</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section style={{ padding: '12px 20px 0' }}>
         <button
           onClick={() => setShowAdd(p => !p)}
@@ -289,7 +406,7 @@ export default function SectionStructureMobile() {
             fontSize: 13, fontWeight: 700,
           }}
         >
-          {showAdd ? <><X size={14} /> 닫기</> : <><Plus size={14} /> 섹션 추가</>}
+          {showAdd ? <><X size={14} /> 닫기</> : <><Plus size={14} /> 직접 넣기</>}
         </button>
         {canReset && (
           <button
@@ -308,57 +425,36 @@ export default function SectionStructureMobile() {
         )}
       </section>
 
-      {/* 7) 섹션 추가 패널 — 데스크탑과 동일 데이터 ALL_SECTIONS */}
+      {/* ★62개 칩 폐기(2026-08-04) — 데스크탑과 같은 원칙. 재료는 상품정보에서 받고
+          구조는 재료를 보고 만든다. 칩으로 섹션만 더해봤자 쓸 재료가 없으면 날조가 된다. */}
       {showAdd && (
         <section style={{ padding: '10px 20px 0' }}>
-          <div style={{
-            background: '#fff', border: '1px solid #ECECF2',
-            borderRadius: 14, padding: 14,
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#999', marginBottom: 10 }}>
-              클릭해서 추가하세요
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-              {available.map(s => (
-                <button
-                  key={s}
-                  onClick={() => addSection(s)}
-                  style={{
-                    padding: '5px 10px', borderRadius: 999,
-                    border: '1px solid #ECECF2', background: '#fff',
-                    fontSize: 11.5, color: '#111', cursor: 'pointer',
-                    fontFamily: 'inherit', fontWeight: 500,
-                  }}
-                >{s}</button>
-              ))}
-            </div>
+          <div style={{ background: '#fff', border: '1px solid #ECECF2', borderRadius: 14, padding: 14 }}>
             <div style={{ display: 'flex', gap: 6 }}>
               <input
                 value={customInput}
                 onChange={e => setCustomInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addCustom()}
-                placeholder="직접 입력 (예: 특허 기술 소개)"
+                placeholder="직접 넣을 섹션 이름"
                 style={{
-                  flex: 1,
-                  background: '#F7F6FB', border: 'none',
-                  borderRadius: 10, padding: '10px 12px',
-                  fontSize: 12.5, color: '#111',
-                  outline: 'none', fontFamily: 'inherit',
+                  flex: 1, border: '1px solid #ECECF2', borderRadius: 10,
+                  padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none',
                 }}
               />
               <button
                 onClick={addCustom}
                 disabled={!customInput.trim()}
                 style={{
-                  background: customInput.trim() ? '#6D4CFF' : '#D9D9E3',
-                  color: '#fff', border: 'none',
-                  fontSize: 12, fontWeight: 700,
-                  borderRadius: 10, padding: '0 14px',
-                  cursor: customInput.trim() ? 'pointer' : 'not-allowed',
-                  fontFamily: 'inherit', flexShrink: 0,
+                  flexShrink: 0, border: 'none', borderRadius: 10, padding: '0 14px',
+                  background: customInput.trim() ? '#6D4CFF' : '#F1F1F5',
+                  color: customInput.trim() ? '#fff' : '#B0B8C1',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >추가</button>
             </div>
+            <p style={{ fontSize: 11, color: '#9CA3AF', lineHeight: 1.6, marginTop: 8 }}>
+              상품정보에 없는 내용은 지어내지 않아요 — 담고 싶은 내용이 있으면 상품정보에 먼저 적어주세요.
+            </p>
           </div>
         </section>
       )}
