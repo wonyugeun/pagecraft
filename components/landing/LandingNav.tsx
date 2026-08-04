@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PRODUCT_VERSION } from '@/data/version';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -40,6 +41,16 @@ export default function LandingNav() {
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo-flik.png" alt="Flik" style={{ height: '30px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+        <Link
+          href="/changelog"
+          onClick={e => e.stopPropagation()}
+          title={`Flik ${PRODUCT_VERSION} — 무엇이 바뀌었는지 보기`}
+          style={{
+            fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
+            border: '1px solid #E6DEFF', borderRadius: 999, padding: '2px 7px',
+            letterSpacing: '-0.01em', lineHeight: 1.2, flexShrink: 0, textDecoration: 'none',
+          }}
+        >{PRODUCT_VERSION}</Link>
       </Link>
 
       {/* 데스크탑 메뉴 */}

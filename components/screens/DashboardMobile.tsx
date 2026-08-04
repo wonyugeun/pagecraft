@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { PRODUCT_VERSION } from '@/data/version';
 import { useSession } from 'next-auth/react';
 import { useApp, HistoryItem, NEW_START_FLOW } from '@/store/AppContext';
 import UpdateNoticeModal from '@/components/UpdateNoticeModal';
@@ -157,6 +158,17 @@ export default function DashboardMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+            {/* ★버전 뱃지(2026-08-04) — 로고 이미지엔 넣지 않는다(올릴 때마다 다시 만들게 된다).
+                data/version.ts 한 줄만 고치면 모든 화면이 같이 바뀐다. */}
+            <a
+              href="/changelog" target="_blank" rel="noopener noreferrer"
+              title={`Flik ${PRODUCT_VERSION} — 무엇이 바뀌었는지 보기`}
+              style={{
+                fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
+                border: '1px solid #E6DEFF', borderRadius: 999, padding: '2px 7px',
+                lineHeight: 1.2, flexShrink: 0, textDecoration: 'none', marginLeft: -8,
+              }}
+            >{PRODUCT_VERSION}</a>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{
