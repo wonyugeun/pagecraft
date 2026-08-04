@@ -233,20 +233,15 @@ function ChecklistBlock({ items, variant, onChange }: { items: string[]; variant
       gridTemplateColumns: variant === 'rail' ? 'repeat(2, 1fr)' : undefined,
       flexDirection: 'column', gap: 10,
     }}>
+      {/* ★리디자인(2026-08-04) — 색 카드 + 원형 체크가 촌스러움의 일부. 헤어라인 행으로. */}
       {items.map((item, i) => (
         <div key={i} style={{
-          display: 'flex', gap: 12, alignItems: 'flex-start',
-          background: t.soft, border: `1px solid ${t.softBorder}`,
-          borderRadius: 16, padding: '14px 16px',
-          fontSize: 15, lineHeight: 1.6, color: COLORS.text333,
+          display: 'flex', gap: 11, alignItems: 'flex-start',
+          borderTop: `1px solid #F1F1F4`,
+          padding: '13px 2px',
+          fontSize: 15, lineHeight: 1.65, color: COLORS.text333,
         }}>
-          <span style={{
-            flexShrink: 0, marginTop: 1, width: 22, height: 22, borderRadius: '50%',
-            background: t.primary, color: COLORS.white,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Check size={14} strokeWidth={3} />
-          </span>
+          <Check size={16} strokeWidth={2.6} style={{ flexShrink: 0, marginTop: 3, color: t.primary }} />
           <Editable value={item} style={{ flex: 1 }} onCommit={onChange ? v => onChange({ type: 'checklist', items: items.map((it, j) => (j === i ? v : it)) }) : undefined} />
         </div>
       ))}
@@ -519,14 +514,16 @@ function QuoteBlock({ text, author, rating, onChange, compact }: { text: string;
   // rating 미지정/0 → 별 미표시(가짜 ★5점 방지). 셀러가 실제로 준 별점만 표시.
   const stars = typeof rating === 'number' && rating > 0 ? Math.min(5, Math.max(0, Math.round(rating))) : 0;
   return (
+    /* ★리디자인(2026-08-04) — 보라 카드 + 큰 따옴표 아이콘 대신 왼쪽 포인트 선(에디토리얼 인용) */
     <div style={{
       marginBottom: compact ? 0 : 32,
-      borderRadius: 24, border: `1px solid ${t.softBorder}`, background: t.soft,
-      padding: compact ? 20 : 24,
+      borderLeft: `2px solid ${t.primary}`,
+      background: compact ? '#FAFAFC' : 'transparent',
+      borderRadius: compact ? 12 : 0,
+      padding: compact ? '18px 18px' : '4px 0 4px 20px',
       height: compact ? '100%' : undefined,
       display: compact ? 'flex' : undefined, flexDirection: compact ? 'column' : undefined,
     }}>
-      <QuoteIcon size={compact ? 24 : 30} style={{ marginBottom: compact ? 12 : 16, color: t.primary }} />
       <p style={{
         margin: 0, flexGrow: compact ? 1 : undefined,
         fontSize: compact ? 15 : 16, lineHeight: compact ? 1.7 : 1.85, color: COLORS.text333, whiteSpace: 'pre-line',
@@ -557,20 +554,19 @@ function FaqBlock({ items, onChange }: { items: { q: string; a: string }[]; onCh
   const patch = (i: number, key: 'q' | 'a', v: string) =>
     onChange?.({ type: 'faq', items: items.map((it, j) => (j === i ? { ...it, [key]: v } : it)) });
   return (
-    <div style={{
-      marginBottom: 32,
-      borderRadius: 24, border: `1px solid ${COLORS.border}`, background: COLORS.white,
-    }}>
+    /* ★리디자인(2026-08-04) — 박스 제거·구분선 행. ChevronDown은 눌러도 안 접히는
+       가짜 어포던스라 뺐다(접히는 척하는 아이콘은 기만이다). */
+    <div style={{ marginBottom: 32 }}>
       {items.map((f, i) => (
         <div key={i} style={{
-          padding: 20,
-          borderBottom: i !== items.length - 1 ? `1px solid ${COLORS.border}` : 'none',
+          padding: '18px 2px',
+          borderTop: `1px solid #F1F1F4`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>Q. <Editable value={f.q} onCommit={onChange ? v => patch(i, 'q', v) : undefined} /></div>
-            <ChevronDown size={18} style={{ flexShrink: 0, color: COLORS.textMute }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: COLORS.text }}>
+            <span style={{ color: 'var(--pu,#6D4CFF)' }}>Q&nbsp;&nbsp;</span>
+            <Editable value={f.q} onCommit={onChange ? v => patch(i, 'q', v) : undefined} />
           </div>
-          <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.7, color: COLORS.textSub }}>
+          <div style={{ marginTop: 8, paddingLeft: 24, fontSize: 14, lineHeight: 1.75, color: COLORS.textSub }}>
             <Editable value={f.a} multiline onCommit={onChange ? v => patch(i, 'a', v) : undefined} />
           </div>
         </div>
@@ -647,22 +643,23 @@ function ImageBlock({ label, imgState, onLightbox, overlay }: { label: string; i
 function CtaBlock({ text, button, isMobile, onChange }: { text: string; button: string; isMobile?: boolean; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
+    /* ★리디자인(2026-08-04) — 파스텔 큰 라운드 박스가 2019년식. 잉크 패널로 마감감을 준다. */
     <div style={{
       maxWidth: 760, margin: '0 auto',
-      padding: isMobile ? 36 : 56,
-      borderRadius: 36, border: `1px solid ${t.softBorder}`, background: t.soft,
+      padding: isMobile ? '38px 28px' : '52px 48px',
+      borderRadius: 20, background: '#191F28',
       textAlign: 'center',
     }}>
       <h2 style={{
         margin: 0,
-        fontSize: isMobile ? 30 : 42, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.04em',
-        color: COLORS.text,
+        fontSize: isMobile ? 26 : 36, fontWeight: 800, lineHeight: 1.3, letterSpacing: '-0.03em',
+        color: '#fff',
         whiteSpace: isMobile ? 'normal' : 'pre-line',
       }}>
         <Editable value={text} multiline onCommit={onChange ? v => onChange({ type: 'cta', text: v, button }) : undefined} />
       </h2>
       {!!button && (
-        <div style={{ marginTop: 28, fontSize: isMobile ? 16 : 19, fontWeight: 700, color: t.primary, letterSpacing: '-0.2px' }}>
+        <div style={{ marginTop: 24, fontSize: isMobile ? 15 : 17, fontWeight: 700, color: 'rgba(255,255,255,0.85)', letterSpacing: '-0.2px', borderTop: '1px solid rgba(255,255,255,0.18)', paddingTop: 22, display: 'inline-block', minWidth: 200 }}>
           <Editable value={button} onCommit={onChange ? v => onChange({ type: 'cta', text, button: v }) : undefined} />
         </div>
       )}

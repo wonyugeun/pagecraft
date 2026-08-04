@@ -44,8 +44,9 @@ export const HTML_BLOCKS_CSS = `
 .heading { margin: 40px 0 16px; border-left: 4px solid var(--p,#6D4CFF); padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
 .paragraph { margin-bottom: 24px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
 
-.checklist { list-style: none; margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; padding: 20px; }
-.checklist li { display: flex; gap: 12px; font-size: 15px; line-height: 1.7; color: #333; padding: 6px 0; }
+/* ★리디자인(2026-08-04) — 박스·색 카드 제거, 헤어라인 행(화면과 동일) */
+.checklist { list-style: none; margin-bottom: 32px; }
+.checklist li { display: flex; gap: 11px; font-size: 15px; line-height: 1.65; color: #333; padding: 13px 2px; border-top: 1px solid #F1F1F4; }
 .checklist li::before { content: '\\2713'; color: var(--p,#6D4CFF); font-weight: 700; flex-shrink: 0; }
 
 .steps { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 10px; }
@@ -66,7 +67,7 @@ export const HTML_BLOCKS_CSS = `
 .stat strong { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.04em; color: #191F28; line-height: 1.15; }
 .stat small { margin-top: 7px; display: block; font-size: 13px; font-weight: 600; color: #6B7684; line-height: 1.5; }
 
-.compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #ECECF2; border-radius: 24px; overflow: hidden; font-size: 14px; }
+.compare { width: 100%; border-collapse: collapse; margin-bottom: 32px; border: 1px solid #F1F1F4; border-radius: 14px; overflow: hidden; font-size: 14px; }
 .compare th, .compare td { padding: 16px; text-align: center; }
 .compare th { background: #FAFAFC; font-weight: 700; color: #111; }
 .compare th.hilite { background: var(--p,#6D4CFF); color: #fff; }
@@ -75,29 +76,30 @@ export const HTML_BLOCKS_CSS = `
 .compare td.hilite { background: var(--soft,#FBFAFF); font-weight: 700; color: var(--p,#6D4CFF); }
 .compare .check { display: block; margin: 0 auto 4px; color: var(--p,#6D4CFF); font-weight: 900; }
 
-.quote { margin-bottom: 32px; border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 24px; }
-.quote-icon { font-size: 36px; line-height: 1; color: var(--p,#6D4CFF); font-family: Georgia, serif; margin-bottom: 8px; }
+.quote { margin-bottom: 32px; border-left: 2px solid var(--p,#6D4CFF); padding: 4px 0 4px 20px; }
+.quote-icon { display: none; }
 .quote p { font-size: 16px; line-height: 1.85; color: #333; white-space: pre-line; }
 .quote footer { margin-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .quote .stars { color: var(--p,#6D4CFF); font-size: 14px; letter-spacing: 2px; }
 .quote .author { font-size: 13px; color: #666; }
 .quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 32px; align-items: stretch; }
-.quote-grid .quote-compact { margin-bottom: 0; padding: 20px; height: 100%; display: flex; flex-direction: column; }
+.quote-grid .quote-compact { margin-bottom: 0; padding: 18px; height: 100%; display: flex; flex-direction: column; background: #FAFAFC; border-radius: 12px; }
 .quote-grid .quote-compact p { font-size: 15px; line-height: 1.7; flex-grow: 1; }
 @media (max-width: 560px) { .quote-grid { grid-template-columns: 1fr; } }
 
-.faq { margin-bottom: 32px; border-radius: 24px; border: 1px solid #ECECF2; background: #fff; overflow: hidden; }
-.faq dt { padding: 20px 20px 8px; font-size: 15px; font-weight: 700; color: #111; }
-.faq dd { padding: 0 20px 20px; font-size: 14px; line-height: 1.7; color: #666; border-bottom: 1px solid #ECECF2; }
-.faq dd:last-child { border-bottom: none; }
+.faq { margin-bottom: 32px; }
+.faq dt { padding: 18px 2px 0; font-size: 15px; font-weight: 700; color: #111; border-top: 1px solid #F1F1F4; }
+.faq dt::before { content: 'Q'; color: var(--p,#6D4CFF); margin-right: 10px; }
+.faq dd { padding: 8px 2px 18px 24px; font-size: 14px; line-height: 1.75; color: #666; }
 
 .image { margin: 0 0 32px; overflow: hidden; border-radius: 24px; border: 1px solid #ECECF2; background: #FAFAFC; }
 .image img { width: 100%; height: 100%; display: block; }
 .image-slot { margin-bottom: 32px; width: 100%; background: linear-gradient(135deg,var(--soft,#F4F0FF),#fff,#FAFAFC); border-radius: 24px; border: 1px solid #ECECF2; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--p,#6D4CFF); }
 
-.cta { border-radius: 24px; border: 1px solid var(--sb,#E6DEFF); background: var(--soft,#F4F0FF); padding: 32px; text-align: center; margin-bottom: 32px; }
-.cta h2 { font-size: 24px; font-weight: 900; line-height: 1.45; letter-spacing: -0.04em; color: #111; }
-.cta-close { margin-top: 20px; font-size: 17px; font-weight: 700; color: var(--p,#6D4CFF); letter-spacing: -0.2px; }
+/* ★리디자인(2026-08-04) — 파스텔 라운드 박스 → 잉크 패널(화면과 동일) */
+.cta { border-radius: 20px; background: #191F28; padding: 44px 36px; text-align: center; margin-bottom: 32px; }
+.cta h2 { font-size: 28px; font-weight: 800; line-height: 1.3; letter-spacing: -0.03em; color: #fff; }
+.cta-close { margin-top: 24px; font-size: 16px; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: -0.2px; display: inline-block; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 20px; min-width: 200px; }
 
 /* ★생김새 수식자(2026-08-02) — 내용과 페이지 흐름이 고른다(lib/blockLayout).
    ⚠️어느 조합에서도 읽히기만 하면 된다. 화려함이 아니라 '같아 보이지 않기'가 목적이다. */
@@ -385,7 +387,9 @@ export function buildBlogExportHtml(
   /* ★센터 정렬은 반드시 위 .sec 규칙들 '뒤'에 온다 — 특정도가 같아서(둘 다 클래스 2개)
      순서가 곧 승패다. 앞에 두면 .sec .subcopy / .sec .bodytext 가 다시 left로 덮어써서
      제목만 가운데 오고 본문은 왼쪽에 남는다(2026-08-01 유근님 발견). 위로 옮기지 말 것. */
-  .sec-center, .sec-center h2, .sec-center .subcopy, .sec-center .bodytext, .sec-center p { text-align: center; }
+  /* ★가운데 정렬은 카피(제목·서브·본문)에만(2026-08-04) — '.sec-center p'가 블록 내부(카드 설명·
+     단계 설명·FAQ 답변)까지 끌고 가서 '제목 왼쪽 + 설명 가운데'로 어긋났다. 블록은 자기 정렬을 지킨다. */
+  .sec-center h2, .sec-center .subcopy, .sec-center .bodytext { text-align: center; }
   .img-slot { width: 100%; aspect-ratio: 4/3; background: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px; }
   .img-slot img { width: 100%; border-radius: 8px; display: block; margin-bottom: 20px; }
   .img-icon { font-size: 36px; }
