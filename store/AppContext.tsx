@@ -967,6 +967,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProductVolume('');
     setProductShapeProfile('');
     setAnswers({});
+    /* ★어투도 초기화(2026-08-04 유근님: "왜 처음부터 명사형이 골라져 있냐") —
+       이전 작업에서 고른(또는 어투 미리보기 카드를 눌러 선택된) 값이 새 상품에 그대로 새고 있었다.
+       기본은 빈 값 = AI 추천. */
+    setSpeechLevel('');
     setGenerationJobKeyState(null);   // ★새 상품 = 새 결제 키(이전 작업 키 오염 방지)
     // ★새 작업 초기화에 이번 주 추가분도 포함 — 안 지우면 이전 상품의 섹션 설명·추천이
     //   다음 상품 구조 화면에 그대로 얹힌다(설명은 fetch 성공 시에만 통째 교체되므로).
