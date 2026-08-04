@@ -70,8 +70,8 @@ export default function HeroSection() {
               지어낸 문장 없이, 전환까지 계산한 상세페이지
             </span>
             <span style={{ display: 'block', fontSize: '16.5px', color: '#8B95A1', lineHeight: 1.75 }}>
-              화장품이면 성분과 법적 고지, 식품이면 원산지와 보관법 — 카테고리마다 물어보는 게 다릅니다.<br />
-              적어주신 것만으로 판매 채널에 맞춰 몇 분 만에 만듭니다.
+              Flik은 셀러가 적어준 상품 정보만으로<br />
+              거짓 없는 상세페이지를 몇 분 만에 만듭니다.
             </span>
           </p>
 
