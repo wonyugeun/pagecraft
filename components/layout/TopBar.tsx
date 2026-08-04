@@ -3,7 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRef, useState, useEffect } from 'react';
 import { useApp } from '@/store/AppContext';
-import { PRODUCT_VERSION } from '@/data/version';
+import VersionBadge from '@/components/layout/VersionBadge';
 
 export default function TopBar() {
   const { chatOpen, toggleChat, go, credits, setCreditModalOpen } = useApp();
@@ -30,18 +30,8 @@ export default function TopBar() {
       <div className="tb-logo" onClick={() => session && go('s-dash')} style={{ cursor: session ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo-flik.png" alt="Flik" style={{ height: 28, width: 'auto', objectFit: 'contain', display: 'block' }} />
-        {/* ★버전 뱃지(2026-08-04) — 로고 이미지엔 넣지 않는다. 넣으면 올릴 때마다 로고를
-            다시 만들어야 하고, 그러면 안 올리게 되어 오히려 멈춘 서비스로 보인다. */}
-        <a
-          href="/changelog" target="_blank" rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          title={`Flik ${PRODUCT_VERSION} — 무엇이 바뀌었는지 보기`}
-          style={{
-            fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
-            border: '1px solid #E6DEFF', borderRadius: 999, padding: '2px 7px',
-            letterSpacing: '-0.01em', lineHeight: 1.2, flexShrink: 0, textDecoration: 'none',
-          }}
-        >{PRODUCT_VERSION}</a>
+            {/* 버전 뱃지 — 생김새·링크는 VersionBadge 한 곳에서만 정의한다 */}
+        <VersionBadge />
       </div>
       <div className="tb-right">
         <button className="ai-help-btn" onClick={toggleChat}>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import VersionBadge from '@/components/layout/VersionBadge';
 import {
   Zap, Sparkles, Link2, Image as ImageIcon,
   ArrowLeft, ArrowRight, Link as LinkIcon,
@@ -129,6 +130,7 @@ export default function ReferenceMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

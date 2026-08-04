@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { PRODUCT_VERSION } from '@/data/version';
+import VersionBadge from '@/components/layout/VersionBadge';
 import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import {
@@ -326,17 +326,8 @@ export default function DashboardScreen() {
               onClick={() => go('s-dash')}
               style={{ height: 26, width: 'auto', objectFit: 'contain', display: 'block', cursor: 'pointer', flexShrink: 0 }}
             />
-            {/* ★버전 뱃지(2026-08-04) — 로고 이미지엔 넣지 않는다(올릴 때마다 다시 만들게 된다).
-                data/version.ts 한 줄만 고치면 모든 화면이 같이 바뀐다. */}
-            <a
-              href="/changelog" target="_blank" rel="noopener noreferrer"
-              title={`Flik ${PRODUCT_VERSION} — 무엇이 바뀌었는지 보기`}
-              style={{
-                fontSize: 10.5, fontWeight: 800, color: '#6D4CFF', background: '#F0ECFF',
-                border: '1px solid #E6DEFF', borderRadius: 999, padding: '2px 7px',
-                lineHeight: 1.2, flexShrink: 0, textDecoration: 'none', marginLeft: -8,
-              }}
-            >{PRODUCT_VERSION}</a>
+            {/* 버전 뱃지 — 생김새·링크는 VersionBadge 한 곳에서만 정의한다 */}
+            <VersionBadge />
             <div style={{ width: 1, height: 28, background: '#E5E7EB', flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#111', letterSpacing: '-0.02em', lineHeight: 1.25, whiteSpace: 'nowrap' }}>

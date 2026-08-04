@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import VersionBadge from '@/components/layout/VersionBadge';
 import { classifyCutArchetype } from '@/lib/sectionArchetype';
 import {
   Zap, UploadCloud, Sparkles, ChevronDown, Lightbulb,
@@ -171,6 +172,7 @@ export default function ImageMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

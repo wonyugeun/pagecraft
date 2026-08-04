@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import VersionBadge from '@/components/layout/VersionBadge';
 import Link from 'next/link';
 import { BUSINESS, biz } from '@/data/businessInfo';
 import {
@@ -46,6 +47,7 @@ export default function LandingPageMobile() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: '32px', width: 'auto', objectFit: 'contain', display: 'block' }} />
+          <VersionBadge size={9.5} />
         </div>
         <button onClick={() => router.push('/login')} style={{
           border: '1px solid #ECECF2', borderRadius: '12px',

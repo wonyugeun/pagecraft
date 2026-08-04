@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
 import MobileStepRail from '@/components/layout/MobileStepRail';
 import { baseSectionCount } from '@/lib/sectionDepth';
+import VersionBadge from '@/components/layout/VersionBadge';
 
 type ChannelKey = '스마트스토어' | '쿠팡' | '자사몰' | '와디즈';
 
@@ -79,6 +80,7 @@ export default function ChannelMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

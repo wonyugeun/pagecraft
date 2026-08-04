@@ -14,6 +14,7 @@ import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { baseSectionCount } from '@/lib/sectionDepth';
 import { CAT_DEFAULTS } from './SectionStructureScreen';
 import { iconFor } from '@/lib/sectionIcons';
+import VersionBadge from '@/components/layout/VersionBadge';
 
 // 예시 칩을 실제 섹션 개수만큼 채움(섹션명 순환 보강) — 칩 양으로 차이 표현.
 function fillChips(secs: string[], count: number): string[] {
@@ -116,6 +117,7 @@ export default function TypeMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

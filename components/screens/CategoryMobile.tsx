@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import VersionBadge from '@/components/layout/VersionBadge';
 import {
   Sparkles, Package, Shirt, Sofa, Smartphone, Dog,
   Volleyball, Baby, Car, Dumbbell, Gift, Search,
@@ -102,6 +103,7 @@ export default function CategoryMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{

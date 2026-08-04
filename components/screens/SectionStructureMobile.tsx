@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import VersionBadge from '@/components/layout/VersionBadge';
 import {
   Zap, X, Lightbulb, GripVertical, ChevronUp, ChevronDown,
   Plus, ArrowLeft, ArrowRight, Trash2,
@@ -92,6 +93,7 @@ export default function SectionStructureMobile() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <img src="/images/logo-flik.png" alt="Flik" style={{ height: 30, width: "auto", objectFit: "contain", display: "block" }} />
+          <VersionBadge size={9.5} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button onClick={toggleChat} style={{
