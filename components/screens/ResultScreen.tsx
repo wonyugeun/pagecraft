@@ -1380,27 +1380,11 @@ export default function ResultScreen() {
   }, [sections.length, generationJobKey]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // 빈 sections fallback ── 기존 유지
-  if (sections.length === 0) {
-    return (
-      <div className="result-shell">
-        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
-          <div style={{ fontSize: 44, marginBottom: 16 }}>⚠️</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626', marginBottom: 10 }}>결과가 비어 있어요</div>
-          <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32 }}>
-            콘텐츠가 생성되지 않았어요. 정보를 확인하고 다시 시도해주세요.
-          </div>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-            <button className="btn-back" onClick={() => go('s5')}>← 정보 수정</button>
-            {/* ★크레딧 사고 방지 — 재생성은 새 jobKey = 새 선차감. 경고 없이 진행되지 않게 confirm */}
-            <button className="btn-next" onClick={() => {
-              if (!window.confirm('다시 생성하면 크레딧이 새로 차감됩니다(섹션 수만큼). 계속하시겠어요?')) return;
-              go('s6');
-            }}>↻ 다시 생성</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ★이 화면은 훅이 여기 아래로도 10개 더 있다 — 여기서 return하면 sections가 채워지는 순간
+   *  훅 개수가 달라져 React가 죽는다("Rendered more hooks than during the previous render").
+   *  실측: eslint react-hooks/rules-of-hooks 10건이 전부 이 조기 반환 때문이었다.
+   *  판정만 여기서 하고 실제 반환은 훅을 전부 지난 뒤에 한다(2026-08-04). */
+  const isEmptyResult = sections.length === 0;
 
   const displaySections = sections;
 
@@ -1717,7 +1701,7 @@ export default function ResultScreen() {
   const closeLightbox = useCallback(() => setLightboxSecNum(null), []);
 
   // 모바일 분기 — 모든 훅 호출 후
-  if (isMobile) return <ResultMobile />;
+
 
   const lightboxItems = [
     ...displaySections
@@ -1750,6 +1734,30 @@ export default function ResultScreen() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  if (isMobile) return <ResultMobile />;
+
+  if (isEmptyResult) {
+    return (
+      <div className="result-shell">
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ fontSize: 44, marginBottom: 16 }}>⚠️</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626', marginBottom: 10 }}>결과가 비어 있어요</div>
+          <div style={{ fontSize: 13, color: '#666', lineHeight: 1.8, marginBottom: 32 }}>
+            콘텐츠가 생성되지 않았어요. 정보를 확인하고 다시 시도해주세요.
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button className="btn-back" onClick={() => go('s5')}>← 정보 수정</button>
+            {/* ★크레딧 사고 방지 — 재생성은 새 jobKey = 새 선차감. 경고 없이 진행되지 않게 confirm */}
+            <button className="btn-next" onClick={() => {
+              if (!window.confirm('다시 생성하면 크레딧이 새로 차감됩니다(섹션 수만큼). 계속하시겠어요?')) return;
+              go('s6');
+            }}>↻ 다시 생성</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   /** 다운로드 잠금 안내 — 결제 경로를 함께 준다 */
   const showDownloadLocked = () => {
