@@ -424,6 +424,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sectionSuggestions, setSectionSuggestions] = useState<Array<{ name: string; desc?: string; why?: string; after?: number; grounded?: boolean }>>([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [sections, setSections] = useState<Section[]>([]);
+  // popstate 핸들러(마운트 1회 등록)가 최신 결과 유무를 보게 하는 ref — s7 재진입 가드용
+  const sectionsRef = useRef<Section[]>([]);
+  useEffect(() => { sectionsRef.current = sections; }, [sections]);
   const [restoredImages, setRestoredImages] = useState<Record<string, string>>({});
   const [restoredBlockImages, setRestoredBlockImages] = useState<Record<string, string>>({});
   const [restoredOverrides, setRestoredOverrides] = useState<Record<string, unknown>>({});
@@ -835,6 +838,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const id = e.state?.screen as ScreenId | undefined;
       if (id) {
         nullSkips = 0;
+        /* ★생성 화면(s7)은 히스토리로 재진입 금지(2026-08-04) — 과금이 걸린 일회성 화면이다.
+         *  s8에서 뒤로가기(또는 s6에서 앞으로가기)로 s7에 다시 서면 화면이 재마운트되고,
+         *  마운트 effect가 '새 jobKey'로 생성을 즉시 시작한다 = 확인창 없이 크레딧 재차감.
+         *  결과가 있으면 s8로, 없으면 s6으로 보낸다(그 자리 히스토리도 함께 바꿔 반복 진입 차단). */
+        if (id === 's7') {
+          const target: ScreenId = sectionsRef.current.length > 0 ? 's8' : 's6';
+          window.history.replaceState({ screen: target }, '');
+          setScreen(target);
+          return;
+        }
         setScreen(id);
       } else if (nullSkips < 3) {
         // Next.js 내부 엔트리 등 screen state 없는 팬텀 엔트리 — 건너뜀
