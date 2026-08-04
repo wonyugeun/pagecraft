@@ -34,10 +34,35 @@ function kindLabel(kind: string, planId: string | null): string {
  *   기존엔 플랜 목록을 모달에 그대로 늘어놓아 요금제 페이지와 중복되고 초점이 흐렸다.
  * ★충전은 /pricing을 새 탭으로 연다 — 생성 중에 앱을 벗어나면 작업이 끊기므로.
  */
+
+/** 원장 reason → 셀러가 읽을 말. 모르는 값은 원문 그대로(숨기지 않는다). */
+function reasonLabel(type: string, reason: string): string {
+  const m = reason.match(/^generation:?(\d+)?/);
+  if (m) return m[1] ? `상세페이지 생성 (${m[1]}섹션)` : '상세페이지 생성';
+  if (reason.startsWith('image-extra')) return '이미지 추가 생성';
+  if (reason.startsWith('copy-regen-extra')) return '카피 추가 재생성';
+  if (reason.startsWith('purchase:')) return '크레딧 충전';
+  if (reason.startsWith('signup')) return '가입 무료 크레딧';
+  if (reason.startsWith('refund:zero-output')) return '생성 실패 자동 환불';
+  if (type === 'refund') return '환불';
+  if (type === 'grant') return '지급';
+  return reason || '사용';
+}
+
 export default function CreditModal() {
   const { credits, creditModalOpen, setCreditModalOpen } = useApp();
   // ★충전 내역·유효기간(2026-07-30) — "언제 충전한 게 언제까지인지"를 셀러가 볼 수 있게.
   const [lots, setLots] = useState<Lot[] | null>(null);
+  /* ★사용 내역(2026-08-04 유근님) — 잔액만 보이면 "차감이 없었는지, 있었는데 못 봤는지"를
+     셀러가 구분할 수 없다. 오늘 "차감이 안 된다"는 오해가 정확히 여기서 났다. */
+  const [ledger, setLedger] = useState<Array<{ type: string; amount: number; reason: string; at: string }> | null>(null);
+
+  useEffect(() => {
+    fetch('/api/credits/ledger')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => setLedger(d?.items ?? []))
+      .catch(() => setLedger([]));
+  }, []);
   const [unlinked, setUnlinked] = useState(0);   // lot 도입 이전 크레딧(무기한)
 
   useEffect(() => {
@@ -162,6 +187,38 @@ export default function CreditModal() {
           <div style={{ fontSize: 11.5, color: '#B0B8C1', marginTop: 8, lineHeight: 1.6 }}>
             유효기간이 짧은 크레딧부터 먼저 사용돼요 · 상세페이지는 섹션 1개당 1크레딧
           </div>
+        </div>
+
+        {/* 사용 내역 — 어디에 얼마가 나갔는지. 스크롤 박스(최근 40건) */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#191F28', marginBottom: 9 }}>사용 내역</div>
+          {ledger === null ? (
+            <div style={{ fontSize: 12.5, color: '#B0B8C1', padding: '10px 0' }}>불러오는 중…</div>
+          ) : ledger.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: '#B0B8C1', padding: '10px 0' }}>아직 사용 내역이 없어요.</div>
+          ) : (
+            <div style={{ border: '1px solid #ECECF2', borderRadius: 10, maxHeight: 210, overflowY: 'auto' }}>
+              {ledger.map((it, i) => {
+                const minus = it.amount < 0;
+                const d = new Date(it.at);
+                const when = `${d.getMonth() + 1}.${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px',
+                    borderTop: i ? '1px solid #F4F4F8' : 'none',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: '#191F28' }}>{reasonLabel(String(it.type), it.reason)}</div>
+                      <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 2 }}>{when}</div>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: minus ? '#DC2626' : '#16A34A', flexShrink: 0 }}>
+                      {minus ? '' : '+'}{it.amount}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {isLow && (

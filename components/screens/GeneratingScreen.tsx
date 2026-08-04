@@ -508,8 +508,12 @@ export default function GeneratingScreen() {
         <p style={{
           fontSize: 15, color: '#666', marginTop: 12, lineHeight: 1.7,
         }}>
-          선택하신 정보와 이미지를 바탕으로 AI가 최적의 상세페이지를 만들고 있어요.<br />
-          잠시만 기다려주세요!
+          {/* ★왜 오래 걸리는지 밝힌다(2026-08-04 유근님) — '잠시만 기다려주세요'는 3분이 지나면
+              고장처럼 읽힌다. 실제 순서(전략→구조→섹션별 카피→이미지)와 이유를 말하면
+              같은 시간이 '일하는 중'으로 읽힌다. 성과 약속 없이 과정만 말한다. */}
+          판매 전략을 세우고 → 섹션 구조를 짜고 → 섹션마다 카피를 따로 씁니다.<br />
+          한 번에 쓰지 않고 나눠 쓰는 만큼 시간이 걸려요 — 8섹션 기준 보통 5분 안팎입니다.<br />
+          이 화면을 닫아도 생성은 계속되고, 결과는 최근 작업에 저장돼요.
         </p>
         {USE_NEW_ENGINE && engineLabel && (
           <div style={{ marginTop: 14, fontSize: 15, fontWeight: 800, color: '#6D4CFF' }}>{engineLabel}</div>
