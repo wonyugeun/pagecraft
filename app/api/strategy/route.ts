@@ -41,6 +41,18 @@ export async function POST(req: NextRequest) {
     if (!jobKey || typeof jobKey !== 'string' || typeof sectionCount !== 'number') {
       return NextResponse.json({ error: '생성 요청에 jobKey와 sectionCount가 필요해요.' }, { status: 400 });
     }
+    /* ★out 없는 요청은 거절한다 — 차감 0(2026-08-04).
+     *  선차감 요율이 out에 달려 있는데(블로그 1.25/섹션) 이 값을 클라이언트가 보낸다.
+     *  배포 전에 열려 있던 탭은 옛 번들로 계속 돌므로 out을 빼고 보내고, 그러면 블로그가
+     *  슬라이드 요율(-8)로 조용히 과소청구됐다 — 실제로 두 번 발생(15:37, 16:02 원장).
+     *  서버가 모르는 값을 추측해 깎느니 시작 자체를 막는 편이 맞다: 여기서 거절하면
+     *  외부 API 호출도 차감도 일어나지 않고, 셀러는 새로고침 한 번으로 복구된다. */
+    if (typeof out !== 'string' || !out) {
+      return NextResponse.json(
+        { error: '화면이 이전 버전이에요 — 페이지를 새로고침(⌘+Shift+R)한 뒤 다시 시도해주세요.', code: 'stale_client' },
+        { status: 400 },
+      );
+    }
     /* ★고른 분량(baseSectionCount)을 넘겨 더한 섹션은 장당 1크레딧(2026-08-03) —
        화면에 +1크레딧이라 적어놓고 결제에서 2가 빠지면 그 순간 신뢰를 잃는다. */
     const cost = calculateGenerationCost({ sectionCount, baseSectionCount, out });
