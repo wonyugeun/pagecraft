@@ -69,5 +69,7 @@ export function isCenteredSection(
    *  특히 이미지 폭까지 함께 달라지면 "왜 여긴 왼쪽이지" 하는 어긋남이 먼저 보인다.
    *  가운데를 기본으로 두고, 센터로는 감당 안 되는 아주 긴 본문만 왼쪽으로 내린다(종전 기준). */
   void sectionName; void isFirst; void isLast;
-  return (body ?? '').length <= 260;
+  /* 260은 카피 간결화 상한 220자 시절 값 — salesMode 설득형은 320자까지 쓰므로(2026-08-01)
+   *  정상 카피가 문턱을 넘어 왼쪽으로 떨어졌다("가운데 정렬 안 됨"의 실체). 340으로 올린다. */
+  return (body ?? '').length <= 340;
 }

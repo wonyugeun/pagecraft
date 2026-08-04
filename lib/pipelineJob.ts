@@ -90,9 +90,14 @@ export class PipelineJobError extends Error {
 //   비용: 토큰 과금이라 총액 동일(입력 프롬프트 반복분만 소폭 증가, 통째 재시도 낭비는 제거).
 const COPY_CHUNK_SIZE_DEFAULT = 4;
 
-/** ★판매 디렉팅 강화 스위치 — 검증 전까지 기본 OFF. 켜려면 COPY_SALES_MODE=1 */
+/** ★판매 디렉팅 강화 스위치 — 기본 ON(2026-08-04).
+ *  이 파일은 브라우저에서 실행된다(runClientPipeline이 'use client'). NEXT_PUBLIC이 아닌
+ *  COPY_SALES_MODE는 브라우저에서 항상 undefined라, 하네스(node)에서만 켜지고
+ *  실제 사용자 생성에서는 로컬·프로덕션 모두 단 한 번도 켜진 적이 없었다 —
+ *  8/2 "포인트 컬러 안 들어간다", 8/4 "어투 다르고 포인트 없다"가 전부 이것이었다.
+ *  8/1~8/3 하네스 대량 검증을 통과한 기능이므로 기본 ON. 끄려면 NEXT_PUBLIC_COPY_SALES_MODE=0. */
 export function salesModeOn(): boolean {
-  return process.env.COPY_SALES_MODE === '1';
+  return (process.env.NEXT_PUBLIC_COPY_SALES_MODE ?? process.env.COPY_SALES_MODE ?? '1') !== '0';
 }
 
 /**
@@ -169,7 +174,13 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   } else {
     try {
       // ★sectionCount+jobKey — 서버 선차감 게이트(1섹션=1크레딧, jobKey 멱등 = 재시도·재개 이중 차감 없음)
-      const r = await call('/api/strategy', { cat, ch, productName, productExtra, referenceStyle, sectionCount, baseSectionCount, jobKey: job.input.jobKey, speechLevel });
+      const r = await call('/api/strategy', {
+        cat, ch, productName, productExtra, referenceStyle, sectionCount, baseSectionCount,
+        // ★out 누락이 블로그 과소청구를 만들었다(2026-08-04 원장 실측: 블로그 8섹션에 -8).
+        //   서버 선차감이 out 없이 1.0/섹션으로 계산 — 블로그(1.25/섹션)가 슬라이드 요율로 나갔다.
+        out,
+        jobKey: job.input.jobKey, speechLevel,
+      });
       if (r?.error) throw new Error(r.error);
       job.stages.strategy = { status: 'done', result: r as unknown as StrategyResult };
       // ★서버가 선차감 후 반환한 실시간 잔액을 헤더로 전달(추가 조회 없음). dev bypass 시 credit 없음 → 스킵.

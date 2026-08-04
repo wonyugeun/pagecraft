@@ -1981,6 +1981,15 @@ export default function ResultScreen() {
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#6D4CFF' }} />
               {outputTypeLabel}
             </span>
+            {/* ★어투 표시(2026-08-04 유근님) — 무슨 어투로 만들어졌는지 결과 화면에서 보이게.
+                고르지 않았으면(AI 추천) 표시하지 않는다 — 없는 선택을 있던 것처럼 만들지 않는다. */}
+            {isBlog && speechLevel && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center',
+                background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 999,
+                padding: '7px 13px', fontSize: 12.5, fontWeight: 700, color: '#6B7684',
+              }}>{speechLevel} 어투</span>
+            )}
             <span style={{ fontSize: 12, color: '#B8B8C7' }}>출력 형태는 생성 전 단계에서 선택돼요</span>
           </div>
 
