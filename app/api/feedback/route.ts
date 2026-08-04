@@ -3,6 +3,7 @@ import { getSessionEmail } from '@/lib/authToken';
 import { ensureSchemaOnce, saveFeedback, checkRateLimit, clientIp, sql } from '@/lib/db';
 import { isAdminEmail } from '@/lib/portone';
 import { kakaoConfigured, sendKakaoMemo } from '@/lib/kakaoNotify';
+import { emailConfigured, sendAdminEmail } from '@/lib/emailNotify';
 
 /**
  * 고객의 소리(2026-07-30).
@@ -83,7 +84,16 @@ export async function GET(req: NextRequest) {
 function notify(email: string, rating: number | null, message: string, id: number): void {
   const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
 
-  // ★카카오톡 나에게 보내기 — 유근님 기본 알림 경로. 설정돼 있으면 항상 보낸다.
+  // ★이메일 — 유근님 기본 알림 경로(2026-08-04, 카톡은 정신없다고 하심).
+  //   본문 전문을 싣는다: 메일에서 바로 읽고 답장 여부를 정하는 게 목적이라 자르면 의미가 없다.
+  if (emailConfigured()) {
+    void sendAdminEmail(
+      `[Flik 의견 #${id}] ${rating ? `★${rating} · ` : ''}${email}`,
+      `${message}\n\n— 보낸 셀러: ${email}\n— 전체 목록: https://www.flik.kr/api/feedback (관리자 로그인 필요)`,
+    );
+  }
+
+  // 카카오톡 나에게 보내기 — 설정돼 있으면 함께 보낸다(현재 미설정).
   if (kakaoConfigured()) {
     void sendKakaoMemo(text, 'https://www.flik.kr');
   }
