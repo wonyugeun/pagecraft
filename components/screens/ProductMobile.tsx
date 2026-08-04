@@ -228,9 +228,13 @@ export default function ProductMobile() {
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',
           letterSpacing: '-0.03em', lineHeight: 1.25,
-        }}>상품 정보를<br />입력해 주세요</h1>
+        /* ★데스크탑과 같은 문구로 맞춘다(2026-08-04) — 같은 화면인데 기기마다 다른 말을 하면
+           같은 제품으로 안 읽힌다. 지어내지 않는다는 건 셀러에겐 제약이기 전에 보호다. */
+        }}>적어주신 만큼<br />좋아집니다</h1>
         <p style={{ margin: '12px 0 0', fontSize: 13, color: '#666', lineHeight: 1.6 }}>
-          입력하신 정보를 바탕으로<br />AI가 최적의 상세페이지를 제작합니다.
+          Flik은 있는 사실로만 씁니다. 지어낸 수치나 후기를<br />
+          만들어 넣지 않으니 안심하고 쓰실 수 있고,<br />
+          대신 적어주신 정보가 곧 페이지의 재료가 돼요.
         </p>
         <div style={{
           position: 'absolute', right: 16, top: 16,
@@ -266,8 +270,9 @@ export default function ProductMobile() {
         }}>
           <span style={{ fontSize: 14, lineHeight: 1.5, flexShrink: 0 }}>⚠️</span>
           <div style={{ fontSize: 12, lineHeight: 1.6, color: '#92400E' }}>
-            <b style={{ fontWeight: 700 }}>실측·검증된 정보만 입력해 주세요.</b><br />
-            입력하신 수치·효능·인증 정보는 그대로 상세페이지에 반영됩니다. 과장되거나 사실과 다른 정보 입력 시 표시광고법 위반이 될 수 있으며, 책임은 판매자에게 있습니다.
+            <b style={{ fontWeight: 700 }}>검증된 정보만 입력해 주세요.</b><br />
+            입력하신 수치·효능·인증은 그대로 페이지에 반영됩니다. 근거 없는 표현은 표시광고법 위반이 될 수 있으니,
+            시험성적서나 실측값으로 확인 가능한 내용만 적어주세요. 이에 대한 책임은 판매자에게 있습니다.
           </div>
         </div>
       </section>

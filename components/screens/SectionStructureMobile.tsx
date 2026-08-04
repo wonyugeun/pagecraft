@@ -118,10 +118,12 @@ export default function SectionStructureMobile() {
           margin: '12px 0 0',
           fontSize: 26, fontWeight: 800, color: '#111',
           letterSpacing: '-0.03em', lineHeight: 1.25,
-        }}>섹션 구조를<br />확인해주세요</h1>
+        /* ★데스크탑과 같은 문구(2026-08-04) — 기능 설명('순서 변경 가능') 대신 이 순서인 이유를 먼저 말한다 */
+        }}>이 순서가<br />잘 팔려요</h1>
         <p style={{ margin: '12px 0 0', fontSize: 13, color: '#666', lineHeight: 1.6 }}>
-          {fromRef ? '레퍼런스 분석 기반으로 설계됐어요' : fromCapture ? '캡처 분석 기반으로 설계됐어요' : '카테고리 맞춤 기본 구조예요'}<br />
-          순서 변경 · 추가 · 삭제가 가능해요
+          {fromRef ? '레퍼런스 분석을 반영했어요. ' : fromCapture ? '캡처 분석을 반영했어요. ' : ''}
+          고객이 상품을 이해하고<br />결정하는 순서예요.
+          빼거나 더하고 싶은 섹션은<br />편하게 조정하세요.
         </p>
         <div style={{
           position: 'absolute', right: 16, top: 16,
