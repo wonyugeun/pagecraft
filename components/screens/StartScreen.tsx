@@ -141,6 +141,35 @@ export default function StartScreen() {
   }, [guess, cat, setCat]);
   const autoPicked = !!cat && cat === autoRef.current;
 
+  /* ★AI 폴백(2026-08-04) — 사전은 어휘를 못 따라간다('그래놀라' 미등록으로 무반응).
+   *  사전이 모를 때만, 입력이 멈춘 뒤 800ms에 한 번 물어본다(호출당 1원 미만·크레딧 0).
+   *  ⚠️사람이 고른 값은 절대 덮어쓰지 않는다 — 사전 추측과 같은 autoRef 규칙. */
+  const aiAskedRef = useRef('');
+  useEffect(() => {
+    const name = productName.trim();
+    if (guess || name.length < 4) return;                 // 사전이 알거나 이름이 짧으면 안 묻는다
+    if (cat && cat !== autoRef.current) return;           // 사람이 고른 값 — 건드리지 않는다
+    if (aiAskedRef.current === name) return;              // 같은 이름은 한 번만
+    const t = setTimeout(() => {
+      aiAskedRef.current = name;
+      fetch('/api/category-guess', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productName: name }),
+      })
+        .then(r => (r.ok ? r.json() : null))
+        .then(d => {
+          if (!d?.cat) return;
+          // 응답이 오는 사이 이름이 바뀌었거나 사람이 골랐으면 버린다
+          if (productName.trim() !== name) return;
+          autoRef.current = d.cat;
+          setCat(d.cat);
+        })
+        .catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productName, guess, cat]);
+
   const pickCat = (id: string) => { autoRef.current = null; setCat(id); };
 
   /* 고른 카테고리가 접힌 뒤쪽(스포츠·유아·건강·자동차·기타)이면 목록에 끌어올린다 —
