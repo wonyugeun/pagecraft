@@ -23,7 +23,11 @@ import type { Block } from '@/store/AppContext';
  *  항목만 제거하고, 남는 항목이 1개 이하면 블록 자체를 뺀다(한 칸짜리 KPI는 더 이상하다). */
 const PRICE_RE = /할인|정가|판매가|가격|₩|\d[\d,]*\s*원/;
 export function scrubPriceBlocks(blocks: Block[]): Block[] {
-  return blocks.map(b => {
+  return blocks.map((b): Block | null => {
+    /* ★cta 블록은 그리지 않는다(2026-08-04 유근님: "삭제시켜야 함") — 바로 위 본문과 같은 말을
+     *  반복하는 배너였고, 눌리지도 않는다(가짜 버튼을 뺀 7/21 결정의 연장). 마지막 섹션의
+     *  카피·구매 정보 스트립이 마무리를 담당한다. */
+    if (b.type === 'cta') return null;
     if (b.type === 'stats') {
       const items = b.items.filter(i => !PRICE_RE.test(`${i.value} ${i.label}`));
       return items.length >= 2 ? { ...b, items } : null;

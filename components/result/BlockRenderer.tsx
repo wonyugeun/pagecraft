@@ -197,11 +197,13 @@ export function HeroBlock({ headline, subcopy, kpis = [], productImage, onImageC
 function HeadingBlock({ text, onChange }: { text: string; onChange?: (b: Block) => void }) {
   const t = useBlockTheme();
   return (
+    /* ★축소(2026-08-04) — 21px 제목급이라 '법적 고지'처럼 heading이 연달아 나오면
+       다음 섹션 제목과 위계가 안 갈렸다. 소제목(라벨)급으로 내린다. */
     <h2 style={{
-      margin: '40px 0 16px',
-      borderLeft: `4px solid ${t.primary}`,
-      paddingLeft: 12,
-      fontSize: 21, fontWeight: 700, lineHeight: 1.45, letterSpacing: '-0.03em',
+      margin: '22px 0 8px',
+      borderLeft: `2px solid ${t.primary}`,
+      paddingLeft: 10,
+      fontSize: 15.5, fontWeight: 700, lineHeight: 1.55, letterSpacing: '-0.02em',
       color: COLORS.text, whiteSpace: 'pre-line',
     }}>
       <Editable value={text} onCommit={onChange ? v => onChange({ type: 'heading', text: v }) : undefined} />

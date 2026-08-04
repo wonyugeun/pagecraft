@@ -41,7 +41,8 @@ export const HTML_BLOCKS_CSS = `
 .hero { margin-bottom: 32px; }
 .hero h1 { font-size: 34px; font-weight: 900; line-height: 1.35; letter-spacing: -0.04em; color: #111; }
 .hero-sub { margin-top: 20px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
-.heading { margin: 40px 0 16px; border-left: 4px solid var(--p,#6D4CFF); padding-left: 12px; font-size: 21px; font-weight: 700; line-height: 1.45; letter-spacing: -0.03em; color: #111; }
+/* ★축소(2026-08-04) — heading이 연달아 나오는 섹션(법적 고지 등)에서 다음 섹션 제목과 위계가 안 갈렸다 */
+.heading { margin: 22px 0 8px; border-left: 2px solid var(--p,#6D4CFF); padding-left: 10px; font-size: 15.5px; font-weight: 700; line-height: 1.55; letter-spacing: -0.02em; color: #111; }
 .paragraph { margin-bottom: 24px; font-size: 16px; line-height: 1.9; color: #666; white-space: pre-line; }
 
 /* ★리디자인(2026-08-04) — 박스·색 카드 제거, 헤어라인 행(화면과 동일) */
