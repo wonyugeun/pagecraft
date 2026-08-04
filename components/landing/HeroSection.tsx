@@ -41,15 +41,21 @@ export default function HeroSection() {
 
           {/* 타이틀 — 2줄 */}
           <h1 style={{
-            fontSize: '56px',
+            fontSize: '48px',
             fontWeight: 700,
             color: '#191F28',
             letterSpacing: '-1.2px',
-            lineHeight: 1.2,
+            lineHeight: 1.25,
             marginBottom: '24px',
+            /* ★한글은 기본 줄바꿈이 단어를 쪼갠다 — '직접 팔 / 아본'처럼 갈라졌다(2026-08-04) */
+            wordBreak: 'keep-all',
           }}>
-            AI가 만드는<br />
-            상세페이지, <span style={{ color: '#6D4CFF' }}>몇 분</span> 만에
+            {/* ★2026-08-04 유근님 확정 — 기능('AI가 몇 분 만에')이 아니라 만든 사람으로 시작한다.
+                AI 도구는 다 몇 분 만에 만든다고 말하므로 그것만으로는 아무것도 구분되지 않는다.
+                ⚠️'매출 50억'은 쇼핑몰 매출이다(상세페이지 매출 아님). 증빙 가능한 값만 쓸 것. */}
+            매출 <span style={{ color: '#6D4CFF' }}>50억</span>,<br />
+            직접 팔아본 사람이<br />
+            만들었습니다
           </h1>
 
           {/* 부제 */}
@@ -59,8 +65,14 @@ export default function HeroSection() {
             lineHeight: 1.7,
             marginBottom: '32px',
           }}>
-            카테고리별 전문 AI가 상품 정보를 분석해<br />
-            판매 채널에 최적화된 상세페이지를 자동으로 완성합니다.
+            {/* ★층을 나눈다 — 핵심 한 줄과 설명이 같은 크기·색이면 둘 다 안 읽힌다 */}
+            <span style={{ display: 'block', fontSize: '20px', fontWeight: 700, color: '#191F28', marginBottom: '14px', letterSpacing: '-0.4px' }}>
+              지어낸 문장 없이, 전환까지 계산한 상세페이지
+            </span>
+            <span style={{ display: 'block', fontSize: '16.5px', color: '#8B95A1', lineHeight: 1.75 }}>
+              화장품이면 성분과 법적 고지, 식품이면 원산지와 보관법 — 카테고리마다 물어보는 게 다릅니다.<br />
+              적어주신 것만으로 판매 채널에 맞춰 몇 분 만에 만듭니다.
+            </span>
           </p>
 
           {/* CTA 버튼 */}
