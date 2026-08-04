@@ -1,29 +1,11 @@
 'use client';
 
 import React from 'react';
-import { useApp, STEP_MAP, NEW_START_FLOW } from '@/store/AppContext';
+import { useApp, STEP_MAP, FLOW_STEPS } from '@/store/AppContext';
 
 // ★래퍼런스 독립 단계 폐지(2026-07-22) — 래퍼런스형(타입의 한 갈래)일 때만 s5-5를 거치며, 진행바에선 타입에 묶임.
-const STEPS = NEW_START_FLOW
-  ? [
-      { id: 'ps1',  label: '시작' },
-      { id: 'ps5',  label: '상품정보' },
-      { id: 'ps5b', label: '섹션구조' },
-      { id: 'ps6',  label: '이미지' },
-      { id: 'ps7',  label: '생성' },
-      { id: 'ps8',  label: '결과물' },
-    ]
-  : [
-      { id: 'ps1',  label: '카테고리' },
-      { id: 'ps2',  label: '채널' },
-      { id: 'ps3',  label: '타입' },
-      { id: 'ps3b', label: '출력형태' },
-      { id: 'ps5',  label: '상품정보' },
-      { id: 'ps5b', label: '섹션구조' },
-      { id: 'ps6',  label: '이미지' },
-      { id: 'ps7',  label: '생성' },
-      { id: 'ps8',  label: '결과물' },
-    ];
+// 단계 목록은 FLOW_STEPS가 유일한 소스(2026-08-04) — 모바일 레일도 같은 것을 본다.
+const STEPS = FLOW_STEPS;
 
 function stepStatus(idx: number, current: number) {
   if (idx + 1 < current) return 'done';
@@ -41,7 +23,7 @@ export default function ProgressBar() {
     <div className="prog">
       <div className="prog-inner">
         {STEPS.map((step, i) => (
-          <React.Fragment key={step.id}>
+          <React.Fragment key={step.screen}>
             <div className={`ps ${stepStatus(i, current)}`}>
               <div className="ps-n">{i + 1}</div>
               <div className="ps-l">{step.label}</div>

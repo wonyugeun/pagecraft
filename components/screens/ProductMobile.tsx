@@ -6,20 +6,12 @@ import {
   ArrowLeft, ArrowRight,
 } from 'lucide-react';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
+import MobileStepRail from '@/components/layout/MobileStepRail';
 import { pickTestPreset } from '@/lib/testPresets';
 import { PRODUCT_FORM_OPTIONS, PRODUCT_VOLUME_SUGGESTIONS, PRODUCT_SHAPE_OPTIONS } from '@/lib/productPhysicalSize';
 import {
   CQ, SECTION_MAP, SECTION_DEFS, QuestionField,
 } from './ProductScreen';
-
-const STEPS = [
-  { num: 1, label: '카테고리' },
-  { num: 2, label: '채널' },
-  { num: 3, label: '타입' },
-  { num: 4, label: '출력형태' },
-  { num: 5, label: '상품정보' },
-  { num: 6, label: '' },
-];
 
 function CompletionRing({ pct }: { pct: number }) {
   const R = 36, C = 2 * Math.PI * R;
@@ -221,47 +213,10 @@ export default function ProductMobile() {
 
       {/* 2) 진행 단계 */}
       <section style={{ padding: '8px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflowX: 'auto' }}>
-          {STEPS.map((s, i) => {
-            const active = s.num === 5;
-            const done = s.num < 5;
-            const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
-            const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
-            return (
-              <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: '50%',
-                  background: bg,
-                  border: active || done ? 'none' : '1.5px solid #ECECF2',
-                  color: fg,
-                  fontSize: 12, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{s.num}</div>
-                {s.label && (
-                  <span style={{
-                    fontSize: 12, color: active ? '#111' : done ? '#6D4CFF' : '#999',
-                    fontWeight: active ? 700 : 500,
-                  }}>{s.label}</span>
-                )}
-                {i < STEPS.length - 1 && (
-                  <div style={{ width: 12, height: 1, background: '#ECECF2' }} />
-                )}
-              </div>
-            );
-          })}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%',
-              background: '#fff', border: '1.5px solid #ECECF2',
-              color: '#999', fontSize: 12, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>10</div>
-            <span style={{ fontSize: 12, color: '#999', fontWeight: 500 }}>결과물</span>
-          </div>
-        </div>
+        <MobileStepRail screen="s5" />
       </section>
 
-      {/* 3) STEP 5/10 + 타이틀 */}
+      {/* 3) STEP 배지 + 타이틀 */}
       <section style={{ padding: '20px 20px 0', position: 'relative' }}>
         <span style={{
           display: 'inline-block',

@@ -327,12 +327,40 @@ export const CHAT_A: Record<string, string> = {
  *  ⚠️검증 전까지 플래그로 가른다 — 끄면 기존 9단계로 즉시 복귀한다. */
 export const NEW_START_FLOW = (process.env.NEXT_PUBLIC_NEW_START_FLOW ?? '1') === '1';
 
-/** 진행 표시·STEP 배지가 함께 보는 총 단계 수 — 한 곳에서만 정한다 */
-export const TOTAL_STEPS = NEW_START_FLOW ? 6 : 9;
+/* ★단계 표시의 단일 소스(2026-08-04) — 이름·번호·총개수를 여기서만 정한다.
+ *  ⚠️화면 파일에 단계 목록을 다시 적지 말 것. 데스크톱 진행바는 STEP_MAP만 쓰고 이름은
+ *  자기 파일에 따로 적어놨고, 모바일 9개 화면은 각자 9단계 배열을 복사해 갖고 있었다.
+ *  흐름이 6단계로 바뀌자 데스크톱만 따라오고 모바일은 전부 옛 9단계에 남았다 —
+ *  한 화면 안에서 배지는 'STEP 2 / 6', 그 아래 레일은 9개 중 5번째가 켜져 있었다. */
+export const FLOW_STEPS: Array<{ screen: string; label: string }> = NEW_START_FLOW
+  ? [
+      { screen: 's1',   label: '시작' },
+      { screen: 's5',   label: '상품정보' },
+      { screen: 's5b',  label: '섹션구조' },
+      { screen: 's6',   label: '이미지' },
+      { screen: 's7',   label: '생성' },
+      { screen: 's8',   label: '결과물' },
+    ]
+  : [
+      { screen: 's1',   label: '카테고리' },
+      { screen: 's2',   label: '채널' },
+      { screen: 's3',   label: '타입' },
+      { screen: 's3b',  label: '출력형태' },
+      { screen: 's5',   label: '상품정보' },
+      { screen: 's5b',  label: '섹션구조' },
+      { screen: 's6',   label: '이미지' },
+      { screen: 's7',   label: '생성' },
+      { screen: 's8',   label: '결과물' },
+    ];
 
-export const STEP_MAP: Record<string, number> = NEW_START_FLOW
-  ? { s1: 1, 's5-5': 1, s5: 2, 's5b': 3, s6: 4, s7: 5, s8: 6 }
-  : { s1: 1, s2: 2, s3: 3, 's5-5': 3, s3b: 4, s5: 5, 's5b': 6, s6: 7, s7: 8, s8: 9 };
+/** 진행 표시·STEP 배지가 함께 보는 총 단계 수 — 한 곳에서만 정한다 */
+export const TOTAL_STEPS = FLOW_STEPS.length;
+
+/* 화면 → 단계 번호. s5-5(래퍼런스 분석)는 독립 단계가 아니라 앞 단계의 갈래라 별도로 얹는다. */
+export const STEP_MAP: Record<string, number> = {
+  ...Object.fromEntries(FLOW_STEPS.map((s, i) => [s.screen, i + 1])),
+  's5-5': NEW_START_FLOW ? 1 : 3,
+};
 
 /* ── 새로고침 복원: 단계+입력값을 sessionStorage에 영속화(탭 닫으면 정리). 크레딧·생성결과·이미지는 제외(부작용 방지). ── */
 const PERSIST_KEY = 'pc_wizard_v1';

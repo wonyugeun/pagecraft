@@ -3,11 +3,12 @@
 import {
   Sparkles, Rocket, Store, Lightbulb,
   Check, ChevronUp, ArrowLeft, ArrowRight,
-  Zap, MoreHorizontal,
+  Zap,
   FileText, ShoppingBag, ImageIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
+import MobileStepRail from '@/components/layout/MobileStepRail';
 import { baseSectionCount } from '@/lib/sectionDepth';
 
 type ChannelKey = '스마트스토어' | '쿠팡' | '자사몰' | '와디즈';
@@ -27,14 +28,6 @@ const CHANNELS: ChannelDef[] = [
   { key: '쿠팡',         iconBg: '#FFE4F0', iconColor: '#FF4D8D', iconNode: Rocket,     sub: '로켓배송 환경',     chip1: '이미지 중심 구조', chip2: '빠른 구매 전환' },
   { key: '자사몰',       iconBg: '#EDE8FF', iconColor: '#6D4CFF', iconNode: Store,      sub: '브랜드 직접 운영',  chip1: '스토리텔링 중심',  chip2: '브랜드 경험 강화' },
   { key: '와디즈',       iconBg: '#FFF4DD', iconColor: '#F59E0B', iconNode: Lightbulb,  sub: '펀딩 · 예약판매',   chip1: '설득형 긴 스토리', chip2: '후원 전환에 최적' },
-];
-
-const STEPS = [
-  { num: 1, label: '카테고리' },
-  { num: 2, label: '채널' },
-  { num: 3, label: '타입' },
-  { num: 4, label: '출력형태' },
-  { num: 5, label: '상품정보' },
 ];
 
 // (구 SECTION_COUNT_MAP 삭제 — 섹션 수는 채널이 아니라 카테고리+타입이 결정(lib/sectionDepth).
@@ -109,40 +102,10 @@ export default function ChannelMobile() {
 
       {/* 2) 진행 단계 */}
       <section style={{ padding: '8px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflowX: 'auto' }}>
-          {STEPS.map((s, i) => {
-            const active = s.num === 2;
-            return (
-              <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: '50%',
-                  background: active ? '#6D4CFF' : '#fff',
-                  border: active ? 'none' : '1.5px solid #ECECF2',
-                  color: active ? '#fff' : '#999',
-                  fontSize: 12, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{s.num}</div>
-                <span style={{
-                  fontSize: 12, color: active ? '#111' : '#999',
-                  fontWeight: active ? 700 : 500,
-                }}>{s.label}</span>
-                {i < STEPS.length - 1 && (
-                  <div style={{ width: 12, height: 1, background: '#ECECF2' }} />
-                )}
-              </div>
-            );
-          })}
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: '#fff', border: '1.5px solid #ECECF2',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <MoreHorizontal size={12} color="#999" />
-          </div>
-        </div>
+        <MobileStepRail screen="s2" />
       </section>
 
-      {/* 3) STEP 2/10 + 타이틀 */}
+      {/* 3) STEP 배지 + 타이틀 */}
       <section style={{ padding: '20px 20px 0', textAlign: 'center' }}>
         <span style={{
           display: 'inline-block',

@@ -33,7 +33,13 @@ import { STEP_MAP } from '@/store/AppContext';
 // ★모바일 자체 헤더(로고·크레딧·스텝)를 렌더하는 화면들 — 이 화면들은 모바일에서 앱 레벨
 //   데스크톱 크롬(TopBar/ProgressBar)을 렌더하면 헤더·스텝이 2중 표시된다. 모바일 변형이 없는
 //   화면(s0 로그인·s-quick·s-thumb·s3b 아웃풋)은 앱 크롬이 유일한 크롬이므로 그대로 유지.
-const SCREENS_WITH_MOBILE_VARIANT = new Set(['s-dash', 's1', 's2', 's3', 's5', 's5-5', 's5b', 's6', 's7', 's8']);
+//   ⚠️'모바일 변형이 있는 화면'과 정확히 일치해야 한다. s1은 새 흐름에서 StartScreen(모바일 변형
+//   없음)이 되는데 이 목록에 남아 있어, 폰으로 보면 로고·크레딧·진행 단계가 통째로 사라졌다.
+//   (구 흐름에서만 s1 = CategoryScreen → CategoryMobile이라 자체 크롬이 있다.)
+const SCREENS_WITH_MOBILE_VARIANT = new Set([
+  's-dash', 's2', 's3', 's5', 's5-5', 's5b', 's6', 's7', 's8',
+  ...(NEW_START_FLOW ? [] : ['s1']),
+]);
 
 function App() {
   const { screen, go } = useApp();

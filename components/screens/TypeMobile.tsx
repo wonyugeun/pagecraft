@@ -2,12 +2,13 @@
 
 import {
   Sparkles, FileText, Check, ChevronDown, Lightbulb,
-  ArrowLeft, ArrowRight, MoreHorizontal,
+  ArrowLeft, ArrowRight,
   Zap, Clock, BarChart3, TrendingUp, Star, StarHalf, ScanSearch,
 } from 'lucide-react';
 import { useState } from 'react';
 import { calculateGenerationCost } from '@/lib/pricing';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
+import MobileStepRail from '@/components/layout/MobileStepRail';
 import TypeExampleModal from '@/components/modals/TypeExampleModal';
 import { ENABLE_REFERENCE_TYPE } from '@/lib/engineFlag';
 import { baseSectionCount } from '@/lib/sectionDepth';
@@ -21,14 +22,6 @@ function fillChips(secs: string[], count: number): string[] {
 }
 const FB_BASIC = ['히어로', '핵심 강점', '상세 정보', '사용법', '비교표', '후기', 'FAQ', 'CTA'];
 const FB_PREMIUM = ['히어로', '브랜드 세계관', '핵심 강점', '상세 정보', '근거/신뢰', '사용법', '비교표', '감성 카피', '후기', 'FAQ', 'CTA'];
-
-const STEPS = [
-  { num: 1, label: '카테고리' },
-  { num: 2, label: '채널' },
-  { num: 3, label: '타입' },
-  { num: 4, label: '출력형태' },
-  { num: 5, label: '상품정보' },
-];
 
 function PowerRow({ icon, label, basicLevel, premiumLevel }: {
   icon: React.ReactNode; label: string; basicLevel: number; premiumLevel: number;
@@ -146,40 +139,10 @@ export default function TypeMobile() {
 
       {/* 2) 진행 단계 */}
       <section style={{ padding: '8px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', overflowX: 'auto' }}>
-          {STEPS.map((s, i) => {
-            const active = s.num === 3;
-            return (
-              <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: '50%',
-                  background: active ? '#6D4CFF' : '#fff',
-                  border: active ? 'none' : '1.5px solid #ECECF2',
-                  color: active ? '#fff' : '#999',
-                  fontSize: 12, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{s.num}</div>
-                <span style={{
-                  fontSize: 12, color: active ? '#111' : '#999',
-                  fontWeight: active ? 700 : 500,
-                }}>{s.label}</span>
-                {i < STEPS.length - 1 && (
-                  <div style={{ width: 12, height: 1, background: '#ECECF2' }} />
-                )}
-              </div>
-            );
-          })}
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: '#fff', border: '1.5px solid #ECECF2',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <MoreHorizontal size={12} color="#999" />
-          </div>
-        </div>
+        <MobileStepRail screen="s3" />
       </section>
 
-      {/* 3) STEP 3/10 + 타이틀 */}
+      {/* 3) STEP 배지 + 타이틀 */}
       <section style={{ padding: '20px 20px 0' }}>
         <span style={{
           display: 'inline-block',

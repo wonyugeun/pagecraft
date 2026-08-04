@@ -8,18 +8,7 @@ import {
 } from 'lucide-react';
 import { compressUpload } from '@/lib/imageCompress';
 import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
-
-const STEPS = [
-  { num: 1, label: '카테고리' },
-  { num: 2, label: '채널' },
-  { num: 3, label: '타입' },
-  { num: 4, label: '출력형태' },
-  { num: 5, label: '상품정보' },
-  { num: 6, label: '섹션구조' },
-  { num: 7, label: '이미지' },
-  { num: 8, label: '생성' },
-  { num: 9, label: '결과물' },
-];
+import MobileStepRail from '@/components/layout/MobileStepRail';
 
 const GUIDES = [
   { Icon: ImageIcon, title: '고해상도 사용',    desc: '가로 2000px 이상 권장' },
@@ -195,38 +184,12 @@ export default function ImageMobile() {
         </div>
       </header>
 
-      {/* 2) 진행 단계 1~10 */}
+      {/* 2) 진행 단계 */}
       <section style={{ padding: '8px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', overflowX: 'auto' }}>
-          {STEPS.map((s, i) => {
-            const active = s.num === 7;
-            const done = s.num < 7;
-            const bg = active ? '#6D4CFF' : done ? '#DDD6FE' : '#fff';
-            const fg = active ? '#fff' : done ? '#6D4CFF' : '#999';
-            return (
-              <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <div style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  background: bg,
-                  border: active || done ? 'none' : '1.5px solid #ECECF2',
-                  color: fg,
-                  fontSize: 11, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{s.num}</div>
-                <span style={{
-                  fontSize: 11, color: active ? '#111' : done ? '#6D4CFF' : '#999',
-                  fontWeight: active ? 700 : 500,
-                }}>{s.label}</span>
-                {i < STEPS.length - 1 && (
-                  <div style={{ width: 8, height: 1, background: '#ECECF2' }} />
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <MobileStepRail screen="s6" />
       </section>
 
-      {/* 3) STEP 8/10 + 타이틀 */}
+      {/* 3) STEP 배지 + 타이틀 */}
       <section style={{ padding: '20px 20px 0' }}>
         <span style={{
           display: 'inline-block',

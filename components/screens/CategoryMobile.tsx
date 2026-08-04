@@ -4,11 +4,12 @@ import { useState } from 'react';
 import {
   Sparkles, Package, Shirt, Sofa, Smartphone, Dog,
   Volleyball, Baby, Car, Dumbbell, Gift, Search,
-  Zap, MessageCircle, MoreHorizontal,
+  Zap, MessageCircle,
   ArrowRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useApp } from '@/store/AppContext';
+import { useApp, STEP_MAP, TOTAL_STEPS } from '@/store/AppContext';
+import MobileStepRail from '@/components/layout/MobileStepRail';
 import { useRecentCat } from './CategoryScreen';
 
 interface CategoryItem {
@@ -36,14 +37,6 @@ const CATEGORIES: CategoryItem[] = [
 const ETC: CategoryItem = {
   id: '기타', name: '기타', desc: '그 외 카테고리', Icon: Gift, bg: '#FFF0F5', color: '#FF4D8D',
 };
-
-const STEPS = [
-  { num: 1, label: '카테고리' },
-  { num: 2, label: '채널' },
-  { num: 3, label: '타입' },
-  { num: 4, label: '출력형태' },
-  { num: 5, label: '상품정보' },
-];
 
 export default function CategoryMobile() {
   const { setCat, go, toggleChat, credits } = useApp();
@@ -130,53 +123,12 @@ export default function CategoryMobile() {
         </div>
       </header>
 
-      {/* 2) 진행 단계 1~5 + 더보기 */}
+      {/* 2) 진행 단계 */}
       <section style={{ padding: '12px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-          {STEPS.map((s, i) => {
-            const active = s.num === 1;
-            return (
-              <div key={s.num} style={{
-                flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                position: 'relative',
-              }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: '50%',
-                  background: active ? '#6D4CFF' : '#fff',
-                  border: active ? 'none' : '1.5px solid #ECECF2',
-                  color: active ? '#fff' : '#999',
-                  fontSize: 13, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 1,
-                }}>{s.num}</div>
-                <span style={{
-                  marginTop: 6, fontSize: 11,
-                  color: active ? '#111' : '#999',
-                  fontWeight: active ? 700 : 500,
-                }}>{s.label}</span>
-                {/* 연결선 */}
-                {i < STEPS.length - 1 && (
-                  <div style={{
-                    position: 'absolute', top: 15, left: 'calc(50% + 18px)', right: 'calc(-50% + 18px)',
-                    height: 1, background: '#ECECF2',
-                  }} />
-                )}
-              </div>
-            );
-          })}
-          {/* 더보기 ... */}
-          <div style={{
-            width: 30, height: 30, borderRadius: '50%',
-            background: '#fff', border: '1.5px solid #ECECF2',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <MoreHorizontal size={14} color="#999" />
-          </div>
-        </div>
+        <MobileStepRail screen="s1" />
       </section>
 
-      {/* 3) 1/10 배지 */}
+      {/* 3) STEP 배지 */}
       <section style={{ padding: '24px 20px 0' }}>
         <span style={{
           display: 'inline-block',
@@ -184,7 +136,7 @@ export default function CategoryMobile() {
           fontSize: 11, fontWeight: 700,
           borderRadius: 999, padding: '4px 12px',
         }}>
-          1 / 10
+          STEP {STEP_MAP['s1'] ?? 1} / {TOTAL_STEPS}
         </span>
       </section>
 
