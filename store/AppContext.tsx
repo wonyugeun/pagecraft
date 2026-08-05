@@ -115,6 +115,13 @@ export interface HistoryItem {
   sections: Section[];
   /** ★결제 멱등키(P0 2차) — 이 생성 작업의 jobKey. 재생성·이미지 생성의 결제 검증에 사용(구항목은 없음=차단) */
   jobKey?: string;
+  /* ★상품정보 입력 보존(2026-08-05) — 기록에서 다시 열어도 '뭘 입력해서 이 결과가 나왔는지'가
+     남아야 한다(의견 메일 대조·재생성 재료). 구항목엔 없음 → 빈 값 복원. */
+  productExtra?: string;
+  reviews?: string;
+  brand?: string;
+  diff?: string;
+  speechLevel?: string;
   sectionImages?: Record<string, string>;  // sec.num → data URL
   blockImages?: Record<string, string>;    // `${sec.num}#${blockIdx}` → data URL
 }
@@ -512,6 +519,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const existing: HistoryItem[] = JSON.parse(localStorage.getItem(key) || '[]');
       const newItem: HistoryItem = {
         ...data,
+        // 입력 재료도 함께 보존 — 호출부가 아니라 여기서 상태를 직접 읽는다(호출부 5곳 수정 불필요)
+        productExtra, reviews, brand, diff, speechLevel,
         id: Date.now().toString(),
         createdAt: new Date().toISOString(),
       };
@@ -592,19 +601,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setOutState(item.out);
     setSecCntState(item.secCnt);
     setProductNameState(item.productName);
-    setProductExtraState('');
+    setProductExtraState(item.productExtra ?? '');
     setProductImagesState([]);
     setPackagingRefImageState(null);   // ★포장컷도 초기화 — 이전 상품 포장이 새 상품에 새는 것 방지
     setReferenceAnalysisState(null);
     setCaptureAnalysisState(null);
     setSectionStructureState([]);
     setOriginalSectionsState([]);
-    setBrand('');
-    setDiff('');
+    setBrand(item.brand ?? '');
+    setDiff(item.diff ?? '');
     setExtraNote('');
-    setSpeechLevel('');
+    setSpeechLevel(item.speechLevel ?? '');
     setBrandIntro('');
-    setReviews('');
+    setReviews(item.reviews ?? '');
     setProductForm('');
     setProductVolume('');
     setProductShapeProfile('');
