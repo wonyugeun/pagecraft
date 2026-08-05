@@ -19,7 +19,7 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.NOTIFY_SMTP_USER && process.env.NOTIFY_SMTP_PASS);
 }
 
-export async function sendAdminEmail(subject: string, text: string): Promise<void> {
+export async function sendAdminEmail(subject: string, text: string, imageDataUrl?: string | null): Promise<void> {
   const user = process.env.NOTIFY_SMTP_USER;
   const pass = process.env.NOTIFY_SMTP_PASS;
   if (!user || !pass) return;
@@ -37,6 +37,10 @@ export async function sendAdminEmail(subject: string, text: string): Promise<voi
       to: process.env.NOTIFY_EMAIL_TO ?? user,
       subject,
       text,
+      // 셀러가 첨부한 스크린샷 — 메일에서 바로 봐야 회신 판단이 된다(data URL은 nodemailer가 해석)
+      ...(imageDataUrl?.startsWith('data:image/')
+        ? { attachments: [{ filename: '첨부이미지.png', path: imageDataUrl }] }
+        : {}),
     });
   } catch (err) {
     console.error('[emailNotify] 발송 실패:', err);
