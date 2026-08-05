@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     await transporter.sendMail({
       from: `"Flik 알림" <${user}>`, to: process.env.NOTIFY_EMAIL_TO ?? user,
       subject: '[Flik] 이메일 알림 테스트 ✅', text: '이 메일이 왔다면 알림 설정 완료입니다. 첨부이미지.png가 붙어 있으면 이미지 첨부도 정상입니다.',
-      attachments: [{ filename: '첨부이미지.png', path: TEST_PNG }],
+      attachments: [{ filename: '첨부이미지.png', content: Buffer.from(TEST_PNG.slice(TEST_PNG.indexOf(',') + 1), 'base64') }],
     });
     return NextResponse.json({ ok: true, check, 결과: '발송 성공 — 메일함(스팸함 포함)을 확인하세요.' });
   } catch (err) {

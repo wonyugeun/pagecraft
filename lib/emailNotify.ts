@@ -37,9 +37,15 @@ export async function sendAdminEmail(subject: string, text: string, imageDataUrl
       to: process.env.NOTIFY_EMAIL_TO ?? user,
       subject,
       text,
-      // 셀러가 첨부한 스크린샷 — 메일에서 바로 봐야 회신 판단이 된다(data URL은 nodemailer가 해석)
+      // 셀러가 첨부한 스크린샷 — 메일에서 바로 봐야 회신 판단이 된다.
+      // data URL을 nodemailer path로 넘기지 않고 직접 디코드한다(해석 실패 여지 제거).
       ...(imageDataUrl?.startsWith('data:image/')
-        ? { attachments: [{ filename: '첨부이미지.png', path: imageDataUrl }] }
+        ? {
+            attachments: [{
+              filename: `첨부이미지.${/^data:image\/png/.test(imageDataUrl) ? 'png' : 'jpg'}`,
+              content: Buffer.from(imageDataUrl.slice(imageDataUrl.indexOf(',') + 1), 'base64'),
+            }],
+          }
         : {}),
     });
   } catch (err) {

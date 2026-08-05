@@ -45,7 +45,20 @@ export default function FeedbackModal({
         r.onerror = () => rej(new Error('read'));
         r.readAsDataURL(file);
       });
-      setImage(await compressUpload(raw, 900, 0.75));
+      // ★서버 상한(약 1.5M자)을 넘으면 조용히 버려진다 — 상한에 들 때까지 단계적으로 줄이고,
+      //   그래도 안 되면 사용자에게 말한다(조용한 실패 금지).
+      let out = await compressUpload(raw, 900, 0.75);
+      for (const [w, q] of [[700, 0.6], [520, 0.5]] as const) {
+        if (out.length <= 1_400_000) break;
+        out = await compressUpload(raw, w, q);
+      }
+      if (!/^data:image\/(jpeg|png|webp)/.test(out)) {
+        setErr('이 형식은 첨부할 수 없어요 — 스크린샷(PNG/JPG)으로 다시 시도해주세요.'); return;
+      }
+      if (out.length > 1_400_000) {
+        setErr('이미지가 너무 커서 첨부할 수 없어요 — 화면 일부만 잘라 다시 첨부해주세요.'); return;
+      }
+      setImage(out);
     } catch { setErr('이미지를 불러오지 못했어요.'); }
   };
 

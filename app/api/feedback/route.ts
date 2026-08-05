@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const id = await saveFeedback({ email, message, rating, context: body?.context ?? null, image });
     // ★after 필수(2026-08-05) — 서버리스는 응답을 보내면 곧바로 얼어붙는다. void로 흘려보내면
     //   SMTP 연결이 중간에 잘려 메일이 조용히 증발한다(실측). after가 발송 완료까지 수명을 늘린다.
-    after(() => notify(email, rating, message, id, image));   // 알림은 실패해도 저장을 막지 않는다
+    after(() => notify(email, rating, message, id, image, body?.context ?? null));   // 알림은 실패해도 저장을 막지 않는다
     return NextResponse.json({ ok: true, id });
   } catch (err) {
     console.error('[feedback] 저장 실패:', err);
@@ -83,7 +83,24 @@ export async function GET(req: NextRequest) {
  *              + FEEDBACK_TELEGRAM_CHAT_ID=<본인 chat id>
  *   · 슬랙/디스코드: 발급받은 Incoming Webhook URL 그대로
  */
-async function notify(email: string, rating: number | null, message: string, id: number, image: string | null): Promise<void> {
+/** 상품정보·생성 설정 스냅샷을 메일에서 읽기 좋게 — 값 있는 항목만 */
+function contextLines(ctx: Record<string, unknown> | null): string {
+  if (!ctx) return '';
+  const LABELS: Array<[string, string]> = [
+    ['productName', '상품명'], ['cat', '카테고리'], ['ch', '채널'], ['out', '출력형태'],
+    ['type', '유형'], ['sectionCount', '섹션 수'], ['speechLevel', '어투'], ['brand', '브랜드'],
+    ['screen', '보낸 화면'], ['credits', '보유 크레딧'], ['productExtra', '상품정보 메모'],
+  ];
+  const lines = LABELS
+    .map(([k, label]) => {
+      const v = ctx[k];
+      return v !== undefined && v !== null && String(v).trim() !== '' ? `· ${label}: ${String(v).slice(0, 300)}` : null;
+    })
+    .filter(Boolean);
+  return lines.length ? `\n[셀러의 작업 정보]\n${lines.join('\n')}` : '';
+}
+
+async function notify(email: string, rating: number | null, message: string, id: number, image: string | null, context: Record<string, unknown> | null): Promise<void> {
   const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
 
   // ★이메일 — 유근님 기본 알림 경로(2026-08-04, 카톡은 정신없다고 하심).
@@ -91,7 +108,7 @@ async function notify(email: string, rating: number | null, message: string, id:
   if (emailConfigured()) {
     await sendAdminEmail(
       `[Flik 의견 #${id}] ${rating ? `★${rating} · ` : ''}${email}`,
-      `${message}\n\n— 보낸 셀러: ${email}\n— 전체 목록: https://www.flik.kr/api/feedback (관리자 로그인 필요)`,
+      `${message}\n${contextLines(context)}\n\n— 보낸 셀러: ${email}\n— 전체 목록: https://www.flik.kr/api/feedback (관리자 로그인 필요)`,
       image,
     );
   }
