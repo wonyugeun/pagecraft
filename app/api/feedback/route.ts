@@ -92,7 +92,7 @@ function contextLines(ctx: Record<string, unknown> | null): string {
   const LABELS: Array<[string, string]> = [
     ['productName', '상품명'], ['cat', '카테고리'], ['ch', '채널'], ['out', '출력형태'],
     ['type', '유형'], ['sectionCount', '섹션 수'], ['speechLevel', '어투'], ['brand', '브랜드'],
-    ['screen', '보낸 화면'], ['credits', '보유 크레딧'], ['productExtra', '상품정보 메모'],
+    ['screen', '보낸 화면'], ['credits', '보유 크레딧'],
   ];
   const lines = LABELS
     .map(([k, label]) => {
@@ -100,7 +100,18 @@ function contextLines(ctx: Record<string, unknown> | null): string {
       return v !== undefined && v !== null && String(v).trim() !== '' ? `· ${label}: ${String(v).slice(0, 300)}` : null;
     })
     .filter(Boolean);
-  return lines.length ? `\n[셀러의 작업 정보]\n${lines.join('\n')}` : '';
+  // ★상품정보·후기는 전문을 싣는다 — 무엇을 입력해서 이 결과가 나왔는지 대조하는 게 목적이라
+  //   잘라내면 판단이 안 된다(2026-08-05 유근님).
+  const blocks: string[] = [];
+  const extra = String(ctx.productExtra ?? '').trim();
+  if (extra) blocks.push(`[상품정보 입력 전문]\n${extra.slice(0, 6000)}`);
+  const reviews = String(ctx.reviews ?? '').trim();
+  if (reviews) blocks.push(`[고객 후기 입력 전문]\n${reviews.slice(0, 3000)}`);
+  const parts = [
+    lines.length ? `[셀러의 작업 정보]\n${lines.join('\n')}` : '',
+    ...blocks,
+  ].filter(Boolean);
+  return parts.length ? `\n${parts.join('\n\n')}` : '';
 }
 
 async function notify(email: string, rating: number | null, message: string, id: number, image: string | null, context: Record<string, unknown> | null): Promise<void> {

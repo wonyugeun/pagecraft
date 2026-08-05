@@ -2616,7 +2616,7 @@ export default function ResultScreen() {
         onClose={() => setFeedbackOpen(false)}
         context={{
           screen: 'result',
-          productName, productExtra, diff, brand,
+          productName, productExtra, reviews, diff, brand,
           cat, ch, type, out,
           sectionCount: displaySections.length,
           speechLevel,
