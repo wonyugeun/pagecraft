@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Star, ImagePlus, Send, Check } from 'lucide-react';
 import { compressUpload } from '@/lib/imageCompress';
 
@@ -12,19 +12,39 @@ import { compressUpload } from '@/lib/imageCompress';
  * ★이미지는 클라이언트에서 압축해서 보낸다(원본 그대로 보내면 전송 실패가 잦다).
  */
 export default function FeedbackModal({
-  open, onClose, context,
+  open, onClose, context, getAutoImage,
 }: {
   open: boolean;
   onClose: () => void;
   context: Record<string, unknown>;
+  /** 결과 화면이 주는 '지금 만든 결과물' 캡처 — 있으면 열릴 때 자동 첨부(2026-08-05 유근님:
+   *  다운받아 다시 첨부하는 이중 수고 제거). 실패해도 조용히 없이 진행. */
+  getAutoImage?: () => Promise<string | null>;
 }) {
   const [rating, setRating] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [autoAttached, setAutoAttached] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const autoTriedRef = useRef(false);
+
+  // 열릴 때 결과물 자동 첨부 — 한 번만 시도, 사용자가 X로 빼면 다시 붙이지 않는다
+  useEffect(() => {
+    if (!open) { autoTriedRef.current = false; return; }
+    if (autoTriedRef.current || !getAutoImage) return;
+    autoTriedRef.current = true;
+    let cancelled = false;
+    setAutoLoading(true);
+    getAutoImage()
+      .then(url => { if (!cancelled && url) { setImage(url); setAutoAttached(true); } })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setAutoLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, getAutoImage]);
 
   if (!open) return null;
 
@@ -49,16 +69,16 @@ export default function FeedbackModal({
       //   그래도 안 되면 사용자에게 말한다(조용한 실패 금지).
       let out = await compressUpload(raw, 900, 0.75);
       for (const [w, q] of [[700, 0.6], [520, 0.5]] as const) {
-        if (out.length <= 1_400_000) break;
+        if (out.length <= 3_300_000) break;
         out = await compressUpload(raw, w, q);
       }
       if (!/^data:image\/(jpeg|png|webp)/.test(out)) {
         setErr('이 형식은 첨부할 수 없어요 — 스크린샷(PNG/JPG)으로 다시 시도해주세요.'); return;
       }
-      if (out.length > 1_400_000) {
+      if (out.length > 3_300_000) {
         setErr('이미지가 너무 커서 첨부할 수 없어요 — 화면 일부만 잘라 다시 첨부해주세요.'); return;
       }
-      setImage(out);
+      setImage(out); setAutoAttached(false);
     } catch { setErr('이미지를 불러오지 못했어요.'); }
   };
 
@@ -167,12 +187,18 @@ export default function FeedbackModal({
 
             {/* 이미지 첨부 */}
             <div style={{ marginTop: 10 }}>
+              {autoLoading && !image && (
+                <div style={{ fontSize: 12.5, color: '#8B95A1', padding: '6px 0' }}>결과물 이미지를 준비하고 있어요…</div>
+              )}
               {image ? (
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={image} alt="첨부" style={{ maxHeight: 120, borderRadius: 10, display: 'block', border: '1px solid #ECECF2' }} />
+                  {autoAttached && (
+                    <div style={{ fontSize: 11.5, color: '#8B95A1', marginTop: 5 }}>지금 보고 있는 결과물이 자동 첨부됐어요</div>
+                  )}
                   <button
-                    onClick={() => setImage(null)} aria-label="첨부 제거"
+                    onClick={() => { setImage(null); setAutoAttached(false); }} aria-label="첨부 제거"
                     style={{
                       position: 'absolute', top: -7, right: -7, width: 24, height: 24, borderRadius: '50%',
                       background: '#191F28', color: '#fff', border: 'none', cursor: 'pointer',

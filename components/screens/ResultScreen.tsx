@@ -243,6 +243,42 @@ export async function downloadFullLongImage(container: HTMLElement, productName:
   return true;
 }
 
+/** ★의견 자동 첨부용 전체 페이지 캡처(2026-08-05) — 다운로드 없이 압축 JPEG data URL로 돌려준다.
+ *  서버 상한(3.5M자) 안에 들 때까지 폭·화질을 줄인다. 실패하면 null(의견 전송은 계속). */
+export async function capturePageForFeedback(container: HTMLElement): Promise<string | null> {
+  try {
+    const { domToCanvas } = await import('modern-screenshot');
+    const units = (Array.from(container.children) as HTMLElement[]).filter(el => el.offsetHeight > 0 && el.children.length > 0);
+    if (units.length === 0) return null;
+    const canvases: HTMLCanvasElement[] = [];
+    for (const u of units) canvases.push(await domToCanvas(u, EXPORT_CAPTURE_OPTS));
+    const totalH = canvases.reduce((sum, c) => sum + c.height, 0);
+    if (!totalH) return null;
+    for (const [w, q] of [[640, 0.72], [560, 0.6], [480, 0.5]] as const) {
+      const scale = w / EXPORT_W;
+      const cv = document.createElement('canvas');
+      cv.width = w;
+      cv.height = Math.round(totalH * scale);
+      const ctx = cv.getContext('2d');
+      if (!ctx) return null;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      let y = 0;
+      for (const c of canvases) {
+        const h = Math.round(c.height * scale);
+        ctx.drawImage(c, 0, y, w, h);
+        y += h;
+      }
+      const url = cv.toDataURL('image/jpeg', q);
+      if (url.length <= 3_300_000) return url;
+    }
+    return null;   // 극단적으로 긴 페이지 — 자동 첨부 포기(수동 첨부는 가능)
+  } catch (e) {
+    console.warn('[capturePageForFeedback] 캡처 실패 — 자동 첨부 없이 진행:', e);
+    return null;
+  }
+}
+
 /** ★스마트스토어 HTML용 블록 캡처 — [data-export-block] 마커의 디자인 블록들을 개별 data URL로.
  *  키: `${secNum}#${blockIdx}`. 캡처 실패 블록은 맵에서 빠지고 인라인 HTML로 폴백된다.
  *  화질: 2배 해상도(레티나·네이버 재압축 대비). 그림자: export-capture-clean으로 제거(흰 배경 순수 유지 —
@@ -2610,10 +2646,11 @@ export default function ResultScreen() {
         </div>
       )}
 
-      {/* ★고객의 소리 — 이번 생성의 맥락을 자동 첨부(무엇으로 만든 결과인지 알아야 고칠 수 있음) */}
+      {/* ★고객의 소리 — 이번 생성의 맥락 + 지금 보고 있는 결과물 캡처를 자동 첨부 */}
       <FeedbackModal
         open={feedbackOpen}
         onClose={() => setFeedbackOpen(false)}
+        getAutoImage={() => captureRef.current ? capturePageForFeedback(captureRef.current) : Promise.resolve(null)}
         context={{
           screen: 'result',
           productName, productExtra, reviews, diff, brand,

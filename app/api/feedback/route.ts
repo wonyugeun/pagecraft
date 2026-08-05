@@ -15,8 +15,9 @@ import { emailConfigured, sendAdminEmail } from '@/lib/emailNotify';
  */
 export const maxDuration = 30;
 
-/** 이미지 상한 — 클라이언트가 압축해 보내지만 서버에서도 방어 */
-const MAX_IMAGE_CHARS = 1_500_000;   // 약 1MB data URL
+/** 이미지 상한 — 클라이언트가 압축해 보내지만 서버에서도 방어.
+ *  결과물 전체 캡처(자동 첨부)가 실리므로 Vercel 요청 상한(4.5MB) 아래 최대치로. */
+const MAX_IMAGE_CHARS = 3_500_000;   // 약 2.6MB 바이너리
 
 export async function POST(req: NextRequest) {
   await ensureSchemaOnce();
