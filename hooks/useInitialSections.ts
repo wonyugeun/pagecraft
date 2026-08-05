@@ -20,7 +20,8 @@ import { CAT_DEFAULTS } from '@/components/screens/SectionStructureScreen';
  */
 export function useInitialSections(enabled: boolean = true) {
   const { cat, ch, type, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis,
-    sectionStructure, setSectionStructure, originalSections, setOriginalSections, setSectionDescs,
+    sectionStructure, setSectionStructure, originalSections, setOriginalSections,
+    sectionDescs, setSectionDescs,
     structureForCount, setStructureForCount, setSectionSuggestions,
     structureForFacts, setStructureForFacts } = useApp();
 
@@ -117,6 +118,51 @@ export function useInitialSections(enabled: boolean = true) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, depthChanged]);
 
+  /* ★설명 없는 구조를 그대로 두지 않는다(2026-08-06 유근님: "설명 안 하는 거 있고 추천 안 함,
+   *  로딩도 없이 바로 떠버림"). 구조가 채워지는 경로는 AI 말고도 여럿이다 —
+   *  임시저장 복원·레퍼런스·캡처·AI 실패 폴백. 그 경로들은 이름만 남기고 설명·추천을 안 만든다.
+   *  구조가 있는데 설명이 비어 있으면, 구조는 건드리지 않고 설명·추천만 받아 채운다. */
+  /* ⚠️'하나도 없을 때'가 아니라 '하나라도 빠졌을 때' 채운다 — AI가 개수를 모자라게 주면
+   *  코드가 예비 이름으로 자리를 채우는데(POOL) 그 섹션엔 설명이 없다. 셀러 눈에는
+   *  "어떤 건 설명이 있고 어떤 건 없는" 상태로 보인다. 셀러가 직접 더한 섹션도 같은 처지다.
+   *  구성이 실제로 달라졌을 때만(이름 집합 기준, 순서 변경은 제외) 한 번 호출한다. */
+  const descFillRef = useRef('');
+  const missingDesc = sectionStructure.filter(n => !(sectionDescs[n] ?? '').trim()).length;
+  const structureSig = [...sectionStructure].sort().join('|');
+  useEffect(() => {
+    if (!enabled || recommendLoading) return;
+    if (sectionStructure.length === 0 || missingDesc === 0) return;
+    if (descFillRef.current === structureSig) return;
+    descFillRef.current = structureSig;
+
+    setRecommendLoading(true);
+    fetch('/api/recommend-sections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cat: cat ?? '기타',
+        ch: ch ?? '스마트스토어',
+        productName: productName ?? '',
+        depth: (type === '풍부' || type === '프리미엄형') ? '풍부' : '간결',
+        productExtra: productExtra ?? undefined,
+        existingSections: sectionStructure,        // ★구조는 이 목록 그대로 — 설명만 채운다
+      }),
+      signal: AbortSignal.timeout(120_000),
+    })
+      .then(async r => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error ?? '설명 채우기 실패');
+        // 기존 설명은 남기고 빈 자리만 채운다(셀러가 이미 본 설명이 바뀌면 혼란)
+        if (data.sectionDescs) setSectionDescs({ ...(data.sectionDescs as Record<string, string>), ...sectionDescs });
+        if (Array.isArray(data.suggestions) && data.suggestions.length) setSectionSuggestions(data.suggestions);
+        if (structureForCount === 0) setStructureForCount(sectionStructure.length);
+        setStructureForFacts(productExtra ?? '');
+      })
+      .catch(err => console.warn('[recommend-sections] 설명 채우기 실패 — 이름만 표시:', err))
+      .finally(() => setRecommendLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, structureSig, missingDesc]);
+
   // ★원본 추천을 store(originalSections)에 처음 1회만 보관(비었을 때만) — 이후 수정·탭이동에도 불변.
   useEffect(() => {
     if (!enabled) return;
@@ -131,6 +177,7 @@ export function useInitialSections(enabled: boolean = true) {
   /** 셀러가 눌렀을 때만 다시 잡는다(무료·AI 재호출). 손으로 고친 구성이 사라지므로 확인은 호출부에서. */
   const rebuild = () => {
     initCalledRef.current = false;
+    descFillRef.current = '';
     setSectionStructure([]);
     setOriginalSections([]);
     setSectionDescs({});

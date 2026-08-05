@@ -65,6 +65,10 @@ interface ReqBody {
   depth: '간결' | '풍부';
   sectionCount?: number;
   productExtra?: string;
+  /** ★설명 채우기 모드(2026-08-06) — 이미 있는 구조의 desc·suggestions만 받는다.
+   *  구조는 그대로 두고 설명만 만든다: 레퍼런스·임시저장 복원·폴백으로 만들어진 목록도
+   *  셀러에게는 설명이 보여야 하기 때문(구조가 있으면 설명도 있어야 한다). */
+  existingSections?: string[];
 }
 
 export async function POST(req: NextRequest) {
@@ -88,6 +92,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { cat, ch, productName, depth, sectionCount, productExtra } = body;
+  const existing = Array.isArray(body.existingSections)
+    ? body.existingSections.map(x => String(x ?? '').trim()).filter(Boolean).slice(0, 50)
+    : [];
+  const describeOnly = existing.length > 0;
 
   if (!cat || !ch || !depth) {
     return NextResponse.json(
@@ -108,12 +116,14 @@ export async function POST(req: NextRequest) {
    *  고른 값과 만들어지는 값이 다르면 화면에 적힌 크레딧이 거짓이 된다.
    *  구 9단계 흐름은 sectionCount를 안 보내므로 종전 계산을 그대로 쓴다. */
   const chosen = Number(sectionCount);
-  const targetCount = Number.isFinite(chosen) && chosen >= 6 && chosen <= 50
-    ? Math.round(chosen)
-    : computeTargetCount(cat, ch, depth);
+  const targetCount = describeOnly
+    ? existing.length
+    : Number.isFinite(chosen) && chosen >= 6 && chosen <= 50
+      ? Math.round(chosen)
+      : computeTargetCount(cat, ch, depth);
   const normCat = normalizeCat(cat);
 
-  const system = `당신은 대한민국 이커머스 상세페이지 기획 전문가입니다.
+  const systemBase = `당신은 대한민국 이커머스 상세페이지 기획 전문가입니다.
 카테고리·채널·상품·깊이를 보고 그 상품에 가장 효과적인 상세페이지 섹션 구성을 추천합니다.
 
 ${getCategoryCopyGuard(cat || '')}
@@ -174,7 +184,26 @@ ${getCategoryCopyGuard(cat || '')}
              근거로 삼을 구절이 없으면 빈 문자열 — 그건 셀러가 말한 적 없는 내용이라는 뜻입니다.",
   "after": 이 섹션이 들어갈 자리(위 sections의 순번, 이 번호 '뒤'에 삽입. 1~${targetCount})}`;
 
-  const userPrompt = `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
+  const describeRule = describeOnly ? `
+
+[⚠️최우선 규칙 — 설명 채우기 모드]
+sections의 name은 아래 목록을 '순서 그대로, 글자 그대로' 써야 합니다. 새로 만들거나 바꾸거나
+빼지 마세요. 당신의 일은 각 섹션의 desc(셀러가 읽을 한 줄 설명)를 쓰는 것뿐입니다.
+${existing.map((n, i) => `${i + 1}. ${n}`).join('\n')}
+suggestions는 위 [suggestions] 규칙 그대로 만들면 됩니다.` : '';
+
+  const userPrompt = describeOnly ? `아래 섹션 구성의 설명을 채워주세요(구성은 바꾸지 마세요).
+
+[조건]
+- 카테고리: ${cat} (정규화: ${normCat})
+- 판매 채널: ${ch}
+- 상품명: ${productName || '(미입력)'}
+${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
+[현재 구성 — 이름을 그대로 유지]
+${existing.map((n, i) => `${i + 1}. ${n}`).join('\n')}
+
+[출력 형식]
+다른 텍스트 없이 JSON 객체만: {"sections":[{"name":"(위 이름 그대로)","desc":"셀러가 읽을 한 줄 설명"}],"suggestions":[...]}` : `다음 조건의 상품을 위한 섹션 구성을 ${targetCount}개로 추천해주세요.
 
 [조건]
 - 카테고리: ${cat} (정규화: ${normCat})
@@ -190,6 +219,8 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
  "suggestions":[
   {"name":"무알콜·무향료 이야기","desc":"알코올과 향료를 뺀 이유와 그래서 무엇이 달라지는지 보여줘요",
    "why":"적어주신 '무알콜·무향료'가 지금 구성에 안 쓰였어요 — 민감 피부가 가장 먼저 확인하는 부분입니다","after":5}]}`;
+
+  const system = systemBase + describeRule;
 
   try {
     const message = await client.messages.create({
@@ -275,7 +306,7 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
 
     /* 객체({name,desc})와 문자열 양쪽을 받는다 — 모델이 형식을 어겨도 이름은 건진다 */
     const seen = new Set<string>();
-    const items: Array<{ name: string; desc?: string }> = [];
+    let items: Array<{ name: string; desc?: string }> = [];
     for (const raw of sections as unknown[]) {
       const name = typeof raw === 'string' ? raw.trim()
         : (raw && typeof raw === 'object' ? String((raw as Record<string, unknown>).name ?? '').trim() : '');
@@ -320,6 +351,14 @@ ${productExtra ? `\n[상품 핵심 정보]\n${productExtra}\n` : ''}
       if (sized.length < targetCount) {
         console.warn(`[recommend-sections] ${targetCount}개 요청에 ${sized.length}개 — 뜻 없는 이름으로 채우지 않음`);
       }
+    }
+
+    /* ★설명 채우기 모드에선 이름을 코드가 고정한다 — 프롬프트로 "그대로 쓰라"고 해도 모델은
+     *  다듬는다. 이름이 어긋나면 설명이 화면의 어느 섹션에도 안 붙어 '설명 없음'으로 되돌아간다.
+     *  순번으로 맞추고, 개수가 모자라면 그만큼만 채운다. */
+    if (describeOnly) {
+      sized = [...existing];
+      items = existing.map((name, i) => ({ name, desc: items[i]?.desc }));
     }
 
     const descByName: Record<string, string> = {};

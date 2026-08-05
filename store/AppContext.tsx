@@ -744,6 +744,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const snapshot = {
         screen, cat, ch, type, out, imgMode, secCnt,
         productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections,
+        /* ★구조와 한 세트인 값들(2026-08-06) — 이것들이 빠져 있어 이어서 열면 설명·추천이 사라지고
+           로딩도 없이 맨 목록만 떴다. 구조를 저장하면 그 구조를 설명하는 것도 같이 저장한다. */
+        sectionDescs, sectionSuggestions, structureForCount, structureForFacts,
         regularPrice, salePrice, showPrice, productOptions,
         brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers,
         generationJobKey, speechLevel,
@@ -759,7 +762,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch { /* 용량 초과 등 무시 */ }
-  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey, speechLevel, session?.user?.email]);
+  }, [screen, cat, ch, type, out, imgMode, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, originalSections, sectionDescs, sectionSuggestions, structureForCount, structureForFacts, regularPrice, salePrice, showPrice, productOptions, brand, diff, extraNote, brandIntro, reviews, productForm, productVolume, productShapeProfile, answers, generationJobKey, speechLevel, session?.user?.email]);
 
   // ★새로고침 복원: mount 후(하이드레이션 끝난 뒤) sessionStorage에서 단계+입력값 복원.
   //   렌더 중 sessionStorage를 읽지 않으므로 SSR/클라 hydration mismatch가 없다.
@@ -785,6 +788,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
     if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
     if (Array.isArray(p.originalSections)) setOriginalSectionsState(p.originalSections as string[]);
+    if (p.sectionDescs && typeof p.sectionDescs === 'object') setSectionDescs(p.sectionDescs as Record<string, string>);
+    if (Array.isArray(p.sectionSuggestions)) setSectionSuggestions(p.sectionSuggestions as typeof sectionSuggestions);
+    if (typeof p.structureForCount === 'number') setStructureForCount(p.structureForCount);
+    if (typeof p.structureForFacts === 'string') setStructureForFacts(p.structureForFacts);
     if (typeof p.regularPrice === 'string') setRegularPrice(p.regularPrice);
     if (typeof p.salePrice === 'string') setSalePrice(p.salePrice);
     if (typeof p.showPrice === 'boolean') setShowPrice(p.showPrice);
@@ -909,6 +916,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (p.captureAnalysis) setCaptureAnalysisState(p.captureAnalysis as CaptureAnalysis);
     if (Array.isArray(p.sectionStructure)) setSectionStructureState(p.sectionStructure as string[]);
     if (Array.isArray(p.originalSections)) setOriginalSectionsState(p.originalSections as string[]);
+    if (p.sectionDescs && typeof p.sectionDescs === 'object') setSectionDescs(p.sectionDescs as Record<string, string>);
+    if (Array.isArray(p.sectionSuggestions)) setSectionSuggestions(p.sectionSuggestions as typeof sectionSuggestions);
+    if (typeof p.structureForCount === 'number') setStructureForCount(p.structureForCount);
+    if (typeof p.structureForFacts === 'string') setStructureForFacts(p.structureForFacts);
     if (typeof p.regularPrice === 'string') setRegularPrice(p.regularPrice);
     if (typeof p.salePrice === 'string') setSalePrice(p.salePrice);
     if (typeof p.showPrice === 'boolean') setShowPrice(p.showPrice);
