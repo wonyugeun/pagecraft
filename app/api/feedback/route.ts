@@ -23,9 +23,12 @@ export async function POST(req: NextRequest) {
   const email = await getSessionEmail(req);
   if (!email) return NextResponse.json({ error: '로그인이 필요해요.' }, { status: 401 });
 
-  const rl = await checkRateLimit('prep', email, clientIp(req));
-  if (!rl.allowed) {
-    return NextResponse.json({ error: '의견 전송이 많아요. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+  // 관리자(운영자 본인)는 도배 방지 대상이 아니다 — 테스트가 하루 상한(prep 20건)에 막히면 안 됨
+  if (!isAdminEmail(email)) {
+    const rl = await checkRateLimit('prep', email, clientIp(req));
+    if (!rl.allowed) {
+      return NextResponse.json({ error: '의견 전송이 많아요. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+    }
   }
 
   const body = await req.json().catch(() => null) as {
