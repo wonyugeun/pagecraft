@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
 import { ensureSchemaOnce, saveFeedback, checkRateLimit, clientIp, sql } from '@/lib/db';
 import { isAdminEmail } from '@/lib/portone';
@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const id = await saveFeedback({ email, message, rating, context: body?.context ?? null, image });
-    notify(email, rating, message, id);   // 알림은 실패해도 저장을 막지 않는다
+    // ★after 필수(2026-08-05) — 서버리스는 응답을 보내면 곧바로 얼어붙는다. void로 흘려보내면
+    //   SMTP 연결이 중간에 잘려 메일이 조용히 증발한다(실측). after가 발송 완료까지 수명을 늘린다.
+    after(() => notify(email, rating, message, id));   // 알림은 실패해도 저장을 막지 않는다
     return NextResponse.json({ ok: true, id });
   } catch (err) {
     console.error('[feedback] 저장 실패:', err);
@@ -81,13 +83,13 @@ export async function GET(req: NextRequest) {
  *              + FEEDBACK_TELEGRAM_CHAT_ID=<본인 chat id>
  *   · 슬랙/디스코드: 발급받은 Incoming Webhook URL 그대로
  */
-function notify(email: string, rating: number | null, message: string, id: number): void {
+async function notify(email: string, rating: number | null, message: string, id: number): Promise<void> {
   const text = `📮 Flik 새 의견 #${id}\n${rating ? `평점 ${rating}/5 · ` : ''}${email}\n${message.slice(0, 500)}`;
 
   // ★이메일 — 유근님 기본 알림 경로(2026-08-04, 카톡은 정신없다고 하심).
   //   본문 전문을 싣는다: 메일에서 바로 읽고 답장 여부를 정하는 게 목적이라 자르면 의미가 없다.
   if (emailConfigured()) {
-    void sendAdminEmail(
+    await sendAdminEmail(
       `[Flik 의견 #${id}] ${rating ? `★${rating} · ` : ''}${email}`,
       `${message}\n\n— 보낸 셀러: ${email}\n— 전체 목록: https://www.flik.kr/api/feedback (관리자 로그인 필요)`,
     );
@@ -95,7 +97,7 @@ function notify(email: string, rating: number | null, message: string, id: numbe
 
   // 카카오톡 나에게 보내기 — 설정돼 있으면 함께 보낸다(현재 미설정).
   if (kakaoConfigured()) {
-    void sendKakaoMemo(text, 'https://www.flik.kr');
+    await sendKakaoMemo(text, 'https://www.flik.kr');
   }
 
   const url = process.env.FEEDBACK_WEBHOOK_URL;
@@ -112,7 +114,7 @@ function notify(email: string, rating: number | null, message: string, id: numbe
     ? { chat_id: chatId, text, disable_web_page_preview: true }
     : { content: text, text };
 
-  void fetch(url, {
+  await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
