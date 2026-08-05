@@ -254,7 +254,8 @@ export async function capturePageForFeedback(container: HTMLElement): Promise<st
     for (const u of units) canvases.push(await domToCanvas(u, EXPORT_CAPTURE_OPTS));
     const totalH = canvases.reduce((sum, c) => sum + c.height, 0);
     if (!totalH) return null;
-    for (const [w, q] of [[640, 0.72], [560, 0.6], [480, 0.5]] as const) {
+    // 글자가 읽혀야 판단 자료가 된다 — 원본 폭 유지·화질 우선, 상한 초과 시에만 축소(2026-08-06)
+    for (const [w, q] of [[EXPORT_W, 0.8], [EXPORT_W, 0.65], [720, 0.6], [600, 0.5]] as const) {
       const scale = w / EXPORT_W;
       const cv = document.createElement('canvas');
       cv.width = w;
