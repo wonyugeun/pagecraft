@@ -31,20 +31,22 @@ export default function FeedbackModal({
   const [err, setErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const autoTriedRef = useRef(false);
+  // ★콜백은 ref로 든다 — 부모가 인라인 함수를 주면 렌더마다 정체가 바뀌어, effect 의존성에 넣으면
+  //   캡처(수 초) 도중 재렌더 한 번에 결과가 취소돼 '자동 첨부가 안 되는' 버그가 된다(2026-08-06 실측).
+  const getAutoImageRef = useRef(getAutoImage);
+  getAutoImageRef.current = getAutoImage;
 
   // 열릴 때 결과물 자동 첨부 — 한 번만 시도, 사용자가 X로 빼면 다시 붙이지 않는다
   useEffect(() => {
     if (!open) { autoTriedRef.current = false; return; }
-    if (autoTriedRef.current || !getAutoImage) return;
+    if (autoTriedRef.current || !getAutoImageRef.current) return;
     autoTriedRef.current = true;
-    let cancelled = false;
     setAutoLoading(true);
-    getAutoImage()
-      .then(url => { if (!cancelled && url) { setImage(url); setAutoAttached(true); } })
+    getAutoImageRef.current()
+      .then(url => { if (url) { setImage(url); setAutoAttached(true); } })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setAutoLoading(false); });
-    return () => { cancelled = true; };
-  }, [open, getAutoImage]);
+      .finally(() => setAutoLoading(false));
+  }, [open]);
 
   if (!open) return null;
 
