@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+
+// 첨부 경로 검증용 8x8 주황 PNG — 이 이미지가 메일에 붙어 오면 첨부 코드가 정상이다
+const TEST_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAFklEQVR4AWP4z8Dwn4EIMKpwVCEDAwB1fx4hFPeCIQAAAABJRU5ErkJggg==';
 import { getSessionEmail } from '@/lib/authToken';
 import { isAdminEmail } from '@/lib/portone';
 
@@ -33,7 +36,8 @@ export async function GET(req: NextRequest) {
     await transporter.verify();   // 인증만 먼저 — 여기서 실패하면 비밀번호 문제
     await transporter.sendMail({
       from: `"Flik 알림" <${user}>`, to: process.env.NOTIFY_EMAIL_TO ?? user,
-      subject: '[Flik] 이메일 알림 테스트 ✅', text: '이 메일이 왔다면 알림 설정 완료입니다.',
+      subject: '[Flik] 이메일 알림 테스트 ✅', text: '이 메일이 왔다면 알림 설정 완료입니다. 첨부이미지.png가 붙어 있으면 이미지 첨부도 정상입니다.',
+      attachments: [{ filename: '첨부이미지.png', path: TEST_PNG }],
     });
     return NextResponse.json({ ok: true, check, 결과: '발송 성공 — 메일함(스팸함 포함)을 확인하세요.' });
   } catch (err) {
