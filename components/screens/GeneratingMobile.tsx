@@ -396,9 +396,12 @@ export default function GeneratingMobile() {
         </h1>
         <p style={{ margin: '12px 0 0', fontSize: 13, color: '#666', lineHeight: 1.7 }}>
           선택하신 정보와 이미지를 바탕으로<br />
-          {/* 왜 오래 걸리는지 밝힌다 — 과정을 말하면 같은 시간이 '일하는 중'으로 읽힌다(데스크탑과 동일) */}
-          전략 → 구조 → 섹션별 카피 순서로 나눠 씁니다.<br />
-          8섹션 기준 보통 5분 안팎이에요.
+          {/* 왜 오래 걸리는지 + 왜 나눠 쓰는지까지 밝힌다(2026-08-06 유근님) — 이유를 알면
+              기다림이 '일하는 중'으로 읽힌다. 데스크탑과 같은 논리, 모바일은 더 짧게. */}
+          전략 → 구조 → <b style={{ color: '#333' }}>섹션별 카피</b> 순서로 나눠 씁니다.<br />
+          한 번에 몰아 쓰면 섹션들이 서로 비슷해져서,<br />
+          섹션마다 맡을 역할을 정해두고 따로 써요.<br />
+          그만큼 시간이 걸립니다 — 8섹션 기준 보통 5분 안팎.
         </p>
         {USE_NEW_ENGINE && engineLabel && (
           <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800, color: '#6D4CFF' }}>{engineLabel}</div>
