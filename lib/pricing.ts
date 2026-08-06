@@ -110,7 +110,11 @@ export function imageQuotaWeight(quality: string | undefined): number {
 export const RATE_LIMITS = {
   image: { emailHour: 120, emailDay: 400, ipDay: 800 },
   llm:   { emailHour: 60 },
-  prep:  { emailDay: 20, ipDay: 60 },
+  /* ★prep은 8개 API가 나눠 쓴다(카테고리 추측·어투 미리보기·섹션 추천/설명·레퍼런스 분석·
+   *  결제 준비·환불·의견). 한 번 만들 때 3~4회가 나가므로 20/일이면 정상 셀러가 다섯 번
+   *  만들고 막힌다 — 실제로 운영자 계정이 오늘 20/20으로 잠겼다(2026-08-06).
+   *  호출당 원가는 몇 원 수준이라, 남용 방어는 유지하면서 정상 사용을 막지 않는 값으로 올린다. */
+  prep:  { emailDay: 150, ipDay: 400 },
 } as const;
 
 /* ── credit_ledger.reason 규약 — "generation:{결제 섹션 수}" (스키마 무변경으로 결제 수치 조회) ── */

@@ -80,6 +80,10 @@ export function clientIp(req: Request): string | null {
  *  차감·quota(주 방어, fail-closed)와 달리 DB 오류 시 fail-open(허용+로그) — 보조층이
  *  DB 순단으로 전 서비스를 죽이지 않게. 초과 판정은 consumeUsageQuota와 동일 선점 방식. */
 export async function checkRateLimit(cls: RateClass, email: string | null | undefined, ip: string | null): Promise<RateCheck> {
+  // ★운영자는 제외 — 점검·재현 테스트가 셀러용 도배 방어에 걸리면 안 된다(8개 API 공통 지점에서 한 번에)
+  if (email && (process.env.ADMIN_EMAILS ?? '').split(',').some(a => a.trim().toLowerCase() === email.toLowerCase() && a.trim())) {
+    return { allowed: true };
+  }
   const now = new Date().toISOString();
   const hour = now.slice(0, 13);   // 2026-07-08T14
   const day = now.slice(0, 10);    // 2026-07-08
