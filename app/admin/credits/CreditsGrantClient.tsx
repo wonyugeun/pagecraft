@@ -16,7 +16,10 @@ export default function CreditsGrantClient() {
 
   const grant = async () => {
     if (busy) return;
-    if (!email.includes('@')) { setResult({ ok: false, text: '받을 분의 이메일을 정확히 적어주세요.' }); return; }
+    const id = email.trim();
+    if (!/@/.test(id) && !/^(kakao|google):/i.test(id)) {
+      setResult({ ok: false, text: '이메일 또는 계정 식별자(kakao:12345)를 적어주세요.' }); return;
+    }
     setBusy(true); setResult(null);
     try {
       const res = await fetch('/api/admin/grant-credits', {
@@ -72,6 +75,10 @@ export default function CreditsGrantClient() {
             style={input} value={email} inputMode="email" autoCapitalize="none" spellCheck={false}
             onChange={e => setEmail(e.target.value)} placeholder="seller@gmail.com"
           />
+          <div style={{ fontSize: 12, color: '#B0B8C1', marginTop: 6, lineHeight: 1.6 }}>
+            카카오로 가입해 이메일이 없는 분은 <b style={{ color: '#8B95A1' }}>kakao:12345</b> 형태로 적으세요
+            (그분 화면 우측 상단 계정 표시에 그대로 나옵니다).
+          </div>
         </div>
 
         <div style={{ marginTop: 18 }}>

@@ -35,8 +35,15 @@ export async function POST(req: NextRequest) {
   const amount = Math.round(Number(body?.amount));
   const note = (body?.note ?? '수동지급').trim().slice(0, 40).replace(/\s+/g, '_');
 
-  if (!email.includes('@')) {
-    return NextResponse.json({ error: '받을 사람 이메일을 정확히 적어주세요.' }, { status: 400 });
+  /* ★카카오 계정은 이메일이 없을 수 있다(선택동의 거절 시). 그때 우리 식별자는 'kakao:12345'가 되고,
+     이메일만 받으면 그 사람에겐 지급 자체를 못 한다 — 대면 테스트에서 바로 막히는 지점이다.
+     이메일 또는 provider:id 두 형태를 모두 받는다. */
+  const isEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  const isProviderId = /^(kakao|google):[a-z0-9._-]+$/i.test(email);
+  if (!isEmail && !isProviderId) {
+    return NextResponse.json({
+      error: '이메일(seller@gmail.com) 또는 계정 식별자(kakao:12345) 형태로 적어주세요.',
+    }, { status: 400 });
   }
   if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_GRANT) {
     return NextResponse.json({ error: `지급량은 1~${MAX_GRANT} 사이로 적어주세요.` }, { status: 400 });
