@@ -554,6 +554,8 @@ export default function ResultMobile() {
   // ★블로그형 통이미지(전체 1장) — 데스크탑 downloadFullLongImage 공유(2026-07-21 유근님: 모바일은
   //   통이미지→사진첩 저장→스마트스토어 앱 업로드 플로우. HTML 등록은 PC 전용이라 안내만).
   const handleFullCapture = async () => {
+    // ★유료 게이트 — 데스크탑 handleLongImage와 동일(모바일도 같이 뚫려 있었다, 2026-08-06)
+    if (!passDownloadGate()) return;
     if (captureLoading) return;
     if (!passDownloadGate()) return;
     logDownload('capture');

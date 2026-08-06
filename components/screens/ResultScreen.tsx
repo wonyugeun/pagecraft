@@ -1860,6 +1860,10 @@ export default function ResultScreen() {
   // ★통이미지(전체 1장) — 슬라이드형 통이미지와 동일한 경험(섹션 나누지 않음)
   const handleLongImage = async () => {
     if (longImgLoading) return;
+    /* ★유료 게이트(2026-08-06) — 여기만 빠져 있었다. 통이미지는 페이지 전체가 한 장으로 나가는,
+       사실상 결과물 그 자체다. HTML·병합이미지·스마트스토어HTML은 막고 이것만 열려 있어서
+       체험 계정이 결과물을 통째로 받아갈 수 있었다. */
+    if (!passDownloadGate()) return;
     if (!confirmSkipGenerating(countGeneratingImages(finalSectionsForExport, sectionImages, blockImages))) return;
     const container = captureRef.current;
     if (!container) { alert('내보낼 본문이 없습니다.'); return; }
