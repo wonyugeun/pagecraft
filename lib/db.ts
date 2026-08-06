@@ -743,7 +743,11 @@ export function normalizeEmailForGrant(email: string): string {
  *
  *  ★파밍 방어의 본체는 IP가 아니라 '정규화 이메일 기지급 검사'다(gmail 점·+별칭까지 흡수).
  *    IP 상한은 보조층이므로, 정상 사용자를 막지 않는 선까지 올린다. */
-const SIGNUP_GRANTS_PER_IP_PER_DAY = 10;
+const SIGNUP_GRANTS_PER_IP_PER_DAY = 8;
+/** ★시간당 상한(2026-08-06 추가) — 일 상한만으로는 '아이디만 갈아끼우는 연속 파밍'을 못 막는다.
+ *  사람이 자연스럽게 가입하는 상황(대면 미팅에서 셋이 차례로, 가족이 각자)은 시간당 3이면 넉넉하고,
+ *  계정을 줄줄이 만들어 받는 패턴은 여기서 걸린다. 일 상한은 하루 총량, 시간당은 속도를 잡는다. */
+const SIGNUP_GRANTS_PER_IP_PER_HOUR = 3;
 
 /**
  * 유저 잔액 조회. row 없으면 신규 지급(grant) + ledger 기록 후 반환.
@@ -767,8 +771,16 @@ async function decideSignupGrant(email: string, ip: string | null | undefined, n
     return 0;
   }
   if (ip) {
-    const day = new Date().toISOString().slice(0, 10);
+    const now = new Date().toISOString();
+    const day = now.slice(0, 10);
+    const hour = now.slice(0, 13);
     try {
+      // 속도(시간당) 먼저 — 총량은 남아도 몰아서 받는 패턴을 여기서 끊는다
+      const h = await consumeUsageQuota(`signup-ip-h:${ip}:${hour}`, 1, SIGNUP_GRANTS_PER_IP_PER_HOUR);
+      if (!h.allowed) {
+        console.warn(`[signup] IP 시간당 지급 상한 — 지연 지급 대상: ${email} ip=${ip}`);
+        return 0;
+      }
       const q = await consumeUsageQuota(`signup-ip:${ip}:${day}`, 1, SIGNUP_GRANTS_PER_IP_PER_DAY);
       if (!q.allowed) {
         console.warn(`[signup] IP 일일 지급 상한 — 지연 지급 대상: ${email} ip=${ip}`);
