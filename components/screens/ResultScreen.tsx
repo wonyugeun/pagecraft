@@ -2023,8 +2023,10 @@ export default function ResultScreen() {
               {outputTypeLabel}
             </span>
             {/* ★어투 표시(2026-08-04 유근님) — 무슨 어투로 만들어졌는지 결과 화면에서 보이게.
-                고르지 않았으면(AI 추천) 표시하지 않는다 — 없는 선택을 있던 것처럼 만들지 않는다. */}
-            {isBlog && speechLevel && (
+                고르지 않았으면(AI 추천) 표시하지 않는다 — 없는 선택을 있던 것처럼 만들지 않는다.
+                ⚠️블로그형 조건을 뺐다(2026-08-06) — 어투 선택 UI에도, 변환 패스(enforceSpeechLevel)에도
+                출력형태 조건이 없다. 슬라이드도 어투가 실제로 적용되는데 표시만 감춰져 있었다. */}
+            {speechLevel && (
               <span style={{
                 display: 'inline-flex', alignItems: 'center',
                 background: '#FAFAFC', border: '1px solid #ECECF2', borderRadius: 999,
@@ -2321,7 +2323,7 @@ export default function ResultScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#666' }}>생성 타입</span>
-                <span style={{ fontWeight: 700, color: '#111' }}>{outputTypeLabel}{isBlog && speechLevel ? `(${speechLevel})` : ''}</span>
+                <span style={{ fontWeight: 700, color: '#111' }}>{outputTypeLabel}{speechLevel ? `(${speechLevel})` : ''}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#666' }}>전체 길이</span>
