@@ -43,6 +43,43 @@ export interface Question {
      서버(/api/entitlements)가 운영자로 판정한 경우에만 버튼 자체가 렌더된다.
    질문 정의(mode/opts/fields)를 보고 형식에 맞는 값을 만들므로 카테고리가 늘어도 따라온다.
 ───────────────────────────────────────────── */
+/** 카테고리별 예시 세트 — 상품명과 브랜드·차별점·후기가 서로 맞아야 한다.
+ *  ⚠️한 벌로 돌려쓰다가 '리프그린 시카 토너'에 브랜드 '데일리핏', 차별점 '통귀리 비율'이 붙었다.
+ *    점검용이라도 앞뒤가 안 맞으면 결과를 신뢰할 수 없어 점검 자체가 무의미해진다. */
+export interface FillPreset {
+  name: string; brand: string; diff: string; brandIntro: string; extraNote: string;
+  reviews: string; form: string; volume: string; regular: string; sale: string;
+}
+export const FILL_PRESETS: Record<string, FillPreset> = {
+  화장품: {
+    name: '리프그린 시카 토너 250ml', brand: '리프그린',
+    diff: '같은 가격대 토너보다 병풀 추출물 함량이 높고, 알코올·향료를 넣지 않았어요.',
+    brandIntro: '민감한 피부에도 부담 없는 순한 제품을 만들자는 생각으로 시작한 브랜드입니다.',
+    extraNote: '첫 구매 고객에게 소용량 샘플을 함께 보냅니다.',
+    reviews: '"닦아내도 따갑지 않아서 매일 쓰고 있어요" - 김OO (별점 5/5)\n"자극 없이 산뜻하게 정리돼요" - 이OO (별점 4/5)',
+    form: '펌프형 보틀', volume: '250ml', regular: '32000', sale: '24000',
+  },
+  식품: {
+    name: '데일리핏 저당 오트 그래놀라 400g', brand: '데일리핏',
+    diff: '같은 가격대 제품보다 당 함량이 낮고, 통귀리 비율이 높아요.',
+    brandIntro: '건강한 아침을 쉽게 만들자는 생각으로 시작한 브랜드입니다.',
+    extraNote: '첫 구매 고객에게 소용량 샘플을 함께 보냅니다.',
+    reviews: '"달지 않은데 고소해서 계속 손이 가요" - 김OO (별점 5/5)\n"아침 대용으로 딱이에요" - 이OO (별점 4/5)',
+    form: '지퍼백 파우치', volume: '400g', regular: '18000', sale: '14900',
+  },
+};
+/** 카테고리 세트가 없으면 상품 특정 주장을 하지 않는 중립값 — 없는 사실을 만들지 않는다 */
+export function fillPresetFor(cat: string | null | undefined): FillPreset {
+  return FILL_PRESETS[cat ?? ''] ?? {
+    name: '', brand: '테스트브랜드',
+    diff: '같은 가격대 제품과 비교했을 때의 차별점을 여기에 적습니다.',
+    brandIntro: '브랜드 소개 문장이 들어가는 자리입니다.',
+    extraNote: '추가로 전달할 요청사항이 들어가는 자리입니다.',
+    reviews: '"점검용 예시 후기입니다" - 김OO (별점 5/5)',
+    form: '', volume: '', regular: '32000', sale: '24000',
+  };
+}
+
 export function autoFillAnswers(qs: Question[]): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const q of qs) {
@@ -982,22 +1019,22 @@ export default function ProductScreen() {
   }, []);
 
   const fillForTest = () => {
-    if (!productName.trim()) {
-      setProductName(cat === '식품' ? '데일리핏 저당 오트 그래놀라 400g' : '리프그린 시카 토너 250ml');
-    }
-    setBrand('데일리핏');
-    setRegularPrice('32000');
-    setSalePrice('24000');
+    const pre = fillPresetFor(cat);
+    if (!productName.trim() && pre.name) setProductName(pre.name);
+    setBrand(pre.brand);
+    setRegularPrice(pre.regular);
+    setSalePrice(pre.sale);
     setShowPrice(true);
-    setDiff('같은 가격대 제품보다 당 함량이 낮고, 통귀리 비율이 높아요.');
-    setBrandIntro('건강한 아침을 쉽게 만들자는 생각으로 시작한 브랜드입니다.');
-    setExtraNote('첫 구매 고객에게 소용량 샘플을 함께 보냅니다.');
-    setReviews('"달지 않은데 고소해서 계속 손이 가요" - 김OO (별점 5/5)\n"아침 대용으로 딱이에요" - 이OO (별점 4/5)');
+    setDiff(pre.diff);
+    setBrandIntro(pre.brandIntro);
+    setExtraNote(pre.extraNote);
+    setReviews(pre.reviews);
     setSpeechLevel('해요체');
-    setProductForm('파우치');
-    setProductVolume('400g');
+    if (pre.form) setProductForm(pre.form);
+    if (pre.volume) setProductVolume(pre.volume);
     setAnswers({ ...answers, ...autoFillAnswers(qs) });
   };
+
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
   const brandPlaceholder = BRAND_NAME_PLACEHOLDERS[cat ?? '']   ?? '예: 브랜드명을 입력해주세요';
   const diffPlaceholder  = DIFF_PLACEHOLDERS[cat ?? '']         ?? '예: 경쟁 제품 대비 차별점을 입력해주세요';
