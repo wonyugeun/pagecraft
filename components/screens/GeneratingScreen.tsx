@@ -177,7 +177,7 @@ export default function GeneratingScreen() {
   /* ★freeze — 생성 중에 폭이 바뀌어도 변형을 갈지 않는다. 갈면 모바일→데스크톱은 0%에서 멈추고,
    *  데스크톱→모바일은 두 번째 파이프라인이 새 멱등키로 시작돼 이중과금이 된다(hooks/useIsMobile 주석). */
   const isMobile = useIsMobile(MOBILE_BREAKPOINT, true);
-  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile, speechLevel , structureForCount} = useApp();
+  const { cat, ch, type, out, secCnt, productName, productExtra, referenceAnalysis, captureAnalysis, sectionStructure, sectionDescs, go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey, setOut, setCat, setCh, setType, setProductName, setProductExtra, productForm, productVolume, productShapeProfile, speechLevel , structureForCount} = useApp();
   const [stepIdx,          setStepIdx]          = useState(-1);
   const [pct,              setPct]              = useState(0);
   const [engineLabel,      setEngineLabel]      = useState('');
@@ -240,7 +240,7 @@ export default function GeneratingScreen() {
             ].filter(Boolean).join('\n') || undefined
           : undefined;
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, sectionDescs: Object.keys(sectionDescs ?? {}).length ? sectionDescs : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
         {
           resume,
           isCancelled: () => cancelledRef.current,

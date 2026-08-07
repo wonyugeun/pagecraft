@@ -69,6 +69,9 @@ export interface StructureInput {
   sectionCount?: number;
   /** 사용자가 s7에서 선택/편집한 섹션 이름 목록. 있으면 이 목록(순서·이름·개수)을 '정답지'로 강제. */
   sectionStructure?: string[];
+  /** ★셀러가 섹션구조 화면에서 읽고 승인한 설명(2026-08-07) — 섹션이름 → 설명.
+   *  이 단계는 이름만 받아 mission을 새로 쓰기 때문에, 셀러가 본 설명과 어긋날 수 있었다. */
+  sectionDescs?: Record<string, string>;
 }
 
 export interface SectionPlan {
@@ -91,7 +94,7 @@ export interface StructureResult {
 }
 
 export async function runStructure(input: StructureInput): Promise<StructureResult> {
-  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure } = input;
+  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure, sectionDescs } = input;
 
   const resolvedDepth: '간결' | '풍부' = depth === '풍부' ? '풍부' : '간결';
   // 사용자가 s7에서 선택/편집한 섹션 목록이 있으면 그게 '정답지' = 개수·이름·순서 그대로(하한 6 없음, 최소 1).
@@ -102,9 +105,22 @@ export async function runStructure(input: StructureInput): Promise<StructureResu
       ? Math.min(50, Math.max(1, Math.round(sectionCount)))   // 하한 6 제거 — 지정 개수 그대로(최소 1)
       : computeTargetCount(cat ?? '', ch ?? '스마트스토어', resolvedDepth);
 
-  // 정답지(이름·순서·개수 강제) — 구 엔진 /api/generate 방식 이식. 선택이 있을 때만.
+  /* 정답지(이름·순서·개수 강제) — 구 엔진 /api/generate 방식 이식. 선택이 있을 때만.
+     ★셀러가 읽은 설명을 함께 싣는다(2026-08-07) — 셀러는 그 설명을 보고 이 섹션을 남길지 정했다.
+       이 단계가 이름만 보고 mission을 새로 쓰면 '본 것과 다른 결과'가 나온다. 설명은 지켜야 할
+       약속이지 참고사항이 아니다. 단, 설명은 셀러용 안내문이므로 그대로 베끼지 말고 방향만 따른다. */
+  const descOf = (name: string) => (sectionDescs?.[name] ?? '').trim();
+  const hasAnyDesc = hasExplicitSections && sectionStructure!.some(n => descOf(n));
   const sectionBlock = hasExplicitSections
-    ? `\n[섹션 구조 — 반드시 아래 순서·이름·개수 그대로 설계하세요. 임의로 변경·추가·삭제하지 마세요. 섹션은 정확히 ${targetCount}개(±0, 더하거나 빼지 말 것). 각 섹션의 name은 아래 이름을 그대로 쓰고, role·mission·emotion_goal·writing_style만 이 제품 전략에 맞게 채우세요]\n${sectionStructure!.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    ? `\n[섹션 구조 — 반드시 아래 순서·이름·개수 그대로 설계하세요. 임의로 변경·추가·삭제하지 마세요. 섹션은 정확히 ${targetCount}개(±0, 더하거나 빼지 말 것). 각 섹션의 name은 아래 이름을 그대로 쓰고, role·mission·emotion_goal·writing_style만 이 제품 전략에 맞게 채우세요]\n${
+        sectionStructure!.map((s, i) => {
+          const d = descOf(s);
+          return d ? `${i + 1}. ${s}\n   └ 셀러가 읽고 승인한 설명: ${d}` : `${i + 1}. ${s}`;
+        }).join('\n')
+      }\n${hasAnyDesc ? `\n⚠️'셀러가 읽고 승인한 설명'은 셀러가 화면에서 읽고 "이 섹션은 이런 내용이겠구나" 판단한 뒤 남긴 약속입니다.
+mission·desc·emotion_goal은 그 설명이 말한 내용을 반드시 담아야 하며, 다른 주제로 바꾸면 안 됩니다.
+설명이 좁으면 전략을 얹어 각도를 더하되, 설명에 없는 다른 주제로 갈아타지는 마세요.
+설명이 없는 섹션은 이름과 전략만 보고 자유롭게 설계하세요(셀러가 직접 적어 넣은 섹션입니다).\n` : ''}`
     : '';
 
   /* ★법규 가드를 구조 단계에도 건다(2026-08-03) — 전엔 카피에만 걸려 있었다.

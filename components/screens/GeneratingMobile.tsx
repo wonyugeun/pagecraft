@@ -19,7 +19,7 @@ import { consumeResumeIntent, clearActiveJobId } from '@/lib/activeJob';
 export default function GeneratingMobile() {
   const {
     cat, ch, type, out, secCnt, productName, productExtra,
-    referenceAnalysis, captureAnalysis, sectionStructure,
+    referenceAnalysis, captureAnalysis, sectionStructure, sectionDescs,
     go, setSections, credits, creditsLoaded, setCredits, setCreditModalOpen, saveHistory, setGenerationJobKey,
     setOut, setCat, setCh, setType, setProductName, setProductExtra,
     toggleChat, productForm, productVolume, productShapeProfile, speechLevel,
@@ -82,7 +82,7 @@ export default function GeneratingMobile() {
             ].filter(Boolean).join('\n') || undefined
           : undefined;
       runClientPipeline(
-        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
+        { jobKey: jobKeyRef.current, cat: cat ?? undefined, ch: ch ?? undefined, out, depth: '간결', sectionCount: secCnt, baseSectionCount: structureForCount, sectionStructure: sectionStructure?.length ? sectionStructure : undefined, sectionDescs: Object.keys(sectionDescs ?? {}).length ? sectionDescs : undefined, referenceStyle, productName, productExtra, type: type ?? undefined, generateImages: false, productForm, productVolume, productShapeProfile, speechLevel: speechLevel || undefined },
         {
           resume,
           isCancelled: () => cancelledRef.current,

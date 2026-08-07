@@ -44,6 +44,10 @@ export interface PipelineInput {
   productShapeProfile?: string;
   /** ★셀러가 고른 카피 어투(2026-07-29) — 미지정이면 AI가 상품·타겟 보고 선택 */
   speechLevel?: string;
+  /** ★섹션구조 화면에서 셀러가 읽고 승인한 설명(2026-08-07) — 섹션이름 → 설명.
+   *  전엔 화면 표시용으로만 쓰이고 생성에 안 넘어갔다. 셀러는 이 설명을 보고 섹션을 남길지 정하는데
+   *  구조 단계는 이름만 받아 desc·mission을 처음부터 다시 써서, 본 것과 다른 결과가 나올 수 있었다. */
+  sectionDescs?: Record<string, string>;
 }
 
 /** ResultScreen이 읽을 수 있는 통합 섹션 — 구조(plan) + 카피 + 블록 + 이미지 브리프/자리 */

@@ -16,9 +16,10 @@ import { API_ERROR_CODES } from '@/lib/apiErrors';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
-  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure, jobKey } = await req.json() as {
+  const { dna, strategy, cat, ch, depth, sectionCount, sectionStructure, sectionDescs, jobKey } = await req.json() as {
     dna?: Dna; strategy?: Strategy; cat?: string; ch?: string;
-    depth?: '간결' | '풍부'; sectionCount?: number; sectionStructure?: string[]; jobKey?: string;
+    depth?: '간결' | '풍부'; sectionCount?: number; sectionStructure?: string[];
+    sectionDescs?: Record<string, string>; jobKey?: string;
   };
 
   if (!dna || !strategy) {
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await runStructure({ dna, strategy, cat, ch, depth, sectionCount, sectionStructure });
+    const result = await runStructure({ dna, strategy, cat, ch, depth, sectionCount, sectionStructure, sectionDescs });
     // 산출 plan이 결제 수치를 초과하면 절단(안전) — LLM이 요청보다 많이 뽑는 경우 방어
     if (paid !== null && Array.isArray(result?.sections) && result.sections.length > paid) {
       console.warn(`[structure] plan ${result.sections.length}개 > 결제 ${paid}개 — 절단`);
