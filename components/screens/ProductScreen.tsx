@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReviewsInput from '@/components/product/ReviewsInput';
 import { useApp, STEP_MAP, NEW_START_FLOW } from '@/store/AppContext';
 import ProductMobile from './ProductMobile';
@@ -34,6 +34,38 @@ export interface Question {
   //   'warn'=안전·법적 관련 권장 → 미입력 시 확인창 후 진행 가능(별표 '*'),
   //   미지정 + req:true = 마케팅/기획 '권장'(안 막음). req만으로는 더 이상 차단하지 않음.
   gate?: 'block' | 'warn';
+}
+
+/* ─────────────────────────────────────────────
+   ★점검용 자동 채우기(2026-08-08 유근님) — 운영자에게만 보인다.
+   테스트할 때마다 열 몇 칸을 손으로 치는 게 낭비라서 넣었다.
+   ⚠️"오픈 전에 빼자"로 두지 않는다 — 잊으면 그대로 나간다.
+     서버(/api/entitlements)가 운영자로 판정한 경우에만 버튼 자체가 렌더된다.
+   질문 정의(mode/opts/fields)를 보고 형식에 맞는 값을 만들므로 카테고리가 늘어도 따라온다.
+───────────────────────────────────────────── */
+export function autoFillAnswers(qs: Question[]): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  for (const q of qs) {
+    const pick = (q.opts ?? []).filter(o => o !== '직접 입력');
+    switch (q.mode) {
+      case 'multi':
+        if (pick.length) out[q.id] = pick.slice(0, 3);
+        break;
+      case 'single':
+        if (pick.length) out[q.id] = pick[0];
+        break;
+      case 'origin':
+        out[q.id] = [pick[0] ?? '국내산', '자사 공장 제조'].filter(Boolean).join(' / ');
+        break;
+      case 'legal':
+        // "필드: 값 / 필드: 값" 형식 — 게이트가 값 부분에 내용이 있어야 통과로 본다
+        out[q.id] = (q.fields ?? ['표시사항']).map(f => `${f}: 점검용 임시값`).join(' / ');
+        break;
+      default:
+        out[q.id] = q.placeholder?.replace(/^예:\s*/, '') ?? '점검용 임시 입력값입니다.';
+    }
+  }
+  return out;
 }
 
 /* ─────────────────────────────────────────────
@@ -937,6 +969,35 @@ export default function ProductScreen() {
     answers, setAnswers } = useApp();
   const qs = CQ[cat ?? '기타'] ?? CQ['기타'];
   const isGaejeon = cat === '가전';
+
+  /* ★점검용 자동 채우기(2026-08-08) — 운영자에게만. 판정은 서버가 한다(브라우저에서 못 켠다). */
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/entitlements')
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: { isAdmin?: boolean } | null) => { if (!cancelled && d?.isAdmin) setIsAdmin(true); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const fillForTest = () => {
+    if (!productName.trim()) {
+      setProductName(cat === '식품' ? '데일리핏 저당 오트 그래놀라 400g' : '리프그린 시카 토너 250ml');
+    }
+    setBrand('데일리핏');
+    setRegularPrice('32000');
+    setSalePrice('24000');
+    setShowPrice(true);
+    setDiff('같은 가격대 제품보다 당 함량이 낮고, 통귀리 비율이 높아요.');
+    setBrandIntro('건강한 아침을 쉽게 만들자는 생각으로 시작한 브랜드입니다.');
+    setExtraNote('첫 구매 고객에게 소용량 샘플을 함께 보냅니다.');
+    setReviews('"달지 않은데 고소해서 계속 손이 가요" - 김OO (별점 5/5)\n"아침 대용으로 딱이에요" - 이OO (별점 4/5)');
+    setSpeechLevel('해요체');
+    setProductForm('파우치');
+    setProductVolume('400g');
+    setAnswers({ ...answers, ...autoFillAnswers(qs) });
+  };
   const namePlaceholder  = PRODUCT_NAME_PLACEHOLDERS[cat ?? ''] ?? '예: 상품명을 입력하세요';
   const brandPlaceholder = BRAND_NAME_PLACEHOLDERS[cat ?? '']   ?? '예: 브랜드명을 입력해주세요';
   const diffPlaceholder  = DIFF_PLACEHOLDERS[cat ?? '']         ?? '예: 경쟁 제품 대비 차별점을 입력해주세요';
@@ -1152,6 +1213,27 @@ export default function ProductScreen() {
         sub="Flik은 있는 사실로만 씁니다. 지어낸 수치나 후기를 만들어 넣지 않으니 안심하고 쓰실 수 있고, 대신 적어주신 정보가 곧 페이지의 재료가 돼요."
         marginBottom={20}
       />
+
+      {/* ★점검용 — 운영자에게만 보인다. 서버(/api/entitlements)가 판정하므로 셀러 화면엔 렌더 자체가 안 된다.
+          "오픈 전에 빼자"로 두지 않기 위해 권한 게이트로 만들었다(2026-08-08 유근님). */}
+      {isAdmin && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          background: '#FFF9E8', border: '1px solid #FFE9A8', borderRadius: 12,
+          padding: '11px 14px', marginBottom: 18,
+        }}>
+          <span style={{ fontSize: 12.5, color: '#7A5C00', fontWeight: 700 }}>운영자 전용</span>
+          <span style={{ fontSize: 12.5, color: '#A08A4A' }}>점검할 때 손으로 안 치도록 예시값을 한 번에 채웁니다.</span>
+          <button
+            onClick={fillForTest}
+            style={{
+              marginLeft: 'auto', border: '1px solid #E5C97A', background: '#fff', borderRadius: 9,
+              padding: '8px 14px', fontSize: 12.5, fontWeight: 700, color: '#7A5C00',
+              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            }}
+          >예시값 채우기</button>
+        </div>
+      )}
 
       {/* 빠른 생성 모드 토글 제거 — 기능 0인 죽은 토글이었음 */}
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionEmail } from '@/lib/authToken';
 import { hasPaidHistory, creditsBypassEnabled, ensureSchemaOnce } from '@/lib/db';
+import { isAdminEmail } from '@/lib/portone';
 import { TRIAL_MAX_SECTIONS } from '@/lib/pricing';
 
 /**
@@ -23,5 +24,8 @@ export async function GET(req: NextRequest) {
     paid,
     canDownload: paid,
     maxSections: paid ? null : TRIAL_MAX_SECTIONS,
+    /* ★운영자 여부(2026-08-08) — 상품정보 자동 채우기 같은 점검용 도구를 이 값으로만 노출한다.
+       "오픈 전에 빼자"는 잊으면 그대로 나간다. 셀러 화면엔 애초에 렌더되지 않게 서버가 판정한다. */
+    isAdmin: isAdminEmail(email),
   });
 }
