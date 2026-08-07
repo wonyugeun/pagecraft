@@ -2276,6 +2276,9 @@ export default function ResultScreen() {
 
               {/* baked 채택: Hero도 텍스트가 이미지에 합성되므로 ImageSection(이미지만)으로 렌더.
                   overlay 보류 — SLIDE_HERO_OVERLAY=true로 롤백하면 Hero가 SlideHero(진짜폰트 overlay)로 돌아감. */}
+              {/* ★캡처 기준 영역(2026-08-08) — 전엔 blog에만 ref가 붙어 있어 슬라이드형에선
+                  통이미지·의견 자동첨부가 조용히 아무것도 못 잡았다(유근님 실측: 상품정보는 오는데 캡처만 없음). */}
+              <div ref={isSlide ? captureRef : undefined} style={isSlide ? { background: '#fff' } : undefined}>
               {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
                 <div key={realIdx} id={`pv-sec-${realIdx}`}>
                 {SLIDE_HERO_OVERLAY && displayIdx === 0 ? (
@@ -2298,6 +2301,7 @@ export default function ResultScreen() {
                 )}
                 </div>
               ))}
+              </div>
             </div>
             </div>
           </div>

@@ -822,6 +822,9 @@ export default function ResultMobile() {
                 onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
               />
             ))}
+            {/* ★캡처 기준 영역 — 데스크탑과 동일한 누락이 모바일에도 있었다(2026-08-08).
+                blog에만 ref가 붙어 슬라이드형은 통이미지·의견 자동첨부가 아무것도 못 잡았다. */}
+            <div ref={isSlide ? captureRef : undefined} style={isSlide ? { background: '#fff' } : undefined}>
             {isSlide && orderedVisibleSections.map(({ section: sec, realIdx }, displayIdx) => (
               <SlideCard
                 key={realIdx}
@@ -834,6 +837,7 @@ export default function ResultMobile() {
                 onLightbox={sectionImages[sec.num]?.url ? () => setLightboxSecNum(sec.num) : undefined}
               />
             ))}
+            </div>
           </div>
         </div>
       </section>
