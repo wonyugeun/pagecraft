@@ -80,6 +80,23 @@ export function fillPresetFor(cat: string | null | undefined): FillPreset {
   };
 }
 
+/** 법적 표시 필드에 넣을 그럴듯한 예시값 — 필드 이름을 보고 고른다 */
+function legalSample(field: string): string {
+  const f = field.replace(/\s+/g, '');
+  /* ⚠️판정 순서가 곧 우선순위다. 좁은 뜻부터 먼저 본다 —
+     '원료명 및 함량'이 함량 규칙에 먼저 걸려 "250ml"가 되고,
+     '섭취 시 주의사항'이 섭취 규칙에 걸려 "적당량을 덜어 사용하세요"가 되던 실수를 막는다. */
+  if (/주의|이상사례|부작용/.test(f))        return '이상이 있을 경우 사용을 중단하고 전문가와 상담하세요.';
+  if (/보관|취급/.test(f))                   return '직사광선을 피해 서늘한 곳에 보관하세요.';
+  if (/성분|원료/.test(f))                   return '정제수, 부틸렌글라이콜, 병풀추출물 외 (함량: 100mg/일)';
+  if (/제조사|제조원|판매원|영업소/.test(f))  return '주식회사 예시제조 (서울시 강남구)';
+  if (/제조국|원산지/.test(f))               return '대한민국';
+  if (/사용기한|유통기한|소비기한/.test(f))   return '제조일로부터 24개월 (개봉 후 12개월)';
+  if (/섭취량|섭취방법|복용|사용법|사용방법/.test(f)) return '1일 1회, 1포씩 물과 함께 드세요.';
+  if (/용량|중량/.test(f))                   return '250ml';
+  return '해당 사항 없음';
+}
+
 export function autoFillAnswers(qs: Question[]): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   for (const q of qs) {
@@ -95,8 +112,10 @@ export function autoFillAnswers(qs: Question[]): Record<string, string | string[
         out[q.id] = [pick[0] ?? '국내산', '자사 공장 제조'].filter(Boolean).join(' / ');
         break;
       case 'legal':
-        // "필드: 값 / 필드: 값" 형식 — 게이트가 값 부분에 내용이 있어야 통과로 본다
-        out[q.id] = (q.fields ?? ['표시사항']).map(f => `${f}: 점검용 임시값`).join(' / ');
+        /* "필드: 값 / 필드: 값" 형식. ⚠️'점검용 임시값' 같은 무의미한 문자열을 넣으면 안 된다 —
+           법적 필수 표시는 결과물에 그대로 인쇄되고(실측: 화장품 '제조사명: 점검용 임시값'),
+           그 페이지를 그대로 올리면 화장품법 위반이 된다. 필드 이름에 맞는 그럴듯한 값을 넣는다. */
+        out[q.id] = (q.fields ?? ['표시사항']).map(f => `${f}: ${legalSample(f)}`).join(' / ');
         break;
       default:
         out[q.id] = q.placeholder?.replace(/^예:\s*/, '') ?? '점검용 임시 입력값입니다.';
@@ -760,11 +779,25 @@ export function QuestionField({ q, answer, onAnswer }: {
   // answer("필드: 값 / 필드: 값")에서 역복원
   const [legalVals, setLegalVals] = useState<Record<string, string>>(() => {
     if (q.mode !== 'legal' || !initStr) return {};
+    /* ⚠️' / '로 그냥 쪼개면 안 된다 — 필드 이름 자체에 '/'가 들어간 항목이 있다
+       (건강기능식품의 "제조사 / 판매원 (영업소 명칭·소재지)"). 쪼개는 순간 키가 깨져
+       화면을 떠났다 오면 그 칸이 비어버렸다. 아는 필드 이름을 기준으로 잘라낸다. */
     const result: Record<string, string> = {};
-    initStr.split(' / ').forEach(pair => {
-      const i = pair.indexOf(': ');
-      if (i > -1) result[pair.slice(0, i)] = pair.slice(i + 2);
-    });
+    const fields = [...(q.fields ?? [])].sort((a, b) => b.length - a.length);   // 긴 이름 먼저
+    let rest = initStr;
+    for (const f of fields) {
+      const at = rest.indexOf(`${f}: `);
+      if (at < 0) continue;
+      const from = at + f.length + 2;
+      // 다음 필드 이름이 시작되는 지점까지가 이 필드의 값
+      let end = rest.length;
+      for (const g of fields) {
+        if (g === f) continue;
+        const gi = rest.indexOf(` / ${g}: `, from);
+        if (gi > -1 && gi < end) end = gi;
+      }
+      result[f] = rest.slice(from, end).trim();
+    }
     return result;
   });
   const handleLegal = (field: string, val: string) => {

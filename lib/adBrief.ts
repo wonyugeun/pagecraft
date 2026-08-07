@@ -125,7 +125,12 @@ export function buildSectionBrief(i: SectionBriefInput): string {
     (i.productExtra ?? '').trim(),
     (i.diff ?? '').trim() ? `차별점: ${(i.diff ?? '').trim()}` : '',
   ].filter(Boolean).join('\n');
-  const brandLine = [(i.brand ?? '').trim(), (i.brandIntro ?? '').trim()].filter(Boolean).join(' — ');
+  /* ★브랜드 소개는 '맥락'이지 화면에 인쇄할 문구가 아니다(2026-08-08 실측).
+     전엔 "Brand: 리프그린 — 민감한 피부에도 부담 없는…"을 통째로 넘겨, 이미지 모델이 그 문장을
+     거의 모든 섹션 하단에 캡션으로 찍었다. 같은 문장이 열 번 반복되면 페이지가 싸구려로 보인다.
+     브랜드명만 렌더 가능한 값으로 두고, 소개문은 무드 참고로만 쓰고 인쇄를 금지한다. */
+  const brandName = (i.brand ?? '').trim();
+  const brandMood = (i.brandIntro ?? '').trim();
   const v = i.visual;
   const colors = v?.primary_color
     ? `Color family: main ${v.primary_color}${v.accent_color ? `, accent ${v.accent_color}` : ''}${v.soft_color ? `, soft ${v.soft_color}` : ''} — keep the whole ad's tone consistent with this family.`
@@ -170,7 +175,10 @@ export function buildSectionBrief(i: SectionBriefInput): string {
     withCopy
       ? `Korean copy to render crisply with exact spelling — place and size it however serves the ad best:\nHeadline: "${head}"${sub ? `\nSubcopy: "${sub}"` : ''}`
       : `No copy text is provided for this section — do not render any text in the image.`,
-    brandLine ? `Brand: ${brandLine}.` : '',
+    brandName ? `Brand name (may appear on the product label only): ${brandName}.` : '',
+    brandMood
+      ? `Brand context for mood only — DO NOT render this sentence, or any part of it, as text in the image: "${brandMood}"`
+      : '',
     colors,
     d
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
