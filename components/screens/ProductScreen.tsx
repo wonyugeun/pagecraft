@@ -784,7 +784,7 @@ export function QuestionField({ q, answer, onAnswer }: {
        화면을 떠났다 오면 그 칸이 비어버렸다. 아는 필드 이름을 기준으로 잘라낸다. */
     const result: Record<string, string> = {};
     const fields = [...(q.fields ?? [])].sort((a, b) => b.length - a.length);   // 긴 이름 먼저
-    let rest = initStr;
+    const rest = initStr;
     for (const f of fields) {
       const at = rest.indexOf(`${f}: `);
       if (at < 0) continue;
