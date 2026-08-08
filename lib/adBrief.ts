@@ -130,7 +130,6 @@ export function buildSectionBrief(i: SectionBriefInput): string {
      거의 모든 섹션 하단에 캡션으로 찍었다. 같은 문장이 열 번 반복되면 페이지가 싸구려로 보인다.
      브랜드명만 렌더 가능한 값으로 두고, 소개문은 무드 참고로만 쓰고 인쇄를 금지한다. */
   const brandName = (i.brand ?? '').trim();
-  const brandMood = (i.brandIntro ?? '').trim();
   const v = i.visual;
   const colors = v?.primary_color
     ? `Color family: main ${v.primary_color}${v.accent_color ? `, accent ${v.accent_color}` : ''}${v.soft_color ? `, soft ${v.soft_color}` : ''} — keep the whole ad's tone consistent with this family.`
@@ -175,10 +174,11 @@ export function buildSectionBrief(i: SectionBriefInput): string {
     withCopy
       ? `Korean copy to render crisply with exact spelling — place and size it however serves the ad best:\nHeadline: "${head}"${sub ? `\nSubcopy: "${sub}"` : ''}`
       : `No copy text is provided for this section — do not render any text in the image.`,
-    brandName ? `Brand name (may appear on the product label only): ${brandName}.` : '',
-    brandMood
-      ? `Brand context for mood only — DO NOT render this sentence, or any part of it, as text in the image: "${brandMood}"`
-      : '',
+    /* ★브랜드 소개문은 이미지 프롬프트에서 아예 뺀다(2026-08-08).
+       어제는 "이 문장을 그리지 마라"는 금지로 막았는데, 강한 금지문은 모델을 텍스트·요소 전반에
+       위축시켜 화면이 단순해질 수 있다. 소개문은 이미지 품질에 기여하는 바가 없으므로
+       넘기지 않는 편이 안전하다 — 브랜드는 제품 라벨의 이름으로 충분히 드러난다. */
+    brandName ? `Brand name (as printed on the product label): ${brandName}.` : '',
     colors,
     d
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
