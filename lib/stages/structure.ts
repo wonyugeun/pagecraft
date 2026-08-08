@@ -197,12 +197,16 @@ ${sectionBlock}
      실측상 섹션당 300~400 출력 토큰이 필요하므로 섹션당 400을 잡고 여유분 4000을 더한다.
      (섹션 이름만 받던 recommend-sections의 220/섹션보다 커야 하는 이유가 이것) */
   const maxTokens = Math.min(24000, 4000 + targetCount * 400);
-  const message = await client.messages.create({
+  /* ★스트리밍으로 받는다(2026-08-08) — 상한을 키우자 50섹션에서 SDK가
+     "Streaming is required for operations that may take longer than 10 minutes"로 거절했다.
+     (비스트리밍은 예상 소요시간이 10분을 넘을 것 같으면 아예 요청을 막는다)
+     finalMessage()는 비스트리밍과 같은 응답 객체를 주므로 아래 처리 로직은 그대로 쓴다. */
+  const message = await client.messages.stream({
     model:      'claude-sonnet-4-6',
     max_tokens: maxTokens,
     system,
     messages:   [{ role: 'user', content: userPrompt }],
-  });
+  }).finalMessage();
 
   const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
   console.log(`[structure] stop=${message.stop_reason} in=${message.usage?.input_tokens} out=${message.usage?.output_tokens} len=${raw.length}`);
