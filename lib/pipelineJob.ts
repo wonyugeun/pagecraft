@@ -1,6 +1,6 @@
 import type { StrategyResult } from '@/lib/stages/strategy';
 import type { StructureResult, SectionPlan } from '@/lib/stages/structure';
-import type { CopyOut, StrategySummary } from '@/lib/stages/copy';
+import { buildStrategySummary, type CopyOut, type StrategySummary } from '@/lib/stages/copy';
 import type { ImagebriefResult, Brief } from '@/lib/stages/imagebrief';
 import type { PipelineInput, PipelineSection } from '@/lib/pipeline';
 import { runPool } from '@/lib/asyncPool';
@@ -123,22 +123,6 @@ const COPY_PARALLEL = 4;
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** dna+strategy에서 strategy_summary 7필드만 추출(순수 함수 — 클라 번들 안전, copy.ts 미의존) */
-function extractStrategySummary(
-  dna: Record<string, unknown> | undefined,
-  strategy: Record<string, unknown> | undefined,
-): StrategySummary {
-  const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
-  return {
-    main_weapon:   s(dna?.main_weapon),
-    concept:       s(strategy?.concept),
-    hero_angle:    s(strategy?.hero_angle),
-    target_desire: s(dna?.target_desire),
-    target_fear:   s(dna?.target_fear),
-    story_flow:    s(strategy?.story_flow),
-    tone:          s(strategy?.tone),
-  };
-}
-
 /** 새 파이프라인 작업 생성 — 모든 스테이지 pending */
 export function createJob(input: PipelineInput, jobId?: string): JobState {
   return {
@@ -216,7 +200,10 @@ export async function runJob(job: JobState, opts: RunJobOptions): Promise<JobSta
   // 청크 슬롯이 아직 없으면 structure 결과로 초기화(strategy_summary 고정·청크 경계 확정)
   if (job.stages.copy.chunks.length === 0) {
     const size = opts.chunkSize ?? COPY_CHUNK_SIZE_DEFAULT;
-    job.stages.copy.strategySummary = extractStrategySummary(dna, strategy);
+    /* ★정본을 쓴다(2026-08-08) — 여기 있던 같은 이름의 사본에 speech_level이 빠져 있었다.
+       그래서 셀러가 고른 어투가 /api/copy까지 도달한 적이 없고, 어투 강제 변환도 한 번도
+       실행되지 않았다("말투 또 안 바뀜"의 진짜 원인). 사본을 지우고 lib/stages/copy의 것을 쓴다. */
+    job.stages.copy.strategySummary = buildStrategySummary(dna, strategy as never);
     job.stages.copy.total = plan.length;
     job.stages.copy.chunkSize = size;
     job.stages.copy.chunks = [];
