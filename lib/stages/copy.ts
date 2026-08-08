@@ -734,9 +734,14 @@ export async function enforceSpeechLevel(sections: CopyOut[], level: string): Pr
 
   const SEP = '\n⟨§⟩\n';
   try {
+    /* ★상한을 입력 길이에 맞춘다(2026-08-08) — 8000 고정이었다. 이 패스는 받은 텍스트를
+       거의 같은 길이로 되돌려주므로, 필요한 출력량은 입력 길이가 정한다. 잘리면 항목 수가
+       어긋나 '원문 유지'로 빠지는데, 화면엔 아무 표시가 없어 '어투가 안 바뀐 것'으로만 보인다
+       (실제로 그 증상을 세 번 겪었다). 넉넉히 열어 잘릴 일 자체를 없앤다. */
+    const joinedLen = items.join(SEP).length;
     const res = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 8000,
+      max_tokens: Math.min(16000, Math.max(4000, Math.ceil(joinedLen * 1.6))),
       system: `한국어 카피의 말투(어미)만 바꾼다. 목표 어투: ${lv.key} — ${lv.rule}
 규칙: 내용·어휘·순서·줄바꿈(\n)·(())·** 마커를 전부 그대로 두고 문장 끝맺음만 목표 어투로 바꾼다.
 이미 목표 어투인 문장은 그대로 둔다.
@@ -748,7 +753,8 @@ export async function enforceSpeechLevel(sections: CopyOut[], level: string): Pr
     const raw = res.content.map(c => (c.type === 'text' ? c.text : '')).join('');
     const parts = raw.split('⟨§⟩').map(t => t.trim());
     if (parts.length !== items.length) {
-      console.warn(`[enforceSpeechLevel] 항목 수 불일치(${parts.length}≠${items.length}) — 원문 유지`);
+      // 잘림인지 모델 실수인지 로그로 구분한다 — 조용히 넘어가면 원인을 영영 못 찾는다
+      console.warn(`[enforceSpeechLevel] 항목 수 불일치(${parts.length}≠${items.length}) stop=${res.stop_reason} inLen=${joinedLen} — 원문 유지`);
       return sections;
     }
     parts.forEach((v, i) => { if (v) refs[i](v); });
