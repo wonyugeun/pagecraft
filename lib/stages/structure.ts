@@ -192,9 +192,14 @@ ${sectionBlock}
 
   console.log(`[structure] cat=${cat} ch=${ch} depth=${resolvedDepth} target=${targetCount} weapon=${dna.main_weapon?.slice(0, 30)}`);
 
+  /* ★출력 상한을 섹션 수에 맞춘다(2026-08-08) — 8000 고정이라 35섹션에서 잘려 생성이 통째로 실패했다.
+     이 단계는 섹션마다 name·desc·role·mission·emotion_goal·writing_style·block_plan 7개를 한국어로 쓴다.
+     실측상 섹션당 300~400 출력 토큰이 필요하므로 섹션당 400을 잡고 여유분 4000을 더한다.
+     (섹션 이름만 받던 recommend-sections의 220/섹션보다 커야 하는 이유가 이것) */
+  const maxTokens = Math.min(24000, 4000 + targetCount * 400);
   const message = await client.messages.create({
     model:      'claude-sonnet-4-6',
-    max_tokens: 8000,
+    max_tokens: maxTokens,
     system,
     messages:   [{ role: 'user', content: userPrompt }],
   });
@@ -202,7 +207,7 @@ ${sectionBlock}
   const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
   console.log(`[structure] stop=${message.stop_reason} in=${message.usage?.input_tokens} out=${message.usage?.output_tokens} len=${raw.length}`);
   if (message.stop_reason === 'max_tokens') {
-    throw new Error('응답이 max_tokens(8000)에 도달해 잘렸어요. 섹션 수를 줄여보세요.');
+    throw new Error(`응답이 출력 상한(${maxTokens})에 도달해 잘렸어요. 섹션 수를 줄여 다시 시도해주세요.`);
   }
 
   const first = raw.indexOf('{');
