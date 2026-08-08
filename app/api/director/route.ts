@@ -10,7 +10,10 @@ import { API_ERROR_CODES } from '@/lib/apiErrors';
  * LLM 호출. NEXT_PUBLIC_CLEAN_IMAGE_BRIEF ON인 클라이언트만 이 라우트를 사용한다.
  */
 
-export const maxDuration = 120;
+/* ★120 → 300(2026-08-08) — 35섹션 실측 108초로 제한에 간당간당했다. 구조 단계가 같은 조건에서
+   154초·398초로 2.5배 출렁인 걸 보면 디렉터도 조금만 느려지면 넘긴다. 넘기면 플랜이 null이 되고
+   모든 섹션이 같은 기본 브리프를 받아 '전부 비슷한 요약 카드'로 나온다(유근님 실측). */
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   const { jobKey, cat, ch, productName, productExtra, diff, brand, sections, productImage } = await req.json() as {

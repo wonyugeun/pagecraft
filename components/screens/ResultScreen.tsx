@@ -1450,8 +1450,11 @@ export default function ResultScreen() {
           sections: sections.map(s => ({ name: s.name, headline: s.headline, subcopy: s.subcopy })),
           productImage: productImagesRef.current[0] ?? null,
         }),
-        signal: AbortSignal.timeout(120_000),
-      }).then(r => r.json()).then(d => (d?.plan ?? null) as DirectorPlan | null).catch(() => null);
+        /* ★섹션 수에 비례(2026-08-08) — 120초 고정이라 35섹션(실측 108초)에서 곧잘 넘겼다.
+           넘기면 조용히 null이 되어 모든 섹션이 같은 기본 브리프로 떨어진다. */
+        signal: AbortSignal.timeout(Math.min(280_000, 90_000 + sections.length * 5_000)),
+      }).then(r => r.json()).then(d => (d?.plan ?? null) as DirectorPlan | null)
+        .catch(e => { console.warn('[director] 플랜 없이 진행 — 섹션별 장면 지시가 빠집니다:', e); return null; });
     }
     return directorPlanRef.current;
   }, [cat, ch, productName, productExtra, diff, brand, sections]);

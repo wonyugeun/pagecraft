@@ -182,7 +182,9 @@ export function buildSectionBrief(i: SectionBriefInput): string {
     colors,
     d
       ? `Execute the concept like a top Korean commercial photographer: YOU decide the exact composition, framing, camera and styling that best realizes this concept for THIS section. Do not fall back to a generic template layout.`
-      : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.`,
+      : `You are the ad director. Decide the advertising strategy, the scene, the composition, whether a person appears, how the product's texture or use-feel is expressed, and where the copy sits — whatever sells THIS product best.
+⚠️This cut must carry ONLY this section's own point (see the headline/subcopy above). The product facts below are background you may draw ONE relevant detail from — they are NOT a checklist to display.
+⛔Never lay out the product information as a summary card, spec sheet, or grid of boxes covering ingredients, targets, reviews, usage order and notices all at once. That turns every section into the same page. One section = one idea, one scene.`,
     (i.editRequest ?? '').trim()
       ? `★Seller's revision request for THIS regeneration — apply it faithfully (it comes from the seller and takes priority for what it addresses; it may adjust the composition/scene, or correct the Korean copy's wording — if it corrects wording, render the corrected wording instead of the copy above):\n"${(i.editRequest ?? '').trim()}"`
       : '',
