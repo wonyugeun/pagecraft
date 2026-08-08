@@ -1,6 +1,10 @@
 import type { StrategyResult } from '@/lib/stages/strategy';
 import type { StructureResult, SectionPlan } from '@/lib/stages/structure';
-import { buildStrategySummary, type CopyOut, type StrategySummary } from '@/lib/stages/copy';
+import type { CopyOut } from '@/lib/stages/copy';
+/* ⚠️값(함수)은 반드시 SDK 없는 모듈에서 가져올 것 — lib/stages/copy는 최상단에서 Anthropic
+   인스턴스를 만들기 때문에, 여기서 값으로 import하면 이 파일(브라우저 실행)이 SDK를 끌고 들어가
+   "running in a browser-like environment"로 앱이 죽는다(2026-08-08 실측). 타입만 가져온다. */
+import { buildStrategySummary, type StrategySummary } from '@/lib/strategySummary';
 import type { ImagebriefResult, Brief } from '@/lib/stages/imagebrief';
 import type { PipelineInput, PipelineSection } from '@/lib/pipeline';
 import { runPool } from '@/lib/asyncPool';

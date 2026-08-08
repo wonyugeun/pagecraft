@@ -52,34 +52,11 @@ export interface CopyOut {
 }
 
 /** 청크마다 재주입하는 전략 요약 — 7필드 (DNA 전체 주입 금지) */
-export interface StrategySummary {
-  main_weapon?: string;
-  concept?: string;
-  hero_angle?: string;
-  target_desire?: string;
-  target_fear?: string;
-  story_flow?: string;
-  tone?: string;
-  speech_level?: string;
-}
-
-/** dna+strategy에서 strategy_summary 7필드만 추출 */
-export function buildStrategySummary(
-  dna: Record<string, unknown> | undefined,
-  strategy: Strategy,
-): StrategySummary {
-  const s = (v: unknown) => (typeof v === 'string' ? v : undefined);
-  return {
-    main_weapon:   s(dna?.main_weapon),
-    concept:       s(strategy?.concept),
-    hero_angle:    s(strategy?.hero_angle),
-    target_desire: s(dna?.target_desire),
-    target_fear:   s(dna?.target_fear),
-    story_flow:    s(strategy?.story_flow),
-    tone:          s(strategy?.tone),
-    speech_level:  s(strategy?.speech_level),
-  };
-}
+/* 전략 요약본 정의는 lib/strategySummary.ts로 옮겼다(2026-08-08) —
+   브라우저에서 도는 pipelineJob이 이 파일을 값으로 import하면 SDK가 클라이언트 번들에 실린다.
+   기존 import 경로(@/lib/stages/copy)를 쓰는 곳이 있어 그대로 재수출한다. */
+import { buildStrategySummary, type StrategySummary } from '@/lib/strategySummary';
+export { buildStrategySummary, type StrategySummary };
 
 export interface CopyChunkInput {
   strategySummary: StrategySummary;
